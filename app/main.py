@@ -18,7 +18,17 @@ from .engine.character import Character, new_character
 
 
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="Traveller Character Creator")
+
+# VERSION lives at the repo root alongside docker-compose.yml and is
+# bumped by push-to-github.ps1 on every release. We read it once at
+# startup and surface it in the UI (and via /api/health).
+_VERSION_FILE = BASE_DIR.parent / "VERSION"
+try:
+    APP_VERSION = _VERSION_FILE.read_text(encoding="utf-8").strip() or "dev"
+except FileNotFoundError:
+    APP_VERSION = "dev"
+
+app = FastAPI(title="Traveller Character Creator", version=APP_VERSION)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -44,6 +54,26 @@ class BackgroundSkillsAction(CharacterAction):
 class SwapStatsAction(CharacterAction):
     stat_a: str
     stat_b: str
+
+
+class BoonAction(CharacterAction):
+    stat: str
+
+
+class BoonPoolAction(CharacterAction):
+    count: int
+
+
+class ConnectionAction(CharacterAction):
+    description: str
+    skill: str | None = None
+
+
+class PsionicTalentAction(CharacterAction):
+    talent_id: str
+
+
+
 
 
 class CareerAction(CharacterAction):
@@ -88,7 +118,8 @@ async def index(request: Request):
         request,
         "index.html",
         {"species_list": rules.list_species(),
-         "careers_list": rules.list_careers()},
+         "careers_list": rules.list_careers(),
+         "app_version": APP_VERSION},
     )
 
 
@@ -224,6 +255,20 @@ async def api_qualify(action: CareerAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/draft")
+async def api_draft(action: CharacterAction):
+    """Roll 1d6 on the draft table and auto-start the drafted term.
+
+    Called after a failed career qualification when the player elects to
+    accept the draft instead of falling back to Drifter.
+    """
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.draft_into_service(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/start-term")
 async def api_start_term(action: CareerAction):
     if not action.assignment_id:
@@ -298,6 +343,91 @@ async def api_muster_out(action: MusterOutAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/anagathics")
+async def api_anagathics(action: CharacterAction):
+    """Purchase one term of anagathics treatment."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.purchase_anagathics(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/injury")
+async def api_character_injury(action: CharacterAction):
+    """Roll on the injury table (1D). Applies stat damage + medical debt."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.apply_injury(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/boon")
+async def api_boon(action: BoonAction):
+    """Re-roll one characteristic, keeping the higher value (boon)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.reroll_characteristic_boon(character, action.stat)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/boon-pool")
+async def api_boon_pool(action: BoonPoolAction):
+    """Set the boon-roll pool size (GM-configurable)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.set_boon_pool(character, action.count)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/capsule")
+async def api_capsule(action: CharacterAction):
+    """Generate a capsule description of the character."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.generate_capsule(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/connection")
+async def api_connection(action: ConnectionAction):
+    """Add a Connection (a link to another PC) to the character."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.add_connection(character, action.description, action.skill)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/tables/psionics")
+async def api_psionics_table():
+    return rules.psionics()
+
+
+@app.post("/api/character/psionics/test")
+async def api_psionics_test(action: CharacterAction):
+    """Run the psionic potential test (2D 9+) and roll Psi on success."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.test_psionics(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/psionics/train")
+async def api_psionics_train(action: PsionicTalentAction):
+    """Train a specific psionic talent (costs Cr per talent)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.train_psionic_talent(character, action.talent_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/reload-rules")
 async def api_reload_rules():
     """Dev helper — flush data caches without restarting."""
@@ -307,5 +437,6 @@ async def api_reload_rules():
 
 @app.get("/api/health")
 async def api_health():
-    return {"status": "ok", "species_count": len(rules.species()),
+    return {"status": "ok", "version": APP_VERSION,
+            "species_count": len(rules.species()),
             "careers_count": len(rules.careers())}

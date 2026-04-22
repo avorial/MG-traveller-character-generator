@@ -1,0 +1,30 @@
+{
+  "id": "imperial_vargr",
+  "name": "Vargr (Imperial Raised)",
+  "description": "Raised within the vast, rule-bound systems of the Third Imperium, this Vargr grew up in a culture that values stability over charisma and order over shifting loyalties. Imperial society does not run on pack dominance, yet the Vargr instinct for social hierarchy and personal magnetism never disappears. Instead, it adapts. Reputation becomes professional credibility. Pack becomes crew, unit, or network. Authority is still fluid in their mind, even when Imperial law says otherwise. Such Vargr often excel in roles where personality carries weight, but they chafe under rigid command structures. They understand the rules of the Imperium, but they never fully believe in them. Authority, to them, is still something earned moment to moment, not granted by rank alone.",
+  "characteristic_modifiers": {
+    "STR": -1,
+    "DEX": 1,
+    "END": -1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [
+    {
+      "name": "Bite",
+      "description": "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (natural) skill and does 1D+1 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Vargr have better hearing and sense of smell than humans. All Vargr receive DM+1 to any Recon and Survival checks they have to make. However, their eyesight is worse in darkness and they suffer DM-1 to any skill check requiring sight in dark conditions."
+    },
+    {
+      "name": "Adapted Charisma",
+      "description": "Pack instincts channeled through Imperial institutions. DM+1 to Persuade and Leadership checks in informal or crew-level social settings. The character chafes under rigid hierarchy: DM-1 to any Admin check that requires deference to a chain of command they don't personally respect."
+    }
+  ],
+  "aliases": ["vargr", "extents_vargr"],
+  "source": "Traveller Core Rulebook, Mongoose Publishing; home-society flavor derived for the Imperium-raised variant"
+}

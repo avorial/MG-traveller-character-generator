@@ -1,0 +1,58 @@
+{
+  "description": "Psionic testing and training. Mongoose Traveller 2e Core Rulebook, pp.176-188. Psionics is usually restricted; most human PCs cannot be tested without rare opportunity, but Zhodani, Droyne, and some other species grow up with training. Creator treats this as an opt-in step, and the resulting Psi score and talent skills are added to the character.",
+  "potential_test": {
+    "roll": "2D",
+    "target": 9,
+    "dm_rules": [
+      {"description": "DM-1 per term completed before testing", "type": "per_term_before_test"}
+    ]
+  },
+  "psi_strength_formula": {
+    "dice": "2D",
+    "subtract": "total_terms",
+    "min": 0,
+    "max": 15
+  },
+  "talents": {
+    "telepathy": {
+      "name": "Telepathy",
+      "skill": "Telepathy",
+      "test_target": 8,
+      "cost_cr": 200000,
+      "description": "Project thoughts, read surface minds, communicate over distance. Most common human talent."
+    },
+    "clairvoyance": {
+      "name": "Clairvoyance",
+      "skill": "Clairvoyance",
+      "test_target": 9,
+      "cost_cr": 200000,
+      "description": "Sense remote locations; perceive through walls; glimpse future fragments."
+    },
+    "telekinesis": {
+      "name": "Telekinesis",
+      "skill": "Telekinesis",
+      "test_target": 9,
+      "cost_cr": 200000,
+      "description": "Move objects with the mind. Damage and lift limits scale with Psi characteristic."
+    },
+    "awareness": {
+      "name": "Awareness",
+      "skill": "Awareness",
+      "test_target": 8,
+      "cost_cr": 200000,
+      "description": "Enhance the body: slow aging, heal faster, boost reflexes."
+    },
+    "teleportation": {
+      "name": "Teleportation",
+      "skill": "Teleportation",
+      "test_target": 11,
+      "cost_cr": 200000,
+      "description": "Move yourself — and eventually objects — instantly across distance. The rarest talent."
+    }
+  },
+  "notes": [
+    "In RAW, psionic testing is normally restricted (illegal in most Imperial space).",
+    "Creator exposes it as a GM-approved optional step; the character must be in the mustering-out or finalize phase.",
+    "Each talent trained costs Cr200,000 and takes 1 year (not reflected in age here for creator simplicity)."
+  ]
+}

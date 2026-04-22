@@ -1,5 +1,5 @@
 {
   "deprecated": true,
-  "replaced_by": "extents_vargr",
-  "note": "Renamed to 'extents_vargr' once society-of-origin became part of the species schema. A Vargr raised in the Extents is culturally very different from one raised in the Imperium; this stub stays so old saves can alias through the loader."
+  "replaced_by": "imperial_vargr",
+  "note": "Original 'vargr' id was renamed once home-society became part of the schema; the Imperial-raised variant is now the canonical Vargr option in this generator."
 }

@@ -76,6 +76,7 @@ class Character(BaseModel):
     # Identity
     name: str = ""
     homeworld: str = ""
+    homeworld_uwp: str = ""
     species_id: str = "imperial_human"
 
     # Core stats
@@ -93,11 +94,12 @@ class Character(BaseModel):
 
     # Goodies and baggage
     credits: int = 0
+    medical_debt: int = 0
     ship_shares: int = 0
     pension_per_year: int = 0
     equipment: list[Equipment] = Field(default_factory=list)
     associates: list[Associate] = Field(default_factory=list)
-    traits: list[dict] = Field(default_factory=list)  # Species traits
+    traits: list[dict] = Field(default_factory=list)
     pending_benefit_rolls: int = 0
     cash_rolls_used: int = 0
     dm_next_advancement: int = 0
@@ -106,39 +108,64 @@ class Character(BaseModel):
 
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
-    # {
-    #   "track": "university" | "military_academy" | None,
-    #   "service": "army" | "marine" | "navy" | None,
-    #   "stage": "none" | "enrolled" | "graduated" | "failed_grad" | "not_qualified" | "skipped",
-    #   "outcome": "pass" | "honours" | "fail" | "skipped" | "not_qualified" | None,
-    #   "skill_picks_remaining": int,
-    #   "skill_pool": [str, ...]
-    # }
-    # Set by the academy path when the character graduates and earns
-    # a commission: first term in this career starts at Rank 1 commissioned.
     starts_commissioned_career_id: Optional[str] = None
 
+    # Anagathics
+    anagathics_purchased_terms: int = 0
+    anagathics_addicted: bool = False
+
+    # Free-form player notes (rendered on the sheet)
+    user_notes: str = ""
+
+    # Boon / re-roll pool (GM-configurable; zero = unlimited or unused)
+    boon_rolls_total: int = 0
+    boon_rolls_remaining: int = 0
+
+    # Psionics (MgT 2e Core p.176). Set when the optional test is performed.
+    psi: int = 0
+    psi_tested: bool = False
+    psi_trained_talents: list[str] = Field(default_factory=list)
+
+    # Capsule description (generated in finalize phase, persisted for export)
+    capsule_description: str = ""
+
     # Creation flow state
-    phase: str = "characteristics"  # characteristics | species | background | pre_career | career | mustering | finalize | done
+    phase: str = "characteristics"
+    # characteristics | species | background | pre_career | career | mustering | finalize | done
     notes: list[str] = Field(default_factory=list)
     dead: bool = False
     death_reason: Optional[str] = None
 
     def add_skill(self, name: str, level: int = 0, speciality: Optional[str] = None) -> str:
-        """Add or upgrade a skill. Returns a human-readable log message."""
-        # Check for existing skill with same name + speciality
+        """Add or upgrade a skill. Returns a human-readable log message.
+
+        Rulebook nuance (MgT 2e, p.59): when a character gains a
+        speciality (e.g. "Gun Combat (slug)") at level 1+, they also
+        have the parent skill ("Gun Combat") at level 0. The parent
+        is auto-seeded here so the sheet shows it.
+        """
         for existing in self.skills:
             if existing.name == name and existing.speciality == speciality:
-                if existing.level < 4:  # max skill level in creation
+                if existing.level < 4:
                     existing.level += level if level > 0 else 1
                     if existing.level > 4:
                         existing.level = 4
                     return f"Increased {existing.name}{f' ({speciality})' if speciality else ''} to {existing.level}"
                 else:
                     return f"{name} already at maximum level 4"
-        # New skill
-        self.skills.append(Skill(name=name, level=max(level, 0), speciality=speciality))
-        return f"Gained {name}{f' ({speciality})' if speciality else ''} {max(level, 0)}"
+
+        new_level = max(level, 0)
+        self.skills.append(Skill(name=name, level=new_level, speciality=speciality))
+
+        # Auto-seed parent skill at level 0 when gaining a speciality at 1+.
+        if speciality and new_level >= 1:
+            has_parent = any(
+                s.name == name and s.speciality is None for s in self.skills
+            )
+            if not has_parent:
+                self.skills.append(Skill(name=name, level=0, speciality=None))
+
+        return f"Gained {name}{f' ({speciality})' if speciality else ''} {new_level}"
 
     def log(self, message: str) -> None:
         self.notes.append(message)

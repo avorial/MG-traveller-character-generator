@@ -29,6 +29,11 @@ let uiState = {
   // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster'
   subPhase: null,
   pendingAge: false,
+  // GM / cheat mode — unlocks direct stat editing, boon rolls, phase skipping.
+  gmMode: (localStorage.getItem('traveller_gm_mode') === '1'),
+  // Connections step (between muster-out and done).
+  connectionsDone: false,
+  connections: [],
 };
 
 // ------------------------------------------------------------
@@ -59,7 +64,9 @@ async function freshCharacter() {
   uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
               selectedCareer: null, selectedAssignment: null, lastRoll: null,
               swapPick: null, swapA: 'EDU', swapB: 'STR',
-              subPhase: null, pendingAge: false };
+              subPhase: null, pendingAge: false,
+              gmMode: uiState.gmMode,
+              connectionsDone: false, connections: [] };
   saveCharacter();
 }
 
@@ -238,6 +245,7 @@ function renderSheet() {
       <div class="sheet-header">
         <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${character.name || ''}" />
         <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${character.homeworld || ''}" />
+        <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${character.homeworld_uwp || ''}" title="Universal World Profile (paste from travellermap.com)" />
         <div class="sheet-meta">
           <span>SPECIES<br><strong>${species.name}</strong></span>
           <span>AGE<br><strong>${character.age}</strong></span>
@@ -286,6 +294,27 @@ function renderSheet() {
         <h3>Species Traits</h3>
         ${traitsHTML}
       </div>
+
+      ${character.medical_debt > 0 ? `
+      <div class="sheet-section warn">
+        <h3>Medical Debt</h3>
+        <div class="credits-line danger">Cr${character.medical_debt.toLocaleString()} owed</div>
+        <p class="empty">Deducted automatically from mustering-out cash rolls.</p>
+      </div>` : ''}
+
+      ${(character.anagathics_purchased_terms > 0 || character.anagathics_addicted) ? `
+      <div class="sheet-section">
+        <h3>Anagathics</h3>
+        <ul class="skill-list">
+          ${character.anagathics_purchased_terms > 0 ? `<li><span>Treatments banked</span><span class="skill-level">${character.anagathics_purchased_terms}</span></li>` : ''}
+          ${character.anagathics_addicted ? `<li><span style="color:var(--danger)">Addicted</span><span class="skill-level" style="color:var(--danger)">!</span></li>` : ''}
+        </ul>
+      </div>` : ''}
+
+      <div class="sheet-section">
+        <h3>Notes</h3>
+        <textarea id="char-notes" class="sheet-notes" placeholder="Personality, quirks, contacts, anything you want on the sheet…" rows="5">${(character.user_notes || '').replace(/</g, '&lt;')}</textarea>
+      </div>
     </div>
   `;
 
@@ -297,6 +326,18 @@ function renderSheet() {
   document.getElementById('char-homeworld').addEventListener('change', (e) => {
     character.homeworld = e.target.value;
     saveCharacter();
+  });
+  const uwpEl = document.getElementById('char-uwp');
+  if (uwpEl) uwpEl.addEventListener('change', (e) => {
+    character.homeworld_uwp = e.target.value.trim();
+    saveCharacter();
+  });
+  const notesEl = document.getElementById('char-notes');
+  if (notesEl) notesEl.addEventListener('input', (e) => {
+    character.user_notes = e.target.value;
+    // Debounce the save so every keystroke doesn't hit localStorage
+    clearTimeout(window._notesSaveTimer);
+    window._notesSaveTimer = setTimeout(saveCharacter, 400);
   });
 }
 
@@ -381,6 +422,9 @@ function renderCharacteristicsPhase() {
             <span class="stat-label">${stat}</span>
             <span class="stat-value">${val}</span>
             <span class="stat-dm">DM ${formatDM(dm)}</span>
+            ${(uiState.gmMode || character.boon_rolls_remaining > 0) ? `
+              <button class="boon-btn" data-boon-stat="${stat}" title="Re-roll ${stat}, keep the higher value">BOON</button>
+            ` : ''}
           </div>
         `;
       }).join('')}
@@ -432,6 +476,23 @@ function renderCharacteristicsPhase() {
 
       ${statGrid}
       ${swapRow}
+
+      ${uiState.gmMode ? `
+        <div class="gm-panel">
+          <span class="gm-badge">GM MODE</span>
+          <label class="gm-field">
+            BOON POOL
+            <input type="number" id="gm-boon-pool" min="0" max="20" value="${character.boon_rolls_total}" />
+            <button class="btn ghost" id="btn-set-boon-pool">SET</button>
+          </label>
+          <span class="gm-hint">Click any stat value to edit directly. BOON re-rolls keep the higher value.</span>
+        </div>
+      ` : ''}
+      ${(!uiState.gmMode && character.boon_rolls_remaining > 0) ? `
+        <div class="boon-banner">
+          <strong>${character.boon_rolls_remaining}</strong> boon roll${character.boon_rolls_remaining === 1 ? '' : 's'} available. Click BOON on any stat to re-roll it — you keep the higher.
+        </div>
+      ` : ''}
 
       <div class="phase-actions">
         <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : 'ROLL 2D × 6'}</button>
@@ -509,6 +570,65 @@ function wireCharacteristicsPhase() {
         alert(e.message);
       }
       renderAll();
+    });
+  }
+
+  // Boon buttons per stat cell
+  document.querySelectorAll('[data-boon-stat]').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();  // don't trigger the tile's swap-pick
+      const stat = btn.dataset.boonStat;
+      try {
+        const response = await apiCall('/api/character/boon', { stat });
+        await applyResponse(response);
+        uiState.lastRoll = {
+          type: 'boon',
+          data: response.roll,
+          stat: response.stat,
+          old: response.old,
+          new: response.new,
+          kept: response.kept,
+        };
+      } catch (e) {
+        alert(e.message);
+      }
+      renderAll();
+    });
+  });
+
+  // GM: set boon pool
+  const gmBoonPool = document.getElementById('btn-set-boon-pool');
+  if (gmBoonPool) {
+    gmBoonPool.addEventListener('click', async () => {
+      const count = parseInt(document.getElementById('gm-boon-pool').value, 10) || 0;
+      try {
+        const response = await apiCall('/api/character/boon-pool', { count });
+        await applyResponse(response);
+      } catch (e) { alert(e.message); }
+      renderAll();
+    });
+  }
+
+  // GM: direct-edit a stat by double-clicking its value
+  if (uiState.gmMode) {
+    document.querySelectorAll('.stat-cell-rolled .stat-value').forEach(el => {
+      el.addEventListener('dblclick', (ev) => {
+        const cell = ev.target.closest('[data-stat]');
+        const stat = cell?.dataset?.stat;
+        if (!stat) return;
+        const current = character.characteristics[stat];
+        const nextStr = prompt(`Set ${stat} to:`, String(current));
+        if (nextStr === null) return;
+        const next = parseInt(nextStr, 10);
+        if (isNaN(next) || next < 0 || next > 20) {
+          alert('Enter a number between 0 and 20.');
+          return;
+        }
+        character.characteristics[stat] = next;
+        character.notes.push(`GM: set ${stat} to ${next} (was ${current}).`);
+        saveCharacter();
+        renderAll();
+      });
     });
   }
 }
@@ -1010,14 +1130,24 @@ function wirePreCareerPhase() {
 
 function renderCareerPhase() {
   const term = character.current_term;
-  const subPhase = uiState.subPhase;
 
-  // If there's no active term, we're in the "choose career" state
+  // After clicking a career card we POST /api/character/qualify, which
+  // returns a roll result but does NOT create a current_term (the term
+  // only starts once the user picks an assignment and hits BEGIN TERM).
+  // So between those two clicks we have: term === null, subPhase === 'qualify'.
+  // Route that state to renderQualifyResult so the dice + assignment
+  // picker actually render.
+  if (!term && uiState.subPhase === 'qualify' && uiState.lastRoll) {
+    return renderQualifyResult();
+  }
+  if (term && uiState.subPhase === 'draft_result' && uiState.lastRoll?.type === 'draft') {
+    return renderDraftResult();
+  }
+
+  // Otherwise: no term means choose-a-career; term means active term loop.
   if (!term) {
     return renderChooseCareer();
   }
-
-  // Active term - show the term walkthrough
   return renderActiveTerm();
 }
 
@@ -1089,6 +1219,51 @@ function wireCareerPhase() {
     finishBtn.addEventListener('click', () => {
       character.phase = 'mustering';
       saveCharacter();
+      renderAll();
+    });
+  }
+
+  // Failed-qualification fallback options
+  const btnDraft = document.getElementById('btn-accept-draft');
+  if (btnDraft) {
+    btnDraft.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/draft');
+        await applyResponse(response);
+        uiState.selectedCareer = response.career_id;
+        uiState.selectedAssignment = response.assignment_id;
+        uiState.subPhase = 'draft_result';
+        uiState.lastRoll = {
+          type: 'draft',
+          roll: response.roll,
+          career_name: response.career_name,
+          assignment_name: response.assignment_name,
+        };
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+
+  const btnDrifter = document.getElementById('btn-drifter-auto');
+  if (btnDrifter) {
+    btnDrifter.addEventListener('click', async () => {
+      uiState.selectedCareer = 'drifter';
+      uiState.selectedAssignment = null;
+      uiState.subPhase = 'qualify';
+      const response = await apiCall('/api/character/qualify', { career_id: 'drifter' });
+      await applyResponse(response);
+      uiState.lastRoll = response;
+      renderAll();
+    });
+  }
+
+  const btnBeginDrafted = document.getElementById('btn-begin-drafted-term');
+  if (btnBeginDrafted) {
+    btnBeginDrafted.addEventListener('click', () => {
+      uiState.lastRoll = null;
+      uiState.subPhase = 'train';
       renderAll();
     });
   }
@@ -1382,13 +1557,42 @@ function renderQualifyResult() {
           <span class="eq">vs ${r.target}+</span>
           <span class="outcome fail">FAIL</span>
         </div>
-        <p class="phase-body">You didn't qualify. In the full rules you would now submit to the Draft or take the Drifter career. For now, <strong>choose another career to attempt</strong> (with a DM-1 penalty for each failed career, per the rules — not yet modeled). The Drifter career has automatic qualification.</p>
+        <p class="phase-body">You didn't qualify. The rules offer three options:</p>
+        <ul class="phase-body" style="padding-left:20px;line-height:1.7">
+          <li><strong>Accept the Draft</strong> — 1D determines which service takes you (Navy, Army, Marines, Merchant Marine, Scouts, or Agent). No choice in assignment, but you start a term immediately.</li>
+          <li><strong>Become a Drifter</strong> — auto-qualifies, rough life, cheap mustering benefits.</li>
+          <li><strong>Try Another Career</strong> — attempt a different qualification (each failed career should carry a DM-1 penalty; not yet modeled).</li>
+        </ul>
         <div class="phase-actions">
-          <button class="btn primary" id="btn-back-careers">← TRY ANOTHER CAREER</button>
+          <button class="btn primary" id="btn-accept-draft">ACCEPT THE DRAFT</button>
+          <button class="btn" id="btn-drifter-auto">BECOME A DRIFTER</button>
+          <button class="btn" id="btn-back-careers">← TRY ANOTHER CAREER</button>
         </div>
       </div>
     `;
   }
+}
+
+function renderDraftResult() {
+  const roll = uiState.lastRoll;
+  const r = roll.roll;
+  return `
+    <div class="panel-header"><span class="led"></span><span>DRAFT — CONSCRIPTED</span></div>
+    <div class="stage-content">
+      <div class="phase-label">${roll.career_name}</div>
+      <h2 class="phase-title">Drafted into ${roll.assignment_name}</h2>
+      <div class="roll-readout">
+        <span class="dice">[${r.dice.join(', ')}]</span>
+        <span class="eq">=</span>
+        <span class="total">${r.total}</span>
+        <span class="outcome pass">DRAFT</span>
+      </div>
+      <p class="phase-body">The papers came through. You're now a ${roll.assignment_name} in the ${roll.career_name}. Basic training starts on arrival.</p>
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-begin-drafted-term">BEGIN TERM →</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderAssignmentPicker(career) {
@@ -1594,8 +1798,17 @@ function renderMishapStep() {
           <span class="event-label">Mishap [1D=${lr.data?.total ?? '?'}]</span>
           ${escapeHTML(lr.mishapText || '')}
         </div>
-        <p class="phase-body empty"><em>Apply any stat reductions, allies/enemies, or ejection effects manually — automatic handling is not yet modeled.</em></p>
+        <p class="phase-body empty"><em>Apply any stat reductions, allies/enemies, or ejection effects manually. If the mishap calls for an Injury roll, use the button below.</em></p>
+        ${uiState.lastRoll && uiState.lastRoll.type === 'injury' ? `
+          <div class="injury-box">
+            <strong>Injury: ${escapeHTML(uiState.lastRoll.title || '')}</strong>
+            <p class="empty" style="margin:4px 0">${escapeHTML(uiState.lastRoll.text || '')}</p>
+            ${uiState.lastRoll.effects && uiState.lastRoll.effects.length ? `<p style="color:var(--cream);margin:2px 0">Applied: ${uiState.lastRoll.effects.map(escapeHTML).join(', ')}</p>` : ''}
+            ${uiState.lastRoll.medical_debt_added ? `<p style="color:var(--danger);margin:2px 0">+Cr${uiState.lastRoll.medical_debt_added.toLocaleString()} medical debt.</p>` : ''}
+          </div>
+        ` : ''}
         <div class="phase-actions">
+          <button class="btn" id="btn-roll-injury">ROLL INJURY (1D)</button>
           <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
         </div>
       </div>
@@ -1698,6 +1911,24 @@ function renderDecideStep() {
         <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${career.name.toUpperCase()}</button>
         <button class="btn" id="btn-leave-career">MUSTER OUT OF ${career.name.toUpperCase()}</button>
       </div>
+
+      ${character.total_terms + 1 >= 4 ? `
+        <div class="anagathics-box">
+          <div class="anagathics-header">
+            <strong>Anagathics available</strong>
+            <span class="empty">Cr200,000 per 4-year term — skips the aging roll</span>
+          </div>
+          <div class="anagathics-status">
+            Banked treatments: <strong>${character.anagathics_purchased_terms}</strong>
+            ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
+          </div>
+          <div class="phase-actions" style="margin-top:6px">
+            <button class="btn ghost" id="btn-buy-anagathics" ${character.credits < 200000 ? 'disabled' : ''}>
+              PURCHASE (Cr200,000)${character.credits < 200000 ? ' — NEED MORE CREDITS' : ''}
+            </button>
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -1855,6 +2086,8 @@ function wireMusterPhase() {
 // ============================================================
 
 function renderDonePhase() {
+  const existingConns = (character.associates || []).filter(a => (a.description || '').startsWith('Connection: '));
+
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 06 — READY FOR ADVENTURE</span></div>
     <div class="stage-content">
@@ -1864,13 +2097,104 @@ function renderDonePhase() {
 
       <div class="phase-body">
         <p>Your character's full history is in the Mission Log. Export the JSON to save them, or import a different Traveller to continue work.</p>
-        <p>To add another species or complete a stubbed career, edit the files in <code>app/data/</code>. The README has the full schema.</p>
       </div>
+
+      <div class="done-card">
+        <h3 class="done-card-title">Capsule Description</h3>
+        <p class="empty" style="margin-bottom:10px">A one-paragraph elevator pitch built from your stats, careers, and skills.</p>
+        ${uiState.lastCapsule ? `
+          <blockquote class="capsule-box">${escapeHTML(uiState.lastCapsule)}</blockquote>
+          <div class="phase-actions" style="gap:6px;margin-top:6px">
+            <button class="btn ghost" id="btn-regen-capsule">REGENERATE</button>
+            <button class="btn ghost" id="btn-copy-capsule">COPY</button>
+          </div>
+        ` : `
+          <div class="phase-actions">
+            <button class="btn" id="btn-gen-capsule">GENERATE CAPSULE</button>
+          </div>
+        `}
+      </div>
+
+      <div class="done-card">
+        <h3 class="done-card-title">Connections</h3>
+        <p class="empty" style="margin-bottom:10px">Link this Traveller to another PC or NPC from the group. Each connection can grant +1 in any skill, per GM approval.</p>
+        ${existingConns.length ? `
+          <ul class="connection-list">
+            ${existingConns.map(c => `<li>${escapeHTML(c.description.replace(/^Connection: /, ''))}</li>`).join('')}
+          </ul>
+        ` : ''}
+        <div class="connection-form">
+          <input type="text" id="conn-desc" placeholder="e.g. Khadi Voss, my old Scout-Service buddy" />
+          <input type="text" id="conn-skill" placeholder="Skill to bump (optional): e.g. Deception" />
+          <button class="btn ghost" id="btn-add-connection">ADD CONNECTION</button>
+        </div>
+      </div>
+
+      ${renderPsionicsCard()}
 
       <div class="phase-actions">
         <button class="btn primary" id="btn-export-prominent">EXPORT CHARACTER JSON</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
       </div>
+    </div>
+  `;
+}
+
+// Psionics is optional and GM-approved — only visible once the Traveller
+// reaches the finalize/done phase. Player can decline, test, and if the
+// Psi score is positive, train each of the five core talents.
+function renderPsionicsCard() {
+  if (!uiState.gmMode && !character.psi_tested && !uiState.psionicsOpen) {
+    return `
+      <div class="done-card">
+        <h3 class="done-card-title">Psionics <span class="empty" style="font-weight:normal">(optional)</span></h3>
+        <p class="empty" style="margin-bottom:10px">Psionic testing is normally restricted — ask your Referee before opening this panel.</p>
+        <div class="phase-actions">
+          <button class="btn ghost" id="btn-open-psionics">OPEN PSIONICS PANEL</button>
+        </div>
+      </div>
+    `;
+  }
+
+  const testedHTML = character.psi_tested ? (
+    character.psi > 0 ? `
+      <div class="psi-result pass">
+        <strong>Psi ${character.psi}</strong>
+        <span class="empty">— psionic ability confirmed</span>
+      </div>
+    ` : `
+      <div class="psi-result fail">
+        <strong>No psionic potential.</strong>
+        <span class="empty">The test came back flat. There is no talent to train.</span>
+      </div>
+    `
+  ) : '';
+
+  const talentsHTML = (character.psi > 0) ? `
+    <div class="psi-talents">
+      ${['telepathy','clairvoyance','telekinesis','awareness','teleportation'].map(id => {
+        const trained = (character.psi_trained_talents || []).includes(id);
+        const label = id.charAt(0).toUpperCase() + id.slice(1);
+        return `
+          <button class="btn ${trained ? 'ghost' : ''}" data-talent="${id}" ${trained ? 'disabled' : ''}>
+            ${trained ? '✓ ' : ''}${label}${trained ? '' : ' — Cr200k'}
+          </button>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  return `
+    <div class="done-card">
+      <h3 class="done-card-title">Psionics</h3>
+      <p class="empty" style="margin-bottom:10px">Psionic potential test (2D 9+, DM-1 per term). On success, Psi = 2D – terms. Each talent trained costs Cr200,000 and rolls against Psi.</p>
+      ${testedHTML}
+      ${!character.psi_tested ? `
+        <div class="phase-actions">
+          <button class="btn" id="btn-test-psionics">TEST FOR POTENTIAL</button>
+        </div>
+      ` : ''}
+      ${talentsHTML}
     </div>
   `;
 }
@@ -1883,6 +2207,74 @@ function wireDonePhase() {
     character.phase = 'career';
     saveCharacter();
     renderAll();
+  });
+
+  const generateCapsule = async () => {
+    try {
+      const response = await apiCall('/api/character/capsule');
+      uiState.lastCapsule = response.capsule;
+      // Persist capsule on the character for export
+      character.capsule_description = response.capsule;
+      saveCharacter();
+    } catch (e) { alert(e.message); }
+    renderAll();
+  };
+
+  const btnGen = document.getElementById('btn-gen-capsule');
+  if (btnGen) btnGen.addEventListener('click', generateCapsule);
+  const btnRegen = document.getElementById('btn-regen-capsule');
+  if (btnRegen) btnRegen.addEventListener('click', generateCapsule);
+  const btnCopy = document.getElementById('btn-copy-capsule');
+  if (btnCopy) btnCopy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(uiState.lastCapsule || '');
+      btnCopy.textContent = 'COPIED';
+      setTimeout(() => { btnCopy.textContent = 'COPY'; }, 1200);
+    } catch (e) { alert('Copy failed: ' + e.message); }
+  });
+
+  const btnAddConn = document.getElementById('btn-add-connection');
+  if (btnAddConn) btnAddConn.addEventListener('click', async () => {
+    const descEl = document.getElementById('conn-desc');
+    const skillEl = document.getElementById('conn-skill');
+    const desc = (descEl?.value || '').trim();
+    const skill = (skillEl?.value || '').trim() || null;
+    if (!desc) { alert('Enter a connection description first.'); return; }
+    try {
+      const response = await apiCall('/api/character/connection', { description: desc, skill });
+      await applyResponse(response);
+      if (descEl) descEl.value = '';
+      if (skillEl) skillEl.value = '';
+    } catch (e) { alert(e.message); }
+    renderAll();
+  });
+
+  // Psionics
+  const btnOpenPsi = document.getElementById('btn-open-psionics');
+  if (btnOpenPsi) btnOpenPsi.addEventListener('click', () => {
+    uiState.psionicsOpen = true;
+    renderAll();
+  });
+
+  const btnTestPsi = document.getElementById('btn-test-psionics');
+  if (btnTestPsi) btnTestPsi.addEventListener('click', async () => {
+    if (!confirm('Test for psionic potential? Your Referee must approve this in most campaigns.')) return;
+    try {
+      const response = await apiCall('/api/character/psionics/test');
+      await applyResponse(response);
+    } catch (e) { alert(e.message); }
+    renderAll();
+  });
+
+  document.querySelectorAll('[data-talent]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const talent = btn.dataset.talent;
+      try {
+        const response = await apiCall('/api/character/psionics/train', { talent_id: talent });
+        await applyResponse(response);
+      } catch (e) { alert(e.message); }
+      renderAll();
+    });
   });
 }
 
@@ -1969,6 +2361,44 @@ async function bootstrap() {
       renderAll();
     }
   });
+
+  // Fair Use modal
+  const fairUseModal = document.getElementById('fair-use-modal');
+  const openFairUse = () => { if (fairUseModal) fairUseModal.hidden = false; };
+  const closeFairUse = () => { if (fairUseModal) fairUseModal.hidden = true; };
+  const btnFairUse = document.getElementById('btn-fair-use');
+  if (btnFairUse) btnFairUse.addEventListener('click', openFairUse);
+  const btnCloseFairUse = document.getElementById('btn-close-fair-use');
+  if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
+  if (fairUseModal) {
+    // Clicking the backdrop (but not the modal body) closes it.
+    fairUseModal.addEventListener('click', (e) => {
+      if (e.target === fairUseModal) closeFairUse();
+    });
+  }
+  // Escape key also closes it.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fairUseModal && !fairUseModal.hidden) {
+      closeFairUse();
+    }
+  });
+
+  // GM mode toggle (footer)
+  const btnGm = document.getElementById('btn-gm-mode');
+  const updateGmBtn = () => {
+    if (!btnGm) return;
+    btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
+    btnGm.classList.toggle('active', uiState.gmMode);
+  };
+  updateGmBtn();
+  if (btnGm) {
+    btnGm.addEventListener('click', () => {
+      uiState.gmMode = !uiState.gmMode;
+      localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0');
+      updateGmBtn();
+      renderAll();
+    });
+  }
 }
 
 // Handle "back to careers" button for rejected qualification
@@ -1982,4 +2412,35 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Buy anagathics (appears on decide-step between terms)
+document.addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'btn-buy-anagathics') {
+    try {
+      const response = await apiCall('/api/character/anagathics');
+      await applyResponse(response);
+    } catch (err) { alert(err.message); }
+    renderAll();
+  }
+});
+
+// Roll injury (appears on mishap post-roll for everyone; GM mode can invoke freely)
+document.addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'btn-roll-injury') {
+    try {
+      const response = await apiCall('/api/character/injury');
+      uiState.lastRoll = {
+        type: 'injury',
+        data: response.roll,
+        title: response.title,
+        text: response.text,
+        effects: response.effects_applied,
+        medical_debt_added: response.medical_debt_added,
+      };
+      await applyResponse(response);
+    } catch (err) { alert(err.message); }
+    renderAll();
+  }
+});
+
 bootstrap();
+     

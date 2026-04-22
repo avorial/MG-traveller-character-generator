@@ -1,30 +1,5 @@
 {
-  "id": "extents_vargr",
-  "name": "Vargr (Extents)",
-  "description": "Uplifted from Terran carnivore stock by the Ancients circa -300,000, the Vargr are canine-descended, digitigrade sophonts with a pack-oriented culture built around charisma, reputation, and shifting loyalties. A Vargr born in the Vargr Extents — the sprawl of feuding confederations that is their cultural heartland — grows up immersed in pack politics, personal magnetism as currency, and the expectation that authority lasts only as long as you hold it.",
-  "characteristic_modifiers": {
-    "STR": -1,
-    "DEX": 1,
-    "END": -1,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": 0
-  },
-  "characteristic_maximum": 15,
-  "traits": [
-    {
-      "name": "Bite",
-      "description": "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (natural) skill and does 1D+1 damage."
-    },
-    {
-      "name": "Heightened Senses",
-      "description": "Vargr have better hearing and sense of smell than humans. All Vargr receive DM+1 to any Recon and Survival checks they have to make. However, their eyesight is worse in darkness and they suffer DM-1 to any skill check requiring sight in dark conditions."
-    },
-    {
-      "name": "Charismatic Culture",
-      "description": "Raised in the shifting factional politics of the Extents. When dealing with other Vargr from the same cultural background, DM+1 to Persuade and Carouse checks."
-    }
-  ],
-  "aliases": ["vargr"],
-  "source": "Traveller Core Rulebook, Mongoose Publishing"
+  "deprecated": true,
+  "replaced_by": "imperial_vargr",
+  "note": "The Extents-raised variant was dropped in favor of the Imperial-raised flavor — this generator assumes player characters grew up as Imperial citizens. This stub preserves old saves that still reference 'extents_vargr'."
 }

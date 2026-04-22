@@ -1,5 +1,5 @@
 {
   "deprecated": true,
-  "replaced_by": "hierate_aslan",
-  "note": "Renamed to 'hierate_aslan' once society-of-origin became part of the species schema. An Aslan raised in the Hierate lives under very different codes than one born in Imperial space; this stub stays so old saves can alias through the loader."
+  "replaced_by": "imperial_aslan",
+  "note": "Original 'aslan' id was renamed once home-society became part of the schema; the Imperial-raised variant is now the canonical Aslan option in this generator."
 }

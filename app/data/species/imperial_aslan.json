@@ -1,0 +1,30 @@
+{
+  "id": "imperial_aslan",
+  "name": "Aslan (Imperial Raised)",
+  "description": "Born far from the clan-held worlds of Kusu, this Aslan was raised within the structured, bureaucratic order of the Third Imperium. Clan identity is distant or fragmented, replaced by Imperial institutions, mixed-species environments, and unfamiliar social expectations. Even so, the old instincts remain. Concepts of honor, territory, and personal standing run deep, though often misaligned with Imperial norms. Where a Hierate Aslan might claim land, this one negotiates contracts. Where others duel, this one learns restraint, or channels that drive into sanctioned service such as the military or security roles. They live between worlds, never fully Imperial, never fully Hierate, carrying a quieter, more internalized version of Aslan tradition.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [
+    {
+      "name": "Dewclaw",
+      "description": "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (natural) skill and does 1D+2 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+    },
+    {
+      "name": "Cultural Liminality",
+      "description": "Raised between Imperial bureaucracy and distant Aslan tradition. DM+1 to Diplomat or Advocate checks that involve bridging Imperial and Aslan parties. Hierate-born Aslan see this character as not fully kin — DM-1 to Persuade checks against Hierate society."
+    }
+  ],
+  "aliases": ["aslan", "hierate_aslan"],
+  "source": "Traveller Core Rulebook, Mongoose Publishing; home-society flavor derived for the Imperium-raised variant"
+}

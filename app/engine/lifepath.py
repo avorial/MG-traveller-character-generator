@@ -124,6 +124,283 @@ def roll_initial_characteristics(character: Character) -> dict:
 _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 
 
+def test_psionics(character: "Character") -> dict:
+    """Roll the Psionic Potential Test (2D 9+) and, on success, generate a Psi score.
+
+    By RAW this opportunity is rare and GM-gated. The creator lets the
+    player invoke it during the done/finalize phase with a DM-1 per
+    previous term. Result is recorded on the character; follow up with
+    train_psionic_talent for each talent to learn.
+    """
+    if character.psi_tested:
+        raise ValueError(
+            "This character has already been tested for psionics."
+        )
+
+    data = rules.psionics()
+    pot = data["potential_test"]
+    dm = -character.total_terms  # -1 per term
+    r = dice.roll("2D", modifier=dm, target=pot["target"])
+
+    character.psi_tested = True
+
+    if not r.succeeded:
+        character.psi = 0
+        character.log(
+            f"Psionic potential test [2D{dm:+d}={r.total}]: FAILED "
+            f"(needed {pot['target']}+). No psionic ability."
+        )
+        return {
+            "potential_roll": r.to_dict(),
+            "potential_succeeded": False,
+            "psi": 0,
+            "character": character.model_dump(),
+        }
+
+    # Passed — roll Psi strength: 2D minus total_terms, clamped.
+    formula = data["psi_strength_formula"]
+    raw = dice.roll(formula["dice"])
+    psi_val = raw.total - character.total_terms
+    psi_val = max(formula.get("min", 0), min(formula.get("max", 15), psi_val))
+    character.psi = psi_val
+    character.log(
+        f"Psionic potential [2D{dm:+d}={r.total}]: PASSED. "
+        f"Psi strength [2D-{character.total_terms}={raw.total}-{character.total_terms}={psi_val}]."
+    )
+    return {
+        "potential_roll": r.to_dict(),
+        "potential_succeeded": True,
+        "psi_roll": raw.to_dict(),
+        "psi": psi_val,
+        "character": character.model_dump(),
+    }
+
+
+def train_psionic_talent(character: "Character", talent_id: str) -> dict:
+    """Attempt to train a specific psionic talent. Costs Cr per talents table."""
+    if not character.psi_tested:
+        raise ValueError("Must complete the psionic potential test first.")
+    if character.psi <= 0:
+        raise ValueError("Character has no psionic ability to train.")
+    if talent_id in character.psi_trained_talents:
+        raise ValueError(f"Already trained in {talent_id}.")
+
+    data = rules.psionics()
+    talents = data["talents"]
+    talent = talents.get(talent_id)
+    if talent is None:
+        raise ValueError(f"Unknown talent: {talent_id}")
+
+    cost = talent.get("cost_cr", 200000)
+    if character.credits < cost:
+        raise ValueError(
+            f"Insufficient credits: need Cr{cost:,}, have Cr{character.credits:,}."
+        )
+
+    # DM = character.psi - talent target (Psi serves as the characteristic)
+    target = talent.get("test_target", 8)
+    dm = dice.characteristic_dm(character.psi)
+    r = dice.roll("2D", modifier=dm, target=target)
+
+    character.credits -= cost
+    log_msg = (
+        f"Psi training — {talent['name']} "
+        f"[2D{dm:+d}={r.total} vs {target}+, cost Cr{cost:,}]"
+    )
+
+    if r.succeeded:
+        character.add_skill(talent["skill"], level=0)
+        character.psi_trained_talents.append(talent_id)
+        log_msg += f": PASSED. Gained {talent['skill']} 0."
+    else:
+        log_msg += ": FAILED. Credits spent anyway (training is expensive)."
+
+    character.log(log_msg)
+    return {
+        "talent_id": talent_id,
+        "talent_name": talent["name"],
+        "roll": r.to_dict(),
+        "succeeded": r.succeeded,
+        "cost": cost,
+        "credits_remaining": character.credits,
+        "character": character.model_dump(),
+    }
+
+
+def generate_capsule(character: Character) -> dict:
+    """Produce a capsule (one-paragraph) description of the character.
+
+    Deterministic-ish summary: species, age, total terms, top career,
+    top three skills, ship-share bragging rights. Used in the final
+    phase to give the player a copy-pasteable elevator pitch.
+    """
+    species_data = rules.species().get(character.species_id, {"name": character.species_id})
+    species_name = species_data.get("name", character.species_id)
+
+    # Dominant career (most terms served)
+    careers_sorted = sorted(
+        character.completed_careers,
+        key=lambda c: c.terms_served,
+        reverse=True,
+    )
+    career_clause = ""
+    if careers_sorted:
+        top = careers_sorted[0]
+        career_def = rules.careers().get(top.career_id, {})
+        asgn = career_def.get("assignments", {}).get(top.assignment_id, {})
+        rank_title = top.final_rank_title or (f"rank {top.final_rank}" if top.final_rank else None)
+        career_clause = (
+            f" spent {top.terms_served} term{'s' if top.terms_served != 1 else ''} as a "
+            f"{(rank_title + ' ') if rank_title else ''}"
+            f"{asgn.get('name', top.assignment_id).lower()} in the "
+            f"{career_def.get('name', top.career_id)}"
+        )
+        if len(careers_sorted) > 1:
+            career_clause += f", with {len(careers_sorted) - 1} other career{'s' if len(careers_sorted) != 2 else ''} along the way"
+
+    # Top skills (level desc, then specialities)
+    skills_sorted = sorted(
+        character.skills, key=lambda s: (s.level, s.name), reverse=True
+    )
+    top_skills = [
+        (f"{s.name} ({s.speciality})" if s.speciality else s.name) + f" {s.level}"
+        for s in skills_sorted[:3]
+        if s.level > 0
+    ]
+    skills_clause = ""
+    if top_skills:
+        skills_clause = f" Best known for {', '.join(top_skills)}."
+
+    # Signature stats
+    stats = character.characteristics
+    notable_stat = max(
+        ("STR", "DEX", "END", "INT", "EDU", "SOC"),
+        key=lambda s: stats.get(s),
+    )
+    notable_val = stats.get(notable_stat)
+    stat_label = {
+        "STR": "imposing physical presence",
+        "DEX": "preternatural reflexes",
+        "END": "gruelling stamina",
+        "INT": "sharp mind",
+        "EDU": "broad education",
+        "SOC": "impressive social standing",
+    }.get(notable_stat, notable_stat)
+    stat_clause = f" Notable for their {stat_label} ({notable_stat} {notable_val})."
+
+    # Wealth / ship shares
+    extras = []
+    if character.credits >= 50000:
+        extras.append(f"{character.credits:,} credits to their name")
+    if character.ship_shares:
+        extras.append(f"{character.ship_shares} ship share{'s' if character.ship_shares != 1 else ''}")
+    if character.medical_debt:
+        extras.append(f"Cr{character.medical_debt:,} in outstanding medical debt")
+    if character.anagathics_addicted:
+        extras.append("dependent on anagathic treatments")
+    extras_clause = ""
+    if extras:
+        extras_clause = f" They carry {', and '.join(extras)}."
+
+    homeworld_clause = ""
+    if character.homeworld:
+        uwp = f" ({character.homeworld_uwp})" if character.homeworld_uwp else ""
+        homeworld_clause = f" born on {character.homeworld}{uwp},"
+
+    name = character.name or "An unnamed Traveller"
+
+    capsule = (
+        f"{name} is a {character.age}-year-old {species_name}"
+        f"{homeworld_clause} who"
+        f"{career_clause or ' drifted through known space without a steady career'}."
+        f"{skills_clause}{stat_clause}{extras_clause}"
+    )
+
+    return {"capsule": capsule, "length": len(capsule), "character": character.model_dump()}
+
+
+def add_connection(character: Character, description: str, skill: Optional[str] = None) -> dict:
+    """Record a Connection — a link to another PC (or an NPC) in the player group.
+
+    Each connection grants one skill level at the GM's discretion; the
+    engine applies it immediately if `skill` is provided.
+    """
+    desc = (description or "").strip()
+    if not desc:
+        raise ValueError("Connection description cannot be empty.")
+    character.associates.append(
+        Associate(kind="ally", description=f"Connection: {desc}")
+    )
+    bump_msg = ""
+    if skill:
+        bump_msg = character.add_skill(skill, level=1)
+        character.log(f"Connection ({desc}) — {bump_msg}")
+    else:
+        character.log(f"Connection: {desc} (no skill bump applied)")
+    return {
+        "description": desc,
+        "skill_applied": skill,
+        "skill_log": bump_msg,
+        "connection_count": sum(
+            1 for a in character.associates
+            if a.description.startswith("Connection: ")
+        ),
+        "character": character.model_dump(),
+    }
+
+
+def reroll_characteristic_boon(character: Character, stat: str) -> dict:
+    """Re-roll one characteristic (2D), keeping the higher of old vs new.
+
+    Commonly used as a GM-granted "boon" — a way to spare a Traveller
+    from a truly disastrous starting roll. Only allowed during the
+    characteristics phase; consumes one boon from the character's pool
+    if the pool is set, otherwise always allowed (GM discretion).
+    """
+    if character.phase != "characteristics":
+        raise ValueError(
+            "Boon rolls are only available during the characteristics phase."
+        )
+    stat_u = stat.upper()
+    if stat_u not in _VALID_CHARS:
+        raise ValueError(f"Unknown characteristic: {stat}")
+    if character.boon_rolls_remaining <= 0 and character.boon_rolls_total > 0:
+        raise ValueError("No boon rolls remaining.")
+
+    old = character.characteristics.get(stat_u)
+    r = dice.roll("2D")
+    new = r.total
+    kept = max(old, new)
+    character.characteristics.set(stat_u, kept)
+
+    if character.boon_rolls_total > 0:
+        character.boon_rolls_remaining = max(0, character.boon_rolls_remaining - 1)
+
+    character.log(
+        f"Boon re-roll on {stat_u}: 2D={new}, kept higher "
+        f"({old} → {kept})."
+    )
+    return {
+        "stat": stat_u,
+        "old": old,
+        "new": new,
+        "kept": kept,
+        "roll": r.to_dict(),
+        "boon_rolls_remaining": character.boon_rolls_remaining,
+        "character": character.model_dump(),
+    }
+
+
+def set_boon_pool(character: Character, count: int) -> dict:
+    """Seed the boon-roll pool (GM-configurable). Zero = unlimited (boon panel hidden)."""
+    count = max(0, int(count))
+    character.boon_rolls_total = count
+    character.boon_rolls_remaining = count
+    character.log(f"Boon-roll pool set to {count}.")
+    return {"boon_rolls_total": count, "character": character.model_dump()}
+
+
+
 def swap_characteristics(character: Character, stat_a: str, stat_b: str) -> dict:
     """Swap two rolled characteristic values.
 
@@ -546,6 +823,59 @@ def pre_career_choose_skills(
 # ============================================================
 
 
+# Mongoose 2e Draft table (1D6). Each entry is (career_id, assignment_id).
+# When a player fails qualification they may choose to accept the draft
+# instead of falling back to Drifter — the service and assignment are
+# determined by a single d6.
+_DRAFT_TABLE: dict[int, tuple[str, str]] = {
+    1: ("navy", "line_crew"),
+    2: ("army", "infantry"),
+    3: ("marine", "support"),
+    4: ("merchant", "merchant_marine"),
+    5: ("scout", "courier"),
+    6: ("agent", "law_enforcement"),
+}
+
+
+def draft_into_service(character: Character) -> dict:
+    """Roll 1D on the draft table and auto-start a term in the assigned service.
+
+    Called after a failed career qualification when the player chooses
+    'accept the draft' instead of falling back to Drifter. The drafted
+    character still goes through survival/events/advancement normally —
+    the only difference is they didn't pick the career themselves.
+    """
+    if character.phase != "career":
+        raise ValueError(f"Not in career phase (currently: {character.phase})")
+    if character.current_term is not None:
+        raise ValueError("Cannot be drafted while already in an active term.")
+
+    r = dice.roll("1D")
+    career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
+    career = rules.careers().get(career_id)
+    if career is None:
+        raise ValueError(f"Draft table points at unknown career '{career_id}'")
+
+    character.log(
+        f"Drafted [1D={r.total}] into {career['name']} — "
+        f"{career['assignments'][assignment_id]['name']}"
+    )
+
+    # Reuse start_term so the drafted character enters the career exactly
+    # like any other first term (incl. basic training).
+    term_result = start_term(character, career_id, assignment_id)
+
+    return {
+        "roll": r.to_dict(),
+        "career_id": career_id,
+        "assignment_id": assignment_id,
+        "career_name": career["name"],
+        "assignment_name": career["assignments"][assignment_id]["name"],
+        "term": term_result["term"],
+        "character": character.model_dump(),
+    }
+
+
 def qualify_for_career(character: Character, career_id: str) -> dict:
     """Roll qualification for entering a career."""
     career = rules.careers().get(career_id)
@@ -806,6 +1136,132 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
             "character": character.model_dump()}
 
 
+# ============================================================
+# Anagathics — life extension (Core Rulebook p.155)
+# ============================================================
+
+# Cost per 4-year term of anagathic treatment (Cr50,000/yr × 4).
+ANAGATHICS_COST_PER_TERM = 200000
+
+
+def purchase_anagathics(character: "Character") -> dict:
+    """Buy one term's worth of anagathics treatment.
+
+    The character must be in the career phase with the credits in hand.
+    Each purchase banks one suppressed aging roll — consumed automatically
+    the next time end_term would trigger aging.
+    """
+    if character.phase != "career":
+        raise ValueError(
+            f"Anagathics can only be bought during the career phase "
+            f"(currently: {character.phase})"
+        )
+    if character.credits < ANAGATHICS_COST_PER_TERM:
+        raise ValueError(
+            f"Insufficient credits: need Cr{ANAGATHICS_COST_PER_TERM:,}, "
+            f"have Cr{character.credits:,}"
+        )
+
+    character.credits -= ANAGATHICS_COST_PER_TERM
+    character.anagathics_purchased_terms += 1
+    character.log(
+        f"Purchased anagathics (Cr{ANAGATHICS_COST_PER_TERM:,}). "
+        f"Next aging roll will be suppressed. "
+        f"Treatments banked: {character.anagathics_purchased_terms}."
+    )
+    return {
+        "cost": ANAGATHICS_COST_PER_TERM,
+        "credits_remaining": character.credits,
+        "anagathics_purchased_terms": character.anagathics_purchased_terms,
+        "character": character.model_dump(),
+    }
+
+
+# ============================================================
+# Injury resolution (1D) — medical bills land here
+# ============================================================
+
+
+def apply_injury(character: "Character") -> dict:
+    """Roll 1D on the Injury table and apply its effects plus medical bills.
+
+    Used after a mishap or a "serious injury" event outcome. Severity
+    drives both characteristic loss and the resulting medical debt,
+    which is then deducted from mustering-out cash.
+    """
+    data = rules.injury_table()
+    r = dice.roll("1D")
+    entry = data["entries"].get(str(r.total))
+    if entry is None:
+        raise ValueError(f"No injury entry for roll {r.total}")
+
+    effects_applied: list[str] = []
+    for effect in entry.get("effects", []):
+        effects_applied.extend(_apply_injury_effect(character, effect))
+
+    # Medical bills scale with severity (rulebook: "medical care" costs).
+    severity_cost = {
+        1: 100000,  # Nearly killed
+        2: 50000,   # Severely injured
+        3: 30000,   # Missing Eye or Limb
+        4: 10000,   # Scarred
+        5: 10000,   # Injured
+        6: 0,       # Lightly Injured
+    }
+    debt = severity_cost.get(r.total, 0)
+    if debt:
+        character.medical_debt += debt
+        character.log(
+            f"Medical bills: Cr{debt:,} added to debt "
+            f"(now Cr{character.medical_debt:,} owed)."
+        )
+
+    character.log(
+        f"Injury [1D={r.total}]: {entry['title']} — "
+        + (", ".join(effects_applied) if effects_applied else "no stat effect")
+    )
+    return {
+        "roll": r.to_dict(),
+        "title": entry["title"],
+        "text": entry["text"],
+        "effects_applied": effects_applied,
+        "medical_debt_added": debt,
+        "medical_debt_total": character.medical_debt,
+        "character": character.model_dump(),
+    }
+
+
+def _apply_injury_effect(character: "Character", effect: dict) -> list[str]:
+    """Apply one injury-table effect dict to the character."""
+    physical = ["STR", "DEX", "END"]
+    logs: list[str] = []
+    etype = effect.get("type")
+    amount = effect.get("amount", 0)
+    if isinstance(amount, str) and amount.upper() == "1D":
+        amount = dice.roll("1D").total
+
+    if etype == "reduce_physical_random":
+        target = random.choice(physical)
+        old = character.characteristics.get(target)
+        character.characteristics.set(target, old - amount)
+        logs.append(f"{target} {old}→{character.characteristics.get(target)}")
+    elif etype == "reduce_physical_other":
+        count = effect.get("count", 1)
+        targets = random.sample(physical, min(count, len(physical)))
+        for stat in targets:
+            old = character.characteristics.get(stat)
+            character.characteristics.set(stat, old - amount)
+            logs.append(f"{stat} {old}→{character.characteristics.get(stat)}")
+    elif etype == "reduce_choice":
+        options = effect.get("characteristics", physical)
+        target = random.choice(options)
+        old = character.characteristics.get(target)
+        character.characteristics.set(target, old - amount)
+        logs.append(f"{target} {old}→{character.characteristics.get(target)}")
+    return logs
+
+
+
 def end_term(character: Character, leaving: bool = False, reason: str = "voluntary") -> dict:
     """Close out the current term — apply aging if needed, commit the term record."""
     term = character.current_term
@@ -817,8 +1273,26 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     character.term_history.append(term)
 
     aging_log = None
+    anagathics_suppressed = False
     if character.total_terms >= 4:
-        aging_log = _apply_aging(character)
+        if character.anagathics_purchased_terms > 0:
+            character.anagathics_purchased_terms -= 1
+            anagathics_suppressed = True
+            character.log(
+                f"Anagathics active — aging roll suppressed "
+                f"({character.anagathics_purchased_terms} treatments left)."
+            )
+            # Long-term anagathics use: small chance of addiction after several terms.
+            if (not character.anagathics_addicted
+                    and character.total_terms >= 6
+                    and dice.roll("2D").total <= 3):
+                character.anagathics_addicted = True
+                character.log(
+                    "ANAGATHICS ADDICTION: character is now dependent on "
+                    "treatment. Stopping will cause accelerated aging."
+                )
+        else:
+            aging_log = _apply_aging(character)
 
     if leaving:
         # Record career completion
@@ -852,6 +1326,9 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
     return {
         "aging": aging_log,
+        "anagathics_suppressed": anagathics_suppressed,
+        "anagathics_purchased_terms": character.anagathics_purchased_terms,
+        "anagathics_addicted": character.anagathics_addicted,
         "age": character.age,
         "total_terms": character.total_terms,
         "pending_benefit_rolls": character.pending_benefit_rolls,
@@ -973,10 +1450,24 @@ def muster_out_roll(character: Character, career_id: str, column: str) -> dict:
 
     if column == "cash":
         cash = row["cash"]
+        debt_paid = 0
+        if character.medical_debt > 0:
+            debt_paid = min(character.medical_debt, cash)
+            character.medical_debt -= debt_paid
+            cash -= debt_paid
+            character.log(
+                f"Paid Cr{debt_paid:,} in medical bills "
+                f"(Cr{character.medical_debt:,} still owed)."
+            )
         character.credits += cash
         character.cash_rolls_used += 1
-        result_text = f"Cr{cash:,}"
-        character.log(f"Muster out (cash)[{r.total}]: gained Cr{cash:,}")
+        result_text = (
+            f"Cr{cash:,}" + (f" (after Cr{debt_paid:,} medical)" if debt_paid else "")
+        )
+        character.log(
+            f"Muster out (cash)[{r.total}]: gross Cr{row['cash']:,}, "
+            f"medical Cr{debt_paid:,}, net Cr{cash:,}."
+        )
     else:
         benefit = row["benefit"]
         _apply_benefit(character, benefit)

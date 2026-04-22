@@ -104,6 +104,11 @@ def education() -> dict:
     return _load_file("tables/education.json")
 
 
+@lru_cache(maxsize=1)
+def psionics() -> dict:
+    return _load_file("tables/psionics.json")
+
+
 def _unique_entries(data: dict[str, dict]) -> list[dict]:
     """Return unique entries from an id->entry dict, skipping aliases.
 
@@ -136,5 +141,6 @@ def list_careers() -> list[dict]:
 def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
     for fn in (species, careers, background_skills, life_events,
-               injury_table, aging_table, mustering_benefits, education):
+               injury_table, aging_table, mustering_benefits, education,
+               psionics):
         fn.cache_clear()

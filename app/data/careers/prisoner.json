@@ -1,0 +1,132 @@
+{
+  "id": "prisoner",
+  "name": "Prisoner",
+  "description": "You are incarcerated in an Imperial prison facility, labor camp, or reform colony. Not a career one usually chooses — typically entered via failed qualification, mishap, or draft.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 5,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "thug": {
+      "name": "Thug",
+      "description": "You survive through sheer physical presence. Other prisoners step aside.",
+      "survival": {"characteristic": "STR", "target": 6},
+      "advancement": {"characteristic": "END", "target": 7}
+    },
+    "thief": {
+      "name": "Thief",
+      "description": "You get by on wit and sleight of hand — stealing rations, smuggling contraband, avoiding notice.",
+      "survival": {"characteristic": "DEX", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "enforcer": {
+      "name": "Enforcer",
+      "description": "You work for one of the prison gangs or for the warden — collecting debts, keeping order, making examples.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "STR", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "END +1",
+      "3": "DEX +1",
+      "4": "Melee (unarmed)",
+      "5": "Gambler",
+      "6": "END +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Melee (unarmed)",
+      "2": "Streetwise",
+      "3": "Stealth",
+      "4": "Recon",
+      "5": "Deception",
+      "6": "Athletics"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Medic",
+      "3": "Admin",
+      "4": "Language",
+      "5": "Electronics",
+      "6": "Science"
+    },
+    "thug": {
+      "name": "Thug",
+      "assignment_only": "thug",
+      "1": "Melee (unarmed)",
+      "2": "Melee (blade)",
+      "3": "Athletics (strength)",
+      "4": "Intimidate",
+      "5": "Streetwise",
+      "6": "STR +1"
+    },
+    "thief": {
+      "name": "Thief",
+      "assignment_only": "thief",
+      "1": "Stealth",
+      "2": "Deception",
+      "3": "Streetwise",
+      "4": "Athletics (dexterity)",
+      "5": "Mechanic",
+      "6": "Gambler"
+    },
+    "enforcer": {
+      "name": "Enforcer",
+      "assignment_only": "enforcer",
+      "1": "Intimidate",
+      "2": "Gun Combat (slug)",
+      "3": "Melee",
+      "4": "Streetwise",
+      "5": "Recon",
+      "6": "Deception"
+    }
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": "Inmate", "bonus": null},
+      "1": {"title": "Trusted Inmate", "bonus": "Streetwise 1"},
+      "2": {"title": "Crew Leader", "bonus": null},
+      "3": {"title": "Lifer", "bonus": "Melee (unarmed) 1"},
+      "4": {"title": "Shot-caller", "bonus": null},
+      "5": {"title": "Prison Boss", "bonus": "Intimidate 1"},
+      "6": {"title": "Prison Boss", "bonus": "SOC -1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in a riot, assault, or accident. Roll on the Injury Table.",
+    "2": "You make a powerful enemy inside — a gang leader, a guard, or a fellow prisoner with outside connections. Gain an Enemy and muster out.",
+    "3": "You are transferred to a harsher facility. Lose one benefit roll from this term and gain Streetwise 1.",
+    "4": "You contract a disease or long-term injury in the cells. Reduce END by 1 and add Cr20,000 in medical debt.",
+    "5": "You witness — or participate in — something you can't undo. Gain an Enemy, and gain Deception 1.",
+    "6": "Injured in solitary or a labor accident. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected.",
+    "3": "A riot engulfs your block. Roll Melee (unarmed) 8+ or Stealth 8+ to survive unharmed. On failure, roll on the Injury Table.",
+    "4": "You befriend a fellow prisoner with valuable connections. Gain a Contact in the criminal underworld or among political dissidents.",
+    "5": "You smuggle contraband or run a side operation. Gain DM+2 to your next Benefit roll, or pick up Streetwise 1, Deception 1, or Gambler 1.",
+    "6": "You serve your time quietly and learn. Gain one of Athletics 1, Melee (unarmed) 1, Streetwise 1, or Deception 1.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "A parole hearing comes up. Roll SOC 8+ or Advocate 8+. On success, you leave at the end of this term with no penalty. On failure, gain DM-2 to your next Advancement roll.",
+    "9": "You cross a guard or a gang. Roll END 8+ or Melee 8+ to endure. On failure, roll on the Injury Table and gain an Enemy.",
+    "10": "You earn respect inside. Gain DM+2 to your next Advancement roll.",
+    "11": "You study in the prison library or learn a trade behind bars. Gain one level of Admin, Medic, Advocate, Mechanic, or Language.",
+    "12": "You organize something big — a strike, a protest, an escape attempt. You are automatically promoted and gain an Ally among the other prisoners."
+  },
+  "mustering_out": {
+    "1": {"cash": 0, "benefit": "Scars (no effect, flavor)"},
+    "2": {"cash": 1000, "benefit": "Contact"},
+    "3": {"cash": 2000, "benefit": "Weapon"},
+    "4": {"cash": 5000, "benefit": "INT +1"},
+    "5": {"cash": 5000, "benefit": "Ally"},
+    "6": {"cash": 10000, "benefit": "END +1"},
+    "7": {"cash": 10000, "benefit": "Combat Implant"}
+  },
+  "complete": true
+}

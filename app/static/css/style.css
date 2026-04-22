@@ -1150,3 +1150,421 @@ body {
   color: var(--cream);
   font-style: italic;
 }
+
+/* ============================================================
+   Modal (Fair Use notice, etc.)
+   ============================================================ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 4, 0, 0.72);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--amber);
+  box-shadow: 0 0 24px rgba(255, 176, 0, 0.15), inset 0 0 0 1px rgba(255, 176, 0, 0.05);
+  max-width: 640px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modal-in 0.18s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg-panel-alt);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--amber);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+}
+
+.modal-close:hover {
+  color: var(--cream);
+}
+
+.modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--cream);
+}
+
+.modal-body p {
+  margin: 0 0 14px 0;
+}
+
+.modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-body strong {
+  color: var(--amber);
+}
+
+.modal-body em {
+  color: var(--amber-dim);
+}
+
+.fair-use-footnote {
+  font-size: 12px;
+  color: var(--amber-dim);
+  border-top: 1px dotted var(--border);
+  padding-top: 12px;
+  margin-top: 18px !important;
+  font-style: italic;
+}
+
+/* ----- Sheet additions: UWP, notes, debt, anagathics ----- */
+
+.sheet-uwp {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--amber-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 6px;
+  margin-top: 4px;
+  outline: none;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+.sheet-uwp:focus {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.sheet-uwp::placeholder {
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0.05em;
+  font-style: italic;
+}
+
+.sheet-notes {
+  width: 100%;
+  min-height: 80px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.sheet-notes:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 6px rgba(255, 176, 64, 0.2);
+}
+
+.sheet-notes::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.sheet-section.warn h3 {
+  color: var(--danger);
+}
+
+.credits-line.danger {
+  color: var(--danger);
+}
+
+
+/* ----- GM mode + boon UI ----- */
+
+.text-btn.active {
+  color: var(--danger);
+  text-shadow: 0 0 6px var(--danger);
+}
+
+.gm-panel {
+  border: 1px dashed var(--danger);
+  background: rgba(212, 85, 85, 0.06);
+  padding: 10px 14px;
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.gm-badge {
+  color: var(--danger);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding: 2px 6px;
+  border: 1px solid var(--danger);
+  border-radius: 2px;
+}
+
+.gm-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.15em;
+  color: var(--amber-dim);
+}
+
+.gm-field input[type="number"] {
+  width: 44px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.gm-hint {
+  color: var(--muted);
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+
+.boon-banner {
+  border: 1px solid var(--amber);
+  background: rgba(255, 176, 64, 0.08);
+  color: var(--cream);
+  padding: 10px 14px;
+  margin: 14px 0;
+  border-radius: 2px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+.boon-banner strong {
+  color: var(--amber);
+  font-size: 14px;
+}
+
+.boon-btn {
+  display: block;
+  margin: 6px auto 0;
+  background: rgba(255, 176, 64, 0.12);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s ease;
+}
+
+.boon-btn:hover {
+  background: var(--amber);
+  color: #0b0d12;
+  border-color: var(--amber);
+}
+
+
+/* ----- Done phase: capsule + connections ----- */
+
+.done-card {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px 18px;
+  margin: 18px 0;
+  border-radius: 2px;
+}
+
+.done-card-title {
+  margin: 0 0 6px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--amber-dim);
+  text-transform: uppercase;
+}
+
+.capsule-box {
+  margin: 0 0 10px 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--amber);
+  background: rgba(255, 176, 64, 0.04);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--cream);
+  font-style: italic;
+}
+
+.connection-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+}
+
+.connection-list li {
+  padding: 6px 10px;
+  border-bottom: 1px dotted var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cream);
+}
+
+.connection-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.connection-form input {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  outline: none;
+  border-radius: 2px;
+}
+
+.connection-form input:focus {
+  border-color: var(--amber);
+}
+
+@media (max-width: 720px) {
+  .connection-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ----- Anagathics box (between terms) + injury box (post-mishap) ----- */
+
+.anagathics-box {
+  border: 1px solid var(--amber-dim);
+  background: rgba(255, 176, 64, 0.04);
+  padding: 12px 16px;
+  margin-top: 18px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.anagathics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.anagathics-header strong {
+  color: var(--amber);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.anagathics-status {
+  color: var(--cream);
+  font-size: 11px;
+}
+
+.injury-box {
+  border-left: 3px solid var(--danger);
+  background: rgba(212, 85, 85, 0.05);
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.injury-box strong {
+  color: var(--danger);
+  letter-spacing: 0.08em;
+}
+
+
+/* ----- Psionics panel ----- */
+
+.psi-result {
+  border-left: 3px solid var(--amber);
+  background: rgba(255, 176, 64, 0.04);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cream);
+}
+
+.psi-result.fail {
+  border-left-color: var(--muted);
+  color: var(--muted);
+}
+
+.psi-result strong {
+  color: var(--amber);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  margin-right: 8px;
+}
+
+.psi-result.fail strong {
+  color: var(--muted);
+}
+
+.psi-talents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
