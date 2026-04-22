@@ -1448,23 +1448,72 @@ function wireCareerPhase() {
     });
   }
 
+  // "Roll on the Mishap Table" event (non-ejecting disaster): roll the mishap
+  // inline and display the result right inside the event panel.
+  const btnForcedMishap = document.getElementById('btn-event-forced-mishap');
+  if (btnForcedMishap) {
+    btnForcedMishap.addEventListener('click', async () => {
+      btnForcedMishap.disabled = true;
+      try {
+        const response = await apiCall('/api/character/mishap');
+        await applyResponse(response);
+        if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+          uiState.lastRoll.mishapFromEvent = {
+            total: response.roll?.total,
+            text: response.mishap,
+          };
+        }
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not roll the mishap table.');
+        btnForcedMishap.disabled = false;
+      }
+    });
+  }
+
   // Event-choice skill picker: clicking a chip applies the chosen skill.
+  const disableAllEventChips = () => {
+    document.querySelectorAll('[data-event-skill],[data-event-dm]').forEach(c => { c.disabled = true; });
+  };
+  const enableAllEventChips = () => {
+    document.querySelectorAll('[data-event-skill],[data-event-dm]').forEach(c => { c.disabled = false; });
+  };
   document.querySelectorAll('[data-event-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const pick = chip.getAttribute('data-event-skill');
       try {
-        // Disable all chips while request is in flight.
-        document.querySelectorAll('[data-event-skill]').forEach(c => { c.disabled = true; });
+        disableAllEventChips();
         const response = await apiCall('/api/character/event-skill-grant', { skill_text: pick });
         await applyResponse(response);
-        // Preserve the event view, just flip the applied flag.
         if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
           uiState.lastRoll.eventSkillApplied = response.skill || pick;
+          uiState.lastRoll.eventChoicePath = 'skill';
         }
         renderAll();
       } catch (err) {
         alert(err.message || 'Could not apply that skill.');
-        document.querySelectorAll('[data-event-skill]').forEach(c => { c.disabled = false; });
+        enableAllEventChips();
+      }
+    });
+  });
+
+  // Event-choice DM alternative: "Take DM+N to next Advancement roll instead."
+  document.querySelectorAll('[data-event-dm]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const dm = parseInt(chip.getAttribute('data-event-dm'), 10);
+      const target = chip.getAttribute('data-event-dm-target');
+      try {
+        disableAllEventChips();
+        const response = await apiCall('/api/character/event-dm-grant', { dm, target });
+        await applyResponse(response);
+        if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+          uiState.lastRoll.eventDmApplied = { dm: response.dm ?? dm, target: response.target ?? target };
+          uiState.lastRoll.eventChoicePath = 'dm';
+        }
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not apply that DM grant.');
+        enableAllEventChips();
       }
     });
   });
@@ -1827,26 +1876,78 @@ function renderSurviveStep() {
 }
 
 function parseEventSkillOptions(text) {
-  // Find "Gain one of X, Y, Z or W" (or "Gain any one of ...") patterns in event text.
-  // Returns an array of trimmed option strings, or null if no such pattern is present.
+  // Find skill-grant patterns in event text. Returns an array of trimmed option
+  // strings, or null if no such pattern is present. Handles:
+  //   - "Gain one of X, Y, Z or W"
+  //   - "Gain any one of ..."
+  //   - "Either gain one level of X, Y or Z, or DM+4..."
+  //   - "Gain one level of X, Y or Z"
+  //   - "Gain one level of X" (single skill — still returned as an array)
+  //   - "Increase X by one level" (single skill)
   if (!text) return null;
-  const m = text.match(/Gain\s+(?:any\s+)?one\s+of\s+([^.]+?)(?:\.|$)/i);
-  if (!m) return null;
-  const raw = m[1].trim();
-  // Split on the final " or " once, then comma-split the front half.
-  const lastOr = raw.toLowerCase().lastIndexOf(' or ');
-  let parts;
-  if (lastOr >= 0) {
-    const head = raw.slice(0, lastOr);
-    const tail = raw.slice(lastOr + 4);
-    parts = head.split(',').map(s => s.trim()).filter(Boolean);
-    parts.push(tail.trim());
-  } else {
-    parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+
+  const splitToParts = (raw) => {
+    const lastOr = raw.toLowerCase().lastIndexOf(' or ');
+    let parts;
+    if (lastOr >= 0) {
+      const head = raw.slice(0, lastOr);
+      const tail = raw.slice(lastOr + 4);
+      parts = head.split(',').map(s => s.trim()).filter(Boolean);
+      parts.push(tail.trim());
+    } else {
+      parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    // Skill-name sanity: letters/spaces/parens/digits, under 40 chars.
+    return parts.filter(p => /^[A-Za-z][A-Za-z0-9 ()\-/]*\d*\s*$/.test(p) && p.length < 40);
+  };
+
+  // Reject open-ended "any skill" grants — those need a different UI.
+  const lower = text.toLowerCase();
+  if (/gain\s+(?:one\s+level\s+(?:in|of)\s+)?any\s+(?:skill|service\s+skill)/i.test(text)
+      || /any\s+skill\s+of\s+your\s+choice/i.test(text)
+      || /any\s+skill\s+you\s+already\s+have/i.test(text)) {
+    return null;
   }
-  // Sanity: all parts should look like skill names (letters, spaces, parens, digits).
-  parts = parts.filter(p => /^[A-Za-z][A-Za-z0-9 ()\-/]*\d*\s*$/.test(p) && p.length < 40);
-  return parts.length >= 2 ? parts : null;
+
+  // Pattern 1: "Gain one of X, Y or Z" / "Gain any one of ..."
+  let m = text.match(/Gain\s+(?:any\s+)?one\s+of\s+([^.]+?)(?:\.|$)/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 2) return parts;
+  }
+
+  // Pattern 2: "Either gain one level of X, Y or Z, or DM+N..."
+  //           "Either gain a level of X or ..."
+  m = text.match(/Either\s+gain\s+(?:one|a|\d+)\s+level\s+(?:of|in)\s+([^.]+?)(?:,\s*or\s+DM|\.|$)/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 1) return parts;
+  }
+
+  // Pattern 3: "Gain one level of X, Y or Z" (without "Either")
+  m = text.match(/Gain\s+(?:one|a|\d+)\s+level\s+(?:of|in)\s+([^.]+?)(?:,\s*or\s+DM|\.|$)/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 1) return parts;
+  }
+
+  // Pattern 4: "Increase X by one level" (single skill)
+  m = text.match(/Increase\s+([A-Za-z][A-Za-z0-9 ()\-/]{0,35})\s+by\s+(?:one|a|\d+)\s+level/i);
+  if (m) {
+    const skill = m[1].trim();
+    if (skill) return [skill];
+  }
+
+  return null;
+}
+
+function parseEventDmAlternative(text) {
+  // Detect "or DM+N to your next Advancement roll" as an alternative reward.
+  // Returns { dm: 4, target: 'advancement' } or null.
+  if (!text) return null;
+  const m = text.match(/or\s+DM\s*([+-]?\d+)\s+to\s+(?:your\s+)?next\s+(Advancement|Qualification|Survival|Promotion)\s+roll/i);
+  if (!m) return null;
+  return { dm: parseInt(m[1], 10), target: m[2].toLowerCase() };
 }
 
 function renderEventStep() {
@@ -1878,15 +1979,20 @@ function renderEventStep() {
     // Skill-choice picker — only show if the event text offers a choice AND
     // the player hasn't already picked one for this event.
     const skillOptions = parseEventSkillOptions(lr.eventText || '');
-    const pickerHTML = (skillOptions && !lr.eventSkillApplied) ? `
+    const dmAlternative = parseEventDmAlternative(lr.eventText || '');
+    const chosenPath = lr.eventChoicePath; // 'skill' | 'dm' | undefined
+    const pickerHTML = (skillOptions && !chosenPath) ? `
       <div class="event-skill-picker">
-        <span class="event-label">Choose one skill to gain</span>
+        <span class="event-label">Choose your reward</span>
         <div class="skill-picker">
           ${skillOptions.map(opt => `
-            <button class="skill-chip" data-event-skill="${escapeHTML(opt)}">${escapeHTML(opt)}</button>
+            <button class="skill-chip" data-event-skill="${escapeHTML(opt)}">+ ${escapeHTML(opt)} 1</button>
           `).join('')}
+          ${dmAlternative ? `
+            <button class="skill-chip dm-alt" data-event-dm="${dmAlternative.dm}" data-event-dm-target="${escapeHTML(dmAlternative.target)}">DM${dmAlternative.dm >= 0 ? '+' : ''}${dmAlternative.dm} to next ${escapeHTML(dmAlternative.target)} roll</button>
+          ` : ''}
         </div>
-        <p class="picker-status">Pick one to continue.</p>
+        <p class="picker-status">Pick one${skillOptions.length === 1 && !dmAlternative ? '' : ' to continue'}.</p>
       </div>
     ` : '';
 
@@ -1897,7 +2003,45 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    const gateAdvance = !!(skillOptions && !lr.eventSkillApplied);
+    const dmChosenHTML = (chosenPath === 'dm' && lr.eventDmApplied) ? `
+      <div class="dm-applied-box">
+        <span class="event-label">DM chosen</span>
+        <div class="dm-chip applied">DM${lr.eventDmApplied.dm >= 0 ? '+' : ''}${lr.eventDmApplied.dm} → next ${escapeHTML(lr.eventDmApplied.target)} roll</div>
+      </div>
+    ` : '';
+
+    // Mishap-forcing events (e.g. "Disaster! Roll on the Mishap Table, but you
+    // are not ejected from this career.") route the player into the mishap
+    // table inline. If the text says "not ejected", they continue the career
+    // after the mishap resolves; otherwise the normal end-career flow applies.
+    const forcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
+    const stayInCareer = /not\s+ejected/i.test(lr.eventText || '');
+    const pendingMishapRoll = forcesMishap && !lr.mishapFromEvent;
+    const mishapRolledHTML = (forcesMishap && lr.mishapFromEvent) ? `
+      <div class="mishap-box">
+        <span class="event-label">Mishap [1D=${lr.mishapFromEvent.total ?? '?'}]</span>
+        ${escapeHTML(lr.mishapFromEvent.text || '')}
+        ${stayInCareer ? `
+          <p class="empty" style="margin-top:8px;color:var(--amber-dim)"><em>You are not ejected from this career — keep going.</em></p>
+        ` : ''}
+      </div>
+    ` : '';
+
+    const gateAdvance = !!(skillOptions && !chosenPath) || pendingMishapRoll;
+
+    // Action row varies by what's happening:
+    // - Pending forced mishap roll: show ROLL MISHAP + skip
+    // - Forced mishap already rolled, career ends: show END CAREER
+    // - Normal flow (or forced mishap + stay in career): show ATTEMPT/SKIP advancement
+    const actionsHTML = pendingMishapRoll ? `
+      <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
+      <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
+    ` : (forcesMishap && lr.mishapFromEvent && !stayInCareer) ? `
+      <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
+    ` : `
+      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
+      <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
+    `;
 
     return `
       <div class="stage-content">
@@ -1912,10 +2056,11 @@ function renderEventStep() {
         ${pendingHTML}
         ${pickerHTML}
         ${skillAppliedHTML}
-        ${skillOptions ? '' : `<p class="phase-body empty"><em>Apply any resulting contacts or benefits manually to your notes — only "DM+N to next X roll" grants are auto-applied.</em></p>`}
+        ${dmChosenHTML}
+        ${mishapRolledHTML}
+        ${skillOptions || forcesMishap ? '' : `<p class="phase-body empty"><em>Apply any resulting contacts or benefits manually to your notes — only "DM+N to next X roll" grants are auto-applied.</em></p>`}
         <div class="phase-actions">
-          <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
-          <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
+          ${actionsHTML}
         </div>
       </div>
     `;
@@ -2516,6 +2661,87 @@ async function bootstrap() {
   const btnFairUse = document.getElementById('btn-fair-use');
   if (btnFairUse) btnFairUse.addEventListener('click', openFairUse);
   const btnCloseFairUse = document.getElementById('btn-close-fair-use');
+  if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
+  if (fairUseModal) {
+    // Clicking the backdrop (but not the modal body) closes it.
+    fairUseModal.addEventListener('click', (e) => {
+      if (e.target === fairUseModal) closeFairUse();
+    });
+  }
+  // Escape key also closes it.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fairUseModal && !fairUseModal.hidden) {
+      closeFairUse();
+    }
+  });
+
+  // GM mode toggle (footer)
+  const btnGm = document.getElementById('btn-gm-mode');
+  const updateGmBtn = () => {
+    if (!btnGm) return;
+    btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
+    btnGm.classList.toggle('active', uiState.gmMode);
+    // Swap the whole terminal to green-phosphor when GM Mode is on.
+    document.body.classList.toggle('gm-active', uiState.gmMode);
+  };
+  updateGmBtn();
+  if (btnGm) {
+    btnGm.addEventListener('click', () => {
+      uiState.gmMode = !uiState.gmMode;
+      localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0');
+      updateGmBtn();
+      renderAll();
+    });
+  }
+}
+
+// Handle "back to careers" button for rejected qualification
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'btn-back-careers') {
+    uiState.selectedCareer = null;
+    uiState.selectedAssignment = null;
+    uiState.subPhase = null;
+    uiState.lastRoll = null;
+    renderAll();
+  }
+});
+
+// Buy anagathics (appears on decide-step between terms)
+document.addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'btn-buy-anagathics') {
+    try {
+      const response = await apiCall('/api/character/anagathics');
+      await applyResponse(response);
+    } catch (err) { alert(err.message); }
+    renderAll();
+  }
+});
+
+// Roll injury (appears on mishap post-roll for everyone; GM mode can invoke freely)
+document.addEventListener('click', async (e) => {
+  if (e.target && e.target.id === 'btn-roll-injury') {
+    try {
+      const response = await apiCall('/api/character/injury');
+      uiState.lastRoll = {
+        type: 'injury',
+        data: response.roll,
+        title: response.title,
+        text: response.text,
+        effects: response.effects_applied,
+        medical_debt_added: response.medical_debt_added
+      };
+      await applyResponse(response);
+      renderAll();
+    } catch (err) { alert(err.message); }
+  }
+});
+
+// Kick off the app.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
   if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
   if (fairUseModal) {
     // Clicking the backdrop (but not the modal body) closes it.

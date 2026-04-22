@@ -89,6 +89,11 @@ class EventSkillGrantAction(CharacterAction):
     skill_text: str
 
 
+class EventDmGrantAction(CharacterAction):
+    dm: int
+    target: str
+
+
 class EndTermAction(CharacterAction):
     leaving: bool = False
     reason: str = "voluntary"
@@ -339,6 +344,16 @@ async def api_event_skill_grant(action: EventSkillGrantAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/event-dm-grant")
+async def api_event_dm_grant(action: EventDmGrantAction):
+    """Apply the 'DM+N' side of an 'either skill or DM+N' event choice."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.grant_event_dm(character, action.dm, action.target)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/end-term")
 async def api_end_term(action: EndTermAction):
     character = action.character.model_copy(deep=True)
@@ -444,13 +459,12 @@ async def api_psionics_train(action: PsionicTalentAction):
 
 @app.post("/api/reload-rules")
 async def api_reload_rules():
-    """Dev helper — flush data caches without restarting."""
+    """Dev helper - flush data caches without restarting."""
     rules.reload()
     return {"status": "rules reloaded"}
 
 
 @app.get("/api/health")
 async def api_health():
-    return {"status": "ok", "version": APP_VERSION,
-            "species_count": len(rules.species()),
-            "careers_count": len(rules.careers())}
+    """Simple liveness check."""
+    return {"status": "ok", "version": APP_VERSION}

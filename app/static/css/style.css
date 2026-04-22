@@ -956,6 +956,17 @@ body {
   cursor: not-allowed;
 }
 
+.skill-chip.dm-alt {
+  border-style: dashed;
+  color: var(--amber-dim);
+  font-style: italic;
+}
+
+.skill-chip.dm-alt:hover:not(:disabled) {
+  color: var(--amber-bright);
+  border-style: solid;
+}
+
 .picker-status {
   font-family: var(--font-mono);
   font-size: 11px;

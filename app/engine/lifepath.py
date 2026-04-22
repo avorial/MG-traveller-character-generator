@@ -1644,3 +1644,28 @@ def grant_event_skill(character: Character, skill_text: str) -> dict:
     character.log(f"Event skill chosen: {display} — {applied_msg}")
 
     return {"applied": applied_msg, "skill": display, "character": character.model_dump()}
+
+
+def grant_event_dm(character: Character, dm: int, target: str) -> dict:
+    """Apply a DM grant chosen from an event-11 "gain skill OR DM+N" picker.
+
+    `target` must be one of 'advancement', 'qualification', 'benefit'. Mirrors
+    the auto-apply path in _apply_event_dms but is explicit/user-initiated.
+    """
+    term = character.current_term
+    if term is None:
+        raise ValueError("No active term — event DM grants only apply during a career term")
+    tgt = (target or "").strip().lower()
+    if tgt == "advancement":
+        character.dm_next_advancement += dm
+    elif tgt == "qualification":
+        character.dm_next_qualification += dm
+    elif tgt == "benefit":
+        character.dm_next_benefit += dm
+    else:
+        raise ValueError(f"Unknown DM target: {target}")
+    sign = "+" if dm >= 0 else ""
+    msg = f"DM{sign}{dm} to next {tgt.capitalize()} roll"
+    term.events.append(f"Event choice: {msg}")
+    character.log(f"Event DM chosen: {msg}")
+    return {"applied": msg, "dm": dm, "target": tgt, "character": character.model_dump()}
