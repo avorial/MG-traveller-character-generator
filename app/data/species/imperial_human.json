@@ -1,0 +1,17 @@
+{
+  "id": "imperial_human",
+  "name": "Imperial Human",
+  "description": "The baseline sophont of the Third Imperium — descendants of Earth human stock scattered across Charted Space over 300,000 years by the Ancients and their successors. No inherent stat modifiers; the standard against which other races are measured.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [],
+  "aliases": ["human"],
+  "source": "Traveller Core Rulebook, Mongoose Publishing"
+}

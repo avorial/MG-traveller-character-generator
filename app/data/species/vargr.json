@@ -1,25 +1,5 @@
 {
-  "id": "vargr",
-  "name": "Vargr",
-  "description": "Uplifted from Terran carnivore stock by the Ancients circa -300,000. Canine-descended, digitigrade, with a pack-oriented culture built around charisma and loyalty.",
-  "characteristic_modifiers": {
-    "STR": -1,
-    "DEX": 1,
-    "END": -1,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": 0
-  },
-  "characteristic_maximum": 15,
-  "traits": [
-    {
-      "name": "Bite",
-      "description": "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (natural) skill and does 1D+1 damage."
-    },
-    {
-      "name": "Heightened Senses",
-      "description": "Vargr have better hearing and sense of smell than humans. All Vargr receive DM+1 to any Recon and Survival checks they have to make. However, their eyesight is worse in darkness and they suffer DM-1 to any skill check requiring sight in dark conditions."
-    }
-  ],
-  "source": "Traveller Core Rulebook, Mongoose Publishing"
+  "deprecated": true,
+  "replaced_by": "extents_vargr",
+  "note": "Renamed to 'extents_vargr' once society-of-origin became part of the species schema. A Vargr raised in the Extents is culturally very different from one raised in the Imperium; this stub stays so old saves can alias through the loader."
 }

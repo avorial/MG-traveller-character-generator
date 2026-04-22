@@ -60,6 +60,19 @@ class MusterOutAction(CharacterAction):
     column: str  # "cash" | "benefit"
 
 
+class PreCareerQualifyAction(CharacterAction):
+    track: str  # "university" | "military_academy"
+    service: str | None = None  # "army" | "marine" | "navy" (academy only)
+
+
+class PreCareerGraduateAction(CharacterAction):
+    chosen_skills: list[str] = []
+
+
+class PreCareerSkillsAction(CharacterAction):
+    chosen_skills: list[str]
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -69,8 +82,8 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"species_list": list(rules.species().values()),
-         "careers_list": list(rules.careers().values())},
+        {"species_list": rules.list_species(),
+         "careers_list": rules.list_careers()},
     )
 
 
@@ -80,12 +93,12 @@ async def index(request: Request):
 
 @app.get("/api/species")
 async def api_species():
-    return {"species": list(rules.species().values())}
+    return {"species": rules.list_species()}
 
 
 @app.get("/api/careers")
 async def api_careers():
-    return {"careers": list(rules.careers().values())}
+    return {"careers": rules.list_careers()}
 
 
 @app.get("/api/background-skills")
@@ -111,6 +124,11 @@ async def api_life_events():
 @app.get("/api/tables/mustering-benefits")
 async def api_mustering_benefits():
     return rules.mustering_benefits()
+
+
+@app.get("/api/tables/education")
+async def api_education():
+    return rules.education()
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +161,42 @@ async def api_background_skills_set(action: BackgroundSkillsAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.set_background_skills(character, action.chosen)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/skip")
+async def api_pre_career_skip(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.skip_pre_career(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/qualify")
+async def api_pre_career_qualify(action: PreCareerQualifyAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_qualify(character, action.track, action.service)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/graduate")
+async def api_pre_career_graduate(action: PreCareerGraduateAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_graduate(character, action.chosen_skills or None)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/choose-skills")
+async def api_pre_career_choose_skills(action: PreCareerSkillsAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_choose_skills(character, action.chosen_skills)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

@@ -127,7 +127,10 @@ def apply_species(character: Character, species_id: str) -> dict:
     if species_data is None:
         raise ValueError(f"Unknown species: {species_id}")
 
-    character.species_id = species_id
+    # Canonicalize: if the caller passed an alias (e.g. legacy 'human'),
+    # store the underlying id so downstream code sees a single stable value.
+    canonical_id = species_data.get("id", species_id)
+    character.species_id = canonical_id
     mods = species_data.get("characteristic_modifiers", {})
     applied = {}
     for stat, delta in mods.items():
@@ -161,8 +164,343 @@ def set_background_skills(character: Character, chosen: list[str]) -> dict:
         character.add_skill(skill_name, level=0)
 
     character.log(f"Gained {len(chosen)} background skill(s): {', '.join(chosen) or '(none)'}")
-    character.phase = "career"
+    character.phase = "pre_career"
+    character.pre_career_status = {
+        "track": None,
+        "service": None,
+        "stage": "none",
+        "outcome": None,
+        "skill_picks_remaining": 0,
+        "skill_pool": [],
+    }
     return {"allowed": allowed_count, "chosen": chosen, "character": character.model_dump()}
+
+
+# ============================================================
+# Phase 1.5: Pre-career education (optional)
+# ============================================================
+
+
+def _edu_track(track: str) -> dict:
+    tracks = rules.education()["tracks"]
+    data = tracks.get(track)
+    if data is None:
+        raise ValueError(f"Unknown education track: {track}")
+    return data
+
+
+def _academy_service(service: str) -> dict:
+    uni = _edu_track("military_academy")
+    svc = uni["services"].get(service)
+    if svc is None:
+        raise ValueError(f"Unknown military academy service: {service}")
+    return svc
+
+
+def skip_pre_career(character: Character) -> dict:
+    """Player chooses to skip pre-career education and go straight to careers."""
+    if character.phase != "pre_career":
+        raise ValueError(f"Not in pre-career phase (currently: {character.phase})")
+    character.pre_career_status = {
+        **character.pre_career_status,
+        "stage": "skipped",
+        "outcome": "skipped",
+        "track": None,
+        "service": None,
+    }
+    character.phase = "career"
+    character.log("Skipped pre-career education — straight to service.")
+    return {"character": character.model_dump()}
+
+
+def pre_career_qualify(
+    character: Character, track: str, service: Optional[str] = None
+) -> dict:
+    """Roll qualification for University or a Military Academy service.
+
+    On success: applies enrollment bonus (e.g. +1 EDU for University,
+    or enrollment skills for an Academy) and advances to the 'enrolled'
+    stage. On failure: no bonus, falls through to career phase.
+    """
+    if character.phase != "pre_career":
+        raise ValueError(f"Not in pre-career phase (currently: {character.phase})")
+
+    track_data = _edu_track(track)
+
+    if character.age > track_data["max_age"]:
+        raise ValueError(
+            f"Too old for {track_data['name']} (age {character.age} > "
+            f"max {track_data['max_age']})"
+        )
+
+    # Which qualification block applies?
+    if track == "military_academy":
+        if not service:
+            raise ValueError("Military academy requires a service (army|marine|navy)")
+        svc = _academy_service(service)
+        qual = svc["qualification"]
+        display_name = svc["name"]
+    else:
+        qual = track_data["qualification"]
+        display_name = track_data["name"]
+
+    char_key = qual["characteristic"]
+    target = qual["target"]
+    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+    # Optional generic modifiers (currently: per_previous_term)
+    for mod in qual.get("modifiers", []):
+        if mod.get("type") == "per_previous_term":
+            dm += mod["dm"] * character.total_terms
+        elif mod.get("type") == "per_previous_career":
+            dm += mod["dm"] * len(character.completed_careers)
+
+    r = dice.roll("2D", modifier=dm, target=target)
+
+    passed = bool(r.succeeded)
+    enrollment_applied: list[str] = []
+
+    if passed:
+        # Enrollment bonuses. University applies +1 EDU; academies apply
+        # fixed enrollment skills.
+        if track == "university":
+            bonuses = track_data.get("enrollment_bonus", {})
+            for stat, delta in bonuses.items():
+                current = character.characteristics.get(stat)
+                character.characteristics.set(stat, current + delta)
+                enrollment_applied.append(f"{stat} {delta:+d}")
+        else:
+            for sk in svc.get("enrollment_skills", []):
+                msg = character.add_skill(
+                    sk["name"], level=sk.get("level", 0),
+                    speciality=sk.get("speciality"),
+                )
+                enrollment_applied.append(msg)
+
+        # Age ticks on successful enrollment (student has committed).
+        character.age += track_data["age_cost"]
+
+        character.pre_career_status = {
+            "track": track,
+            "service": service,
+            "stage": "enrolled",
+            "outcome": None,
+            "skill_picks_remaining": 0,
+            "skill_pool": [],
+        }
+        character.log(
+            f"Qualified for {display_name} ({char_key} {target}+): "
+            f"2D{dm:+d} = {r.total} [PASS]. "
+            + (f"Enrollment bonus: {', '.join(enrollment_applied)}"
+               if enrollment_applied else "")
+        )
+    else:
+        # Failed qualification — no age cost, fall through to careers.
+        character.pre_career_status = {
+            "track": track,
+            "service": service,
+            "stage": "not_qualified",
+            "outcome": "not_qualified",
+            "skill_picks_remaining": 0,
+            "skill_pool": [],
+        }
+        character.phase = "career"
+        character.log(
+            f"Failed to qualify for {display_name} ({char_key} {target}+): "
+            f"2D{dm:+d} = {r.total} [FAIL]. Moving on to a service career."
+        )
+
+    return {
+        "roll": r.to_dict(),
+        "passed": passed,
+        "track": track,
+        "service": service,
+        "enrollment_applied": enrollment_applied,
+        "character": character.model_dump(),
+    }
+
+
+def pre_career_graduate(
+    character: Character,
+    chosen_skills: Optional[list[str]] = None,
+) -> dict:
+    """Roll graduation for whatever pre-career track the character is enrolled in.
+
+    On success / honours: applies the graduation bonuses (stat bumps, skills
+    at level 1, possible DMs and commission for academies). On failure:
+    applies the failure note and advances.
+    """
+    if character.phase != "pre_career":
+        raise ValueError(f"Not in pre-career phase (currently: {character.phase})")
+
+    status = character.pre_career_status or {}
+    if status.get("stage") != "enrolled":
+        raise ValueError("Not currently enrolled in a pre-career track")
+
+    track = status.get("track")
+    service = status.get("service")
+    if track is None:
+        raise ValueError("No pre-career track recorded on character")
+
+    track_data = _edu_track(track)
+    grad = track_data["graduation"]
+    char_key = grad["characteristic"]
+    target = grad["target"]
+    honours_target = grad.get("honours_target")
+    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+    r = dice.roll("2D", modifier=dm, target=target)
+
+    outcome: str
+    applied_note: list[str] = []
+    skill_pool: list[str] = []
+    picks_remaining = 0
+
+    if not r.succeeded:
+        outcome = "fail"
+        note = grad.get("on_failure", {}).get("note", "Failed to graduate.")
+        applied_note.append(note)
+    else:
+        is_honours = honours_target is not None and r.total >= honours_target
+        block = grad["on_honours"] if is_honours else grad["on_graduation"]
+        outcome = "honours" if is_honours else "pass"
+
+        # Stat bumps
+        for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
+            if stat in block:
+                delta = int(block[stat])
+                current = character.characteristics.get(stat)
+                character.characteristics.set(stat, current + delta)
+                applied_note.append(f"{stat} {delta:+d}")
+
+        # Pending DMs for next rolls
+        if "dm_next_qualification" in block:
+            character.dm_next_qualification += int(block["dm_next_qualification"])
+            applied_note.append(
+                f"DM{int(block['dm_next_qualification']):+d} next qualification"
+            )
+        if "dm_next_advancement" in block:
+            character.dm_next_advancement += int(block["dm_next_advancement"])
+            applied_note.append(
+                f"DM{int(block['dm_next_advancement']):+d} next advancement"
+            )
+        if "dm_next_benefit" in block:
+            character.dm_next_benefit += int(block["dm_next_benefit"])
+            applied_note.append(
+                f"DM{int(block['dm_next_benefit']):+d} next benefit"
+            )
+
+        # Academy commission: first term of matching career starts at Rank 1.
+        if "starts_commissioned_rank" in block and track == "military_academy":
+            svc = _academy_service(service)
+            character.starts_commissioned_career_id = svc["career_id"]
+            applied_note.append(
+                f"starts {svc['name']} commissioned at Rank "
+                f"{block['starts_commissioned_rank']}"
+            )
+
+        # Skill picks
+        picks = int(block.get("skills_at_level_1", 0))
+        if picks > 0:
+            picks_remaining = picks
+            if track == "university":
+                skill_pool = list(track_data.get("skill_list", []))
+            else:
+                svc = _academy_service(service)
+                skill_pool = [s["name"] for s in svc.get("enrollment_skills", [])]
+                # Fallback: if academy has no explicit pool, fall back to a
+                # small generic military list.
+                if not skill_pool:
+                    skill_pool = ["Gun Combat", "Melee", "Drive",
+                                  "Electronics", "Tactics"]
+
+        if block.get("note"):
+            applied_note.append(block["note"])
+
+    # Pre-apply any skills chosen with the graduate call (one-shot flow)
+    if chosen_skills and picks_remaining:
+        if len(chosen_skills) > picks_remaining:
+            raise ValueError(
+                f"Chose {len(chosen_skills)} skills but only "
+                f"{picks_remaining} picks available."
+            )
+        for s in chosen_skills:
+            if s not in skill_pool:
+                raise ValueError(
+                    f"'{s}' is not in the skill pool for this track."
+                )
+            character.add_skill(s, level=1)
+        picks_remaining -= len(chosen_skills)
+
+    # Update status + phase
+    still_needs_picks = picks_remaining > 0
+    character.pre_career_status = {
+        "track": track,
+        "service": service,
+        "stage": "graduated" if outcome != "fail" else "failed_grad",
+        "outcome": outcome,
+        "skill_picks_remaining": picks_remaining,
+        "skill_pool": skill_pool,
+    }
+    if not still_needs_picks:
+        character.phase = "career"
+
+    label = {"pass": "GRADUATED", "honours": "GRADUATED w/ HONOURS",
+             "fail": "FAILED TO GRADUATE"}[outcome]
+    character.log(
+        f"Graduation ({char_key} {target}+"
+        + (f", Honours {honours_target}+" if honours_target else "")
+        + f"): 2D{dm:+d} = {r.total} [{label}]. "
+        + ("; ".join(applied_note) if applied_note else "")
+    )
+
+    return {
+        "roll": r.to_dict(),
+        "outcome": outcome,
+        "honours_target": honours_target,
+        "skill_pool": skill_pool,
+        "skill_picks_remaining": picks_remaining,
+        "applied": applied_note,
+        "character": character.model_dump(),
+    }
+
+
+def pre_career_choose_skills(
+    character: Character, chosen_skills: list[str]
+) -> dict:
+    """Apply pending graduation skill picks (used when the UI resolves picks
+    separately from the graduation roll)."""
+    status = character.pre_career_status or {}
+    remaining = int(status.get("skill_picks_remaining", 0))
+    pool = list(status.get("skill_pool", []))
+
+    if remaining <= 0:
+        raise ValueError("No pending skill picks.")
+    if len(chosen_skills) > remaining:
+        raise ValueError(
+            f"Chose {len(chosen_skills)} skills but only {remaining} picks left."
+        )
+    for s in chosen_skills:
+        if s not in pool:
+            raise ValueError(f"'{s}' not in this track's skill pool.")
+        character.add_skill(s, level=1)
+
+    remaining -= len(chosen_skills)
+    character.pre_career_status = {
+        **status,
+        "skill_picks_remaining": remaining,
+    }
+    character.log(
+        f"Picked {len(chosen_skills)} pre-career graduation skill(s): "
+        + ", ".join(chosen_skills)
+    )
+    if remaining == 0:
+        character.phase = "career"
+    return {
+        "chosen": chosen_skills,
+        "skill_picks_remaining": remaining,
+        "character": character.model_dump(),
+    }
 
 
 # ============================================================
@@ -245,20 +583,37 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
         c.career_id == career_id for c in character.completed_careers
     )
 
+    # Pre-career military academy honored: first term in matching career
+    # starts commissioned at Rank 1.
+    commissioned_start = (
+        first_term_in_this_career
+        and character.starts_commissioned_career_id == career_id
+    )
+    starting_rank = 1 if commissioned_start else 0
+
     term = CareerTerm(
         career_id=career_id,
         assignment_id=assignment_id,
         term_number=1 if is_new_career else (character.current_term.term_number + 1),
         overall_term_number=character.total_terms + 1,
-        rank=0,
-        rank_title=_rank_title(career, assignment_id, 0),
-        basic_training=first_term_in_this_career,
+        rank=starting_rank,
+        rank_title=_rank_title(career, assignment_id, starting_rank),
+        basic_training=first_term_in_this_career and not commissioned_start,
+        commissioned=commissioned_start,
     )
     character.current_term = term
+
+    # Consume the commission so subsequent terms don't re-trigger it.
+    if commissioned_start:
+        character.starts_commissioned_career_id = None
+
     character.log(
         f"Begin Term {term.overall_term_number}: {career['name']} — "
         f"{career['assignments'][assignment_id]['name']}"
         + (" (Basic Training)" if term.basic_training else "")
+        + (f" — commissioned at Rank {starting_rank}"
+           f"{' (' + term.rank_title + ')' if term.rank_title else ''}"
+           if commissioned_start else "")
     )
     return {"term": term.model_dump(), "character": character.model_dump()}
 

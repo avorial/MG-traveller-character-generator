@@ -1,0 +1,106 @@
+{
+  "description": "Pre-career education: University or Military Academy. Mongoose Traveller 2e, core rulebook pp. 11-12 (best-effort reconstruction — verify cash values, skill lists, and targets against your own copy of the rulebook).",
+  "tracks": {
+    "university": {
+      "id": "university",
+      "name": "University",
+      "blurb": "Four years of academic study. Higher EDU, a few free skills, and a chance at Honours for real bragging rights.",
+      "age_cost": 4,
+      "max_age": 20,
+      "enrollment_bonus": {"EDU": 1},
+      "qualification": {
+        "characteristic": "INT",
+        "target": 6,
+        "modifiers": [
+          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "EDU",
+        "target": 7,
+        "honours_target": 10,
+        "on_graduation": {
+          "EDU": 2,
+          "skills_at_level_1": 2,
+          "note": "Choose 2 skills at level 1 from the University skill list."
+        },
+        "on_honours": {
+          "EDU": 2,
+          "SOC": 1,
+          "skills_at_level_1": 2,
+          "dm_next_qualification": 1,
+          "note": "Graduated with Honours. DM+1 on first career qualification roll."
+        },
+        "on_failure": {
+          "note": "Failed graduation. Keeps the +1 EDU from enrollment, no other bonuses."
+        }
+      },
+      "skill_list": [
+        "Admin", "Advocate", "Animals", "Art", "Astrogation", "Diplomat",
+        "Drive", "Electronics", "Engineer", "Language", "Life Sciences",
+        "Medic", "Navigation", "Physical Sciences", "Pilot", "Science",
+        "Social Sciences", "Space Sciences"
+      ]
+    },
+    "military_academy": {
+      "id": "military_academy",
+      "name": "Military Academy",
+      "blurb": "Three years of hell. Qualify and graduate and you start your service career as a commissioned officer (Rank 1) — plus skills and a DM+1 to that career's first advancement check.",
+      "age_cost": 3,
+      "max_age": 21,
+      "services": {
+        "army": {
+          "id": "army",
+          "name": "Military Academy — Army",
+          "career_id": "army",
+          "qualification": {"characteristic": "END", "target": 7},
+          "enrollment_skills": [
+            {"name": "Drive", "level": 0},
+            {"name": "Athletics", "level": 0, "speciality": "Strength"}
+          ]
+        },
+        "marine": {
+          "id": "marine",
+          "name": "Military Academy — Marines",
+          "career_id": "marine",
+          "qualification": {"characteristic": "END", "target": 9},
+          "enrollment_skills": [
+            {"name": "Gun Combat", "level": 0},
+            {"name": "Melee", "level": 0}
+          ]
+        },
+        "navy": {
+          "id": "navy",
+          "name": "Military Academy — Navy",
+          "career_id": "navy",
+          "qualification": {"characteristic": "INT", "target": 9},
+          "enrollment_skills": [
+            {"name": "Vacc Suit", "level": 0},
+            {"name": "Electronics", "level": 0}
+          ]
+        }
+      },
+      "graduation": {
+        "characteristic": "EDU",
+        "target": 7,
+        "honours_target": 11,
+        "on_graduation": {
+          "starts_commissioned_rank": 1,
+          "skills_at_level_1": 1,
+          "dm_next_advancement": 1,
+          "note": "Starts chosen service career as a commissioned officer (Rank 1). DM+1 to next advancement roll."
+        },
+        "on_honours": {
+          "starts_commissioned_rank": 1,
+          "skills_at_level_1": 2,
+          "dm_next_advancement": 2,
+          "EDU": 1,
+          "note": "Graduated with Honours. Starts chosen service career commissioned at Rank 1 with DM+2 to next advancement."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. Keeps enrollment skills but starts service career at Rank 0 (no commission bonus)."
+        }
+      }
+    }
+  }
+}

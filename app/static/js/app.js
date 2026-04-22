@@ -17,6 +17,7 @@ let uiState = {
   // Transient selections that aren't part of the character yet
   selectedSpecies: null,
   selectedBgSkills: new Set(),
+  selectedPreCareerSkills: new Set(),
   selectedCareer: null,
   selectedAssignment: null,
   // After-roll dialog state
@@ -51,8 +52,9 @@ async function freshCharacter() {
   const res = await fetch('/api/character/new', { method: 'POST' });
   const data = await res.json();
   character = data.character;
-  uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedCareer: null,
-              selectedAssignment: null, lastRoll: null, subPhase: null, pendingAge: false };
+  uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
+              selectedCareer: null, selectedAssignment: null, lastRoll: null,
+              subPhase: null, pendingAge: false };
   saveCharacter();
 }
 
@@ -296,6 +298,10 @@ function renderStage() {
       stage.innerHTML = renderBackgroundPhase();
       wireBackgroundPhase();
       break;
+    case 'pre_career':
+      stage.innerHTML = renderPreCareerPhase();
+      wirePreCareerPhase();
+      break;
     case 'career':
       stage.innerHTML = renderCareerPhase();
       wireCareerPhase();
@@ -527,6 +533,335 @@ function wireBackgroundPhase() {
       renderAll();
     });
   }
+}
+
+// ============================================================
+// PHASE 3.5: Pre-Career Education (optional)
+// ============================================================
+
+const PRE_CAREER_SERVICES = [
+  { id: 'army',   name: 'Military Academy — Army',    career_id: 'army',
+    desc: 'Officer track for the ground forces. Tough qualification, solid pay.' },
+  { id: 'marine', name: 'Military Academy — Marines', career_id: 'marine',
+    desc: 'Hardest qualification target. Commissioned marines lead boarding actions.' },
+  { id: 'navy',   name: 'Military Academy — Navy',    career_id: 'navy',
+    desc: 'The prestige track. INT-based qualification, ship-bound officer career.' },
+];
+
+function renderPreCareerPhase() {
+  const status = character.pre_career_status || {};
+  const stage = status.stage || 'none';
+
+  // Post-roll view: show the qualification roll outcome
+  if (uiState.lastRoll?.type === 'precareer_qualify') {
+    const lr = uiState.lastRoll;
+    const passed = lr.passed;
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Qualification Roll — ${lr.trackName}</div>
+        <h2 class="phase-title">${passed ? 'Qualified' : 'Did Not Qualify'}</h2>
+        ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
+        ${lr.enrollmentApplied?.length ? `
+          <div class="dm-applied-box">
+            <span class="event-label">Enrollment bonus</span>
+            ${lr.enrollmentApplied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}
+          </div>
+        ` : ''}
+        <p class="phase-body">${passed
+          ? `Enrolled. ${lr.ageCost ? `${lr.ageCost} years pass while you study.` : ''} Now roll for graduation.`
+          : `Didn't meet the bar. You skip straight to your first career without any education bonus.`
+        }</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-post-precareer-qualify">
+            ${passed ? 'ROLL GRADUATION →' : 'CONTINUE TO CAREER →'}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Post-roll view: graduation outcome
+  if (uiState.lastRoll?.type === 'precareer_graduate') {
+    const lr = uiState.lastRoll;
+    const labels = { pass: 'Graduated', honours: 'Graduated with Honours', fail: 'Failed to Graduate' };
+    const remaining = status.skill_picks_remaining || 0;
+    const pool = status.skill_pool || [];
+
+    const appliedHTML = lr.applied?.length ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Graduation benefits</span>
+        ${lr.applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}
+      </div>
+    ` : '';
+
+    // If there are still skill picks to make, render the picker here
+    if (remaining > 0) {
+      const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
+      const picker = pool.map(s => {
+        const sel = picked.includes(s);
+        return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
+          ${!sel && picked.length >= remaining ? 'disabled' : ''}>${escapeHTML(s)}</button>`;
+      }).join('');
+      return `
+        <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+        <div class="stage-content">
+          <div class="phase-label">Graduation — ${labels[lr.outcome]}</div>
+          <h2 class="phase-title">Pick Your Skills</h2>
+          ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
+          ${appliedHTML}
+          <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1 from the ${lr.trackName} list.</p>
+          <div class="skill-picker">${picker}</div>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-confirm-pc-skills"
+              ${picked.length === 0 ? 'disabled' : ''}>
+              CONFIRM ${picked.length}/${remaining} →
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Graduation — ${labels[lr.outcome]}</div>
+        <h2 class="phase-title">${labels[lr.outcome]}</h2>
+        ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
+        ${appliedHTML}
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Enrolled — show graduation roll button
+  if (stage === 'enrolled') {
+    const track = status.track;
+    const service = status.service;
+    const trackName = track === 'university'
+      ? 'University'
+      : (PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Enrolled · ${trackName}</div>
+        <h2 class="phase-title">Time to Graduate</h2>
+        <p class="phase-subtitle">Roll for graduation. Pass for bonuses, hit the Honours target for even more.</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Track chosen but not yet qualified — show academy service picker if needed
+  if (stage === 'choosing_service' && status.track === 'military_academy') {
+    const cards = PRE_CAREER_SERVICES.map(s => `
+      <button class="card" data-pc-service="${s.id}">
+        <div class="card-title">${s.name}</div>
+        <div class="card-desc">${s.desc}</div>
+      </button>
+    `).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Military Academy · Pick a Service</div>
+        <h2 class="phase-title">Which Branch?</h2>
+        <p class="phase-body">The academy you qualify into commits you to that service career. Commission on graduation means starting at Rank 1 instead of basic training.</p>
+        <div class="card-grid">${cards}</div>
+        <div class="phase-actions">
+          <button class="btn" id="btn-pc-back-to-choose">← BACK</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Default: pick a track (University / Academy / Skip)
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Optional · Age ${character.age}</div>
+      <h2 class="phase-title">Education Before Service?</h2>
+      <p class="phase-subtitle">Before picking a career, you can spend a few years at University or a Military Academy. Or skip and go straight to the job.</p>
+
+      <div class="card-grid">
+        <button class="card" id="btn-pc-university">
+          <div class="card-title">University</div>
+          <div class="card-desc">INT 6+ to qualify, 4 years, +1 EDU on enrollment. Graduate for +2 EDU and 2 skills at level 1. Honours at 10+ adds SOC +1 and DM+1 to your first career qualification.</div>
+        </button>
+        <button class="card" id="btn-pc-academy">
+          <div class="card-title">Military Academy</div>
+          <div class="card-desc">3 years. Qualification varies by service. Graduate and you start that career commissioned (Rank 1) with DM+1 to next advancement.</div>
+        </button>
+        <button class="card" id="btn-pc-skip">
+          <div class="card-title">Skip</div>
+          <div class="card-desc">Age ${character.age} and hungry for a paycheck. Go straight to the career phase.</div>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function wirePreCareerPhase() {
+  // Main choice
+  const uni = document.getElementById('btn-pc-university');
+  if (uni) uni.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/qualify',
+        { track: 'university' });
+      await applyResponse(response);
+      uiState.lastRoll = {
+        type: 'precareer_qualify',
+        data: response.roll,
+        passed: response.passed,
+        trackName: 'University',
+        charLabel: 'INT',
+        target: 6,
+        ageCost: 4,
+        enrollmentApplied: response.enrollment_applied || [],
+      };
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  const academy = document.getElementById('btn-pc-academy');
+  if (academy) academy.addEventListener('click', () => {
+    character.pre_career_status = {
+      ...(character.pre_career_status || {}),
+      track: 'military_academy',
+      stage: 'choosing_service',
+    };
+    saveCharacter();
+    renderStage();
+  });
+
+  const skip = document.getElementById('btn-pc-skip');
+  if (skip) skip.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/skip');
+      await applyResponse(response);
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  // Academy service picker
+  document.querySelectorAll('[data-pc-service]').forEach(card => {
+    card.addEventListener('click', async () => {
+      const service = card.dataset.pcService;
+      const svc = PRE_CAREER_SERVICES.find(s => s.id === service);
+      try {
+        const response = await apiCall('/api/character/pre-career/qualify',
+          { track: 'military_academy', service });
+        await applyResponse(response);
+        // Target + char key come from the engine response implicitly,
+        // but for display we use the service's known values.
+        const charLabel = service === 'navy' ? 'INT' : 'END';
+        const target = service === 'army' ? 7 : 9;
+        uiState.lastRoll = {
+          type: 'precareer_qualify',
+          data: response.roll,
+          passed: response.passed,
+          trackName: svc?.name || 'Military Academy',
+          charLabel,
+          target,
+          ageCost: 3,
+          enrollmentApplied: response.enrollment_applied || [],
+        };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
+  const backToChoose = document.getElementById('btn-pc-back-to-choose');
+  if (backToChoose) backToChoose.addEventListener('click', () => {
+    character.pre_career_status = {
+      ...(character.pre_career_status || {}),
+      track: null,
+      stage: 'none',
+    };
+    saveCharacter();
+    renderStage();
+  });
+
+  // Post-qualify continue button
+  const postQualify = document.getElementById('btn-post-precareer-qualify');
+  if (postQualify) postQualify.addEventListener('click', () => {
+    const passed = uiState.lastRoll?.passed;
+    uiState.lastRoll = null;
+    if (passed) {
+      // Stay in pre_career, will show enrolled -> graduation button
+      renderStage();
+    } else {
+      // Engine already set phase=career on failed qualification
+      renderAll();
+    }
+  });
+
+  // Graduation roll button
+  const gradBtn = document.getElementById('btn-pc-graduate');
+  if (gradBtn) gradBtn.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/graduate',
+        { chosen_skills: [] });
+      await applyResponse(response);
+      const track = character.pre_career_status?.track;
+      const service = character.pre_career_status?.service;
+      const trackName = track === 'university'
+        ? 'University'
+        : (PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy');
+      const charLabel = 'EDU';
+      const target = track === 'university' ? 7 : 7;
+      uiState.selectedPreCareerSkills = new Set();
+      uiState.lastRoll = {
+        type: 'precareer_graduate',
+        data: response.roll,
+        outcome: response.outcome,
+        applied: response.applied || [],
+        trackName,
+        charLabel,
+        target,
+      };
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  // Skill picker chips
+  document.querySelectorAll('[data-pc-skill]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const skill = chip.dataset.pcSkill;
+      if (!uiState.selectedPreCareerSkills) uiState.selectedPreCareerSkills = new Set();
+      if (uiState.selectedPreCareerSkills.has(skill)) {
+        uiState.selectedPreCareerSkills.delete(skill);
+      } else {
+        uiState.selectedPreCareerSkills.add(skill);
+      }
+      renderStage();
+    });
+  });
+
+  // Confirm skill picks
+  const confirmPc = document.getElementById('btn-confirm-pc-skills');
+  if (confirmPc) confirmPc.addEventListener('click', async () => {
+    const chosen = Array.from(uiState.selectedPreCareerSkills || []);
+    if (chosen.length === 0) return;
+    try {
+      const response = await apiCall('/api/character/pre-career/choose-skills',
+        { chosen_skills: chosen });
+      await applyResponse(response);
+      uiState.selectedPreCareerSkills = new Set();
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  // Post-graduate continue (no picks path)
+  const postGrad = document.getElementById('btn-post-precareer-graduate');
+  if (postGrad) postGrad.addEventListener('click', () => {
+    uiState.lastRoll = null;
+    renderAll();
+  });
 }
 
 // ============================================================

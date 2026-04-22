@@ -76,7 +76,7 @@ class Character(BaseModel):
     # Identity
     name: str = ""
     homeworld: str = ""
-    species_id: str = "human"
+    species_id: str = "imperial_human"
 
     # Core stats
     characteristics: Characteristics = Field(default_factory=Characteristics)
@@ -103,6 +103,20 @@ class Character(BaseModel):
     dm_next_advancement: int = 0
     dm_next_qualification: int = 0
     dm_next_benefit: int = 0
+
+    # Pre-career education state
+    pre_career_status: dict = Field(default_factory=dict)
+    # {
+    #   "track": "university" | "military_academy" | None,
+    #   "service": "army" | "marine" | "navy" | None,
+    #   "stage": "none" | "enrolled" | "graduated" | "failed_grad" | "not_qualified" | "skipped",
+    #   "outcome": "pass" | "honours" | "fail" | "skipped" | "not_qualified" | None,
+    #   "skill_picks_remaining": int,
+    #   "skill_pool": [str, ...]
+    # }
+    # Set by the academy path when the character graduates and earns
+    # a commission: first term in this career starts at Rank 1 commissioned.
+    starts_commissioned_career_id: Optional[str] = None
 
     # Creation flow state
     phase: str = "characteristics"  # characteristics | species | background | pre_career | career | mustering | finalize | done

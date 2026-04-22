@@ -1,0 +1,30 @@
+{
+  "id": "hierate_aslan",
+  "name": "Aslan (Hierate)",
+  "description": "Descended from four-limbed carnivorous pouncer stock native to Kusyu, the Aslan are an expansionist warrior race organized into patriarchal clans. An Aslan of the Hierate — the vast coreward-spinward civilization that is the species' political and cultural heart — is raised under strict codes of honour, land-ownership (for males) and administrative authority (for females), with dueling and territory-claim as central facts of adult life.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [
+    {
+      "name": "Dewclaw",
+      "description": "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (natural) skill and does 1D+2 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+    },
+    {
+      "name": "Code of Honour",
+      "description": "Hierate-raised Aslan live by strict conduct codes. DM+1 to Persuade checks with other Hierate Aslan; a Hierate Aslan who breaks their word in front of witnesses suffers DM-2 to all social checks with Hierate society until it is redressed (typically by duel)."
+    }
+  ],
+  "aliases": ["aslan"],
+  "source": "Traveller Core Rulebook, Mongoose Publishing"
+}
