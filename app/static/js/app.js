@@ -239,6 +239,32 @@ function renderSheet() {
       }).join('')}</ul>`
     : '<p class="empty">No careers yet</p>';
 
+  const associates = character.associates || [];
+  const buckets = { contact: [], ally: [], rival: [], enemy: [] };
+  associates.forEach((a, i) => {
+    if (buckets[a.kind]) buckets[a.kind].push({ a, i });
+  });
+  const bucketOrder = [
+    ['contact', 'Contacts'],
+    ['ally', 'Allies'],
+    ['rival', 'Rivals'],
+    ['enemy', 'Enemies'],
+  ];
+  const associatesHTML = associates.length
+    ? bucketOrder.map(([k, title]) => {
+        const items = buckets[k];
+        if (!items.length) return '';
+        return `
+          <div class="assoc-bucket assoc-kind-${k}">
+            <div class="assoc-bucket-title">${title} <span class="assoc-count">${items.length}</span></div>
+            <ul class="skill-list">
+              ${items.map(({ a }) => `<li><span>${escapeHTML(a.description || '(unnamed)')}</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }).join('')
+    : '<p class="empty">No associates yet</p>';
+
   sheet.innerHTML = `
     <div class="panel-header"><span class="led"></span><span>CHARACTER FILE</span></div>
     <div class="sheet-scroll">
@@ -267,6 +293,11 @@ function renderSheet() {
       <div class="sheet-section">
         <h3>Careers</h3>
         ${careersHTML}
+      </div>
+
+      <div class="sheet-section">
+        <h3>Associates</h3>
+        ${associatesHTML}
       </div>
 
       <div class="sheet-section">
@@ -1534,6 +1565,66 @@ function wireCareerPhase() {
     });
   });
 
+  // Associate outcomes — "Gain a Contact/Ally/Rival/Enemy" or Betrayal convert.
+  const labelAssoc = (k) => ({contact:'Contact', ally:'Ally', rival:'Rival', enemy:'Enemy'}[k] || k);
+  const recordAssocDone = (opIdx, summary) => {
+    if (!uiState.lastRoll || uiState.lastRoll.type !== 'event') return;
+    const arr = Array.isArray(uiState.lastRoll.associateOpsDone) ? uiState.lastRoll.associateOpsDone.slice() : [];
+    while (arr.length <= opIdx) arr.push(null);
+    arr[opIdx] = summary;
+    uiState.lastRoll.associateOpsDone = arr;
+  };
+  const disableAllAssocChips = () => {
+    document.querySelectorAll('[data-assoc-add],[data-assoc-convert]').forEach(c => { c.disabled = true; });
+  };
+  const enableAllAssocChips = () => {
+    document.querySelectorAll('[data-assoc-add],[data-assoc-convert]').forEach(c => { c.disabled = false; });
+  };
+
+  document.querySelectorAll('[data-assoc-add]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const opIdx = parseInt(chip.getAttribute('data-assoc-add'), 10);
+      const kind = chip.getAttribute('data-assoc-kind');
+      const descEl = document.querySelector(`[data-assoc-desc="${opIdx}"]`);
+      const description = (descEl?.value || '').trim();
+      try {
+        disableAllAssocChips();
+        const response = await apiCall('/api/character/associate', {
+          op: 'add', kind, description,
+        });
+        await applyResponse(response);
+        const summary = `Gained ${labelAssoc(kind)}${description ? `: ${description}` : ''}`;
+        recordAssocDone(opIdx, summary);
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not add that associate.');
+        enableAllAssocChips();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-assoc-convert]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const opIdx = parseInt(chip.getAttribute('data-assoc-convert'), 10);
+      const index = parseInt(chip.getAttribute('data-assoc-index'), 10);
+      const toKind = chip.getAttribute('data-assoc-to');
+      try {
+        disableAllAssocChips();
+        const response = await apiCall('/api/character/associate', {
+          op: 'convert', index, to_kind: toKind,
+        });
+        await applyResponse(response);
+        const conv = response.converted || {};
+        const summary = `Betrayal — ${labelAssoc(conv.from_kind || '')} → ${labelAssoc(conv.to_kind || toKind)}${conv.description ? `: ${conv.description}` : ''}`;
+        recordAssocDone(opIdx, summary);
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not convert that associate.');
+        enableAllAssocChips();
+      }
+    });
+  });
+
   const btnMishap = document.getElementById('btn-mishap');
   if (btnMishap) {
     btnMishap.addEventListener('click', async () => {
@@ -1966,6 +2057,76 @@ function parseEventDmAlternative(text) {
   return { dm: parseInt(m[1], 10), target: m[2].toLowerCase() };
 }
 
+function parseEventAssociateOps(text) {
+  // Detect associate mutations in an event. Returns an array of ops, each
+  // shaped:
+  //   { type:'add',      kinds:['ally']                }           // unambiguous
+  //   { type:'add',      kinds:['rival','enemy']       }           // "Gain a Rival or Enemy"
+  //   { type:'add',      kinds:['contact','ally']      }           // "Gain a Contact or Ally"
+  //   { type:'betrayal', fromKinds:['contact','ally'],
+  //                      toKinds:['rival','enemy']     }           // life-event #8
+  // Returns [] if no associate mechanics are present. Safe to call on any
+  // event text.
+  if (!text) return [];
+  const ops = [];
+  const raw = String(text);
+
+  // Betrayal (life event #8) — highest priority since it mentions both.
+  //   "If you have any Contacts or Allies, convert one into a Rival or Enemy.
+  //    Otherwise, gain a Rival or an Enemy."
+  if (/If you have any Contacts? or Allies?.*?convert one into a Rival or (?:an? )?Enemy/i.test(raw)) {
+    ops.push({
+      type: 'betrayal',
+      fromKinds: ['contact', 'ally'],
+      toKinds: ['rival', 'enemy'],
+    });
+    return ops;  // Betrayal covers the whole event — don't also match the "Otherwise, gain" clause.
+  }
+
+  // Pair-disjunction "Gain a Rival or Enemy" / "Gain a Contact or Ally" /
+  // "Gain a Rival or an Enemy". The second article is optional because the
+  // rulebook wording varies.
+  const pairRe = /gain\s+(?:a|an|one)\s+(?:new\s+|another\s+)?(contact|ally|rival|enemy)\s+or\s+(?:a\s+|an\s+|one\s+)?(contact|ally|rival|enemy)/gi;
+  let m;
+  const consumedRanges = [];
+  while ((m = pairRe.exec(raw)) !== null) {
+    ops.push({
+      type: 'add',
+      kinds: [m[1].toLowerCase(), m[2].toLowerCase()],
+    });
+    consumedRanges.push([m.index, m.index + m[0].length]);
+  }
+
+  // Single-kind "Gain a Contact" / "Gain an Ally" / "Gain a Rival" / "Gain an Enemy".
+  // Allows filler like "new" ("You gain a new Contact.") and trailing
+  // qualifiers ("Gain an Ally in the Imperium"). Skips offsets already
+  // consumed by the pair regex.
+  const singleRe = /gain\s+(?:a|an|one)\s+(?:new\s+|another\s+)?(contact|ally|rival|enemy)(?!\s+or\s+(?:a\s+|an\s+|one\s+)?(?:contact|ally|rival|enemy))/gi;
+  while ((m = singleRe.exec(raw)) !== null) {
+    const inPair = consumedRanges.some(([s, e]) => m.index >= s && m.index < e);
+    if (inPair) continue;
+    ops.push({ type: 'add', kinds: [m[1].toLowerCase()] });
+  }
+
+  // Conjunction pickup: "... and an Enemy" / "... and a Rival" following a
+  // prior Gain clause. Covers marine[4] "Gain a Contact (fellow prisoner)
+  // and an Enemy" and similar. Only runs if we already parsed something.
+  if (ops.length > 0) {
+    const andRe = /\band\s+(?:a\s+|an\s+)(contact|ally|rival|enemy)\b/gi;
+    while ((m = andRe.exec(raw)) !== null) {
+      // Skip if this "and a Contact" already lives inside a pair match
+      // (e.g. "Contact or Ally" — we don't want to misread "or" as "and").
+      const inPair = consumedRanges.some(([s, e]) => m.index >= s && m.index < e);
+      if (inPair) continue;
+      // Avoid duplicate: if the exact same kind was already added at a
+      // nearby offset (within 12 chars), skip.
+      ops.push({ type: 'add', kinds: [m[1].toLowerCase()] });
+    }
+  }
+
+  return ops;
+}
+
 function renderEventStep() {
   // Post-roll view with dice + event text
   if (uiState.lastRoll?.type === 'event') {
@@ -2039,6 +2200,82 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Associate outcomes (Gain a Contact/Ally/Rival/Enemy, Betrayal conversion).
+    // One picker per op; resolved ops render as a "Gained ..." chip instead.
+    const associateOps = parseEventAssociateOps(lr.eventText || '');
+    const assocDone = Array.isArray(lr.associateOpsDone) ? lr.associateOpsDone : [];
+    const pendingAssocOps = associateOps.map((op, idx) => ({ op, idx })).filter(({ idx }) => !assocDone[idx]);
+
+    const assocLabel = (k) => ({contact:'Contact', ally:'Ally', rival:'Rival', enemy:'Enemy'}[k] || k);
+
+    const assocSummaryHTML = assocDone.filter(Boolean).length ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Associates updated</span>
+        ${assocDone.filter(Boolean).map(done => `
+          <div class="dm-chip applied">${escapeHTML(done)}</div>
+        `).join('')}
+      </div>
+    ` : '';
+
+    const existingContactsAllies = (character.associates || [])
+      .map((a, i) => ({ a, i }))
+      .filter(({ a }) => a.kind === 'contact' || a.kind === 'ally');
+
+    const associatePickerHTML = pendingAssocOps.length ? `
+      <div class="event-skill-picker associate-picker">
+        <span class="event-label">Resolve associate outcome${pendingAssocOps.length > 1 ? 's' : ''}</span>
+        ${pendingAssocOps.map(({ op, idx }) => {
+          if (op.type === 'add') {
+            return `
+              <div class="assoc-op" data-assoc-op-idx="${idx}">
+                <div class="assoc-op-prompt">${op.kinds.length > 1
+                  ? `Gain a ${op.kinds.map(assocLabel).join(' or ')} — pick one:`
+                  : `Gain a ${assocLabel(op.kinds[0])}:`}</div>
+                <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                <div class="skill-picker">
+                  ${op.kinds.map(k => `
+                    <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="${k}">+ Add ${assocLabel(k)}</button>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+          if (op.type === 'betrayal') {
+            const hasAny = existingContactsAllies.length > 0;
+            return `
+              <div class="assoc-op" data-assoc-op-idx="${idx}">
+                <div class="assoc-op-prompt">Betrayal — ${hasAny
+                  ? `convert an existing Contact or Ally into a Rival or Enemy:`
+                  : `no Contacts or Allies to convert — gain a Rival or Enemy instead:`}</div>
+                ${hasAny ? `
+                  <div class="assoc-convert-list">
+                    ${existingContactsAllies.map(({ a, i }) => `
+                      <div class="assoc-row">
+                        <span class="assoc-label assoc-kind-${a.kind}">[${assocLabel(a.kind)}]</span>
+                        <span class="assoc-desc">${escapeHTML(a.description || '(no description)')}</span>
+                        <span class="skill-picker inline">
+                          <button class="skill-chip danger" data-assoc-convert="${idx}" data-assoc-index="${i}" data-assoc-to="rival">→ Rival</button>
+                          <button class="skill-chip danger" data-assoc-convert="${idx}" data-assoc-index="${i}" data-assoc-to="enemy">→ Enemy</button>
+                        </span>
+                      </div>
+                    `).join('')}
+                  </div>
+                  <div class="assoc-op-prompt" style="margin-top:8px">…or instead, add a new one:</div>
+                ` : ''}
+                <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                <div class="skill-picker">
+                  <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="rival">+ Add Rival</button>
+                  <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="enemy">+ Add Enemy</button>
+                </div>
+              </div>
+            `;
+          }
+          return '';
+        }).join('')}
+        <p class="picker-status">Resolve each associate outcome to continue.</p>
+      </div>
+    ` : '';
+
     // Mishap-forcing events (e.g. "Disaster! Roll on the Mishap Table, but you
     // are not ejected from this career.") route the player into the mishap
     // table inline. If the text says "not ejected", they continue the career
@@ -2056,7 +2293,7 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    const gateAdvance = !!(skillOptions && !chosenPath) || pendingMishapRoll;
+    const gateAdvance = !!(skillOptions && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP + skip
@@ -2087,8 +2324,10 @@ function renderEventStep() {
         ${pickerHTML}
         ${skillAppliedHTML}
         ${dmChosenHTML}
+        ${associatePickerHTML}
+        ${assocSummaryHTML}
         ${mishapRolledHTML}
-        ${skillOptions || forcesMishap ? '' : `<p class="phase-body empty"><em>Apply any resulting contacts or benefits manually to your notes — only "DM+N to next X roll" grants are auto-applied.</em></p>`}
+        ${skillOptions || forcesMishap || associateOps.length ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>

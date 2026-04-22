@@ -1723,3 +1723,69 @@ def grant_event_dm(character: Character, dm: int, target: str) -> dict:
     term.events.append(f"Event choice: {msg}")
     character.log(f"Event DM chosen: {msg}")
     return {"applied": msg, "dm": dm, "target": tgt, "character": character.model_dump()}
+
+
+# ============================================================
+# Associate mutations (gain Contact/Ally/Rival/Enemy, Betrayal)
+# ============================================================
+
+_ASSOCIATE_KINDS = {"contact", "ally", "rival", "enemy"}
+
+
+def add_associate(character: Character, kind: str, description: str = "") -> dict:
+    """Add a new Associate (contact/ally/rival/enemy) to the character.
+
+    Triggered by event text like 'Gain an Ally', 'Gain a Rival', etc. When
+    an event offers a choice ('Gain a Rival or Enemy'), the UI decides and
+    passes the resolved `kind` here.
+    """
+    k = (kind or "").strip().lower()
+    if k not in _ASSOCIATE_KINDS:
+        raise ValueError(
+            f"Unknown associate kind: {kind!r} (must be one of {sorted(_ASSOCIATE_KINDS)})"
+        )
+    desc = (description or "").strip() or f"Unnamed {k.capitalize()}"
+    character.associates.append(Associate(kind=k, description=desc))
+    if character.current_term is not None:
+        character.current_term.events.append(f"Gained {k.capitalize()}: {desc}")
+    character.log(f"Gained {k.capitalize()}: {desc}")
+    return {
+        "added": {"kind": k, "description": desc},
+        "associate_count": len(character.associates),
+        "character": character.model_dump(),
+    }
+
+
+def convert_associate(character: Character, index: int, to_kind: str) -> dict:
+    """Convert an existing Contact or Ally into a Rival or Enemy.
+
+    Used by the Betrayal life event: 'If you have any Contacts or Allies,
+    convert one into a Rival or Enemy.'
+    """
+    if index < 0 or index >= len(character.associates):
+        raise ValueError(
+            f"Associate index {index} out of range (have {len(character.associates)})"
+        )
+    a = character.associates[index]
+    to = (to_kind or "").strip().lower()
+    if to not in {"rival", "enemy"}:
+        raise ValueError(f"convert target must be 'rival' or 'enemy', got {to_kind!r}")
+    if a.kind not in {"contact", "ally"}:
+        raise ValueError(
+            f"Can only convert a Contact or Ally; this one is already a {a.kind.capitalize()}"
+        )
+    old = a.kind
+    a.kind = to
+    msg = f"{old.capitalize()} -> {to.capitalize()}: {a.description}"
+    if character.current_term is not None:
+        character.current_term.events.append(f"Betrayal - {msg}")
+    character.log(f"Associate converted - {msg}")
+    return {
+        "converted": {
+            "index": index,
+            "from_kind": old,
+            "to_kind": to,
+            "description": a.description,
+        },
+        "character": character.model_dump(),
+    }

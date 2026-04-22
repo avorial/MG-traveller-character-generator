@@ -94,6 +94,15 @@ class EventDmGrantAction(CharacterAction):
     target: str
 
 
+class AssociateAction(CharacterAction):
+    """Add a new Associate or convert an existing Contact/Ally → Rival/Enemy."""
+    op: str  # "add" | "convert"
+    kind: str | None = None         # required for op="add"  — "contact"|"ally"|"rival"|"enemy"
+    description: str | None = None  # optional for op="add"
+    index: int | None = None        # required for op="convert" — index into character.associates
+    to_kind: str | None = None      # required for op="convert" — "rival"|"enemy"
+
+
 class EndTermAction(CharacterAction):
     leaving: bool = False
     reason: str = "voluntary"
@@ -350,6 +359,24 @@ async def api_event_dm_grant(action: EventDmGrantAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.grant_event_dm(character, action.dm, action.target)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/associate")
+async def api_associate(action: AssociateAction):
+    """Mutate the Associates list: add a new one, or convert Contact/Ally → Rival/Enemy."""
+    character = action.character.model_copy(deep=True)
+    try:
+        if action.op == "add":
+            return lifepath.add_associate(
+                character, action.kind or "", action.description or ""
+            )
+        if action.op == "convert":
+            return lifepath.convert_associate(
+                character, action.index if action.index is not None else -1, action.to_kind or ""
+            )
+        raise HTTPException(400, f"Unknown associate op: {action.op!r}")
     except ValueError as e:
         raise HTTPException(400, str(e))
 

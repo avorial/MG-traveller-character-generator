@@ -967,6 +967,123 @@ body {
   border-style: solid;
 }
 
+.skill-chip.danger {
+  border-color: rgba(var(--danger-rgb, 255, 82, 51), 0.6);
+  color: var(--danger, #ff5233);
+}
+
+.skill-chip.danger:hover:not(:disabled) {
+  border-color: var(--danger, #ff5233);
+  color: var(--cream);
+  background: rgba(var(--danger-rgb, 255, 82, 51), 0.15);
+}
+
+/* ============ Associate picker (event flow) ============ */
+
+.associate-picker .assoc-op {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.associate-picker .assoc-op:last-child {
+  border-bottom: none;
+}
+
+.associate-picker .assoc-op-prompt {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cream);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.associate-picker .assoc-desc-input {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.associate-picker .assoc-desc-input:focus {
+  outline: none;
+  border-color: var(--amber-dim);
+}
+
+.associate-picker .assoc-convert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.associate-picker .assoc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.associate-picker .assoc-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  min-width: 64px;
+}
+
+.associate-picker .assoc-desc {
+  flex: 1;
+  color: var(--cream);
+}
+
+.associate-picker .skill-picker.inline {
+  display: inline-flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.associate-picker .skill-picker.inline .skill-chip {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* ============ Associate buckets (sheet sidebar) ============ */
+
+.assoc-bucket {
+  margin: 6px 0 10px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.assoc-bucket.assoc-kind-contact { border-left-color: var(--amber-dim); }
+.assoc-bucket.assoc-kind-ally    { border-left-color: var(--amber); }
+.assoc-bucket.assoc-kind-rival   { border-left-color: rgba(var(--danger-rgb, 255, 82, 51), 0.5); }
+.assoc-bucket.assoc-kind-enemy   { border-left-color: var(--danger, #ff5233); }
+
+.assoc-bucket-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 2px;
+}
+
+.assoc-bucket .assoc-count {
+  color: var(--amber);
+  margin-left: 4px;
+}
+
+.assoc-label.assoc-kind-contact { color: var(--amber-dim); }
+.assoc-label.assoc-kind-ally    { color: var(--amber-bright); }
+.assoc-label.assoc-kind-rival   { color: rgba(var(--danger-rgb, 255, 82, 51), 0.8); }
+.assoc-label.assoc-kind-enemy   { color: var(--danger, #ff5233); }
+
 .picker-status {
   font-family: var(--font-mono);
   font-size: 11px;
