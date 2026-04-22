@@ -406,9 +406,33 @@ function renderStage() {
 // PHASE 1: Characteristics
 // ============================================================
 
+function rollQuality(total) {
+  // Expected range for 6 * 2D: mean 42, SD ~5.9. Thresholds picked to give
+  // descriptive names the player can parse at a glance.
+  if (total >= 60) return { tier: 'Exceptional', note: 'elite rolls — very few Travellers have this starting material', cls: 'q-elite' };
+  if (total >= 54) return { tier: 'Strong',      note: 'well above average — most careers will take you', cls: 'q-strong' };
+  if (total >= 48) return { tier: 'Solid',       note: 'above average — a capable Traveller', cls: 'q-solid' };
+  if (total >= 36) return { tier: 'Average',     note: 'typical 2D spread — expect some hard survival rolls', cls: 'q-average' };
+  if (total >= 30) return { tier: 'Lean',        note: 'below average — consider a reroll or a rearrange', cls: 'q-lean' };
+  return                    { tier: 'Rough',      note: 'brutal rolls — strongly consider rerolling', cls: 'q-rough' };
+}
+
 function renderCharacteristicsPhase() {
   const hasRolled = Object.values(character.characteristics).some(v => v > 0);
   const STATS = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'];
+
+  // Compute best / worst stat so they can be highlighted in the grid and called out.
+  let bestStat = null, worstStat = null, total = 0, totalDM = 0;
+  if (hasRolled) {
+    for (const s of STATS) {
+      const v = character.characteristics[s];
+      total += v;
+      totalDM += charDM(v);
+      if (bestStat === null || v > character.characteristics[bestStat]) bestStat = s;
+      if (worstStat === null || v < character.characteristics[worstStat]) worstStat = s;
+    }
+  }
+  const q = hasRolled ? rollQuality(total) : null;
 
   // Stat grid — each cell shows rolled value + DM, makes swap decisions concrete.
   const statGrid = hasRolled ? `
@@ -416,8 +440,12 @@ function renderCharacteristicsPhase() {
       ${STATS.map(stat => {
         const val = character.characteristics[stat];
         const dm = charDM(val);
+        const extra = [];
+        if (stat === bestStat && bestStat !== worstStat) extra.push('best');
+        if (stat === worstStat && bestStat !== worstStat) extra.push('worst');
+        if (uiState.swapPick === stat) extra.push('picked');
         return `
-          <div class="stat-cell-rolled ${uiState.swapPick === stat ? 'picked' : ''}"
+          <div class="stat-cell-rolled ${extra.join(' ')}"
                data-stat="${stat}">
             <span class="stat-label">${stat}</span>
             <span class="stat-value">${val}</span>
@@ -428,6 +456,24 @@ function renderCharacteristicsPhase() {
           </div>
         `;
       }).join('')}
+    </div>
+  ` : '';
+
+  // Roll quality readout — sits between the dice banner and the stat grid
+  // so the player can tell at a glance whether this is a keep or a reroll.
+  const qualityReadout = hasRolled ? `
+    <div class="roll-quality ${q.cls}">
+      <div class="rq-header">
+        <span class="rq-label">ROLL QUALITY</span>
+        <span class="rq-tier">${q.tier}</span>
+      </div>
+      <div class="rq-stats">
+        <span class="rq-stat"><span class="rq-k">TOTAL</span><span class="rq-v">${total}</span><span class="rq-cmp">of 72 avg 42</span></span>
+        <span class="rq-stat"><span class="rq-k">NET DM</span><span class="rq-v">${formatDM(totalDM)}</span></span>
+        <span class="rq-stat"><span class="rq-k">BEST</span><span class="rq-v">${bestStat} ${character.characteristics[bestStat]}</span></span>
+        <span class="rq-stat"><span class="rq-k">WORST</span><span class="rq-v">${worstStat} ${character.characteristics[worstStat]}</span></span>
+      </div>
+      <div class="rq-note">${q.note}</div>
     </div>
   ` : '';
 
@@ -474,6 +520,7 @@ function renderCharacteristicsPhase() {
         </div>
       `}
 
+      ${qualityReadout}
       ${statGrid}
       ${swapRow}
 
@@ -811,6 +858,36 @@ const PRE_CAREER_SERVICES = [
 function renderPreCareerPhase() {
   const status = character.pre_career_status || {};
   const stage = status.stage || 'none';
+
+  // Pending graduation skill picks — must render the picker regardless of
+  // whether lastRoll is still set (e.g. after a partial submit, or after a
+  // page refresh). Without this guard the UI would drop back to the
+  // track-picker screen with pending picks still on the character.
+  if ((status.skill_picks_remaining || 0) > 0 && (status.stage === 'graduated')) {
+    const remaining = status.skill_picks_remaining;
+    const pool = status.skill_pool || [];
+    const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
+    const picker = pool.map(s => {
+      const sel = picked.includes(s);
+      return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
+        ${!sel && picked.length >= remaining ? 'disabled' : ''}>${escapeHTML(s)}</button>`;
+    }).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Graduation — Pick Your Skills</div>
+        <h2 class="phase-title">Pick ${remaining} Skill${remaining === 1 ? '' : 's'}</h2>
+        <p class="phase-body">Your academy graduation grants <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1. Pick ${remaining === 1 ? 'one' : `all ${remaining}`} before continuing to your service career.</p>
+        <div class="skill-picker">${picker}</div>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-confirm-pc-skills"
+            ${picked.length !== remaining ? 'disabled' : ''}>
+            ${picked.length === remaining ? `CONFIRM ${remaining}/${remaining} →` : `PICK ${remaining - picked.length} MORE`}
+          </button>
+        </div>
+      </div>
+    `;
+  }
 
   // Post-roll view: show the qualification roll outcome
   if (uiState.lastRoll?.type === 'precareer_qualify') {
@@ -1371,6 +1448,27 @@ function wireCareerPhase() {
     });
   }
 
+  // Event-choice skill picker: clicking a chip applies the chosen skill.
+  document.querySelectorAll('[data-event-skill]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const pick = chip.getAttribute('data-event-skill');
+      try {
+        // Disable all chips while request is in flight.
+        document.querySelectorAll('[data-event-skill]').forEach(c => { c.disabled = true; });
+        const response = await apiCall('/api/character/event-skill-grant', { skill_text: pick });
+        await applyResponse(response);
+        // Preserve the event view, just flip the applied flag.
+        if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+          uiState.lastRoll.eventSkillApplied = response.skill || pick;
+        }
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not apply that skill.');
+        document.querySelectorAll('[data-event-skill]').forEach(c => { c.disabled = false; });
+      }
+    });
+  });
+
   const btnMishap = document.getElementById('btn-mishap');
   if (btnMishap) {
     btnMishap.addEventListener('click', async () => {
@@ -1728,6 +1826,29 @@ function renderSurviveStep() {
   `;
 }
 
+function parseEventSkillOptions(text) {
+  // Find "Gain one of X, Y, Z or W" (or "Gain any one of ...") patterns in event text.
+  // Returns an array of trimmed option strings, or null if no such pattern is present.
+  if (!text) return null;
+  const m = text.match(/Gain\s+(?:any\s+)?one\s+of\s+([^.]+?)(?:\.|$)/i);
+  if (!m) return null;
+  const raw = m[1].trim();
+  // Split on the final " or " once, then comma-split the front half.
+  const lastOr = raw.toLowerCase().lastIndexOf(' or ');
+  let parts;
+  if (lastOr >= 0) {
+    const head = raw.slice(0, lastOr);
+    const tail = raw.slice(lastOr + 4);
+    parts = head.split(',').map(s => s.trim()).filter(Boolean);
+    parts.push(tail.trim());
+  } else {
+    parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  // Sanity: all parts should look like skill names (letters, spaces, parens, digits).
+  parts = parts.filter(p => /^[A-Za-z][A-Za-z0-9 ()\-/]*\d*\s*$/.test(p) && p.length < 40);
+  return parts.length >= 2 ? parts : null;
+}
+
 function renderEventStep() {
   // Post-roll view with dice + event text
   if (uiState.lastRoll?.type === 'event') {
@@ -1754,6 +1875,30 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Skill-choice picker — only show if the event text offers a choice AND
+    // the player hasn't already picked one for this event.
+    const skillOptions = parseEventSkillOptions(lr.eventText || '');
+    const pickerHTML = (skillOptions && !lr.eventSkillApplied) ? `
+      <div class="event-skill-picker">
+        <span class="event-label">Choose one skill to gain</span>
+        <div class="skill-picker">
+          ${skillOptions.map(opt => `
+            <button class="skill-chip" data-event-skill="${escapeHTML(opt)}">${escapeHTML(opt)}</button>
+          `).join('')}
+        </div>
+        <p class="picker-status">Pick one to continue.</p>
+      </div>
+    ` : '';
+
+    const skillAppliedHTML = lr.eventSkillApplied ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Skill chosen</span>
+        <div class="dm-chip applied">+ ${escapeHTML(lr.eventSkillApplied)}</div>
+      </div>
+    ` : '';
+
+    const gateAdvance = !!(skillOptions && !lr.eventSkillApplied);
+
     return `
       <div class="stage-content">
         <div class="phase-label">Event Roll</div>
@@ -1765,9 +1910,11 @@ function renderEventStep() {
         </div>
         ${appliedHTML}
         ${pendingHTML}
-        <p class="phase-body empty"><em>Apply any resulting skills, contacts, or benefits manually to your notes — only "DM+N to next X roll" grants are auto-applied.</em></p>
+        ${pickerHTML}
+        ${skillAppliedHTML}
+        ${skillOptions ? '' : `<p class="phase-body empty"><em>Apply any resulting contacts or benefits manually to your notes — only "DM+N to next X roll" grants are auto-applied.</em></p>`}
         <div class="phase-actions">
-          <button class="btn primary" id="btn-post-event">ATTEMPT ADVANCEMENT →</button>
+          <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
           <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
         </div>
       </div>

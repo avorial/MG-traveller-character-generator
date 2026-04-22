@@ -85,6 +85,10 @@ class SkillTableAction(CharacterAction):
     table_key: str
 
 
+class EventSkillGrantAction(CharacterAction):
+    skill_text: str
+
+
 class EndTermAction(CharacterAction):
     leaving: bool = False
     reason: str = "voluntary"
@@ -321,6 +325,16 @@ async def api_skill_roll(action: SkillTableAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.roll_on_skill_table(character, action.table_key)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/event-skill-grant")
+async def api_event_skill_grant(action: EventSkillGrantAction):
+    """Apply a skill chosen from an event that offered multiple options."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.grant_event_skill(character, action.skill_text)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

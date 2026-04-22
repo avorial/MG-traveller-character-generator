@@ -1605,3 +1605,83 @@ def _apply_skill_result(character: Character, result: str) -> str:
     # Plain skill name
     character.add_skill(stripped)
     return f"Gained {stripped} 0"
+
+
+def grant_event_skill(character: Character, skill_text: str) -> dict:
+    """Grant a skill chosen from a multi-option event (e.g. 'Gain one of X, Y, Z or W').
+
+    The text can be a bare skill name ("Vacc Suit"), a skill with a level
+    ("Vacc Suit 1"), a skill with a speciality ("Tactics (military)"), or
+    both ("Tactics (military) 1"). Parent skill auto-seeding is handled by
+    Character.add_skill.
+    """
+    term = character.current_term
+    if term is None:
+        raise ValueError("No active term — event skills can only be granted during a career term")
+
+    text = (skill_text or "").strip()
+    if not text:
+        raise ValueError("Empty skill name")
+
+    # Pull an optional trailing level: "... 1" or "... 2"
+    level = 1
+    m = re.search(r"\s+(\d+)\s*$", text)
+    if m:
+        level = int(m.group(1))
+        text = text[: m.start()].strip()
+
+    # Optional speciality in parens: "Tactics (military)"
+    speciality: str | None = None
+    if "(" in text and text.endswith(")"):
+        name = text[: text.index("(")].strip()
+        speciality = text[text.index("(") + 1 : -1].strip()
+    else:
+        name = text
+
+    applied_msg = character.add_skill(name, level=level, speciality=speciality)
+    display = f"{name}{f' ({speciality})' if speciality else ''} {level}"
+    term.skills_gained.append(f"Event choice: {display}")
+    character.log(f"Event skill chosen: {display} — {applied_msg}")
+
+    return {"applied": applied_msg, "skill": display, "character": character.model_dump()}
+
+
+
+def grant_event_skill(character: Character, skill_text: str) -> dict:
+    """Grant a skill chosen from a multi-option event (e.g. 'Gain one of X, Y, Z or W').
+
+    The text can be a bare skill name ("Vacc Suit"), a skill with a level
+    ("Vacc Suit 1"), a skill with a speciality ("Tactics (military)"), or
+    both ("Tactics (military) 1"). Parent skill auto-seeding is handled by
+    Character.add_skill.
+    """
+    term = character.current_term
+    if term is None:
+        raise ValueError("No active term — event skills can only be granted during a career term")
+
+    text = (skill_text or "").strip()
+    if not text:
+        raise ValueError("Empty skill name")
+
+    # Pull an optional trailing level: "... 1" or "... 2"
+    level = 1
+    m = re.search(r"\s+(\d+)\s*$", text)
+    if m:
+        level = int(m.group(1))
+        text = text[: m.start()].strip()
+
+    # Optional speciality in parens: "Tactics (military)"
+    speciality = None
+    if "(" in text and text.endswith(")"):
+        name = text[: text.index("(")].strip()
+        speciality = text[text.index("(") + 1 : -1].strip()
+    else:
+        name = text
+
+    applied_msg = character.add_skill(name, level=level, speciality=speciality)
+    display = f"{name}{f' ({speciality})' if speciality else ''} {level}"
+    term.skills_gained.append(f"Event choice: {display}")
+    character.log(f"Event skill chosen: {display} — {applied_msg}")
+
+    return {"applied": applied_msg, "skill": display, "character": character.model_dump()}
+el_dump()}
