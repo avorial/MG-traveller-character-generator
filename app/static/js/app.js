@@ -2066,6 +2066,25 @@ function parseEventDmAlternative(text) {
   return { dm: parseInt(m[1], 10), target: m[2].toLowerCase() };
 }
 
+function rollAssocQuantity(expr) {
+  // Resolve a Traveller-style dice expression to a count. D3 = 1-3, D6 = 1-6,
+  // "1D" / "2D" = 1-6 / 2-12 (implicit d6), "NDN" = N dice of given sides,
+  // bare integer = literal count.
+  const e = String(expr || '').toUpperCase().trim();
+  if (e === 'D3') return 1 + Math.floor(Math.random() * 3);
+  if (e === 'D6') return 1 + Math.floor(Math.random() * 6);
+  const ndm = e.match(/^(\d)D(\d?)$/);
+  if (ndm) {
+    const count = parseInt(ndm[1], 10);
+    const sides = ndm[2] ? parseInt(ndm[2], 10) : 6;
+    let total = 0;
+    for (let i = 0; i < count; i++) total += 1 + Math.floor(Math.random() * sides);
+    return total;
+  }
+  const n = parseInt(e, 10);
+  return isNaN(n) ? 1 : Math.max(1, n);
+}
+
 function parseEventAssociateOps(text) {
   // Detect associate mutations in an event. Returns an array of ops, each
   // shaped:
@@ -2103,6 +2122,27 @@ function parseEventAssociateOps(text) {
       type: 'add',
       kinds: [m[1].toLowerCase(), m[2].toLowerCase()],
     });
+    consumedRanges.push([m.index, m.index + m[0].length]);
+  }
+
+  // Dice-quantity grants: "Gain D3 Contacts" (agent[5]), "Gain 1D Contacts and
+  // D3 Enemies" (scout[3]). We accept D3, D6, 1D, 2D, NDN and bare integers.
+  // Each match becomes a 'quantity' op; the render layer rolls the die once,
+  // caches the result on lr.assocQtyRolls, and expands to N individual add ops.
+  const qtyKindMap = {
+    contact: 'contact', contacts: 'contact',
+    ally: 'ally', allies: 'ally',
+    rival: 'rival', rivals: 'rival',
+    enemy: 'enemy', enemies: 'enemy',
+  };
+  const qtyRe = /(?:gain|and)\s+(d3|d6|\dd\d?|[2-6])\s+(contacts?|allies|rivals?|enemies|enemy)\b/gi;
+  while ((m = qtyRe.exec(raw)) !== null) {
+    const inPrior = consumedRanges.some(([s, e]) => m.index >= s && m.index < e);
+    if (inPrior) continue;
+    const diceExpr = m[1].toUpperCase();
+    const kind = qtyKindMap[m[2].toLowerCase()];
+    if (!kind) continue;
+    ops.push({ type: 'quantity', kind, diceExpr });
     consumedRanges.push([m.index, m.index + m[0].length]);
   }
 
