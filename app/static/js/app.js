@@ -2045,6 +2045,15 @@ function parseEventSkillOptions(text) {
     if (skill) return [skill];
   }
 
+  // Pattern 5: "Gain Vacc Suit 1 or Athletics (dexterity) 1"
+  // "Gain X <N> or Y <N> [or Z <N>]" — skill name(s) with levels, no "one of"
+  // preamble. Splits on " or " / ",", keeps the trailing digit in each part.
+  m = text.match(/Gain\s+([A-Z][A-Za-z ()\-/]+?\s+\d(?:\s*(?:,|or)\s+[A-Z][A-Za-z ()\-/]+?\s+\d)+)(?:\.|$)/);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 2) return parts;
+  }
+
   return null;
 }
 
