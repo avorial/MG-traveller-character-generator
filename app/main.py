@@ -41,6 +41,11 @@ class BackgroundSkillsAction(CharacterAction):
     chosen: list[str]
 
 
+class SwapStatsAction(CharacterAction):
+    stat_a: str
+    stat_b: str
+
+
 class CareerAction(CharacterAction):
     career_id: str
     assignment_id: str | None = None
@@ -145,6 +150,15 @@ async def api_roll_characteristics(action: CharacterAction):
     character = action.character.model_copy(deep=True)
     result = lifepath.roll_initial_characteristics(character)
     return result
+
+
+@app.post("/api/character/swap-stats")
+async def api_swap_stats(action: SwapStatsAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.swap_characteristics(character, action.stat_a, action.stat_b)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.post("/api/character/apply-species")

@@ -121,6 +121,44 @@ def roll_initial_characteristics(character: Character) -> dict:
     return {"rolls": rolls, "character": character.model_dump()}
 
 
+_VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
+
+
+def swap_characteristics(character: Character, stat_a: str, stat_b: str) -> dict:
+    """Swap two rolled characteristic values.
+
+    Allowed only during the characteristics phase — once the player
+    commits to a species the numbers are locked. MgT2e RAW lets a
+    Traveller rearrange rolls into whatever slots they want; this
+    function is the primitive for that (the UI can chain swaps to
+    achieve any permutation).
+    """
+    if character.phase != "characteristics":
+        raise ValueError(
+            "Characteristics are locked once a species is selected."
+        )
+    a = stat_a.upper()
+    b = stat_b.upper()
+    if a not in _VALID_CHARS or b not in _VALID_CHARS:
+        unknown = a if a not in _VALID_CHARS else b
+        raise ValueError(f"Unknown characteristic: {unknown}")
+    if a == b:
+        raise ValueError("Cannot swap a characteristic with itself.")
+
+    val_a = character.characteristics.get(a)
+    val_b = character.characteristics.get(b)
+    if val_a == 0 and val_b == 0:
+        raise ValueError("Roll characteristics before rearranging them.")
+
+    character.characteristics.set(a, val_b)
+    character.characteristics.set(b, val_a)
+    character.log(f"Swapped {a} ({val_a}) ↔ {b} ({val_b})")
+    return {
+        "character": character.model_dump(),
+        "swapped": {a: val_b, b: val_a},
+    }
+
+
 def apply_species(character: Character, species_id: str) -> dict:
     """Apply species modifiers and record traits."""
     species_data = rules.species().get(species_id)

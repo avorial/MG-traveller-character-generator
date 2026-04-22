@@ -22,6 +22,10 @@ let uiState = {
   selectedAssignment: null,
   // After-roll dialog state
   lastRoll: null,
+  // Stat-swap UI state (characteristics phase)
+  swapPick: null,   // which tile the user clicked first (for 2-click swap)
+  swapA: 'EDU',     // dropdown A default
+  swapB: 'STR',     // dropdown B default
   // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster'
   subPhase: null,
   pendingAge: false,
@@ -54,6 +58,7 @@ async function freshCharacter() {
   character = data.character;
   uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
               selectedCareer: null, selectedAssignment: null, lastRoll: null,
+              swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false };
   saveCharacter();
 }
@@ -107,6 +112,38 @@ function formatDM(dm) {
 // Roll readout — shared across every phase so the dice are always visible
 // ------------------------------------------------------------
 
+// Cumulative percentile of the raw dice sum for n d6 — i.e. "this roll
+// was better than or equal to X% of all possible rolls on this many d6."
+// Probability-weighted so a 10 on 2d6 scores 92% (it really is lucky),
+// not the naive 83% you'd get by dividing 10 by 12.
+function diceLuckPercent(dice) {
+  if (!Array.isArray(dice) || !dice.length) return null;
+  const n = dice.length;
+  const sum = dice.reduce((a, b) => a + b, 0);
+  // Coefficients of (x + x^2 + ... + x^6)^n — dist[k] = # ways to roll total k.
+  let dist = [0, 1, 1, 1, 1, 1, 1]; // 1d6
+  for (let i = 1; i < n; i++) {
+    const next = new Array(6 * (i + 1) + 1).fill(0);
+    for (let j = 0; j < dist.length; j++) {
+      if (!dist[j]) continue;
+      for (let d = 1; d <= 6; d++) next[j + d] += dist[j];
+    }
+    dist = next;
+  }
+  const outcomes = Math.pow(6, n);
+  let cumulative = 0;
+  for (let j = 0; j <= sum && j < dist.length; j++) cumulative += dist[j] || 0;
+  return Math.round((cumulative / outcomes) * 100);
+}
+
+function luckClass(pct) {
+  if (pct === null || pct === undefined) return '';
+  if (pct >= 85) return 'great';
+  if (pct >= 60) return 'good';
+  if (pct >= 30) return 'meh';
+  return 'bad';
+}
+
 function rollReadoutHTML(r, opts = {}) {
   // r is the .to_dict() output from engine.dice.RollResult
   //   dice: [1..6, 1..6], raw_total, modifier, total, target?, succeeded?
@@ -114,6 +151,10 @@ function rollReadoutHTML(r, opts = {}) {
   if (!r) return '';
   const dicePart = Array.isArray(r.dice) && r.dice.length
     ? `<span class="dice">[${r.dice.join(' · ')}]</span>`
+    : '';
+  const luckPct = diceLuckPercent(r.dice);
+  const luckPart = luckPct !== null
+    ? `<span class="roll-luck ${luckClass(luckPct)}" title="You rolled at or above ${luckPct}% of all possible ${r.dice.length}d6 outcomes.">${luckPct}%</span>`
     : '';
   const modPart = (r.modifier && r.modifier !== 0)
     ? `<span class="eq">${r.modifier > 0 ? '+' : ''}${r.modifier} DM</span>`
@@ -134,6 +175,7 @@ function rollReadoutHTML(r, opts = {}) {
     <div class="roll-readout">
       ${labelPart}
       ${dicePart}
+      ${luckPart}
       ${modPart}
       <span class="eq">=</span>
       ${totalPart}
@@ -325,6 +367,42 @@ function renderStage() {
 
 function renderCharacteristicsPhase() {
   const hasRolled = Object.values(character.characteristics).some(v => v > 0);
+  const STATS = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'];
+
+  // Stat grid — each cell shows rolled value + DM, makes swap decisions concrete.
+  const statGrid = hasRolled ? `
+    <div class="stat-grid-rolled">
+      ${STATS.map(stat => {
+        const val = character.characteristics[stat];
+        const dm = charDM(val);
+        return `
+          <div class="stat-cell-rolled ${uiState.swapPick === stat ? 'picked' : ''}"
+               data-stat="${stat}">
+            <span class="stat-label">${stat}</span>
+            <span class="stat-value">${val}</span>
+            <span class="stat-dm">DM ${formatDM(dm)}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  // Swap controls — two dropdowns + a button. Pre-select the current
+  // pick if the user clicked a tile.
+  const swapRow = hasRolled ? `
+    <div class="swap-row">
+      <span class="swap-label">REARRANGE</span>
+      <select id="swap-a" class="swap-select">
+        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapA || 'EDU') ? 'selected' : ''}>${s} (${character.characteristics[s]})</option>`).join('')}
+      </select>
+      <span class="swap-arrow">↔</span>
+      <select id="swap-b" class="swap-select">
+        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapB || 'STR') ? 'selected' : ''}>${s} (${character.characteristics[s]})</option>`).join('')}
+      </select>
+      <button class="btn" id="btn-swap-stats">SWAP</button>
+    </div>
+    <p class="swap-hint">Click a tile above to quick-pick, or use the dropdowns. Example: moving EDU→STR to build a brawler.</p>
+  ` : '';
 
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 01 — CHARACTERISTICS</span></div>
@@ -335,7 +413,7 @@ function renderCharacteristicsPhase() {
 
       <div class="phase-body">
         <p>You are about to generate a Traveller. Each characteristic — <strong>STR</strong>, <strong>DEX</strong>, <strong>END</strong>, <strong>INT</strong>, <strong>EDU</strong>, <strong>SOC</strong> — is determined by rolling 2D. The resulting score yields a Dice Modifier that will govern almost every roll your Traveller makes across their life.</p>
-        <p><em>You can reroll until you commit to a species. Once you advance, the numbers are locked in.</em></p>
+        <p><em>After rolling, you can rearrange values between characteristics. You can keep rerolling and swapping until you commit to a species — then the numbers are locked in.</em></p>
       </div>
 
       ${hasRolled ? `
@@ -352,6 +430,9 @@ function renderCharacteristicsPhase() {
         </div>
       `}
 
+      ${statGrid}
+      ${swapRow}
+
       <div class="phase-actions">
         <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : 'ROLL 2D × 6'}</button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>ADVANCE TO SPECIES →</button>
@@ -362,15 +443,74 @@ function renderCharacteristicsPhase() {
 
 function wireCharacteristicsPhase() {
   document.getElementById('btn-roll-stats').addEventListener('click', async () => {
+    uiState.swapPick = null;
     const response = await apiCall('/api/character/roll-characteristics');
     await applyResponse(response);
     renderAll();
   });
   document.getElementById('btn-to-species').addEventListener('click', () => {
+    uiState.swapPick = null;
     character.phase = 'species';
     saveCharacter();
     renderAll();
   });
+
+  // Click-to-pick on stat tiles: first click sets slot A, second sets B
+  // and auto-triggers a swap.
+  document.querySelectorAll('.stat-cell-rolled').forEach(cell => {
+    cell.addEventListener('click', async () => {
+      const stat = cell.dataset.stat;
+      if (!uiState.swapPick) {
+        uiState.swapPick = stat;
+        uiState.swapA = stat;
+        renderAll();
+        return;
+      }
+      if (uiState.swapPick === stat) {
+        // Same tile clicked again — cancel pick.
+        uiState.swapPick = null;
+        renderAll();
+        return;
+      }
+      // Second pick — perform the swap immediately.
+      const a = uiState.swapPick;
+      const b = stat;
+      uiState.swapPick = null;
+      uiState.swapA = a;
+      uiState.swapB = b;
+      try {
+        const response = await apiCall('/api/character/swap-stats', { stat_a: a, stat_b: b });
+        await applyResponse(response);
+      } catch (e) {
+        alert(e.message);
+      }
+      renderAll();
+    });
+  });
+
+  // Dropdown swap
+  const swapA = document.getElementById('swap-a');
+  const swapB = document.getElementById('swap-b');
+  const swapBtn = document.getElementById('btn-swap-stats');
+  if (swapA) swapA.addEventListener('change', () => { uiState.swapA = swapA.value; });
+  if (swapB) swapB.addEventListener('change', () => { uiState.swapB = swapB.value; });
+  if (swapBtn) {
+    swapBtn.addEventListener('click', async () => {
+      const a = swapA.value;
+      const b = swapB.value;
+      if (a === b) {
+        alert('Pick two different characteristics to swap.');
+        return;
+      }
+      try {
+        const response = await apiCall('/api/character/swap-stats', { stat_a: a, stat_b: b });
+        await applyResponse(response);
+      } catch (e) {
+        alert(e.message);
+      }
+      renderAll();
+    });
+  }
 }
 
 // ============================================================

@@ -720,6 +720,126 @@ body {
   vertical-align: middle;
 }
 
+/* Luck percentile — how good the raw dice were vs. all possible outcomes
+   for that many d6. Sits snug against the dice bracket. */
+.roll-readout .roll-luck {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  vertical-align: middle;
+  cursor: help;
+  opacity: 0.85;
+}
+
+.roll-readout .roll-luck.great { color: var(--success); }
+.roll-readout .roll-luck.good  { color: var(--amber-bright); }
+.roll-readout .roll-luck.meh   { color: var(--amber-dim); }
+.roll-readout .roll-luck.bad   { color: var(--danger); }
+
+/* ============ Characteristics phase - rolled stat grid + swap ============ */
+
+.stat-grid-rolled {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin: 18px 0 12px;
+}
+
+.stat-cell-rolled {
+  text-align: center;
+  padding: 12px 6px;
+  background: rgba(255, 179, 71, 0.05);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 80ms ease;
+  user-select: none;
+}
+
+.stat-cell-rolled:hover {
+  border-color: var(--amber-dim);
+  background: rgba(255, 179, 71, 0.09);
+}
+
+.stat-cell-rolled.picked {
+  border-color: var(--amber-bright);
+  background: rgba(255, 179, 71, 0.15);
+  box-shadow: 0 0 10px var(--amber-glow);
+  transform: translateY(-1px);
+}
+
+.stat-cell-rolled .stat-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.stat-cell-rolled .stat-value {
+  font-family: var(--font-crt);
+  font-size: 32px;
+  color: var(--amber);
+  line-height: 1;
+  text-shadow: 0 0 6px var(--amber-glow);
+}
+
+.stat-cell-rolled .stat-dm {
+  display: block;
+  font-size: 10px;
+  color: var(--amber-dim);
+  margin-top: 4px;
+  letter-spacing: 0.1em;
+}
+
+.swap-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px;
+  flex-wrap: wrap;
+}
+
+.swap-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim);
+  padding-right: 4px;
+}
+
+.swap-select {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 2px;
+}
+
+.swap-select:focus {
+  outline: none;
+  border-color: var(--amber-bright);
+}
+
+.swap-arrow {
+  color: var(--amber-bright);
+  font-size: 18px;
+  padding: 0 2px;
+}
+
+.swap-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 4px 0 14px;
+  font-style: italic;
+}
+
 /* ============ Event DM auto-grant chips ============ */
 
 .dm-applied-box,
