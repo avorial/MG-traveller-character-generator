@@ -14,7 +14,8 @@
   --amber-bright: #ffcc66;
   --amber-dim: #b07020;
   --amber-deep: #8a5418;
-  --amber-glow: rgba(255, 179, 71, 0.4);
+  --amber-glow: rgba(var(--tint-rgb), 0.4);
+  --tint-rgb: 255, 179, 71;
 
   --cream: #f5e6c8;
   --muted: #9a8064;
@@ -26,6 +27,17 @@
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
   --font-crt: 'VT323', 'JetBrains Mono', monospace;
   --font-serif: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* GM Mode — swap the amber phosphor palette for a green-screen CRT look.
+   Toggled by app.js setting `body.gm-active` when GM Mode is ON. */
+body.gm-active {
+  --amber: #6fff8f;
+  --amber-bright: #c2ffd1;
+  --amber-dim: #3fa85c;
+  --amber-deep: #1f7a38;
+  --amber-glow: rgba(111, 255, 143, 0.45);
+  --tint-rgb: 111, 255, 143;
 }
 
 * {
@@ -47,7 +59,7 @@ html, body {
 body {
   background-image:
     radial-gradient(ellipse at center, #1a120a 0%, #0a0806 70%),
-    linear-gradient(0deg, rgba(255, 179, 71, 0.02) 0%, transparent 100%);
+    linear-gradient(0deg, rgba(var(--tint-rgb), 0.02) 0%, transparent 100%);
   background-attachment: fixed;
   position: relative;
 }
@@ -209,7 +221,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 179, 71, 0.025) 0%, transparent 60%);
+  background: linear-gradient(180deg, rgba(var(--tint-rgb), 0.025) 0%, transparent 60%);
 }
 
 .panel-header {
@@ -326,7 +338,7 @@ body {
 .stat-cell {
   text-align: center;
   padding: 8px 4px;
-  background: rgba(255, 179, 71, 0.04);
+  background: rgba(var(--tint-rgb), 0.04);
   border: 1px solid var(--border);
 }
 
@@ -489,9 +501,9 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  background: rgba(255, 179, 71, 0.12);
+  background: rgba(var(--tint-rgb), 0.12);
   border-color: var(--amber);
-  box-shadow: 0 0 14px var(--amber-glow), inset 0 0 14px rgba(255, 179, 71, 0.08);
+  box-shadow: 0 0 14px var(--amber-glow), inset 0 0 14px rgba(var(--tint-rgb), 0.08);
   color: var(--amber-bright);
 }
 
@@ -505,14 +517,14 @@ body {
 }
 
 .btn.primary {
-  background: rgba(255, 179, 71, 0.08);
+  background: rgba(var(--tint-rgb), 0.08);
   border-color: var(--amber);
   color: var(--amber-bright);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: rgba(255, 179, 71, 0.18);
-  box-shadow: 0 0 18px var(--amber-glow), inset 0 0 18px rgba(255, 179, 71, 0.12);
+  background: rgba(var(--tint-rgb), 0.18);
+  box-shadow: 0 0 18px var(--amber-glow), inset 0 0 18px rgba(var(--tint-rgb), 0.12);
 }
 
 .btn.danger {
@@ -570,14 +582,14 @@ body {
 
 .card:hover:not(:disabled) {
   border-color: var(--amber-dim);
-  background: rgba(255, 179, 71, 0.04);
+  background: rgba(var(--tint-rgb), 0.04);
   transform: translateY(-1px);
 }
 
 .card.selected {
   border-color: var(--amber);
-  background: rgba(255, 179, 71, 0.1);
-  box-shadow: 0 0 14px var(--amber-glow), inset 0 0 14px rgba(255, 179, 71, 0.06);
+  background: rgba(var(--tint-rgb), 0.1);
+  box-shadow: 0 0 14px var(--amber-glow), inset 0 0 14px rgba(var(--tint-rgb), 0.06);
 }
 
 .card-title {
@@ -753,7 +765,7 @@ body {
 .stat-cell-rolled {
   text-align: center;
   padding: 12px 6px;
-  background: rgba(255, 179, 71, 0.05);
+  background: rgba(var(--tint-rgb), 0.05);
   border: 1px solid var(--border);
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease, transform 80ms ease;
@@ -762,12 +774,12 @@ body {
 
 .stat-cell-rolled:hover {
   border-color: var(--amber-dim);
-  background: rgba(255, 179, 71, 0.09);
+  background: rgba(var(--tint-rgb), 0.09);
 }
 
 .stat-cell-rolled.picked {
   border-color: var(--amber-bright);
-  background: rgba(255, 179, 71, 0.15);
+  background: rgba(var(--tint-rgb), 0.15);
   box-shadow: 0 0 10px var(--amber-glow);
   transform: translateY(-1px);
 }
@@ -880,7 +892,7 @@ body {
 .dm-chip.pending {
   color: var(--amber-dim);
   border-color: var(--border);
-  background: rgba(255, 179, 71, 0.05);
+  background: rgba(var(--tint-rgb), 0.05);
 }
 
 /* ============ Background skills picker ============ */
@@ -910,7 +922,7 @@ body {
 }
 
 .skill-chip.selected {
-  background: rgba(255, 179, 71, 0.15);
+  background: rgba(var(--tint-rgb), 0.15);
   border-color: var(--amber);
   color: var(--amber-bright);
 }
@@ -932,7 +944,7 @@ body {
 /* ============ Event / text panels ============ */
 
 .event-box {
-  background: rgba(255, 179, 71, 0.04);
+  background: rgba(var(--tint-rgb), 0.04);
   border-left: 3px solid var(--amber);
   padding: 14px 18px;
   margin: 16px 0;
@@ -1545,26 +1557,4 @@ body {
   color: var(--cream);
 }
 
-.psi-result.fail {
-  border-left-color: var(--muted);
-  color: var(--muted);
-}
-
-.psi-result strong {
-  color: var(--amber);
-  font-size: 14px;
-  letter-spacing: 0.1em;
-  margin-right: 8px;
-}
-
-.psi-result.fail strong {
-  color: var(--muted);
-}
-
-.psi-talents {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
+.psi-result.f

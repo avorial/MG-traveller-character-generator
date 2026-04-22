@@ -2389,6 +2389,8 @@ async function bootstrap() {
     if (!btnGm) return;
     btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
     btnGm.classList.toggle('active', uiState.gmMode);
+    // Swap the whole terminal to green-phosphor when GM Mode is on.
+    document.body.classList.toggle('gm-active', uiState.gmMode);
   };
   updateGmBtn();
   if (btnGm) {
@@ -2434,13 +2436,17 @@ document.addEventListener('click', async (e) => {
         title: response.title,
         text: response.text,
         effects: response.effects_applied,
-        medical_debt_added: response.medical_debt_added,
+        medical_debt_added: response.medical_debt_added
       };
       await applyResponse(response);
+      renderAll();
     } catch (err) { alert(err.message); }
-    renderAll();
   }
 });
 
-bootstrap();
-     
+// Kick off the app.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
