@@ -1,0 +1,152 @@
+{
+  "id": "marine",
+  "name": "Marine",
+  "description": "Shipboard soldiers of the Imperial Navy. Trained for boarding actions, ground assault, and zero-gravity combat.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "commission": {"characteristic": "SOC", "target": 8},
+  "assignments": {
+    "support": {
+      "name": "Support",
+      "description": "You provide logistics and support to the front-line marines.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "star_marine": {
+      "name": "Star Marine",
+      "description": "You fight shipboard and in zero-g environments.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "ground_assault": {
+      "name": "Ground Assault",
+      "description": "You drop onto planets to seize objectives.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Gambler",
+      "5": "Melee (unarmed)",
+      "6": "Melee (blade)"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Vacc Suit",
+      "3": "Tactics (military)",
+      "4": "Heavy Weapons",
+      "5": "Gun Combat",
+      "6": "Stealth"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Medic",
+      "2": "Survival",
+      "3": "Explosives",
+      "4": "Engineer",
+      "5": "Electronics",
+      "6": "Navigation"
+    },
+    "officer": {
+      "name": "Officer (commissioned only)",
+      "requires_commission": true,
+      "1": "Leadership",
+      "2": "Diplomat",
+      "3": "Tactics (military)",
+      "4": "Electronics",
+      "5": "Admin",
+      "6": "Advocate"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Mechanic",
+      "2": "Electronics (comms)",
+      "3": "Drive",
+      "4": "Medic",
+      "5": "Heavy Weapons",
+      "6": "Gun Combat"
+    },
+    "star_marine": {
+      "name": "Star Marine",
+      "assignment_only": "star_marine",
+      "1": "Vacc Suit",
+      "2": "Athletics (dexterity)",
+      "3": "Gunner",
+      "4": "Melee (blade)",
+      "5": "Electronics",
+      "6": "Gun Combat"
+    },
+    "ground_assault": {
+      "name": "Ground Assault",
+      "assignment_only": "ground_assault",
+      "1": "Vacc Suit",
+      "2": "Heavy Weapons",
+      "3": "Gun Combat",
+      "4": "Stealth",
+      "5": "Athletics",
+      "6": "Recon"
+    }
+  },
+  "ranks": {
+    "enlisted": {
+      "0": {"title": "Marine", "bonus": "Gun Combat 1"},
+      "1": {"title": "Lance Corporal", "bonus": "Gun Combat 1"},
+      "2": {"title": "Corporal", "bonus": null},
+      "3": {"title": "Lance Sergeant", "bonus": "Leadership 1"},
+      "4": {"title": "Sergeant", "bonus": null},
+      "5": {"title": "Gunnery Sergeant", "bonus": null},
+      "6": {"title": "Sergeant Major", "bonus": null}
+    },
+    "officer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Lieutenant", "bonus": "Leadership 1"},
+      "2": {"title": "Captain", "bonus": null},
+      "3": {"title": "Force Commander", "bonus": "Tactics (military) 1"},
+      "4": {"title": "Lieutenant Colonel", "bonus": null},
+      "5": {"title": "Colonel", "bonus": null},
+      "6": {"title": "Brigadier", "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "A boarding action or deployment goes horribly wrong. Gain an Enemy and Gun Combat 1; you are discharged.",
+    "3": "You witness atrocity — whether committed by your own unit or an enemy. Reduce INT or SOC by 1 and muster out.",
+    "4": "You are captured by the enemy and spend years as a prisoner. Gain a Contact (fellow prisoner) and an Enemy; you are unable to re-enlist this term.",
+    "5": "Your commanding officer is killed, disgraced or promoted past you, and you are forced out. Gain a Rival.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You are involved in a boarding action against a pirate or enemy vessel. Gain one of Vacc Suit 1, Gun Combat 1, Melee 1 or Tactics (military) 1.",
+    "4": "You are deployed to a war-torn planet. Gain one of Recon 1, Survival 1, Stealth 1 or Gun Combat 1.",
+    "5": "You are given a special assignment or commendation. Gain DM+1 to any one Benefit roll.",
+    "6": "You perform well in a zero-g engagement. Gain Vacc Suit 1 or Athletics (dexterity) 1.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any one skill listed on the Service or Advanced Education tables at level 1.",
+    "9": "Your unit leads a successful drop or boarding. Gain DM+2 to your next Advancement check.",
+    "10": "You rescue a fellow Marine under fire. Gain them as an Ally and DM+1 to any one Benefit roll, or transfer to the Army without a Qualification roll.",
+    "11": "You attend specialist training. Either gain one level of Battle Dress, Heavy Weapons, Explosives or Tactics (military), or DM+4 to your next Advancement roll.",
+    "12": "Your actions in a critical operation bring you honour. You are automatically promoted and gain a medal."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "Armour"},
+    "2": {"cash": 5000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Weapon"},
+    "5": {"cash": 20000, "benefit": "TAS Membership"},
+    "6": {"cash": 30000, "benefit": "END +1"},
+    "7": {"cash": 40000, "benefit": "SOC +2"}
+  },
+  "complete": true
+}

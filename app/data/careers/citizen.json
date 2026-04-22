@@ -1,0 +1,150 @@
+{
+  "id": "citizen",
+  "name": "Citizen",
+  "description": "The ordinary people of the galaxy — factory workers, office workers, colonists and the like.",
+  "qualification": {
+    "characteristic": "EDU",
+    "target": 5,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "corporate": {
+      "name": "Corporate",
+      "description": "You work for a large interstellar company.",
+      "survival": {"characteristic": "SOC", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "worker": {
+      "name": "Worker",
+      "description": "You toil in the factories, fields, or mines.",
+      "survival": {"characteristic": "END", "target": 4},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    },
+    "colonist": {
+      "name": "Colonist",
+      "description": "You are settling a new world for the Imperium.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "END", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "Carouse",
+      "6": "Melee (unarmed)"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Drive",
+      "2": "Profession",
+      "3": "Admin",
+      "4": "Mechanic",
+      "5": "Flyer",
+      "6": "Electronics"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Diplomat",
+      "3": "Electronics",
+      "4": "Engineer",
+      "5": "Medic",
+      "6": "Science"
+    },
+    "corporate": {
+      "name": "Corporate",
+      "assignment_only": "corporate",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Broker",
+      "4": "Diplomat",
+      "5": "Leadership",
+      "6": "Electronics (computers)"
+    },
+    "worker": {
+      "name": "Worker",
+      "assignment_only": "worker",
+      "1": "Mechanic",
+      "2": "Drive",
+      "3": "Profession",
+      "4": "Profession",
+      "5": "Electronics",
+      "6": "Flyer"
+    },
+    "colonist": {
+      "name": "Colonist",
+      "assignment_only": "colonist",
+      "1": "Profession",
+      "2": "Animals",
+      "3": "Survival",
+      "4": "Recon",
+      "5": "Athletics",
+      "6": "Carouse"
+    }
+  },
+  "ranks": {
+    "corporate": {
+      "0": {"title": "Worker", "bonus": null},
+      "1": {"title": "Supervisor", "bonus": "Admin 1"},
+      "2": {"title": "Manager", "bonus": null},
+      "3": {"title": "Assistant Vice President", "bonus": "Advocate 1"},
+      "4": {"title": "Vice President", "bonus": null},
+      "5": {"title": "Senior Vice President", "bonus": null},
+      "6": {"title": "President", "bonus": "SOC +1"}
+    },
+    "worker": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Technician", "bonus": "Profession 1"},
+      "2": {"title": "Senior Technician", "bonus": null},
+      "3": {"title": "Supervisor", "bonus": "Mechanic 1"},
+      "4": {"title": "Foreman", "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Manager", "bonus": null}
+    },
+    "colonist": {
+      "0": {"title": "Colonist", "bonus": null},
+      "1": {"title": "Senior Colonist", "bonus": "Survival 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Community Leader", "bonus": "Admin 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Colony Administrator", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "You are unjustly accused of an offence against the company or colony and discharged. Gain a Rival.",
+    "3": "Mental illness or an addiction brought on by your circumstances forces you out. Reduce your INT or SOC by 1.",
+    "4": "A business deal, crop, or project fails disastrously and you are fired or bankrupted. Lose any Benefit rolls from this term.",
+    "5": "You make an Enemy of a co-worker, customer, or rival who forces you out of your position.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You are given additional duties outside your normal role. Gain any one Service Skill at level 1.",
+    "4": "You clash with a rival co-worker or competitor. Gain a Rival and increase any one skill you already have by one level.",
+    "5": "You strike up a friendship that helps you in your work. Gain a Contact and DM+1 to any one Benefit roll.",
+    "6": "You are given advanced training. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You are sent on an extended assignment, workshop or colonisation effort. Gain one of Admin 1, Profession 1, Steward 1 or Survival 1.",
+    "9": "You put in extra hours or take on a second job. Gain DM+2 to one Advancement roll this term, but DM-2 to your Survival roll this term.",
+    "10": "You are singled out for your exemplary work. Gain DM+2 to your next Advancement roll or a +1 DM to any one Benefit roll.",
+    "11": "You are given specialist training. Gain one level in any Service Skill of your choice, or transfer to any other non-military career (without a Qualification roll).",
+    "12": "You strike it rich, invent something useful, or receive a windfall. You are automatically promoted and gain DM+2 to any one Benefit roll."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Contact"},
+    "2": {"cash": 5000, "benefit": "INT +1"},
+    "3": {"cash": 10000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Ally"},
+    "5": {"cash": 10000, "benefit": "SOC +1"},
+    "6": {"cash": 50000, "benefit": "Ship Share"},
+    "7": {"cash": 100000, "benefit": "SOC +2"}
+  },
+  "complete": true
+}

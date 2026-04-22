@@ -1,0 +1,41 @@
+{
+  "description": "Explanations of non-cash mustering-out benefits gained when leaving a career.",
+  "rules": {
+    "benefits_per_term": 1,
+    "rank_bonuses": {
+      "1-2": "1 bonus benefit roll",
+      "3-4": "2 bonus benefit rolls",
+      "5-6": "3 bonus benefit rolls, and DM+1 to all Benefit rolls in this career"
+    },
+    "cash_column_max_rolls": 3,
+    "gambler_bonus": "A Traveller with the Gambler skill gains DM+1 to all rolls on Cash columns."
+  },
+  "benefits": {
+    "Armour": "Select any type of armour with a limit of Cr10000 and TL 12. If rolled again, choose different armour or trade up (limit Cr25000).",
+    "Ally": "Gain an Ally.",
+    "Blade": "Select any blade weapon (Cr1000 / TL 12). If rolled again, take another blade or a level of Melee (blades).",
+    "Characteristic Increases": "Increase the listed characteristic, up to racial maximum (15 for humans). Excess SOC becomes Ship Shares.",
+    "Combat Implant": "Gain any augmentation (Cr50000 / TL 12). If rolled again, take a different one or increase existing.",
+    "Contact": "Gain a Contact.",
+    "Free Trader": "Receive a Free Trader with 25% mortgage paid. Roll 1D times on Spacecraft Quirks. Rolling 4 times clears the mortgage.",
+    "Gun": "Select any common or military ranged weapon (Cr1000 / TL 12). Repeat rolls: another weapon or a level of Gun Combat.",
+    "INT +1": "Increase INT by 1 (up to racial maximum).",
+    "EDU +1": "Increase EDU by 1 (up to racial maximum).",
+    "SOC +1": "Increase SOC by 1. If at or above racial max, excess becomes a Ship Share.",
+    "STR +1": "Increase STR by 1 (up to racial maximum).",
+    "DEX +1": "Increase DEX by 1 (up to racial maximum).",
+    "END +1": "Increase END by 1 (up to racial maximum).",
+    "Lab Ship": "Receive a Lab Ship with 25% mortgage paid. Roll 1D times on Old Ships. Four rolls clears mortgage.",
+    "Personal Vehicle": "Personal ground car or air/raft (limit Cr300000 / TL 10). Repeat: another or a level of Drive/Flyer.",
+    "Scientific Equipment": "Any one piece of scientific equipment (Cr2000 / TL 12). Repeat: more equipment or a level of Electronics/Science.",
+    "Scout Ship": "Receive a Scout Ship (still belongs to the Scout Service — expect recall missions). Repeat rolls re-roll.",
+    "Ship's Boat": "Small craft (MCr10 / TL 12). Repeat: Pilot (small craft).",
+    "Ship Share": "One ship share worth MCr1 (cannot be redeemed for cash).",
+    "TAS Membership": "Traveller's Aid Society membership — lifetime, non-transferable, grants a high passage every two months. Second roll: gain 2 ship shares instead.",
+    "Two Ship Shares": "Two ship shares (MCr1 each, not redeemable for cash).",
+    "Weapon": "Select any weapon (Cr1000 / TL 12). Repeat: another weapon or a level of appropriate weapon skill.",
+    "Yacht": "Receive a Yacht with 25% mortgage paid. Roll 1D times on Old Ships. Four rolls clears mortgage.",
+    "1D Ship Shares": "Roll 1D ship shares.",
+    "2D Ship Shares": "Roll 2D ship shares."
+  }
+}

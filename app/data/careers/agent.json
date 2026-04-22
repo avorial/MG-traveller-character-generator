@@ -1,0 +1,152 @@
+{
+  "id": "agent",
+  "name": "Agent",
+  "description": "Law enforcement agencies, corporate operatives, spies, and others who work in the shadows.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [
+      {"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}
+    ]
+  },
+  "assignments": {
+    "law_enforcement": {
+      "name": "Law Enforcement",
+      "description": "You are a police officer or detective.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "intelligence": {
+      "name": "Intelligence",
+      "description": "You work as a spy or saboteur.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 5}
+    },
+    "corporate": {
+      "name": "Corporate",
+      "description": "You work for a corporation, spying on rival organisations.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Gun Combat",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Melee",
+      "5": "INT +1",
+      "6": "Athletics"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Streetwise",
+      "2": "Drive",
+      "3": "Investigate",
+      "4": "Flyer",
+      "5": "Recon",
+      "6": "Gun Combat"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Language",
+      "3": "Explosives",
+      "4": "Medic",
+      "5": "Vacc Suit",
+      "6": "Electronics"
+    },
+    "law_enforcement": {
+      "name": "Law Enforcement",
+      "assignment_only": "law_enforcement",
+      "1": "Investigate",
+      "2": "Recon",
+      "3": "Streetwise",
+      "4": "Stealth",
+      "5": "Melee",
+      "6": "Advocate"
+    },
+    "intelligence": {
+      "name": "Intelligence",
+      "assignment_only": "intelligence",
+      "1": "Investigate",
+      "2": "Recon",
+      "3": "Electronics (comms)",
+      "4": "Stealth",
+      "5": "Persuade",
+      "6": "Deception"
+    },
+    "corporate": {
+      "name": "Corporate",
+      "assignment_only": "corporate",
+      "1": "Investigate",
+      "2": "Electronics (computers)",
+      "3": "Stealth",
+      "4": "Carouse",
+      "5": "Deception",
+      "6": "Streetwise"
+    }
+  },
+  "ranks": {
+    "law_enforcement": {
+      "0": {"title": "Rookie", "bonus": null},
+      "1": {"title": "Corporal", "bonus": "Streetwise 1"},
+      "2": {"title": "Sergeant", "bonus": null},
+      "3": {"title": "Detective", "bonus": null},
+      "4": {"title": "Lieutenant", "bonus": "Investigate 1"},
+      "5": {"title": "Chief", "bonus": "Admin 1"},
+      "6": {"title": "Commissioner", "bonus": "SOC +1"}
+    },
+    "intelligence": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Agent", "bonus": "Deception 1"},
+      "2": {"title": "Field Agent", "bonus": "Investigate 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": "Special Agent", "bonus": "Gun Combat 1"},
+      "5": {"title": "Assistant Director", "bonus": null},
+      "6": {"title": "Director", "bonus": null}
+    },
+    "corporate": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Agent", "bonus": "Deception 1"},
+      "2": {"title": "Field Agent", "bonus": "Investigate 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": "Special Agent", "bonus": "Gun Combat 1"},
+      "5": {"title": "Assistant Director", "bonus": null},
+      "6": {"title": "Director", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "A criminal or other figure under investigation offers you a deal. Accept, and you leave this career without further penalty (though you lose the Benefit roll). Refuse, and you must roll twice on the Injury Table and take the lower result. You gain an Enemy and one level in any skill you choose.",
+    "3": "An investigation goes critically wrong or leads to the top, ruining your career. Roll Advocate 8+. If you succeed, you may keep the Benefit roll from this term. If you roll 2, you must take the Prisoner career in your next term.",
+    "4": "You learn something you should not know, and people want to kill you for it. Gain an Enemy and Deception 1.",
+    "5": "Your work ends up coming home with you, and someone gets hurt. Choose one of your Contacts, Allies or family members, and roll twice on the Injury Table for them, taking the lower result.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "An investigation takes on a dangerous turn. Roll Investigate 8+ or Streetwise 8+. If you fail, roll on the Mishap Table. If you succeed, increase one of these skills by one level: Deception, Jack-of-all-Trades, Persuade or Tactics.",
+    "4": "You complete a mission for your superiors, and are suitably rewarded. Gain DM+1 to any one Benefit roll from this career.",
+    "5": "You establish a network of contacts. Gain D3 Contacts.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You go undercover to investigate an enemy. Roll Deception 8+. If you succeed, roll immediately on the Rogue or Citizen Events Table and make one roll on any Specialist skill table for that career. If you fail, roll immediately on the Rogue or Citizen Mishap Table.",
+    "9": "You go above and beyond the call of duty. Gain DM+2 to your next Advancement check.",
+    "10": "You are given specialist training in vehicles. Gain one of Drive 1, Flyer 1, Pilot 1 or Gunner 1.",
+    "11": "You are befriended by a senior agent. Either increase Investigate by one level or DM+4 to an Advancement roll thanks to their aid.",
+    "12": "Your efforts uncover a major conspiracy against your employers. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Scientific Equipment"},
+    "2": {"cash": 2000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "Ship Share"},
+    "4": {"cash": 7500, "benefit": "Weapon"},
+    "5": {"cash": 10000, "benefit": "Combat Implant"},
+    "6": {"cash": 25000, "benefit": "SOC +1 or Combat Implant"},
+    "7": {"cash": 50000, "benefit": "TAS Membership"}
+  },
+  "complete": true
+}

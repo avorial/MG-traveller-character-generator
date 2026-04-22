@@ -1,0 +1,132 @@
+{
+  "id": "entertainer",
+  "name": "Entertainer",
+  "description": "Artists, performers, journalists and others who make their living in the public eye.",
+  "qualification": {
+    "characteristic": "DEX_OR_INT",
+    "target": 5,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "artist": {
+      "name": "Artist",
+      "description": "You are a painter, sculptor, composer or similar.",
+      "survival": {"characteristic": "SOC", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "journalist": {
+      "name": "Journalist",
+      "description": "You report the news across the stars.",
+      "survival": {"characteristic": "EDU", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 5}
+    },
+    "performer": {
+      "name": "Performer",
+      "description": "You are a musician, actor, or other live performer.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "DEX", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "INT +1",
+      "3": "SOC +1",
+      "4": "Carouse",
+      "5": "Deception",
+      "6": "Art"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Art",
+      "2": "Carouse",
+      "3": "Persuade",
+      "4": "Deception",
+      "5": "Streetwise",
+      "6": "Melee or Stealth"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Diplomat",
+      "3": "Electronics",
+      "4": "Language",
+      "5": "Science",
+      "6": "Admin"
+    },
+    "artist": {
+      "name": "Artist",
+      "assignment_only": "artist",
+      "1": "Art (any)",
+      "2": "Profession",
+      "3": "Persuade",
+      "4": "Carouse",
+      "5": "Admin",
+      "6": "Broker"
+    },
+    "journalist": {
+      "name": "Journalist",
+      "assignment_only": "journalist",
+      "1": "Electronics (computers)",
+      "2": "Investigate",
+      "3": "Streetwise",
+      "4": "Diplomat",
+      "5": "Deception",
+      "6": "Advocate"
+    },
+    "performer": {
+      "name": "Performer",
+      "assignment_only": "performer",
+      "1": "Art (performer)",
+      "2": "Athletics",
+      "3": "Melee",
+      "4": "Deception",
+      "5": "Carouse",
+      "6": "Persuade"
+    }
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Art 1 or Persuade 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "SOC +1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Celebrity", "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "A scandal destroys your career. Lose 1 SOC and gain a Rival.",
+    "3": "You offend a powerful patron, critic, or corporate sponsor. Gain them as an Enemy and lose any Benefit rolls from this term.",
+    "4": "A story or piece of work gets you into legal or political trouble. You are blacklisted and must leave the business.",
+    "5": "An addiction or lifestyle excess catches up with you. Reduce one physical or mental characteristic by 1.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You fall foul of a critic, rival or corporate backer. Gain a Rival.",
+    "4": "You spend time honing your craft. Gain one of Art 1, Persuade 1, Deception 1 or Carouse 1.",
+    "5": "You become the darling of a social circle for a time. Gain DM+2 to a Benefit roll this term.",
+    "6": "You have a brush with a major celebrity, noble or criminal figure. Gain them as a Contact, Ally, Rival or Enemy (your choice).",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You are invited to perform or exhibit at a prestigious venue. Roll Art 8+ or Persuade 8+; on success, gain a level in Art and DM+2 to your next Advancement roll. On failure, lose 1 SOC.",
+    "9": "You travel extensively, touring or covering stories across several worlds. Gain one of Streetwise 1, Language 1, Pilot (small craft) 1 or Steward 1.",
+    "10": "One of your works becomes a hit, story, or sensation. Gain DM+2 to a Benefit roll this term and DM+1 to your next Advancement roll.",
+    "11": "You receive major patronage or a breakthrough opportunity. Gain one level in any skill of your choice, or DM+4 to your next Advancement roll.",
+    "12": "You become a superstar in your field. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 500, "benefit": "Contact"},
+    "2": {"cash": 2000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Ally"},
+    "5": {"cash": 20000, "benefit": "SOC +1"},
+    "6": {"cash": 20000, "benefit": "TAS Membership"},
+    "7": {"cash": 40000, "benefit": "SOC +2"}
+  },
+  "complete": true
+}

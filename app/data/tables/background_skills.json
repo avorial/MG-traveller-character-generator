@@ -1,0 +1,23 @@
+{
+  "description": "At the start of character creation, a Traveller receives a number of background skills equal to their Education DM + 3 (minimum 0, max 6), chosen from this list. All are gained at level 0.",
+  "formula": "EDU_DM + 3",
+  "skills": [
+    "Admin",
+    "Animals",
+    "Art",
+    "Athletics",
+    "Carouse",
+    "Drive",
+    "Electronics",
+    "Flyer",
+    "Language",
+    "Mechanic",
+    "Medic",
+    "Profession",
+    "Science",
+    "Seafarer",
+    "Streetwise",
+    "Survival",
+    "Vacc Suit"
+  ]
+}

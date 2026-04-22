@@ -1,0 +1,132 @@
+{
+  "id": "rogue",
+  "name": "Rogue",
+  "description": "Criminal elements familiar with the rougher or more illegal methods of attaining goals.",
+  "qualification": {
+    "characteristic": "DEX",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "thief": {
+      "name": "Thief",
+      "description": "You steal from the rich and give to… well, yourself, actually.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "DEX", "target": 6}
+    },
+    "enforcer": {
+      "name": "Enforcer",
+      "description": "You are a leg-breaker, thug or assassin for a criminal group.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "STR", "target": 6}
+    },
+    "pirate": {
+      "name": "Pirate",
+      "description": "You are a space-going corsair.",
+      "survival": {"characteristic": "DEX", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Melee (unarmed)",
+      "5": "Streetwise",
+      "6": "Deception"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Streetwise",
+      "2": "Stealth",
+      "3": "Deception",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "Recon"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Electronics",
+      "3": "Broker",
+      "4": "Language",
+      "5": "Persuade",
+      "6": "Deception"
+    },
+    "thief": {
+      "name": "Thief",
+      "assignment_only": "thief",
+      "1": "Stealth",
+      "2": "Deception",
+      "3": "Electronics (computers)",
+      "4": "Athletics (dexterity)",
+      "5": "Streetwise",
+      "6": "Melee"
+    },
+    "enforcer": {
+      "name": "Enforcer",
+      "assignment_only": "enforcer",
+      "1": "Melee",
+      "2": "Gun Combat",
+      "3": "Stealth",
+      "4": "Streetwise",
+      "5": "Recon",
+      "6": "Persuade"
+    },
+    "pirate": {
+      "name": "Pirate",
+      "assignment_only": "pirate",
+      "1": "Vacc Suit",
+      "2": "Gunner",
+      "3": "Pilot (spacecraft)",
+      "4": "Gun Combat",
+      "5": "Mechanic",
+      "6": "Melee (blade)"
+    }
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Streetwise 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Deception 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "You are arrested and sent to prison. You must muster out, and any Benefit rolls from this term are forfeit.",
+    "3": "A job goes spectacularly wrong. Gain an Enemy and lose all Benefit rolls from this term.",
+    "4": "You betray — or are betrayed by — a partner in crime. Gain them as an Enemy.",
+    "5": "A rival criminal organisation targets you and you are forced to flee or go straight. Muster out.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "A job goes wrong and you are pursued by the law. Roll Stealth 8+ or Deception 8+ to escape. On failure, roll on the Mishap Table (not ejected). Either way, gain an Enemy in law enforcement.",
+    "4": "You befriend a fence, crime boss, or fellow criminal. Gain a Contact or Ally in the underworld.",
+    "5": "You pull off a lucrative heist. Gain DM+2 to any one Benefit roll.",
+    "6": "You spend time working the shadows of a particular world. Gain one of Streetwise 1, Stealth 1, Deception 1 or Persuade 1.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You are given a delicate job by a major criminal syndicate. Roll Stealth 8+ or Deception 8+; on success, gain a Contact in the syndicate and DM+2 to your next Advancement. On failure, gain an Enemy and roll on the Mishap Table (not ejected).",
+    "9": "You clash with law enforcement. Roll Streetwise 8+ or Gun Combat 8+ to escape; on failure, gain an Enemy in the Agents and a Rival on the streets.",
+    "10": "You earn a reputation in the underworld. Gain DM+2 to your next Advancement roll.",
+    "11": "You acquire specialist knowledge or equipment. Either gain one level of Gun Combat, Stealth, Electronics or Melee, or DM+4 to your next Advancement roll.",
+    "12": "You pull off a caper that becomes legendary. You are automatically promoted and gain DM+2 to any one Benefit roll."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Contact"},
+    "2": {"cash": 2000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "Blade or Ally"},
+    "4": {"cash": 10000, "benefit": "Weapon"},
+    "5": {"cash": 20000, "benefit": "Gun"},
+    "6": {"cash": 20000, "benefit": "Combat Implant"},
+    "7": {"cash": 40000, "benefit": "Ship Share"}
+  },
+  "complete": true
+}

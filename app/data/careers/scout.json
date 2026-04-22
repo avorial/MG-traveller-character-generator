@@ -1,0 +1,134 @@
+{
+  "id": "scout",
+  "name": "Scout",
+  "description": "Members of the exploratory service. Scouts explore new areas, map and survey known or newly discovered areas, and maintain communication ships that carry information and messages between the worlds of the galaxy.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 5,
+    "modifiers": [
+      {"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}
+    ]
+  },
+  "assignments": {
+    "courier": {
+      "name": "Courier",
+      "description": "You are responsible for shuttling messages and high-value packages around the galaxy.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 9}
+    },
+    "surveyor": {
+      "name": "Surveyor",
+      "description": "You visit border worlds and assess their worth.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    },
+    "explorer": {
+      "name": "Explorer",
+      "description": "You go wherever the map is blank, exploring unknown worlds and uncharted space.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "Jack-of-all-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Pilot (small craft or spacecraft)",
+      "2": "Survival",
+      "3": "Mechanic",
+      "4": "Astrogation",
+      "5": "Vacc Suit",
+      "6": "Gun Combat"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Medic",
+      "2": "Navigation",
+      "3": "Seafarer",
+      "4": "Explosives",
+      "5": "Science",
+      "6": "Jack-of-all-Trades"
+    },
+    "courier": {
+      "name": "Courier",
+      "assignment_only": "courier",
+      "1": "Electronics",
+      "2": "Flyer",
+      "3": "Pilot (spacecraft)",
+      "4": "Engineer",
+      "5": "Athletics",
+      "6": "Astrogation"
+    },
+    "surveyor": {
+      "name": "Surveyor",
+      "assignment_only": "surveyor",
+      "1": "Electronics",
+      "2": "Persuade",
+      "3": "Pilot",
+      "4": "Navigation",
+      "5": "Diplomat",
+      "6": "Streetwise"
+    },
+    "explorer": {
+      "name": "Explorer",
+      "assignment_only": "explorer",
+      "1": "Electronics",
+      "2": "Pilot",
+      "3": "Engineer",
+      "4": "Science",
+      "5": "Stealth",
+      "6": "Recon"
+    }
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Scout", "bonus": "Vacc Suit 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Senior Scout", "bonus": "Pilot 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "Psychologically damaged by your time in the scouts. Reduce your INT or SOC by 1.",
+    "3": "Your ship is damaged, and you have to hitch-hike your way back across the stars to the nearest scout base. Gain 1D Contacts and D3 Enemies.",
+    "4": "You inadvertently cause a conflict between the Imperium and a minor world or race. Gain a Rival and Diplomat 1.",
+    "5": "You have no idea what happened to you — they found your ship drifting on the fringes of friendly space.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your ship is ambushed by enemy vessels. Either run, and roll Pilot 8+ to escape, or treat with them and roll Persuade 10+ to bargain. If you fail, your ship is destroyed and you may not re-enlist in the Scouts at the end of this term. If you succeed, you survive and gain Electronics (sensors) 1. Either way, gain an Enemy.",
+    "4": "You survey an alien world. Gain one of Animals (riding or training) 1, Survival 1, Recon 1 or Science 1.",
+    "5": "You perform an exemplary service for the scouts. Gain DM+1 to any one Benefit roll.",
+    "6": "You spend several years jumping from world to world in your scout ship. Gain one of Astrogation 1, Electronics 1, Navigation 1, Pilot (small craft) 1 or Mechanic 1.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "When dealing with an alien race, you have an opportunity to gather extra intelligence. Roll Electronics 8+ or Deception 8+. If you succeed, gain an Ally in the Imperium and DM+2 to your next Advancement roll. If you fail, roll on the Mishap Table, but you are not ejected from this career.",
+    "9": "Your scout ship is one of the first on the scene to rescue the survivors of a disaster. Roll Medic 8+ or Engineer 8+. If you succeed, gain a Contact and DM+2 to your next Advancement check. If you fail, gain an Enemy.",
+    "10": "You spend a great deal of time on the fringes of Charted Space. Roll Survival 8+ or Pilot 8+. If you succeed, gain a Contact in an alien race and one level in any skill of your choice. If you fail, roll on the Mishap Table but you are not ejected from this career.",
+    "11": "You serve as the courier for an important message from the Imperium. Either gain one level of Diplomat or DM+4 to your next Advancement roll.",
+    "12": "You discover a world, item or information of worth to the Imperium. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 20000, "benefit": "Ship Share"},
+    "2": {"cash": 20000, "benefit": "INT +1"},
+    "3": {"cash": 30000, "benefit": "EDU +1"},
+    "4": {"cash": 30000, "benefit": "Weapon"},
+    "5": {"cash": 50000, "benefit": "Weapon"},
+    "6": {"cash": 50000, "benefit": "Scout Ship"},
+    "7": {"cash": 50000, "benefit": "Scout Ship"}
+  },
+  "complete": true
+}

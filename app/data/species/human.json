@@ -1,0 +1,16 @@
+{
+  "id": "human",
+  "name": "Human",
+  "description": "The dominant sophont of Charted Space. No inherent modifiers, no special traits — the baseline against which others are measured.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [],
+  "source": "Traveller Core Rulebook, Mongoose Publishing"
+}

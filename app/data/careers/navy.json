@@ -1,0 +1,152 @@
+{
+  "id": "navy",
+  "name": "Navy",
+  "description": "The Imperial Navy — the interstellar military forces that maintain order between worlds and defend the Imperium from external threats.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "commission": {"characteristic": "SOC", "target": 8},
+  "assignments": {
+    "line_crew": {
+      "name": "Line/Crew",
+      "description": "You serve on the deck of an Imperial warship.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "engineer_gunner": {
+      "name": "Engineer/Gunner",
+      "description": "You operate the ship's drives or weapons.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "flight": {
+      "name": "Flight",
+      "description": "You pilot small craft, fighters, and shuttles launched from a capital ship.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Pilot (any)",
+      "2": "Vacc Suit",
+      "3": "Athletics",
+      "4": "Gunner",
+      "5": "Mechanic",
+      "6": "Gun Combat"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Electronics",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Medic",
+      "5": "Navigation",
+      "6": "Tactics (naval)"
+    },
+    "officer": {
+      "name": "Officer (commissioned only)",
+      "requires_commission": true,
+      "1": "Leadership",
+      "2": "Electronics",
+      "3": "Pilot (capital ships)",
+      "4": "Melee (blade)",
+      "5": "Admin",
+      "6": "Tactics (naval)"
+    },
+    "line_crew": {
+      "name": "Line/Crew",
+      "assignment_only": "line_crew",
+      "1": "Electronics",
+      "2": "Mechanic",
+      "3": "Gun Combat",
+      "4": "Melee (blade)",
+      "5": "Vacc Suit",
+      "6": "Leadership"
+    },
+    "engineer_gunner": {
+      "name": "Engineer/Gunner",
+      "assignment_only": "engineer_gunner",
+      "1": "Mechanic",
+      "2": "Electronics",
+      "3": "Engineer",
+      "4": "Gunner",
+      "5": "Vacc Suit",
+      "6": "Gunner"
+    },
+    "flight": {
+      "name": "Flight",
+      "assignment_only": "flight",
+      "1": "Pilot (small craft)",
+      "2": "Flyer",
+      "3": "Gunner",
+      "4": "Electronics (sensors)",
+      "5": "Astrogation",
+      "6": "Pilot (spacecraft)"
+    }
+  },
+  "ranks": {
+    "enlisted": {
+      "0": {"title": "Crewman", "bonus": "Mechanic 1"},
+      "1": {"title": "Able Spacehand", "bonus": "Vacc Suit 1"},
+      "2": {"title": "Petty Officer 3rd Class", "bonus": null},
+      "3": {"title": "Petty Officer 2nd Class", "bonus": "Gunner 1"},
+      "4": {"title": "Petty Officer 1st Class", "bonus": null},
+      "5": {"title": "Chief Petty Officer", "bonus": null},
+      "6": {"title": "Master Chief", "bonus": null}
+    },
+    "officer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Ensign", "bonus": "Melee (blade) 1"},
+      "2": {"title": "Sub-Lieutenant", "bonus": null},
+      "3": {"title": "Lieutenant", "bonus": "Leadership 1"},
+      "4": {"title": "Commander", "bonus": "Tactics (naval) 1"},
+      "5": {"title": "Captain", "bonus": "SOC +1"},
+      "6": {"title": "Admiral", "bonus": "SOC +2"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "Your ship is destroyed in a battle, misjump or accident. You are one of the few survivors. Gain a fellow survivor as a Contact.",
+    "3": "You are disgraced by the actions of your ship, your captain, or yourself. Gain a Rival in the service.",
+    "4": "You are court-martialled for a real or imagined offence. Whether or not you are convicted, you are forced out of the service.",
+    "5": "A political scandal or shift in Imperial policy ends your career. Gain an Enemy among the admiralty.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your ship engages an enemy vessel. Roll Gunner 8+ or Tactics (naval) 8+; on success, gain one of Gunner 1 or Tactics (naval) 1 and DM+1 to your next Advancement roll. On failure, roll on the Mishap Table (not ejected).",
+    "4": "You are assigned to an isolated, long-range patrol. Gain one of Astrogation 1, Survival 1, Electronics 1 or Vacc Suit 1.",
+    "5": "You are given a commendation. Gain DM+1 to any one Benefit roll.",
+    "6": "You serve aboard a ship with an excellent captain. Gain them as a Contact or Ally.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You are sent to officer training or specialist school. Roll EDU 8+ to gain any one skill from the Officer or Advanced Education tables at level 1.",
+    "9": "You distinguish yourself in a ship-to-ship engagement. Gain DM+2 to your next Advancement roll.",
+    "10": "You are transferred to an elite unit. Gain one of Gun Combat 1, Melee (blade) 1, Vacc Suit 1 or Leadership 1, or transfer to the Marines without a Qualification roll.",
+    "11": "You are given advanced training in a specialist field. Gain one level in any skill you already have, or DM+4 to your next Advancement roll.",
+    "12": "Your heroism in a major fleet action is noted by the Imperial court. You are automatically promoted and gain a medal."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 5000, "benefit": "INT +1 or EDU +1"},
+    "3": {"cash": 5000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Weapon"},
+    "5": {"cash": 20000, "benefit": "TAS Membership"},
+    "6": {"cash": 50000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Ship's Boat or SOC +2"}
+  },
+  "complete": true
+}

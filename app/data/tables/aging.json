@@ -1,0 +1,64 @@
+{
+  "description": "Rolled at end of 4th term and every term thereafter. Roll 2D, applying the total number of terms as a negative DM.",
+  "dice": "2D",
+  "dm_rule": "Subtract number of terms served from the roll",
+  "triggers_at_term": 4,
+  "entries": {
+    "-6_or_less": {
+      "key": -6,
+      "comparator": "<=",
+      "title": "Severe aging",
+      "text": "Reduce three physical characteristics by 2, reduce one mental characteristic by 1.",
+      "effects": [
+        {"type": "reduce_physical", "count": 3, "amount": 2},
+        {"type": "reduce_mental", "count": 1, "amount": 1}
+      ]
+    },
+    "-5": {
+      "title": "Heavy aging",
+      "text": "Reduce three physical characteristics by 2.",
+      "effects": [{"type": "reduce_physical", "count": 3, "amount": 2}]
+    },
+    "-4": {
+      "title": "Significant aging",
+      "text": "Reduce two physical characteristics by 2, reduce one physical characteristic by 1.",
+      "effects": [
+        {"type": "reduce_physical", "count": 2, "amount": 2},
+        {"type": "reduce_physical", "count": 1, "amount": 1}
+      ]
+    },
+    "-3": {
+      "title": "Moderate aging",
+      "text": "Reduce one physical characteristic by 2, reduce two physical characteristics by 1.",
+      "effects": [
+        {"type": "reduce_physical", "count": 1, "amount": 2},
+        {"type": "reduce_physical", "count": 2, "amount": 1}
+      ]
+    },
+    "-2": {
+      "title": "Mild aging",
+      "text": "Reduce three physical characteristics by 1.",
+      "effects": [{"type": "reduce_physical", "count": 3, "amount": 1}]
+    },
+    "-1": {
+      "title": "Slight aging",
+      "text": "Reduce two physical characteristics by 1.",
+      "effects": [{"type": "reduce_physical", "count": 2, "amount": 1}]
+    },
+    "0": {
+      "title": "Minimal aging",
+      "text": "Reduce one physical characteristic by 1.",
+      "effects": [{"type": "reduce_physical", "count": 1, "amount": 1}]
+    },
+    "1_or_more": {
+      "key": 1,
+      "comparator": ">=",
+      "title": "No effect",
+      "text": "You shrug off the ravages of time... for now.",
+      "effects": []
+    }
+  },
+  "aging_crisis": {
+    "description": "If any characteristic is reduced to 0, the Traveller suffers an aging crisis. They die unless they pay 1D × Cr10,000 for medical care, which will bring any characteristics back up to 1. They automatically fail any Qualification rolls from now on."
+  }
+}

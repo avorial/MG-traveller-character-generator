@@ -1,0 +1,132 @@
+{
+  "id": "merchant",
+  "name": "Merchant",
+  "description": "Interstellar traders, ship crew and brokers. The lifeblood of the Imperial economy.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 4,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "merchant_marine": {
+      "name": "Merchant Marine",
+      "description": "You serve as crew on a merchant vessel.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "description": "You own (or part-own) your own ship and chase cargoes across the stars.",
+      "survival": {"characteristic": "DEX", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "broker": {
+      "name": "Broker",
+      "description": "You buy and sell cargoes, arranging deals between traders and clients.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Pilot (any) or Flyer (any)",
+      "2": "Vacc Suit",
+      "3": "Broker",
+      "4": "Streetwise",
+      "5": "Drive (any)",
+      "6": "Persuade"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Electronics",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Medic",
+      "5": "Advocate",
+      "6": "Science"
+    },
+    "merchant_marine": {
+      "name": "Merchant Marine",
+      "assignment_only": "merchant_marine",
+      "1": "Pilot (spacecraft)",
+      "2": "Vacc Suit",
+      "3": "Astrogation",
+      "4": "Engineer",
+      "5": "Electronics",
+      "6": "Mechanic"
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "assignment_only": "free_trader",
+      "1": "Pilot (spacecraft)",
+      "2": "Mechanic",
+      "3": "Astrogation",
+      "4": "Engineer",
+      "5": "Broker",
+      "6": "Gunner"
+    },
+    "broker": {
+      "name": "Broker",
+      "assignment_only": "broker",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Broker",
+      "4": "Diplomat",
+      "5": "Persuade",
+      "6": "Carouse"
+    }
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": "Crewman", "bonus": "Steward 1"},
+      "1": {"title": "Senior Crewman", "bonus": null},
+      "2": {"title": "4th Officer", "bonus": "Electronics 1"},
+      "3": {"title": "3rd Officer", "bonus": null},
+      "4": {"title": "2nd Officer", "bonus": "Pilot 1"},
+      "5": {"title": "1st Officer", "bonus": null},
+      "6": {"title": "Captain", "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "Your ship is attacked by pirates, corsairs or competitors. Gain an Enemy; if you survive, you lose all Benefits from this term.",
+    "3": "A cargo deal collapses catastrophically, leaving you in debt. Your Benefit rolls from this term are forfeit and you must muster out.",
+    "4": "You are caught up in a political or legal dispute that costs you your position. Gain a Rival and muster out.",
+    "5": "Your ship is impounded, lost, or destroyed in a misjump. Gain one less Benefit roll this career.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your ship is attacked. Roll Gun Combat 8+ or Gunner 8+ to escape; on failure, roll on the Mishap Table (not ejected). Either way, gain an Enemy.",
+    "4": "You spend several years trading on the fringes of Imperial space. Gain one of Streetwise 1, Broker 1, Diplomat 1 or Carouse 1.",
+    "5": "You make a lucrative deal. Gain DM+1 to any one Benefit roll.",
+    "6": "You travel extensively and broaden your horizons. Gain one of Language 1, Pilot (spacecraft) 1, Astrogation 1 or Steward 1.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You strike a long-term cargo agreement with a major client. Gain an Ally and DM+1 to any one Benefit roll, or DM+2 to your next Advancement check.",
+    "9": "You are pursued by creditors, authorities or pirates. Roll Pilot 8+ or Deception 8+; on success, gain a Contact among the Imperial Starport Authority. On failure, gain an Enemy and roll on the Mishap Table (not ejected).",
+    "10": "You become well-known for your dealings on a particular route. Gain DM+2 to your next Advancement check.",
+    "11": "You are entrusted with a particularly valuable or sensitive cargo. Either gain one level of Diplomat, Broker or Advocate, or DM+4 to your next Advancement roll.",
+    "12": "You pull off the deal of a lifetime. You are automatically promoted and gain DM+2 to any one Benefit roll."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Contact"},
+    "2": {"cash": 5000, "benefit": "INT +1"},
+    "3": {"cash": 10000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Ship Share"},
+    "5": {"cash": 20000, "benefit": "Ship Share"},
+    "6": {"cash": 40000, "benefit": "Free Trader"},
+    "7": {"cash": 60000, "benefit": "SOC +2"}
+  },
+  "complete": true
+}

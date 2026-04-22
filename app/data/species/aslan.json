@@ -1,0 +1,25 @@
+{
+  "id": "aslan",
+  "name": "Aslan",
+  "description": "Descended from four-limbed carnivorous pouncer stock, Aslan are expansionist warriors from Kusyu. Capable of short bursts of speed greater than humans, with superior hearing and night vision.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [
+    {
+      "name": "Dewclaw",
+      "description": "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (natural) skill and does 1D+2 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+    }
+  ],
+  "source": "Traveller Core Rulebook, Mongoose Publishing"
+}

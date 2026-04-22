@@ -1,0 +1,47 @@
+{
+  "description": "Rolled when a Traveller is wounded in combat or accidents during creation.",
+  "dice": "1D",
+  "entries": {
+    "1": {
+      "title": "Nearly killed",
+      "text": "Reduce one physical characteristic by 1D, reduce two other physical characteristics by 2.",
+      "effects": [
+        {"type": "reduce_physical_random", "amount": "1D"},
+        {"type": "reduce_physical_other", "amount": 2, "count": 2}
+      ]
+    },
+    "2": {
+      "title": "Severely injured",
+      "text": "Reduce one physical characteristic by 1D.",
+      "effects": [
+        {"type": "reduce_physical_random", "amount": "1D"}
+      ]
+    },
+    "3": {
+      "title": "Missing Eye or Limb",
+      "text": "Reduce STR or DEX by 2.",
+      "effects": [
+        {"type": "reduce_choice", "characteristics": ["STR", "DEX"], "amount": 2}
+      ]
+    },
+    "4": {
+      "title": "Scarred",
+      "text": "You are scarred and injured. Reduce any physical characteristic by 2.",
+      "effects": [
+        {"type": "reduce_choice", "characteristics": ["STR", "DEX", "END"], "amount": 2}
+      ]
+    },
+    "5": {
+      "title": "Injured",
+      "text": "Reduce any physical characteristic by 1.",
+      "effects": [
+        {"type": "reduce_choice", "characteristics": ["STR", "DEX", "END"], "amount": 1}
+      ]
+    },
+    "6": {
+      "title": "Lightly Injured",
+      "text": "No permanent effect.",
+      "effects": []
+    }
+  }
+}
