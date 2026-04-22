@@ -722,6 +722,21 @@ function renderSpeciesPhase() {
       <h2 class="phase-title">Choose Your Species</h2>
       <p class="phase-subtitle">Species modifiers apply immediately to your rolled characteristics.</p>
 
+      <div class="species-intro">
+        <p>
+          Charted Space is crowded with sophonts. The Ancients scattered Earth humanity across the stars three hundred
+          millennia ago, and in the gaps between those seedings other species rose on their own — the Vargr uplifted
+          from Terran canines, the Aslan of Kusu, and countless others. This generator assumes your character grew up
+          as a citizen of the <strong>Third Imperium</strong>, so non-human options are the "Imperial-raised" variants:
+          they keep their physiology and instincts, but their culture is shaped by Imperial schools, Galanglic, and
+          Imperial law rather than the homeworlds of their kin.
+        </p>
+        <p class="species-intro-hint">
+          <em>Pick whichever fits the character concept. The numbers balance out across a full career arc — flavor is
+          usually the deciding factor. Species modifiers apply once, now, to the characteristics you just rolled.</em>
+        </p>
+      </div>
+
       <div class="card-grid">${cards}</div>
 
       ${traitsPanel}
@@ -1433,6 +1448,7 @@ function wireCareerPhase() {
         data: response.roll,
         eventText: response.event,
         dmGrants: response.dm_grants || [],
+        statBonuses: response.stat_bonuses || [],
       };
       // Stay on 'event' so the dice + event text render together
       renderAll();
@@ -1976,6 +1992,19 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Stat bonuses (e.g. entertainer[12] "SOC +1") — auto-applied unconditionally
+    // when no conditional markers are present. Surface them so the player can
+    // see the characteristic change.
+    const statBonuses = Array.isArray(lr.statBonuses) ? lr.statBonuses : [];
+    const statAppliedHTML = statBonuses.filter(s => s.applied).length ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Auto-applied stat changes</span>
+        ${statBonuses.filter(s => s.applied).map(s => `
+          <div class="dm-chip applied">${s.stat} ${s.from} → ${s.to} (${s.amount >= 0 ? '+' : ''}${s.amount})</div>
+        `).join('')}
+      </div>
+    ` : '';
+
     // Skill-choice picker — only show if the event text offers a choice AND
     // the player hasn't already picked one for this event.
     const skillOptions = parseEventSkillOptions(lr.eventText || '');
@@ -2054,6 +2083,7 @@ function renderEventStep() {
         </div>
         ${appliedHTML}
         ${pendingHTML}
+        ${statAppliedHTML}
         ${pickerHTML}
         ${skillAppliedHTML}
         ${dmChosenHTML}
@@ -2663,12 +2693,10 @@ async function bootstrap() {
   const btnCloseFairUse = document.getElementById('btn-close-fair-use');
   if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
   if (fairUseModal) {
-    // Clicking the backdrop (but not the modal body) closes it.
     fairUseModal.addEventListener('click', (e) => {
       if (e.target === fairUseModal) closeFairUse();
     });
   }
-  // Escape key also closes it.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && fairUseModal && !fairUseModal.hidden) {
       closeFairUse();
@@ -2681,88 +2709,6 @@ async function bootstrap() {
     if (!btnGm) return;
     btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
     btnGm.classList.toggle('active', uiState.gmMode);
-    // Swap the whole terminal to green-phosphor when GM Mode is on.
-    document.body.classList.toggle('gm-active', uiState.gmMode);
-  };
-  updateGmBtn();
-  if (btnGm) {
-    btnGm.addEventListener('click', () => {
-      uiState.gmMode = !uiState.gmMode;
-      localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0');
-      updateGmBtn();
-      renderAll();
-    });
-  }
-}
-
-// Handle "back to careers" button for rejected qualification
-document.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'btn-back-careers') {
-    uiState.selectedCareer = null;
-    uiState.selectedAssignment = null;
-    uiState.subPhase = null;
-    uiState.lastRoll = null;
-    renderAll();
-  }
-});
-
-// Buy anagathics (appears on decide-step between terms)
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.id === 'btn-buy-anagathics') {
-    try {
-      const response = await apiCall('/api/character/anagathics');
-      await applyResponse(response);
-    } catch (err) { alert(err.message); }
-    renderAll();
-  }
-});
-
-// Roll injury (appears on mishap post-roll for everyone; GM mode can invoke freely)
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.id === 'btn-roll-injury') {
-    try {
-      const response = await apiCall('/api/character/injury');
-      uiState.lastRoll = {
-        type: 'injury',
-        data: response.roll,
-        title: response.title,
-        text: response.text,
-        effects: response.effects_applied,
-        medical_debt_added: response.medical_debt_added
-      };
-      await applyResponse(response);
-      renderAll();
-    } catch (err) { alert(err.message); }
-  }
-});
-
-// Kick off the app.
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootstrap);
-} else {
-  bootstrap();
-}
-  if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
-  if (fairUseModal) {
-    // Clicking the backdrop (but not the modal body) closes it.
-    fairUseModal.addEventListener('click', (e) => {
-      if (e.target === fairUseModal) closeFairUse();
-    });
-  }
-  // Escape key also closes it.
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && fairUseModal && !fairUseModal.hidden) {
-      closeFairUse();
-    }
-  });
-
-  // GM mode toggle (footer)
-  const btnGm = document.getElementById('btn-gm-mode');
-  const updateGmBtn = () => {
-    if (!btnGm) return;
-    btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
-    btnGm.classList.toggle('active', uiState.gmMode);
-    // Swap the whole terminal to green-phosphor when GM Mode is on.
     document.body.classList.toggle('gm-active', uiState.gmMode);
   };
   updateGmBtn();

@@ -102,6 +102,54 @@ def _apply_event_dms(character: Character, event_text: str) -> list[dict]:
     return applied
 
 
+# Stat bonus parser — handles events like entertainer[12]: "You become a
+# superstar in your field. You are automatically promoted and gain SOC +1."
+# Only auto-applies unconditional grants; conditional/choice events are
+# surfaced but not applied.
+_STAT_BONUS_RE = re.compile(
+    r"\b(STR|DEX|END|INT|EDU|SOC)\s*([+-]\d+)\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_event_stat_bonuses(event_text: str) -> list[dict]:
+    """Return every 'STR/DEX/END/INT/EDU/SOC +/-N' grant in an event."""
+    text = event_text or ""
+    found: list[dict] = []
+    for m in _STAT_BONUS_RE.finditer(text):
+        stat = m.group(1).upper()
+        try:
+            amount = int(m.group(2))
+        except ValueError:
+            continue
+        found.append({"stat": stat, "amount": amount, "span": m.span()})
+    return found
+
+
+def _apply_event_stat_bonuses(character: "Character", event_text: str) -> list[dict]:
+    """Apply any unconditional stat bonuses (e.g., 'gain SOC +1') from an event.
+
+    Returns the list of applied grants for the UI to narrate.
+    """
+    grants = _parse_event_stat_bonuses(event_text)
+    if not grants:
+        return []
+    lowered = event_text.lower()
+    if any(marker in lowered for marker in _CONDITIONAL_MARKERS):
+        return [{"stat": g["stat"], "amount": g["amount"], "applied": False,
+                 "reason": "conditional_or_choice"} for g in grants]
+    applied: list[dict] = []
+    for g in grants:
+        old = character.characteristics.get(g["stat"])
+        new_val = old + g["amount"]
+        character.characteristics.set(g["stat"], new_val)
+        sign = "+" if g["amount"] >= 0 else ""
+        character.log(f"  - Event stat bonus: {g['stat']} {old} -> {new_val} ({sign}{g['amount']}).")
+        applied.append({"stat": g["stat"], "amount": g["amount"], "applied": True,
+                        "from": old, "to": new_val})
+    return applied
+
+
 # ============================================================
 # Phase 1: Characteristics + Species
 # ============================================================
@@ -1043,10 +1091,16 @@ def event_roll(character: Character) -> dict:
             sign = "+" if g["dm"] >= 0 else ""
             character.log(f"  → Auto-applied DM{sign}{g['dm']} to next {tgt} roll.")
 
+    # Auto-apply any unconditional stat bonuses ("SOC +1" etc.). Only handles
+    # the rare cases like entertainer[12]; conditional/choice events are
+    # surfaced as pending but not applied.
+    stat_bonuses = _apply_event_stat_bonuses(character, event_text)
+
     return {
         "roll": r.to_dict(),
         "event": event_text,
         "dm_grants": dm_grants,
+        "stat_bonuses": stat_bonuses,
         "character": character.model_dump(),
     }
 
