@@ -6,13 +6,11 @@ services:
       # Fixed on 2026 so the URL is memorable (and nothing else of mine
       # is squatting on it). Override with HOST_PORT env var if needed.
       - "${HOST_PORT:-2026}:8000"
-    volumes:
-      # Mount the app directory so edits to data/*.json and templates
-      # are picked up live without a rebuild. Reload rules via
-      # POST /api/reload-rules or just refresh the browser.
-      - ./app:/code/app
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # This is the prod-safe command: uses the baked-in /code/app from
+    # the image, no reload. For local dev, docker-compose.override.yml
+    # (gitignored) bind-mounts ./app and enables --reload.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000

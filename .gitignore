@@ -59,6 +59,10 @@ yarn-debug.log*
 
 # Docker
 *.log
+# Local dev compose overlay — adds the bind-mount + --reload for
+# rapid iteration. Kept out of git so Portainer's clone doesn't
+# try to mount a path that doesn't exist on its host.
+docker-compose.override.yml
 
 # Local runtime artifacts
 /app/data/saves/
