@@ -85,17 +85,19 @@
         "target": 7,
         "honours_target": 11,
         "on_graduation": {
-          "starts_commissioned_rank": 1,
-          "skills_at_level_1": 1,
+          "EDU": 1,
+          "commission_dm": 2,
+          "skills_at_level_1": 3,
           "dm_next_advancement": 1,
-          "note": "Starts chosen service career as a commissioned officer (Rank 1). DM+1 to next advancement roll."
+          "note": "Passed. Roll Commission 8+ with DM+2 — succeed and you start commissioned at Rank 1. Gain +1 EDU and 3 Service Skills at level 1."
         },
         "on_honours": {
-          "starts_commissioned_rank": 1,
-          "skills_at_level_1": 2,
-          "dm_next_advancement": 2,
           "EDU": 1,
-          "note": "Graduated with Honours. Starts chosen service career commissioned at Rank 1 with DM+2 to next advancement."
+          "SOC": 1,
+          "starts_commissioned_rank": 1,
+          "skills_at_level_1": 3,
+          "dm_next_advancement": 2,
+          "note": "Graduated with Honours. Automatically commissioned at Rank 1. Gain +1 EDU, +1 SOC, and 3 Service Skills at level 1."
         },
         "on_failure": {
           "note": "Failed to graduate. Keeps enrollment skills but starts service career at Rank 0 (no commission bonus)."

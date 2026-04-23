@@ -1401,6 +1401,9 @@ function wireCareerPhase() {
         assignment_id: uiState.selectedAssignment,
       });
       await applyResponse(response);
+      if (response.academy_commission_roll) {
+        uiState.academyCommissionRoll = response.academy_commission_roll;
+      }
       uiState.subPhase = 'train';
       renderAll();
     });
@@ -1625,10 +1628,22 @@ function wireCareerPhase() {
           }
         }
       } catch (_) { /* ignore */ }
+
+      // If the success branch offers a skill pick, store it for the picker UI.
+      let pendingSkillPick = null;
+      if (success && branchText) {
+        const sOpts = parseEventSkillOptions(branchText);
+        const sWild = !sOpts ? parseEventWildcardSkill(branchText) : null;
+        if ((sOpts && sOpts.length) || sWild) {
+          pendingSkillPick = { options: sOpts || null, wildcardSpec: sWild || null };
+        }
+      }
+
       if (lr) {
         lr.eventContestedResolved = {
           success, dice: roll.dice, mod: roll.mod, total: roll.total,
           target: parsed.target, skillLabel, branchText, appliedMsgs,
+          pendingSkillPick,
         };
       }
       renderAll();
@@ -1645,6 +1660,30 @@ function wireCareerPhase() {
         target: 0, skillLabel: 'Skipped', branchText: 'Resolve this check manually.',
         appliedMsgs: [],
       };
+      renderAll();
+    });
+  });
+
+  // Skill picker after a contested roll succeeds (e.g. navy[8], army[8]).
+  document.querySelectorAll('[data-contested-skill]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const lr = uiState.lastRoll;
+      if (!lr || !lr.eventContestedResolved) return;
+      const pick = chip.getAttribute('data-contested-skill');
+      try {
+        chip.disabled = true;
+        document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = true; });
+        const resp = await apiCall('/api/character/event-skill-grant', { skill_text: pick });
+        await applyResponse(resp);
+        lr.eventContestedResolved.skillChosen = resp.skill || pick;
+        lr.eventContestedResolved.appliedMsgs = [
+          ...(lr.eventContestedResolved.appliedMsgs || []),
+          `+ ${resp.skill || pick}`,
+        ];
+      } catch (err) {
+        alert(err.message || 'Could not apply that skill.');
+        document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = false; });
+      }
       renderAll();
     });
   });
@@ -2050,6 +2089,18 @@ function renderSkillChoice() {
     `;
   }).join('');
 
+  const acr = uiState.academyCommissionRoll;
+  const commRollHTML = acr ? (() => {
+    const outcome = acr.succeeded ? 'Commissioned at Rank 1' : 'Not commissioned — starting as enlisted';
+    uiState.academyCommissionRoll = null; // show once
+    return `
+      <div class="dm-applied-box" style="margin-bottom:12px">
+        <span class="event-label">Academy Commission Roll</span>
+        <div class="dm-chip applied">2D [${(acr.dice || []).join(' · ')}] +${acr.modifier ?? acr.dm ?? 0} = ${acr.total} vs ${acr.target}+ — ${escapeHTML(outcome)}</div>
+      </div>
+    `;
+  })() : '';
+
   return `
     <div class="stage-content">
       <div class="phase-label">Skill Training · 1D Roll</div>
@@ -2057,7 +2108,7 @@ function renderSkillChoice() {
       <p class="phase-subtitle">${term.basic_training
         ? 'First term in this career — pick any table to roll 1D.'
         : 'Pick one skill table and roll 1D on it.'}</p>
-
+      ${commRollHTML}
       <div class="phase-actions" style="flex-direction:column;align-items:stretch;gap:8px">
         ${buttons}
       </div>
@@ -2749,6 +2800,34 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Skill picker that appears after a successful contested roll whose success
+    // branch grants a skill choice (e.g. navy[8], army[8], marine[8]).
+    const csr = lr.eventContestedResolved;
+    const contestedSkillPickerHTML = (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) ? (() => {
+      const psp = csr.pendingSkillPick;
+      const ckCareer = (character && character.current_term && character.current_term.career_id) || null;
+      const opts = psp.options || (psp.wildcardSpec ? resolveWildcardSkillOptions(psp.wildcardSpec, ckCareer) : null);
+      const wLabel = psp.wildcardSpec ? ({
+        'already-have': 'any skill you already have',
+        'free': 'any skill of your choice',
+        'service': 'any Service Skill',
+        'service-or-advanced': 'Service or Advanced Education tables',
+        'officer-or-advanced': 'Officer or Advanced Education tables',
+        'science': 'any Science specialty',
+      }[psp.wildcardSpec.type] || 'a skill') : null;
+      if (!opts || !opts.length) return '';
+      return `
+        <div class="event-skill-picker">
+          <span class="event-label">Choose your reward</span>
+          ${wLabel ? `<p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>Pick ${escapeHTML(wLabel)}:</em></p>` : ''}
+          <div class="skill-picker">
+            ${opts.map(opt => `<button class="skill-chip" data-contested-skill="${escapeHTML(opt)}">+ ${escapeHTML(opt)} 1</button>`).join('')}
+          </div>
+          <p class="picker-status">Pick one to continue.</p>
+        </div>
+      `;
+    })() : '';
+
     const skillAppliedHTML = lr.eventSkillApplied ? `
       <div class="dm-applied-box">
         <span class="event-label">Skill chosen</span>
@@ -2883,7 +2962,8 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0;
+    const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
+      || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen);
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP + skip
@@ -2915,6 +2995,7 @@ function renderEventStep() {
         ${pickerHTML}
         ${contestedHTML}
         ${contestedResultHTML}
+        ${contestedSkillPickerHTML}
         ${skillAppliedHTML}
         ${dmChosenHTML}
         ${transferAppliedHTML}

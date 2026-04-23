@@ -115,6 +115,9 @@ class Character(BaseModel):
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None
+    # Normal Military Academy grad: roll Commission 8+ with this DM before first term.
+    academy_commission_career_id: Optional[str] = None
+    academy_commission_dm: int = 0
 
     # Anagathics
     anagathics_purchased_terms: int = 0
