@@ -702,8 +702,11 @@ def pre_career_qualify(
     enrollment_applied: list[str] = []
 
     if passed:
-        # Enrollment bonuses. University applies +1 EDU; academies apply
-        # fixed enrollment skills.
+        # Enrollment bonuses.
+        # University: +1 EDU.
+        # Military Academy: gain ALL service skills of the tied career at level 0
+        #   (p.12 "Gain all Service Skills of the military career the academy is
+        #   tied to at level 0, as with basic training").
         if track == "university":
             bonuses = track_data.get("enrollment_bonus", {})
             for stat, delta in bonuses.items():
@@ -711,12 +714,25 @@ def pre_career_qualify(
                 character.characteristics.set(stat, current + delta)
                 enrollment_applied.append(f"{stat} {delta:+d}")
         else:
-            for sk in svc.get("enrollment_skills", []):
-                msg = character.add_skill(
-                    sk["name"], level=sk.get("level", 0),
-                    speciality=sk.get("speciality"),
-                )
-                enrollment_applied.append(msg)
+            career_data = rules.careers().get(svc["career_id"], {})
+            ss = career_data.get("skill_tables", {}).get("service_skills", {})
+            _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
+            for k, v in ss.items():
+                if k in _skip:
+                    continue
+                # "Drive or Vacc Suit" → take the first concrete option at level 0
+                for part in v.split(" or "):
+                    part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
+                    if not part:
+                        continue
+                    skill_name = part
+                    skill_spec = None
+                    if "(" in part and part.endswith(")"):
+                        skill_name = part[: part.index("(")].strip()
+                        skill_spec = part[part.index("(") + 1 : -1].strip()
+                    msg = character.add_skill(skill_name, level=0, speciality=skill_spec)
+                    enrollment_applied.append(msg)
+                    break  # only the first alternative for "X or Y"
 
         # Age ticks on successful enrollment (student has committed).
         character.age += track_data["age_cost"]
@@ -728,6 +744,8 @@ def pre_career_qualify(
             "outcome": None,
             "skill_picks_remaining": 0,
             "skill_pool": [],
+            "events_remaining": track_data["age_cost"],
+            "events_rolled": [],
         }
         character.log(
             f"Qualified for {display_name} ({char_key} {target}+): "
@@ -790,6 +808,16 @@ def pre_career_graduate(
     honours_target = grad.get("honours_target")
     dm = dice.characteristic_dm(character.characteristics.get(char_key))
 
+    # Apply conditional modifiers (e.g. military academy: DM+1 if END 8+, DM+1 if SOC 8+).
+    modifier_descriptions: list[str] = []
+    for mod in grad.get("modifiers", []):
+        if mod.get("type") == "characteristic_threshold":
+            stat = mod["characteristic"]
+            threshold = int(mod["threshold"])
+            if character.characteristics.get(stat) >= threshold:
+                dm += int(mod["dm"])
+                modifier_descriptions.append(mod.get("description", ""))
+
     r = dice.roll("2D", modifier=dm, target=target)
 
     outcome: str
@@ -799,8 +827,20 @@ def pre_career_graduate(
 
     if not r.succeeded:
         outcome = "fail"
-        note = grad.get("on_failure", {}).get("note", "Failed to graduate.")
+        fail_block = grad.get("on_failure", {})
+        note = fail_block.get("note", "Failed to graduate.")
         applied_note.append(note)
+        # Failed grads who didn't roll a natural 2 may auto-enter the tied career.
+        if track == "military_academy" and fail_block.get("auto_entry_if_not_natural_2"):
+            natural_dice = sorted(r.to_dict().get("dice", []))
+            natural_2 = (len(natural_dice) == 2 and natural_dice == [1, 1])
+            if not natural_2:
+                svc = _academy_service(service)
+                character.auto_entry_career_id = svc["career_id"]
+                applied_note.append(
+                    f"Did not roll natural 2 — automatic entry into "
+                    f"{svc['name']} permitted (no Commission roll)."
+                )
     else:
         is_honours = honours_target is not None and r.total >= honours_target
         block = grad["on_honours"] if is_honours else grad["on_graduation"]
@@ -971,6 +1011,98 @@ def pre_career_choose_skills(
     }
 
 
+def pre_career_event_roll(character: Character) -> dict:
+    """Roll one event on the pre-career events table (2D).
+
+    Each year of the track generates one event. The number of events
+    remaining is stored in pre_career_status['events_remaining'] and is
+    set to age_cost on enrollment. Graduation is only allowed once all
+    events have been rolled.
+
+    Simple outcomes (SOC +1, Carouse 1, forced-fail) are auto-applied.
+    Complex outcomes (skill choice, associate, contested roll) are
+    described in the returned event_text for manual resolution.
+    """
+    status = character.pre_career_status or {}
+    if status.get("stage") != "enrolled":
+        raise ValueError("Not currently enrolled in a pre-career track")
+
+    events_remaining = int(status.get("events_remaining", 0))
+    if events_remaining <= 0:
+        raise ValueError("All events for this track have already been rolled")
+
+    edu = rules.education()
+    events_table: dict = edu.get("pre_career_events", {})
+
+    r = dice.roll("2D")
+    key = str(r.total)
+    event_text: str = events_table.get(key, "Nothing remarkable happens.")
+
+    auto_applied: list[str] = []
+    forced_fail = False
+
+    if r.total == 3:
+        # Deep tragedy — character fails to graduate.
+        forced_fail = True
+        track = status.get("track")
+        service = status.get("service")
+        if track == "military_academy" and service:
+            edu_track = _edu_track(track)
+            fail_block = edu_track["graduation"].get("on_failure", {})
+            if fail_block.get("auto_entry_if_not_natural_2"):
+                svc = _academy_service(service)
+                character.auto_entry_career_id = svc["career_id"]
+                auto_applied.append(
+                    f"Forced to fail — automatic entry into {svc['name']} permitted (no Commission roll)"
+                )
+        character.pre_career_status = {
+            **status,
+            "stage": "failed_grad",
+            "outcome": "fail_event",
+            "events_remaining": 0,
+        }
+        character.phase = "career"
+        character.log(f"Pre-career event [{r.total}]: {event_text} — forced graduation failure")
+        return {
+            "roll": r.to_dict(),
+            "event_text": event_text,
+            "events_remaining": 0,
+            "auto_applied": auto_applied,
+            "forced_fail": True,
+            "character": character.model_dump(),
+        }
+
+    if r.total == 5:
+        character.add_skill("Carouse", level=1)
+        auto_applied.append("Gained Carouse 1")
+
+    if r.total == 12:
+        current_soc = character.characteristics.get("SOC")
+        character.characteristics.set("SOC", current_soc + 1)
+        auto_applied.append("SOC +1")
+
+    events_remaining -= 1
+    character.pre_career_status = {
+        **status,
+        "events_remaining": events_remaining,
+        "events_rolled": [*status.get("events_rolled", []), r.total],
+    }
+
+    character.log(
+        f"Pre-career event [{r.total}]: {event_text}"
+        + (f" — auto-applied: {', '.join(auto_applied)}" if auto_applied else "")
+    )
+
+    return {
+        "roll": r.to_dict(),
+        "event_text": event_text,
+        "events_remaining": events_remaining,
+        "auto_applied": auto_applied,
+        "forced_fail": False,
+        "character": character.model_dump(),
+    }
+
+
 # ============================================================
 # Phase 2: Career loop
 # ============================================================
@@ -1047,7 +1179,10 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
 
     # Military Academy graduate: auto-qualify for the tied service career.
     if (character.starts_commissioned_career_id == career_id
-            or character.academy_commission_career_id == career_id):
+            or character.academy_commission_career_id == career_id
+            or character.auto_entry_career_id == career_id):
+        if character.auto_entry_career_id == career_id:
+            character.auto_entry_career_id = None
         character.log(
             f"Military Academy graduate — no qualification roll required for {career['name']}."
         )

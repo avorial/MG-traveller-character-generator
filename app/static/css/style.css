@@ -168,6 +168,17 @@ body {
   letter-spacing: 0.18em;
 }
 
+.app-version {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+  border: 1px solid var(--amber-dim);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
 .status-dot {
   display: inline-block;
   width: 8px;
