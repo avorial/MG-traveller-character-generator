@@ -286,6 +286,17 @@ async def api_pre_career_choose_skills(action: PreCareerSkillsAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/pre-career/event")
+async def api_pre_career_event(action: CharacterAction):
+    """Roll one event on the pre-career events table (2D). Called once per year
+    of the track; graduation is only available after all events are rolled."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_event_roll(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/qualify")
 async def api_qualify(action: CareerAction):
     character = action.character.model_copy(deep=True)

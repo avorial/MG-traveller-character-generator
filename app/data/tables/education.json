@@ -1,5 +1,18 @@
 {
-  "description": "Pre-career education: University or Military Academy. Mongoose Traveller 2e, core rulebook pp. 11-12 (best-effort reconstruction — verify cash values, skill lists, and targets against your own copy of the rulebook).",
+  "description": "Pre-career education: University or Military Academy. Mongoose Traveller 2e, core rulebook pp. 11-12.",
+  "pre_career_events": {
+    "2":  "You are approached by an underground (and highly illegal) psionic group who sense potential in you. You may test your PSI and attempt to enter the Psion career in any subsequent term.",
+    "3":  "Your time in education is not a happy one and you suffer a deep tragedy; perhaps you become hopelessly addicted to drink or drugs, a failed romance leaves you in tatters, or a fatal accident involving a close friend shakes your confidence. You crash and fail to graduate.",
+    "4":  "A supposedly harmless prank goes wrong and someone gets hurt, physically or emotionally. Roll SOC 8+. If you succeed, gain a Rival. If you fail, gain an Enemy. If you roll 2, you must take the Prisoner career in your next term.",
+    "5":  "Taking advantage of youth, you party as much as you study. Gain Carouse 1.",
+    "6":  "You become involved in a tightly knit clique or group and make a pact to remain friends forever, wherever in the galaxy you may end. Gain D3 Allies.",
+    "7":  "Life Event. Roll on the Life Events table.",
+    "8":  "You join a political movement. Roll SOC 8+. If successful, you become a leading figure. Gain one Ally within the movement but gain one Enemy in wider society.",
+    "9":  "You develop a healthy interest in a hobby or other area of study. Gain any skill of your choice, with the exception of Jack-of-all-Trades, at level 0.",
+    "10": "A newly arrived tutor rubs you up the wrong way and you work hard to overturn their conclusions. Roll 9+ on any skill you have learned during this term. If successful, you provide a truly elegant proof that soon becomes accepted as the standard approach. Gain a level in the skill you rolled on and the tutor as a Rival.",
+    "11": "War comes and a wide-ranging draft is instigated. You can either flee and join the Drifter career next term or be drafted (roll 1D: 1-3 Army, 4-5 Marine, 6 Navy). Either way, you do not graduate this term. However, if you roll SOC 9+, you can get enough strings pulled to avoid the draft and complete your education — you may attempt graduation normally and are not drafted.",
+    "12": "You gain wide-ranging recognition of your initiative and innovative approach to study. Increase your SOC by +1."
+  },
   "tracks": {
     "university": {
       "id": "university",
@@ -45,7 +58,7 @@
     "military_academy": {
       "id": "military_academy",
       "name": "Military Academy",
-      "blurb": "Three years of hell. Qualify and graduate and you start your service career as a commissioned officer (Rank 1) — plus skills and a DM+1 to that career's first advancement check.",
+      "blurb": "Three years of hell. Qualify and graduate to start your service career as a commissioned officer — plus all Service Skills and a DM+2 commission roll.",
       "age_cost": 3,
       "max_age": 21,
       "services": {
@@ -53,52 +66,47 @@
           "id": "army",
           "name": "Military Academy — Army",
           "career_id": "army",
-          "qualification": {"characteristic": "END", "target": 7},
-          "enrollment_skills": [
-            {"name": "Drive", "level": 0},
-            {"name": "Athletics", "level": 0, "speciality": "Strength"}
-          ]
+          "qualification": {"characteristic": "END", "target": 8}
         },
         "marine": {
           "id": "marine",
           "name": "Military Academy — Marines",
           "career_id": "marine",
-          "qualification": {"characteristic": "END", "target": 9},
-          "enrollment_skills": [
-            {"name": "Gun Combat", "level": 0},
-            {"name": "Melee", "level": 0}
-          ]
+          "qualification": {"characteristic": "END", "target": 9}
         },
         "navy": {
           "id": "navy",
           "name": "Military Academy — Navy",
           "career_id": "navy",
-          "qualification": {"characteristic": "INT", "target": 9},
-          "enrollment_skills": [
-            {"name": "Vacc Suit", "level": 0},
-            {"name": "Electronics", "level": 0}
-          ]
+          "qualification": {"characteristic": "INT", "target": 9}
         }
       },
       "graduation": {
-        "characteristic": "EDU",
-        "target": 7,
+        "characteristic": "INT",
+        "target": 8,
         "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 8, "dm": 1, "description": "DM+1 if END 8+"},
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1, "description": "DM+1 if SOC 8+"}
+        ],
         "on_graduation": {
-          "starts_commissioned_rank": 1,
-          "skills_at_level_1": 1,
-          "dm_next_advancement": 1,
-          "note": "Starts chosen service career as a commissioned officer (Rank 1). DM+1 to next advancement roll."
+          "EDU": 1,
+          "commission_dm": 2,
+          "skills_at_level_1": 3,
+          "auto_entry": true,
+          "note": "Passed. Automatic entry into the tied military career. Roll Commission 8+ with DM+2 — success means you start at officer rank (O1). Gain +1 EDU and 3 Service Skills at level 1."
         },
         "on_honours": {
-          "starts_commissioned_rank": 1,
-          "skills_at_level_1": 2,
-          "dm_next_advancement": 2,
           "EDU": 1,
-          "note": "Graduated with Honours. Starts chosen service career commissioned at Rank 1 with DM+2 to next advancement."
+          "SOC": 1,
+          "starts_commissioned_rank": 1,
+          "skills_at_level_1": 3,
+          "auto_entry": true,
+          "note": "Graduated with Honours. Automatic entry and automatic commission at Rank 1. Gain +1 EDU, +1 SOC, and 3 Service Skills at level 1."
         },
         "on_failure": {
-          "note": "Failed to graduate. Keeps enrollment skills but starts service career at Rank 0 (no commission bonus)."
+          "auto_entry_if_not_natural_2": true,
+          "note": "Failed to graduate. If you did not roll a natural 2, you may still automatically enter the tied military career — but you may not make a Commission roll."
         }
       }
     }

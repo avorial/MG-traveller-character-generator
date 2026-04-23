@@ -12,8 +12,9 @@ WORKDIR /code
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy the application code
+# Copy the application code and version file
 COPY app ./app
+COPY VERSION ./VERSION
 
 # Expose the port uvicorn will serve on
 EXPOSE 8000
