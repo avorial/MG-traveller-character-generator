@@ -744,8 +744,6 @@ def pre_career_qualify(
             "outcome": None,
             "skill_picks_remaining": 0,
             "skill_pool": [],
-            "events_remaining": track_data["age_cost"],
-            "events_rolled": [],
         }
         character.log(
             f"Qualified for {display_name} ({char_key} {target}+): "
@@ -935,7 +933,9 @@ def pre_career_graduate(
             character.add_skill(name, level=1, speciality=speciality)
         picks_remaining -= len(chosen_skills)
 
-    # Update status + phase
+    # Update status + phase.
+    # One event roll is always required post-graduation (the pre-career events
+    # table applies for the single term spent in education).
     still_needs_picks = picks_remaining > 0
     character.pre_career_status = {
         "track": track,
@@ -944,9 +944,11 @@ def pre_career_graduate(
         "outcome": outcome,
         "skill_picks_remaining": picks_remaining,
         "skill_pool": skill_pool,
+        "events_remaining": 1,
+        "events_rolled": [],
     }
-    if not still_needs_picks:
-        character.phase = "career"
+    # Phase stays pre_career until the event is also rolled.
+    character.phase = "pre_career"
 
     label = {"pass": "GRADUATED", "honours": "GRADUATED w/ HONOURS",
              "fail": "FAILED TO GRADUATE"}[outcome]
@@ -1012,24 +1014,27 @@ def pre_career_choose_skills(
 
 
 def pre_career_event_roll(character: Character) -> dict:
-    """Roll one event on the pre-career events table (2D).
+    """Roll once on the pre-career events table (2D).
 
-    Each year of the track generates one event. The number of events
-    remaining is stored in pre_career_status['events_remaining'] and is
-    set to age_cost on enrollment. Graduation is only allowed once all
-    events have been rolled.
+    Called after graduation. One event roll per period of pre-career
+    education (university or military academy). The character remains
+    in the pre_career phase until this roll is done, then moves to career.
 
-    Simple outcomes (SOC +1, Carouse 1, forced-fail) are auto-applied.
-    Complex outcomes (skill choice, associate, contested roll) are
-    described in the returned event_text for manual resolution.
+    Simple outcomes (Carouse 1, SOC +1) are auto-applied.
+    Complex outcomes are described in event_text for manual resolution.
     """
     status = character.pre_career_status or {}
-    if status.get("stage") != "enrolled":
-        raise ValueError("Not currently enrolled in a pre-career track")
+    valid_stages = ("graduated", "failed_grad", "enrolled")
+    if status.get("stage") not in valid_stages:
+        raise ValueError("Pre-career event roll is only available after enrollment/graduation")
 
-    events_remaining = int(status.get("events_remaining", 0))
+    events_remaining = status.get("events_remaining")
+    if events_remaining is None:
+        # Migration: field absent means the event hasn't been rolled yet.
+        events_remaining = 1
+    events_remaining = int(events_remaining)
     if events_remaining <= 0:
-        raise ValueError("All events for this track have already been rolled")
+        raise ValueError("Pre-career event already rolled for this track")
 
     edu = rules.education()
     events_table: dict = edu.get("pre_career_events", {})
@@ -1042,35 +1047,28 @@ def pre_career_event_roll(character: Character) -> dict:
     forced_fail = False
 
     if r.total == 3:
-        # Deep tragedy — character fails to graduate.
+        # Deep tragedy — if character had passed or received honours,
+        # that graduation result is overridden: they fail to graduate.
         forced_fail = True
-        track = status.get("track")
-        service = status.get("service")
-        if track == "military_academy" and service:
-            edu_track = _edu_track(track)
-            fail_block = edu_track["graduation"].get("on_failure", {})
-            if fail_block.get("auto_entry_if_not_natural_2"):
-                svc = _academy_service(service)
-                character.auto_entry_career_id = svc["career_id"]
-                auto_applied.append(
-                    f"Forced to fail — automatic entry into {svc['name']} permitted (no Commission roll)"
-                )
-        character.pre_career_status = {
-            **status,
-            "stage": "failed_grad",
-            "outcome": "fail_event",
-            "events_remaining": 0,
-        }
-        character.phase = "career"
-        character.log(f"Pre-career event [{r.total}]: {event_text} — forced graduation failure")
-        return {
-            "roll": r.to_dict(),
-            "event_text": event_text,
-            "events_remaining": 0,
-            "auto_applied": auto_applied,
-            "forced_fail": True,
-            "character": character.model_dump(),
-        }
+        prior_outcome = status.get("outcome", "fail")
+        if prior_outcome in ("pass", "honours"):
+            track = status.get("track")
+            service = status.get("service")
+            # Reverse any academy commission flags set by graduation.
+            character.starts_commissioned_career_id = None
+            character.academy_commission_career_id = None
+            character.academy_commission_dm = 0
+            if track == "military_academy" and service:
+                edu_track = _edu_track(track)
+                fail_block = edu_track["graduation"].get("on_failure", {})
+                if fail_block.get("auto_entry_if_not_natural_2"):
+                    svc = _academy_service(service)
+                    character.auto_entry_career_id = svc["career_id"]
+                    auto_applied.append(
+                        f"Forced failure — automatic entry into {svc['name']} "
+                        f"(no Commission roll)"
+                    )
+            auto_applied.append("Graduation result overridden — failed to graduate")
 
     if r.total == 5:
         character.add_skill("Carouse", level=1)
@@ -1081,12 +1079,12 @@ def pre_career_event_roll(character: Character) -> dict:
         character.characteristics.set("SOC", current_soc + 1)
         auto_applied.append("SOC +1")
 
-    events_remaining -= 1
     character.pre_career_status = {
         **status,
-        "events_remaining": events_remaining,
+        "events_remaining": 0,
         "events_rolled": [*status.get("events_rolled", []), r.total],
     }
+    character.phase = "career"
 
     character.log(
         f"Pre-career event [{r.total}]: {event_text}"
@@ -1096,9 +1094,9 @@ def pre_career_event_roll(character: Character) -> dict:
     return {
         "roll": r.to_dict(),
         "event_text": event_text,
-        "events_remaining": events_remaining,
+        "events_remaining": 0,
         "auto_applied": auto_applied,
-        "forced_fail": False,
+        "forced_fail": forced_fail,
         "character": character.model_dump(),
     }
 

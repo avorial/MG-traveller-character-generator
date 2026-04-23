@@ -1005,6 +1005,7 @@ function renderPreCareerPhase() {
       `;
     }
 
+    const eventsRemaining = status.events_remaining ?? 0;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1013,16 +1014,28 @@ function renderPreCareerPhase() {
         ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
         ${appliedHTML}
         <div class="phase-actions">
-          <button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>
+          ${eventsRemaining > 0
+            ? `<button class="btn primary" id="btn-pc-event">ROLL PRE-CAREER EVENT →</button>`
+            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`
+          }
         </div>
       </div>
     `;
   }
 
+  // Helper: derive events_remaining when the field is absent (old characters).
+  const _PC_AGE_COSTS = { university: 4, military_academy: 3 };
+  function _eventsLeft(st) {
+    if (st.events_remaining !== undefined && st.events_remaining !== null) return st.events_remaining;
+    const total = _PC_AGE_COSTS[st.track] || 0;
+    const rolled = (st.events_rolled || []).length;
+    return Math.max(0, total - rolled);
+  }
+
   // Post-event view: show what happened this year
   if (uiState.lastRoll?.type === 'precareer_event') {
     const lr = uiState.lastRoll;
-    const eventsLeft = status.events_remaining ?? 0;
+    const eventsLeft = _eventsLeft(status);
     const autoHTML = lr.autoApplied?.length ? `
       <div class="dm-applied-box">
         <span class="event-label">Auto-applied</span>
@@ -1043,39 +1056,27 @@ function renderPreCareerPhase() {
         ${lr.forcedFail ? `<p class="phase-body" style="color:var(--danger)">You fail to graduate this term. Proceeding to career phase.</p>` : ''}
         <p class="picker-status"><em>Apply any remaining effects manually to your notes.</em></p>
         <div class="phase-actions">
-          ${lr.forcedFail
-            ? `<button class="btn primary" id="btn-post-precareer-qualify">CONTINUE TO CAREER →</button>`
-            : eventsLeft > 0
-              ? `<button class="btn primary" id="btn-pc-event">ROLL NEXT EVENT (${eventsLeft} left)</button>`
-              : `<button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION →</button>`
-          }
+          <button class="btn primary" id="btn-post-precareer-qualify">CONTINUE TO CAREER →</button>
         </div>
       </div>
     `;
   }
 
-  // Enrolled — show event roll or graduate button
+  // Enrolled — always show graduate button immediately (events roll after graduation)
   if (stage === 'enrolled') {
     const track = status.track;
     const service = status.service;
     const trackName = track === 'university'
       ? 'University'
       : (PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy');
-    const eventsLeft = status.events_remaining ?? 0;
-    const eventsRolled = (status.events_rolled || []).length;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
         <div class="phase-label">Enrolled · ${trackName}</div>
-        <h2 class="phase-title">${eventsLeft > 0 ? `Year ${eventsRolled + 1} of ${eventsRolled + eventsLeft}` : 'Time to Graduate'}</h2>
-        <p class="phase-subtitle">${eventsLeft > 0
-          ? `Roll one event per year of education (${eventsLeft} remaining), then roll for graduation.`
-          : 'All years rolled. Roll for graduation — hit the honours target for even more.'}</p>
+        <h2 class="phase-title">Time to Graduate</h2>
+        <p class="phase-subtitle">Roll for graduation — hit the honours target for even more.</p>
         <div class="phase-actions">
-          ${eventsLeft > 0
-            ? `<button class="btn primary" id="btn-pc-event">ROLL EVENT (Year ${eventsRolled + 1})</button>`
-            : `<button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>`
-          }
+          <button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>
         </div>
       </div>
     `;
@@ -1224,7 +1225,7 @@ function wirePreCareerPhase() {
     }
   });
 
-  // Pre-career event roll button (one per year, before graduation)
+  // Pre-career event roll button (rolled once, after graduation)
   const eventBtn = document.getElementById('btn-pc-event');
   if (eventBtn) eventBtn.addEventListener('click', async () => {
     try {
