@@ -997,6 +997,20 @@ body {
   letter-spacing: 0.04em;
 }
 
+.assoc-roll-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--amber-dim);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--amber);
+  background: rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .associate-picker .assoc-desc-input {
   width: 100%;
   padding: 6px 10px;

@@ -2249,9 +2249,32 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    // Associate outcomes (Gain a Contact/Ally/Rival/Enemy, Betrayal conversion).
-    // One picker per op; resolved ops render as a "Gained ..." chip instead.
-    const associateOps = parseEventAssociateOps(lr.eventText || '');
+    // Associate outcomes (Gain a Contact/Ally/Rival/Enemy, Betrayal conversion,
+    // or dice-quantity grants like "Gain D3 Contacts"). One picker per op;
+    // resolved ops render as a "Gained ..." chip instead.
+    // Quantity ops (D3/1D/etc.) are pre-rolled once and cached on lr so re-
+    // renders don't re-roll. Each quantity op then expands into N add ops.
+    const rawAssociateOps = parseEventAssociateOps(lr.eventText || '');
+    if (!Array.isArray(lr.assocQtyRolls)) lr.assocQtyRolls = [];
+    const associateOps = [];
+    rawAssociateOps.forEach((op, rawIdx) => {
+      if (op.type === 'quantity') {
+        let n = lr.assocQtyRolls[rawIdx];
+        if (n == null || n < 1) {
+          n = rollAssocQuantity(op.diceExpr);
+          lr.assocQtyRolls[rawIdx] = n;
+        }
+        for (let i = 0; i < n; i++) {
+          associateOps.push({
+            type: 'add',
+            kinds: [op.kind],
+            qtyMeta: { diceExpr: op.diceExpr, rolled: n, slot: i + 1, of: n },
+          });
+        }
+      } else {
+        associateOps.push(op);
+      }
+    });
     const assocDone = Array.isArray(lr.associateOpsDone) ? lr.associateOpsDone : [];
     const pendingAssocOps = associateOps.map((op, idx) => ({ op, idx })).filter(({ idx }) => !assocDone[idx]);
 
@@ -2275,11 +2298,15 @@ function renderEventStep() {
         <span class="event-label">Resolve associate outcome${pendingAssocOps.length > 1 ? 's' : ''}</span>
         ${pendingAssocOps.map(({ op, idx }) => {
           if (op.type === 'add') {
+            const qm = op.qtyMeta;
+            const prompt = qm
+              ? `Gain a ${assocLabel(op.kinds[0])} <span class="assoc-roll-badge">rolled ${qm.diceExpr} = ${qm.rolled} — ${qm.slot} of ${qm.of}</span>`
+              : (op.kinds.length > 1
+                  ? `Gain a ${op.kinds.map(assocLabel).join(' or ')} — pick one:`
+                  : `Gain a ${assocLabel(op.kinds[0])}:`);
             return `
               <div class="assoc-op" data-assoc-op-idx="${idx}">
-                <div class="assoc-op-prompt">${op.kinds.length > 1
-                  ? `Gain a ${op.kinds.map(assocLabel).join(' or ')} — pick one:`
-                  : `Gain a ${assocLabel(op.kinds[0])}:`}</div>
+                <div class="assoc-op-prompt">${prompt}</div>
                 <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
                 <div class="skill-picker">
                   ${op.kinds.map(k => `
@@ -2961,99 +2988,50 @@ async function bootstrap() {
   renderAll();
 
   // Footer wires
+  // Footer wires
   document.getElementById('btn-export').addEventListener('click', exportCharacter);
   document.getElementById('import-file').addEventListener('change', (e) => {
     if (e.target.files[0]) importCharacter(e.target.files[0]);
   });
+
+  // New character — wipes saved state after confirm.
   document.getElementById('btn-reset').addEventListener('click', async () => {
-    if (confirm('Discard current character and start fresh?')) {
-      await freshCharacter();
-      renderAll();
-    }
+    if (!confirm('Start a new character? This will wipe the current character and log.')) return;
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+    await freshCharacter();
+    renderAll();
   });
 
-  // Fair Use modal
-  const fairUseModal = document.getElementById('fair-use-modal');
-  const openFairUse = () => { if (fairUseModal) fairUseModal.hidden = false; };
-  const closeFairUse = () => { if (fairUseModal) fairUseModal.hidden = true; };
-  const btnFairUse = document.getElementById('btn-fair-use');
-  if (btnFairUse) btnFairUse.addEventListener('click', openFairUse);
-  const btnCloseFairUse = document.getElementById('btn-close-fair-use');
-  if (btnCloseFairUse) btnCloseFairUse.addEventListener('click', closeFairUse);
-  if (fairUseModal) {
-    fairUseModal.addEventListener('click', (e) => {
-      if (e.target === fairUseModal) closeFairUse();
-    });
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && fairUseModal && !fairUseModal.hidden) {
-      closeFairUse();
-    }
-  });
-
-  // GM mode toggle (footer)
+  // GM Mode toggle — persist in localStorage so it survives refresh.
   const btnGm = document.getElementById('btn-gm-mode');
-  const updateGmBtn = () => {
-    if (!btnGm) return;
-    btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
-    btnGm.classList.toggle('active', uiState.gmMode);
-    document.body.classList.toggle('gm-active', uiState.gmMode);
-  };
-  updateGmBtn();
   if (btnGm) {
+    const paintGm = () => {
+      btnGm.classList.toggle('active', !!uiState.gmMode);
+      btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
+      document.body.classList.toggle('gm-mode', !!uiState.gmMode);
+    };
+    paintGm();
     btnGm.addEventListener('click', () => {
       uiState.gmMode = !uiState.gmMode;
-      localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0');
-      updateGmBtn();
+      try { localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0'); } catch (e) { /* ignore */ }
+      paintGm();
       renderAll();
+    });
+  }
+
+  // Fair Use modal.
+  const fairBtn = document.getElementById('btn-fair-use');
+  const fairModal = document.getElementById('fair-use-modal');
+  const fairClose = document.getElementById('btn-close-fair-use');
+  if (fairBtn && fairModal) {
+    fairBtn.addEventListener('click', () => { fairModal.hidden = false; });
+  }
+  if (fairClose && fairModal) {
+    fairClose.addEventListener('click', () => { fairModal.hidden = true; });
+    fairModal.addEventListener('click', (e) => {
+      if (e.target === fairModal) fairModal.hidden = true;
     });
   }
 }
 
-// Handle "back to careers" button for rejected qualification
-document.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'btn-back-careers') {
-    uiState.selectedCareer = null;
-    uiState.selectedAssignment = null;
-    uiState.subPhase = null;
-    uiState.lastRoll = null;
-    renderAll();
-  }
-});
-
-// Buy anagathics (appears on decide-step between terms)
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.id === 'btn-buy-anagathics') {
-    try {
-      const response = await apiCall('/api/character/anagathics');
-      await applyResponse(response);
-    } catch (err) { alert(err.message); }
-    renderAll();
-  }
-});
-
-// Roll injury (appears on mishap post-roll for everyone; GM mode can invoke freely)
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.id === 'btn-roll-injury') {
-    try {
-      const response = await apiCall('/api/character/injury');
-      uiState.lastRoll = {
-        type: 'injury',
-        data: response.roll,
-        title: response.title,
-        text: response.text,
-        effects: response.effects_applied,
-        medical_debt_added: response.medical_debt_added
-      };
-      await applyResponse(response);
-      renderAll();
-    } catch (err) { alert(err.message); }
-  }
-});
-
-// Kick off the app.
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootstrap);
-} else {
-  bootstrap();
-}
+bootstrap();
