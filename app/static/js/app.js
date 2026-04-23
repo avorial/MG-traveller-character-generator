@@ -1480,6 +1480,7 @@ function wireCareerPhase() {
         eventText: response.event,
         dmGrants: response.dm_grants || [],
         statBonuses: response.stat_bonuses || [],
+        autoPromotion: response.auto_promotion || null,
       };
       // Stay on 'event' so the dice + event text render together
       renderAll();
@@ -1564,6 +1565,131 @@ function wireCareerPhase() {
       }
     });
   });
+
+  // Event-choice career-transfer offer: "transfer to the Marines without a
+  // Qualification roll." Sets pending_transfer_career_id on the character.
+  document.querySelectorAll('[data-event-transfer]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const careerId = chip.getAttribute('data-event-transfer');
+      try {
+        disableAllEventChips();
+        const response = await apiCall('/api/character/event-transfer-offer', { target_career_id: careerId });
+        await applyResponse(response);
+        if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+          uiState.lastRoll.eventTransferApplied = response.target_name || careerId;
+          uiState.lastRoll.eventChoicePath = 'transfer';
+        }
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not accept that transfer.');
+        enableAllEventChips();
+      }
+    });
+  });
+
+  // Contested-roll: "Roll <Skill> 8+". On click, roll 2D + skill-level, compare
+  // to target, and surface success/fail outcome. If success branch contains a
+  // DM+N grant or skill grant, apply it via the existing event-dm-grant /
+  // event-skill-grant endpoints.
+  document.querySelectorAll('[data-contested-roll]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const lr = uiState.lastRoll;
+      if (!lr || lr.type !== 'event') return;
+      const parsed = parseEventContestedRoll(lr.eventText || '');
+      if (!parsed) return;
+      const idx = parseInt(chip.getAttribute('data-contested-roll'), 10);
+      const sk = parsed.skills[idx];
+      if (!sk) return;
+      const mod = getSkillLevelFor(sk.name, sk.speciality);
+      const roll = rollD2(mod);
+      const success = roll.total >= parsed.target;
+      const skillLabel = sk.speciality ? `${sk.name} (${sk.speciality})` : sk.name;
+      const branchText = success ? parsed.successText : parsed.failText;
+
+      // Apply any DM+N grants from the resolved branch via the event-dm-grant
+      // endpoint (same path used for the "either skill or DM+N" picker).
+      const appliedMsgs = [];
+      try {
+        disableAllEventChips();
+        if (branchText) {
+          const dmRe = /DM\s*([+-]?\d+)\s+(?:to\s+(?:a|any|your|one|the|next)\s+)?(advancement|benefit|qualification)/gi;
+          let m;
+          while ((m = dmRe.exec(branchText)) !== null) {
+            const dm = parseInt(m[1], 10);
+            const target = m[2].toLowerCase();
+            try {
+              const resp = await apiCall('/api/character/event-dm-grant', { dm, target });
+              await applyResponse(resp);
+              appliedMsgs.push(`DM${dm >= 0 ? '+' : ''}${dm} to next ${target} roll`);
+            } catch (_) { /* ignore */ }
+          }
+        }
+      } catch (_) { /* ignore */ }
+      if (lr) {
+        lr.eventContestedResolved = {
+          success, dice: roll.dice, mod: roll.mod, total: roll.total,
+          target: parsed.target, skillLabel, branchText, appliedMsgs,
+        };
+      }
+      renderAll();
+    });
+  });
+
+  // "Skip — apply manually" for contested roll.
+  document.querySelectorAll('[data-contested-skip]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const lr = uiState.lastRoll;
+      if (!lr || lr.type !== 'event') return;
+      lr.eventContestedResolved = {
+        success: null, dice: [], mod: 0, total: 0,
+        target: 0, skillLabel: 'Skipped', branchText: 'Resolve this check manually.',
+        appliedMsgs: [],
+      };
+      renderAll();
+    });
+  });
+  // Refuse branch for noble[3] / noble[8]. On click, apply the parsed
+  // consequence (SOC delta or associate gain) and resolve the contested-
+  // roll widget with success=null so the post-resolution view shows only
+  // the refusal outcome.
+  document.querySelectorAll('[data-event-refuse]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const lr = uiState.lastRoll;
+      if (!lr || lr.type !== 'event') return;
+      const opt = parseEventRefuseOption(lr.eventText || '');
+      if (!opt) return;
+      const appliedMsgs = [];
+      try {
+        disableAllEventChips();
+        if (opt.stat && opt.delta) {
+          try {
+            const resp = await apiCall('/api/character/event-stat-change', {
+              stat: opt.stat, delta: opt.delta, reason: 'Refused event challenge',
+            });
+            await applyResponse(resp);
+            const sign = opt.delta >= 0 ? '+' : '';
+            appliedMsgs.push(`${opt.stat} ${sign}${opt.delta}`);
+          } catch (err) { /* fall through to manual */ }
+        } else if (opt.associateKind) {
+          try {
+            const resp = await apiCall('/api/character/associate', {
+              op: 'add', kind: opt.associateKind, description: opt.consequence,
+            });
+            await applyResponse(resp);
+            appliedMsgs.push(`Gained ${opt.associateKind.charAt(0).toUpperCase() + opt.associateKind.slice(1)}`);
+          } catch (err) { /* fall through */ }
+        }
+      } catch (_) { /* ignore */ }
+      lr.eventContestedResolved = {
+        success: null, dice: [], mod: 0, total: 0,
+        target: 0, skillLabel: 'Refused',
+        branchText: opt.consequence,
+        appliedMsgs,
+      };
+      renderAll();
+    });
+  });
+
 
   // Associate outcomes — "Gain a Contact/Ally/Rival/Enemy" or Betrayal convert.
   const labelAssoc = (k) => ({contact:'Contact', ally:'Ally', rival:'Rival', enemy:'Enemy'}[k] || k);
@@ -1994,25 +2120,32 @@ function parseEventSkillOptions(text) {
   if (!text) return null;
 
   const splitToParts = (raw) => {
-    const lastOr = raw.toLowerCase().lastIndexOf(' or ');
+    // Stop the skill-list at trailing continuations like ", as well as ..."
+    // or ", and gain an Ally" so the last option isn't absorbed.
+    let trimmed = raw.replace(/\s*,?\s*(?:as\s+well\s+as|and\s+(?:a|an|one|gain|then)|plus|by\s+\d+)\b.*$/i, '').trim();
+    trimmed = trimmed.replace(/\s*by\s+(?:one|a|\d+)\s+level\s*$/i, '').trim();
+    const lastOr = trimmed.toLowerCase().lastIndexOf(' or ');
     let parts;
     if (lastOr >= 0) {
-      const head = raw.slice(0, lastOr);
-      const tail = raw.slice(lastOr + 4);
+      const head = trimmed.slice(0, lastOr);
+      const tail = trimmed.slice(lastOr + 4);
       parts = head.split(',').map(s => s.trim()).filter(Boolean);
       parts.push(tail.trim());
     } else {
-      parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+      parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
     }
     // Skill-name sanity: letters/spaces/parens/digits, under 40 chars.
     return parts.filter(p => /^[A-Za-z][A-Za-z0-9 ()\-/]*\d*\s*$/.test(p) && p.length < 40);
   };
 
-  // Reject open-ended "any skill" grants — those need a different UI.
-  const lower = text.toLowerCase();
-  if (/gain\s+(?:one\s+level\s+(?:in|of)\s+)?any\s+(?:skill|service\s+skill)/i.test(text)
+  // Open-ended "any skill" grants are handled by parseEventWildcardSkill —
+  // which returns a dynamic list based on character / career. Return null
+  // here so the caller knows to try the wildcard parser instead.
+  if (/any\s+(?:one\s+)?skill\s+you\s+already\s+have/i.test(text)
       || /any\s+skill\s+of\s+your\s+choice/i.test(text)
-      || /any\s+skill\s+you\s+already\s+have/i.test(text)) {
+      || /gain\s+(?:one\s+level\s+(?:in|of)\s+)?any\s+(?:skill|service\s+skill)/i.test(text)
+      || /any\s+(?:one\s+)?skill\s+from\s+the\s+(?:service|officer|advanced\s+education)/i.test(text)
+      || /any\s+science\s+specialty/i.test(text)) {
     return null;
   }
 
@@ -2045,6 +2178,13 @@ function parseEventSkillOptions(text) {
     if (skill) return [skill];
   }
 
+  // Pattern 4b: "increase one of X, Y or Z by 1" (drifter[5])
+  m = text.match(/increase\s+one\s+of\s+([^.]+?)\s+by\s+(?:one|a|\d+)(?:\s+level)?\b/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 2) return parts;
+  }
+
   // Pattern 5: "Gain Vacc Suit 1 or Athletics (dexterity) 1"
   // "Gain X <N> or Y <N> [or Z <N>]" — skill name(s) with levels, no "one of"
   // preamble. Splits on " or " / ",", keeps the trailing digit in each part.
@@ -2055,6 +2195,270 @@ function parseEventSkillOptions(text) {
   }
 
   return null;
+}
+
+// Curated Traveller skill catalog for "any skill of your choice" pickers.
+// Kept short enough to fit a chip grid but covers every core-rulebook skill.
+const ALL_TRAVELLER_SKILLS = [
+  'Admin', 'Advocate', 'Animals', 'Art', 'Astrogation', 'Athletics',
+  'Battle Dress', 'Broker', 'Carouse', 'Deception', 'Diplomat', 'Drive',
+  'Electronics', 'Engineer', 'Explosives', 'Flyer', 'Gambler', 'Gun Combat',
+  'Gunner', 'Heavy Weapons', 'Investigate', 'Jack-of-all-Trades', 'Language',
+  'Leadership', 'Mechanic', 'Medic', 'Melee', 'Navigation', 'Persuade',
+  'Pilot', 'Profession', 'Recon', 'Science', 'Seafarer', 'Stealth',
+  'Steward', 'Streetwise', 'Survival', 'Tactics', 'Vacc Suit',
+];
+
+function parseEventWildcardSkill(text) {
+  // Detect open-ended skill grants. Returns one of:
+  //   { type: 'already-have' }  — "any skill you already have"
+  //   { type: 'free' }          — "any skill of your choice"
+  //   { type: 'service' }       — "any Service Skill (of your choice)"
+  //   { type: 'service-or-advanced' } — "any skill from the Service or Advanced Education tables"
+  //   { type: 'officer-or-advanced' } — "from the Officer or Advanced Education tables"
+  //   { type: 'science' }       — "any Science specialty"
+  // or null.
+  if (!text) return null;
+  if (/any\s+(?:one\s+)?skill\s+you\s+already\s+have/i.test(text)) {
+    return { type: 'already-have' };
+  }
+  if (/any\s+science\s+specialty/i.test(text)) {
+    return { type: 'science' };
+  }
+  if (/any\s+(?:one\s+)?skill\s+from\s+the\s+officer\s+or\s+advanced\s+education/i.test(text)) {
+    return { type: 'officer-or-advanced' };
+  }
+  if (/any\s+(?:one\s+)?skill\s+from\s+the\s+service\s+or\s+advanced\s+education/i.test(text)
+      || /any\s+(?:one\s+)?skill\s+listed\s+on\s+the\s+service\s+or\s+advanced\s+education/i.test(text)) {
+    return { type: 'service-or-advanced' };
+  }
+  if (/any\s+service\s+skill/i.test(text)) {
+    return { type: 'service' };
+  }
+  if (/any\s+skill\s+of\s+your\s+choice/i.test(text)) {
+    return { type: 'free' };
+  }
+  return null;
+}
+
+// Career-transfer offers, e.g. army[10] "transfer to the Marines (without a
+// Qualification roll)". Returns { career_id: '...', career_name: '...' } or
+// null. Maps mentioned career names to the JSON keys used by the backend.
+function parseEventTransferOffer(text) {
+  if (!text) return null;
+  // Match "transfer to THE? <Career>" up to punctuation/paren.
+  const m = /transfer\s+to\s+(?:the\s+)?([A-Z][A-Za-z]+)/.exec(text);
+  if (!m) return null;
+  const name = m[1];
+  const map = {
+    Army: 'army',
+    Marines: 'marine',
+    Marine: 'marine',
+    Navy: 'navy',
+    Scouts: 'scout',
+    Scout: 'scout',
+    Agents: 'agent',
+    Agent: 'agent',
+    Nobility: 'noble',
+    Noble: 'noble',
+  };
+  const careerId = map[name];
+  if (!careerId) return null;
+  return { career_id: careerId, career_name: name };
+}
+
+// Contested-roll parser. Detects "Roll <Skill> N+" patterns and returns
+// { skills: [{name, parenthetical}], target: 8, successText, failText } or null.
+// Handles: "Roll Art 8+ or Persuade 8+", "Roll SOC 8+", "Roll Tactics (naval) 8+",
+// "Roll Stealth 8+ or Deception 8+; on success, ...", "If you succeed ... If you fail ..."
+
+// Parse "If you refuse, <consequence>." branches (noble[3] duel, noble[8]
+// conspiracy). Returns { consequence, stat, delta, associateKind } or null.
+// We only attempt mechanics for SOC deltas and associate gains — anything
+// else is surfaced as text-only for manual resolution.
+function parseEventRefuseOption(text) {
+  if (!text) return null;
+  const m = text.match(/If you refuse,\s+([^.]+?)\./i);
+  if (!m) return null;
+  const consequence = m[1].trim();
+  const out = { consequence, stat: null, delta: 0, associateKind: null };
+  // "reduce your SOC by 1" / "reduce SOC by 2" / "lose 1 SOC"
+  const statRe = /(?:reduce|lose)\s+(?:your\s+)?(\d+)?\s*(STR|DEX|END|INT|EDU|SOC)(?:\s+by\s+(\d+))?/i;
+  const sm = consequence.match(statRe);
+  if (sm) {
+    const stat = sm[2].toUpperCase();
+    const amount = parseInt(sm[3] || sm[1] || '1', 10);
+    out.stat = stat;
+    out.delta = -Math.abs(amount);
+    return out;
+  }
+  // "gain the conspiracy as an Enemy" / "gain an Enemy" / "gain a Rival"
+  const am = consequence.match(/gain\s+(?:the\s+\w+\s+as\s+)?(?:a|an|one)\s+(?:new\s+|another\s+)?(contact|ally|rival|enemy)/i);
+  if (am) {
+    out.associateKind = am[1].toLowerCase();
+    return out;
+  }
+  // Manual fallback — still return the consequence text so UI can show it.
+  return out;
+}
+
+function parseEventContestedRoll(text) {
+  if (!text) return null;
+  // Patterns handled:
+  //   "Roll Art 8+ or Persuade 8+"  (target repeated per skill)
+  //   "Roll Art or Persuade 8+"     (single target at end)
+  //   "Roll Tactics (naval) 8+"     (speciality in parens)
+  //   "Roll INT 8+"                 (characteristic check)
+  const startIdx = text.search(/\bRoll\s+[A-Z]/);
+  if (startIdx < 0) return null;
+  let target = null;
+  const skills = [];
+  let scanEnd = startIdx;
+  // Scan every "<Skill> N+" and "or <Skill> N+" at the start.
+  // Allow optional second capitalized word to catch multi-word skills
+  // like "Gun Combat", "Heavy Weapons", "Vacc Suit".
+  const chunkRe = /(?:Roll\s+|\s+or\s+|\s+and\s+)([A-Z][A-Za-z]+(?:\s+[A-Z][a-z]+)?)(?:\s*\(([a-z]+)\))?(?:\s+(\d+)\s*\+)?/gy;
+  chunkRe.lastIndex = startIdx;
+  let mm;
+  while ((mm = chunkRe.exec(text)) !== null) {
+    if (mm[3]) target = parseInt(mm[3], 10);
+    skills.push({ name: mm[1], speciality: mm[2] || null });
+    scanEnd = chunkRe.lastIndex;
+  }
+  if (!skills.length || target == null) return null;
+  // Slice off the roll prefix and find success/failure branches.
+  const rest = text.slice(scanEnd);
+  // Split into success and fail branches using positional ordering so
+  // either branch can appear first.
+  let successText = rest;
+  let failText = '';
+  const successMarkRe = /(?:^|[;.,\s])\s*(?:on success|if you succeed)\s*[,.]?\s*/i;
+  const failMarkRe = /(?:^|[;.,\s])\s*(?:on failure|on failing|if you fail)\s*[,.]?\s*/i;
+  const sMatch = successMarkRe.exec(rest);
+  const fMatch = failMarkRe.exec(rest);
+  const markers = [];
+  if (sMatch) markers.push({ kind: 'success', start: sMatch.index, textStart: sMatch.index + sMatch[0].length });
+  if (fMatch) markers.push({ kind: 'fail', start: fMatch.index, textStart: fMatch.index + fMatch[0].length });
+  markers.sort((a, b) => a.start - b.start);
+  if (markers.length) {
+    for (let i = 0; i < markers.length; i++) {
+      const ev = markers[i];
+      const end = i + 1 < markers.length ? markers[i + 1].start : rest.length;
+      const chunk = rest.slice(ev.textStart, end).trim();
+      if (ev.kind === 'success') successText = chunk;
+      else failText = chunk;
+    }
+    if (!sMatch) successText = '';
+  }
+  return { skills, target, successText: successText.replace(/^[;.,\s]+/, ''), failText };
+}
+
+// Get character's level for a named skill (returns -3 if untrained, matching
+// Traveller's untrained penalty). Pass lower-cased skill name, optional speciality.
+function getSkillLevelFor(skillName, speciality) {
+  const skills = (character && character.skills) || [];
+  const lname = (skillName || '').toLowerCase();
+  const lspec = speciality ? speciality.toLowerCase() : null;
+  for (const s of skills) {
+    if (s.name.toLowerCase() !== lname) continue;
+    if (lspec && s.speciality && s.speciality.toLowerCase() === lspec) return s.level;
+    if (!lspec) return Math.max(s.level || 0, 0);
+  }
+  // Check if it's a characteristic name (STR/DEX/etc.) — use the stat DM.
+  const CHAR_KEYS = ['STR','DEX','END','INT','EDU','SOC'];
+  if (CHAR_KEYS.includes(skillName.toUpperCase())) {
+    const stat = character?.characteristics?.[skillName.toUpperCase()] ?? 7;
+    return charDM(stat);
+  }
+  return -3; // untrained
+}
+
+// Standard Traveller characteristic DM.
+function charDM(val) {
+  if (val == null || isNaN(val)) return 0;
+  if (val <= 0) return -3;
+  if (val <= 2) return -2;
+  if (val <= 5) return -1;
+  if (val <= 8) return 0;
+  if (val <= 11) return 1;
+  if (val <= 14) return 2;
+  return 3;
+}
+
+// Roll 2D + mods and return {total, dice:[a,b], mod}.
+function rollD2(mod) {
+  const a = 1 + Math.floor(Math.random() * 6);
+  const b = 1 + Math.floor(Math.random() * 6);
+  return { dice: [a, b], mod: mod || 0, total: a + b + (mod || 0) };
+}
+
+function getCharacterSkillNames() {
+  // Flat list of the character's current skills as display strings.
+  // Parent skill with no speciality → bare name. With specialities → one
+  // entry per speciality ("Tactics (military)").
+  if (!character || !Array.isArray(character.skills)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const s of character.skills) {
+    if (!s || !s.name) continue;
+    if (Array.isArray(s.specialities) && s.specialities.length > 0) {
+      for (const spec of s.specialities) {
+        const display = `${s.name} (${spec.name})`;
+        if (!seen.has(display)) { seen.add(display); out.push(display); }
+      }
+    } else {
+      if (!seen.has(s.name)) { seen.add(s.name); out.push(s.name); }
+    }
+  }
+  return out.sort();
+}
+
+function getCareerTableSkills(careerKey, tableNames) {
+  // Read skill entries from a career's skill_tables and return a dedup'd list.
+  // careerKey: 'navy', 'marine', etc. tableNames: ['service_skills', ...].
+  const careerData = (window.__careerData && window.__careerData[careerKey]) || null;
+  const tables = careerData && careerData.skill_tables;
+  if (!tables) return [];
+  const out = [];
+  const seen = new Set();
+  for (const t of tableNames) {
+    const table = tables[t];
+    if (!table) continue;
+    for (const k of ['1', '2', '3', '4', '5', '6']) {
+      const v = table[k];
+      if (v && typeof v === 'string' && !seen.has(v)) {
+        seen.add(v);
+        out.push(v);
+      }
+    }
+  }
+  return out;
+}
+
+function resolveWildcardSkillOptions(wildcard, careerKey) {
+  // Turn a wildcard descriptor into a concrete chip list.
+  if (!wildcard) return null;
+  switch (wildcard.type) {
+    case 'already-have':
+      return getCharacterSkillNames();
+    case 'service':
+      return getCareerTableSkills(careerKey, ['service_skills']);
+    case 'service-or-advanced':
+      return getCareerTableSkills(careerKey, ['service_skills', 'advanced_education']);
+    case 'officer-or-advanced':
+      return getCareerTableSkills(careerKey, ['officer', 'advanced_education']);
+    case 'science':
+      return ['Science (archaic)', 'Science (biology)', 'Science (chemistry)',
+              'Science (cosmology)', 'Science (cybernetics)', 'Science (economics)',
+              'Science (genetics)', 'Science (history)', 'Science (linguistics)',
+              'Science (philosophy)', 'Science (physics)', 'Science (planetology)',
+              'Science (psionicology)', 'Science (psychology)', 'Science (robotics)',
+              'Science (sophontology)', 'Science (xenology)'];
+    case 'free':
+      return ALL_TRAVELLER_SKILLS.slice();
+    default:
+      return null;
+  }
 }
 
 function parseEventDmAlternative(text) {
@@ -2157,6 +2561,18 @@ function parseEventAssociateOps(text) {
     ops.push({ type: 'add', kinds: [m[1].toLowerCase()] });
   }
 
+  // "as well as a Rival and an Ally" (noble[10]) — trailing grant after a
+  // primary skill-level gain. Matches the first associate after the
+  // connector; the subsequent "and a/an Y" is picked up by the conjunction
+  // loop below.
+  const trailRe = /\bas\s+well\s+as\s+(?:a\s+|an\s+|one\s+)(contact|ally|rival|enemy)\b/gi;
+  while ((m = trailRe.exec(raw)) !== null) {
+    const inPrior = consumedRanges.some(([s, e]) => m.index >= s && m.index < e);
+    if (inPrior) continue;
+    ops.push({ type: 'add', kinds: [m[1].toLowerCase()] });
+    consumedRanges.push([m.index, m.index + m[0].length]);
+  }
+
   // Conjunction pickup: "... and an Enemy" / "... and a Rival" following a
   // prior Gain clause. Covers marine[4] "Gain a Contact (fellow prisoner)
   // and an Enemy" and similar. Only runs if we already parsed something.
@@ -2215,23 +2631,121 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Auto-promotion (event [12]). If the engine bumped rank, show a chip so
+    // the player sees it and knows to skip the advancement roll this term.
+    const autoProm = lr.autoPromotion || null;
+    const autoPromHTML = (autoProm && !autoProm.skipped) ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Auto-applied promotion</span>
+        <div class="dm-chip applied">Rank ${autoProm.from_rank} → ${autoProm.to_rank}${autoProm.rank_title ? ` — ${autoProm.rank_title}` : ''}</div>
+        ${autoProm.bonus ? `<div class="dm-chip applied">Rank bonus: ${autoProm.bonus}</div>` : ''}
+        <div class="small-hint" style="margin-top:.35rem">No Advancement roll this term — you've already been promoted.</div>
+      </div>
+    ` : (autoProm && autoProm.skipped ? `
+      <div class="dm-applied-box" style="border-color: var(--warning, #ff9); color: var(--warning, #ff9)">
+        <span class="event-label">Promotion not applied</span>
+        <div class="small-hint">${autoProm.reason === 'rankless_career' ? 'This career has no ranks — treat as "gain a skill instead" per the rulebook.' : autoProm.reason === 'rank_cap' ? `Already at maximum rank (${autoProm.rank}).` : 'Could not auto-promote; apply manually.'}</div>
+      </div>
+    ` : '');
+
     // Skill-choice picker — only show if the event text offers a choice AND
-    // the player hasn't already picked one for this event.
+    // the player hasn't already picked one for this event. If the explicit-
+    // list parser returns null, fall back to the wildcard parser for "any
+    // skill you already have" / "of your choice" / "any Service Skill".
     const skillOptions = parseEventSkillOptions(lr.eventText || '');
+    const wildcardSpec = !skillOptions ? parseEventWildcardSkill(lr.eventText || '') : null;
+    const careerKey = (character && character.current_term && character.current_term.career) || null;
+    const wildcardOptions = wildcardSpec
+      ? resolveWildcardSkillOptions(wildcardSpec, careerKey)
+      : null;
     const dmAlternative = parseEventDmAlternative(lr.eventText || '');
-    const chosenPath = lr.eventChoicePath; // 'skill' | 'dm' | undefined
-    const pickerHTML = (skillOptions && !chosenPath) ? `
+    const transferOffer = parseEventTransferOffer(lr.eventText || '');
+    const chosenPath = lr.eventChoicePath; // 'skill' | 'dm' | 'transfer' | undefined
+
+    // Resolve which option list to display. Wildcard picker gets a subtitle
+    // so the player knows where the list came from.
+    const pickerOptions = skillOptions || wildcardOptions;
+    const wildcardLabel = wildcardSpec ? ({
+      'already-have': 'any skill you already have',
+      'free': 'any skill of your choice',
+      'service': 'any Service Skill',
+      'service-or-advanced': 'Service or Advanced Education tables',
+      'officer-or-advanced': 'Officer or Advanced Education tables',
+      'science': 'any Science specialty',
+    }[wildcardSpec.type]) : null;
+
+    // If a wildcard was detected but we resolved zero options (e.g. character
+    // has no skills yet, or careerKey isn't loaded), still render the DM-alt
+    // chip alone so the user isn't stuck with a manual-apply caveat.
+    const showPicker = !chosenPath && (
+      (pickerOptions && pickerOptions.length > 0) ||
+      (wildcardSpec && dmAlternative) ||
+      transferOffer
+    );
+
+    const pickerHTML = showPicker ? `
       <div class="event-skill-picker">
         <span class="event-label">Choose your reward</span>
+        ${wildcardLabel ? `<p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>Pick ${escapeHTML(wildcardLabel)}${(pickerOptions && pickerOptions.length) ? '' : ' — none available, take the DM instead'}:</em></p>` : ''}
         <div class="skill-picker">
-          ${skillOptions.map(opt => `
+          ${(pickerOptions || []).map(opt => `
             <button class="skill-chip" data-event-skill="${escapeHTML(opt)}">+ ${escapeHTML(opt)} 1</button>
           `).join('')}
           ${dmAlternative ? `
             <button class="skill-chip dm-alt" data-event-dm="${dmAlternative.dm}" data-event-dm-target="${escapeHTML(dmAlternative.target)}">DM${dmAlternative.dm >= 0 ? '+' : ''}${dmAlternative.dm} to next ${escapeHTML(dmAlternative.target)} roll</button>
           ` : ''}
+          ${transferOffer ? `
+            <button class="skill-chip dm-alt" data-event-transfer="${escapeHTML(transferOffer.career_id)}">Transfer to ${escapeHTML(transferOffer.career_name)} (no qualification)</button>
+          ` : ''}
         </div>
-        <p class="picker-status">Pick one${skillOptions.length === 1 && !dmAlternative ? '' : ' to continue'}.</p>
+        <p class="picker-status">Pick one to continue.</p>
+      </div>
+    ` : '';
+
+    const transferAppliedHTML = lr.eventTransferApplied ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Transfer accepted</span>
+        <div class="dm-chip applied">Transferring to ${escapeHTML(lr.eventTransferApplied)} at term end — no qualification roll.</div>
+      </div>
+    ` : '';
+
+    // Contested-roll picker: "Roll <Skill> 8+" branches (drifter[6], entertainer[8],
+    // navy[3], scholar[9], scout[8]/[9]/[10], rogue[8], prisoner[8]).
+    // We offer a button per skill option, and a "Skip — apply manually" fallback.
+    const contested = !chosenPath && !lr.eventContestedResolved
+      ? parseEventContestedRoll(lr.eventText || '')
+      : null;
+    // Refuse option (noble[3] duel, noble[8] conspiracy) — only surface alongside
+    // a contested roll, since "If you refuse" is always paired with "If you accept, roll ...".
+    const refuseOpt = contested && !lr.eventContestedResolved
+      ? parseEventRefuseOption(lr.eventText || '')
+      : null;
+    const refuseChipHTML = refuseOpt ? `<button class="skill-chip dm-alt" data-event-refuse="1" title="${escapeHTML(refuseOpt.consequence)}">Refuse — ${escapeHTML(refuseOpt.consequence)}</button>` : '';
+    const contestedHTML = contested ? `
+      <div class="event-skill-picker">
+        <span class="event-label">Make your check</span>
+        <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)">
+          <em>Target: ${contested.target}+ — pick which skill to roll:</em>
+        </p>
+        <div class="skill-picker">
+          ${contested.skills.map((sk, i) => {
+            const lvl = getSkillLevelFor(sk.name, sk.speciality);
+            const lvlStr = lvl >= 0 ? `+${lvl}` : `${lvl}`;
+            const label = sk.speciality ? `${sk.name} (${sk.speciality})` : sk.name;
+            return `<button class="skill-chip" data-contested-roll="${i}">Roll ${escapeHTML(label)} ${contested.target}+ (your DM ${lvlStr})</button>`;
+          }).join('')}
+          ${refuseChipHTML}
+          <button class="skill-chip dm-alt" data-contested-skip="1">Skip (apply manually)</button>
+        </div>
+      </div>
+    ` : '';
+
+    const contestedResultHTML = lr.eventContestedResolved ? `
+      <div class="dm-applied-box">
+        <span class="event-label">${lr.eventContestedResolved.success ? 'Success' : 'Failure'}</span>
+        <div class="dm-chip applied">Rolled ${escapeHTML(lr.eventContestedResolved.skillLabel)}: 2D [${lr.eventContestedResolved.dice.join(' · ')}] + ${lr.eventContestedResolved.mod >= 0 ? '+' : ''}${lr.eventContestedResolved.mod} = ${lr.eventContestedResolved.total} vs ${lr.eventContestedResolved.target}+</div>
+        ${lr.eventContestedResolved.branchText ? `<div class="small-hint" style="margin-top:.35rem"><em>${escapeHTML(lr.eventContestedResolved.branchText)}</em></div>` : ''}
+        ${lr.eventContestedResolved.appliedMsgs && lr.eventContestedResolved.appliedMsgs.length ? lr.eventContestedResolved.appliedMsgs.map(m => `<div class="dm-chip applied">${escapeHTML(m)}</div>`).join('') : ''}
       </div>
     ` : '';
 
@@ -2369,7 +2883,7 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    const gateAdvance = !!(skillOptions && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0;
+    const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP + skip
@@ -2397,13 +2911,17 @@ function renderEventStep() {
         ${appliedHTML}
         ${pendingHTML}
         ${statAppliedHTML}
+        ${autoPromHTML}
         ${pickerHTML}
+        ${contestedHTML}
+        ${contestedResultHTML}
         ${skillAppliedHTML}
         ${dmChosenHTML}
+        ${transferAppliedHTML}
         ${associatePickerHTML}
         ${assocSummaryHTML}
         ${mishapRolledHTML}
-        ${skillOptions || forcesMishap || associateOps.length ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
+        ${showPicker || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>
@@ -2985,16 +3503,22 @@ async function bootstrap() {
   if (!hasSaved || !character) {
     await freshCharacter();
   }
+
+  try {
+    const res = await fetch('/api/careers/full');
+    if (res.ok) {
+      const data = await res.json();
+      window.__careerData = data.careers || {};
+    }
+  } catch (e) { /* network error — picker will degrade gracefully */ }
+
   renderAll();
 
-  // Footer wires
-  // Footer wires
   document.getElementById('btn-export').addEventListener('click', exportCharacter);
   document.getElementById('import-file').addEventListener('change', (e) => {
     if (e.target.files[0]) importCharacter(e.target.files[0]);
   });
 
-  // New character — wipes saved state after confirm.
   document.getElementById('btn-reset').addEventListener('click', async () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
@@ -3002,7 +3526,6 @@ async function bootstrap() {
     renderAll();
   });
 
-  // GM Mode toggle — persist in localStorage so it survives refresh.
   const btnGm = document.getElementById('btn-gm-mode');
   if (btnGm) {
     const paintGm = () => {
@@ -3019,7 +3542,6 @@ async function bootstrap() {
     });
   }
 
-  // Fair Use modal.
   const fairBtn = document.getElementById('btn-fair-use');
   const fairModal = document.getElementById('fair-use-modal');
   const fairClose = document.getElementById('btn-close-fair-use');

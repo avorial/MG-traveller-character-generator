@@ -39,15 +39,35 @@ _DM_RE = re.compile(
 # on an in-fiction check or offers the player a choice — auto-applying
 # the DM could strip away a decision, so we just report the grant and
 # let the player resolve it manually.
+#
+# NOTE: These are intentionally tight. Earlier versions of this list
+# included bare "roll " and "either ", which over-matched phrases like
+# "Benefit roll" / "Survival roll this term" and "Gain either a jealous
+# relative or an unhappy subject" — blocking dozens of legitimately
+# unconditional grants. Use _CONDITIONAL_RE below for pattern-based
+# detection (actual skill checks, DM-vs-X choice constructions).
 _CONDITIONAL_MARKERS = (
     "on success",
     "on failure",
     "if you succeed",
     "if you fail",
-    "either ",
-    " or dm",
     "; on ",
-    "roll ",
+)
+
+# Detects the patterns that should block auto-apply:
+#   - Actual skill-check prefixes: "Roll Stealth 8+" / "Roll INT 8+".
+#   - Choice constructions where DM is one of the alternatives:
+#       "or DM+N", "or a DM+N", "or a +N DM", "or +N DM".
+#       Also "DM+N ... or ..." forms via the second alt.
+_CONDITIONAL_RE = re.compile(
+    # Actual skill-check prefix: "Roll Stealth 8+" / "Roll INT 8+".
+    r"\broll\s+[A-Za-z][A-Za-z\s()\-]{0,40}?\b\d+\s*\+"
+    # DM is the second alternative: ", or DM+N" / ", or a DM+N" / ", or +N DM".
+    r"|,\s*or\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)"
+    r"|\bor\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)\s+to\s+(?:a|any|your|one)"
+    # DM is the first alternative: "DM+N ... , or pick up / gain / take / increase <skill>"
+    r"|\bdm\s*[+-]\d+[^.]{0,80}?,\s*or\s+(?:pick\s+up|gain|take|increase|learn|get|choose)\b",
+    re.IGNORECASE,
 )
 
 
@@ -81,7 +101,7 @@ def _apply_event_dms(character: Character, event_text: str) -> list[dict]:
         return []
 
     lowered = event_text.lower()
-    if any(marker in lowered for marker in _CONDITIONAL_MARKERS):
+    if any(marker in lowered for marker in _CONDITIONAL_MARKERS) or _CONDITIONAL_RE.search(event_text):
         # Conditional/choice event — skip auto-apply. We still return the
         # parsed grants so the UI can surface them as hints.
         return [{"target": g["target"], "dm": g["dm"], "applied": False,
@@ -135,7 +155,7 @@ def _apply_event_stat_bonuses(character: "Character", event_text: str) -> list[d
     if not grants:
         return []
     lowered = event_text.lower()
-    if any(marker in lowered for marker in _CONDITIONAL_MARKERS):
+    if any(marker in lowered for marker in _CONDITIONAL_MARKERS) or _CONDITIONAL_RE.search(event_text):
         return [{"stat": g["stat"], "amount": g["amount"], "applied": False,
                  "reason": "conditional_or_choice"} for g in grants]
     applied: list[dict] = []
@@ -148,6 +168,64 @@ def _apply_event_stat_bonuses(character: "Character", event_text: str) -> list[d
         applied.append({"stat": g["stat"], "amount": g["amount"], "applied": True,
                         "from": old, "to": new_val})
     return applied
+
+
+_AUTO_PROMOTE_RE = re.compile(r"automatically\s+promoted", re.IGNORECASE)
+
+
+def _apply_event_auto_promotion(character: "Character", event_text: str) -> dict | None:
+    """Detect 'You are automatically promoted' in an event and bump rank.
+
+    Returns a dict describing the promotion (for UI) or None if:
+      - the event text doesn't say "automatically promoted"
+      - the career has no ranks (Drifter, Scout) — returns {'skipped': True, ...}
+      - there's no current term
+      - the rank is already at the top of the table
+    """
+    if not _AUTO_PROMOTE_RE.search(event_text or ""):
+        return None
+    term = character.current_term
+    if term is None:
+        return None
+    try:
+        career = rules.careers()[term.career_id]
+    except KeyError:
+        return None
+
+    # Rankless careers (Drifter, Scout) — surface it as a note but don't bump.
+    ranks_data = career.get("ranks") or {}
+    if not ranks_data:
+        character.log(f"  - Event grants automatic promotion, but {term.career_id} has no rank structure — skipped.")
+        return {"skipped": True, "reason": "rankless_career"}
+
+    # Check for rank cap — some careers cap at rank 6.
+    next_rank = term.rank + 1
+    rank_data = _rank_data(career, term.assignment_id, next_rank)
+    if rank_data is None and next_rank > 1:
+        # No data for the next rank means we've hit the top.
+        character.log(f"  - Event grants automatic promotion, but already at top rank for {term.career_id}/{term.assignment_id}.")
+        return {"skipped": True, "reason": "rank_cap", "rank": term.rank}
+
+    old_rank = term.rank
+    term.rank = next_rank
+    term.rank_title = _rank_title(career, term.assignment_id, term.rank)
+
+    # Treat this term as already advanced so the player doesn't roll again.
+    term.advanced = True
+
+    if rank_data and rank_data.get("bonus"):
+        bonus = rank_data["bonus"]
+        term.skills_gained.append(f"Rank bonus (auto-promotion): {bonus}")
+
+    title_part = f" — {term.rank_title}" if term.rank_title else ""
+    character.log(f"  - Event grants AUTOMATIC PROMOTION: rank {old_rank} -> {term.rank}{title_part}.")
+    return {
+        "skipped": False,
+        "from_rank": old_rank,
+        "to_rank": term.rank,
+        "rank_title": term.rank_title,
+        "bonus": (rank_data.get("bonus") if rank_data else None),
+    }
 
 
 # ============================================================
@@ -930,6 +1008,16 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
 
+    # Event-granted career transfer (e.g. army[10] "transfer to the Marines
+    # without a Qualification roll"). Consume the offer and skip qualification.
+    if character.pending_transfer_career_id == career_id:
+        character.pending_transfer_career_id = None
+        character.log(
+            f"Transferring to {career['name']} via event offer — no qualification roll required."
+        )
+        return {"automatic": True, "succeeded": True, "transfer": True,
+                "character": character.model_dump()}
+
     qual = career.get("qualification", {})
     if qual.get("automatic"):
         character.log(f"Automatic qualification for {career['name']}.")
@@ -1096,11 +1184,21 @@ def event_roll(character: Character) -> dict:
     # surfaced as pending but not applied.
     stat_bonuses = _apply_event_stat_bonuses(character, event_text)
 
+    # Auto-apply "automatically promoted" events (event [12] in most careers).
+    # Bumps rank, records the rank bonus, and prevents double-advancement.
+    auto_promotion = _apply_event_auto_promotion(character, event_text)
+    if auto_promotion and not auto_promotion.get("skipped"):
+        character.log(
+            f"  → Auto-promoted to rank {auto_promotion['to_rank']}"
+            f" ({auto_promotion.get('rank_title') or '—'})."
+        )
+
     return {
         "roll": r.to_dict(),
         "event": event_text,
         "dm_grants": dm_grants,
         "stat_bonuses": stat_bonuses,
+        "auto_promotion": auto_promotion,
         "character": character.model_dump(),
     }
 
@@ -1725,6 +1823,71 @@ def grant_event_dm(character: Character, dm: int, target: str) -> dict:
     return {"applied": msg, "dm": dm, "target": tgt, "character": character.model_dump()}
 
 
+_STAT_KEYS = {"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"}
+
+
+def apply_event_stat_change(
+    character: Character, stat: str, delta: int, reason: str = ""
+) -> dict:
+    """Apply a ±N delta to a characteristic from an event branch.
+
+    Used by multi-clause events where a branch-specific stat change cannot
+    be detected by the generic unconditional stat-bonus parser. Examples:
+    noble[3] refuse (SOC -1), noble[3] accept+success (SOC +1), noble[3]
+    accept+fail (SOC -1).
+    """
+    key = (stat or "").strip().upper()
+    if key not in _STAT_KEYS:
+        raise ValueError(
+            f"Unknown stat: {stat!r} (must be one of {sorted(_STAT_KEYS)})"
+        )
+    try:
+        amount = int(delta)
+    except (TypeError, ValueError):
+        raise ValueError(f"Stat delta must be an integer, got {delta!r}")
+    if key == "PSI":
+        before = int(character.psi or 0)
+        character.psi = max(0, before + amount)
+        after = character.psi
+    else:
+        before = int(character.characteristics.get(key))
+        character.characteristics.set(key, before + amount)
+        after = character.characteristics.get(key)
+    sign = "+" if amount >= 0 else ""
+    why = f" ({reason})" if reason else ""
+    msg = f"Event outcome: {key} {before} → {after} ({sign}{amount}){why}"
+    term = character.current_term
+    if term is not None:
+        term.events.append(msg)
+    character.log(msg)
+    return {
+        "applied": {"stat": key, "from": before, "to": after, "delta": amount},
+        "reason": reason,
+        "character": character.model_dump(),
+    }
+
+
+def accept_transfer_offer(character: Character, target_career_id: str) -> dict:
+    """Record a career-transfer offer from an event. On the next qualify
+    call targeting this career, the qualification roll is skipped.
+    """
+    careers = rules.careers()
+    if target_career_id not in careers:
+        raise ValueError(f"Unknown career: {target_career_id!r}")
+    target_name = careers[target_career_id].get("name", target_career_id)
+    character.pending_transfer_career_id = target_career_id
+    term = character.current_term
+    msg = f"Event choice: transfer to {target_name} at term end (no qualification roll)"
+    if term is not None:
+        term.events.append(msg)
+    character.log(msg)
+    return {
+        "pending_transfer": target_career_id,
+        "target_name": target_name,
+        "character": character.model_dump(),
+    }
+
+
 # ============================================================
 # Associate mutations (gain Contact/Ally/Rival/Enemy, Betrayal)
 # ============================================================
@@ -1737,7 +1900,7 @@ def add_associate(character: Character, kind: str, description: str = "") -> dic
 
     Triggered by event text like 'Gain an Ally', 'Gain a Rival', etc. When
     an event offers a choice ('Gain a Rival or Enemy'), the UI decides and
-    passes the resolved `kind` here.
+    passes the resolved ``kind`` here.
     """
     k = (kind or "").strip().lower()
     if k not in _ASSOCIATE_KINDS:
@@ -1769,23 +1932,27 @@ def convert_associate(character: Character, index: int, to_kind: str) -> dict:
     a = character.associates[index]
     to = (to_kind or "").strip().lower()
     if to not in {"rival", "enemy"}:
-        raise ValueError(f"convert target must be 'rival' or 'enemy', got {to_kind!r}")
+        raise ValueError(
+            f"Can only convert to 'rival' or 'enemy' (got {to_kind!r})"
+        )
     if a.kind not in {"contact", "ally"}:
         raise ValueError(
-            f"Can only convert a Contact or Ally; this one is already a {a.kind.capitalize()}"
+            f"Can only convert a Contact or Ally (this one is a {a.kind.capitalize()})"
         )
-    old = a.kind
+    from_kind = a.kind
     a.kind = to
-    msg = f"{old.capitalize()} -> {to.capitalize()}: {a.description}"
+    msg = f"Betrayal: {from_kind.capitalize()} → {to.capitalize()}"
+    if a.description:
+        msg += f" ({a.description})"
     if character.current_term is not None:
-        character.current_term.events.append(f"Betrayal - {msg}")
-    character.log(f"Associate converted - {msg}")
+        character.current_term.events.append(msg)
+    character.log(msg)
     return {
         "converted": {
-            "index": index,
-            "from_kind": old,
+            "from_kind": from_kind,
             "to_kind": to,
             "description": a.description,
+            "index": index,
         },
         "character": character.model_dump(),
     }

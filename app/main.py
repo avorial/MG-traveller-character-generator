@@ -94,6 +94,21 @@ class EventDmGrantAction(CharacterAction):
     target: str
 
 
+class EventTransferOfferAction(CharacterAction):
+    """Accept an event's career-transfer offer (e.g. army[10] 'transfer to
+    the Marines without a Qualification roll'). Stores a pending transfer
+    that the next qualify call consumes."""
+    target_career_id: str
+
+
+class EventStatChangeAction(CharacterAction):
+    """Apply a ±N delta to a characteristic from an event branch (e.g.
+    noble[3] refuse: SOC -1; noble[3] accept+success: SOC +1)."""
+    stat: str
+    delta: int
+    reason: str = ""
+
+
 class AssociateAction(CharacterAction):
     """Add a new Associate or convert an existing Contact/Ally → Rival/Enemy."""
     op: str  # "add" | "convert"
@@ -153,6 +168,13 @@ async def api_species():
 @app.get("/api/careers")
 async def api_careers():
     return {"careers": rules.list_careers()}
+
+
+@app.get("/api/careers/full")
+async def api_careers_full():
+    """Full career data including tables (service_skills, advanced_education,
+    officer, etc.) — used by the event-wildcard skill picker on the client."""
+    return {"careers": rules.careers()}
 
 
 @app.get("/api/background-skills")
@@ -363,6 +385,28 @@ async def api_event_dm_grant(action: EventDmGrantAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/event-transfer-offer")
+async def api_event_transfer_offer(action: EventTransferOfferAction):
+    """Accept a career-transfer offer from an event (skips next qualify)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.accept_transfer_offer(character, action.target_career_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/event-stat-change")
+async def api_event_stat_change(action: EventStatChangeAction):
+    """Apply a characteristic delta from an event branch (noble duel, etc.)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.apply_event_stat_change(
+            character, action.stat, action.delta, action.reason
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/associate")
 async def api_associate(action: AssociateAction):
     """Mutate the Associates list: add a new one, or convert Contact/Ally → Rival/Enemy."""
@@ -482,16 +526,3 @@ async def api_psionics_train(action: PsionicTalentAction):
         return lifepath.train_psionic_talent(character, action.talent_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
-
-
-@app.post("/api/reload-rules")
-async def api_reload_rules():
-    """Dev helper - flush data caches without restarting."""
-    rules.reload()
-    return {"status": "rules reloaded"}
-
-
-@app.get("/api/health")
-async def api_health():
-    """Simple liveness check."""
-    return {"status": "ok", "version": APP_VERSION}

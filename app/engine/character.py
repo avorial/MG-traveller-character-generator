@@ -106,6 +106,12 @@ class Character(BaseModel):
     dm_next_qualification: int = 0
     dm_next_benefit: int = 0
 
+    # Career-transfer offer from an event (e.g. army[10] "transfer to the
+    # Marines without a Qualification roll"). Set when the player elects the
+    # transfer branch; consumed when the next career is chosen (qualification
+    # is skipped for the matching target career).
+    pending_transfer_career_id: Optional[str] = None
+
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None
