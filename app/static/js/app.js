@@ -905,14 +905,19 @@ function renderPreCareerPhase() {
   const status = character.pre_career_status || {};
   const stage = status.stage || 'none';
 
-  // Pending graduation skill picks — must render the picker regardless of
-  // whether lastRoll is still set (e.g. after a partial submit, or after a
-  // page refresh). Without this guard the UI would drop back to the
-  // track-picker screen with pending picks still on the character.
-  if ((status.skill_picks_remaining || 0) > 0 && (status.stage === 'graduated')) {
+  // Pending skill picks after graduation — show picker (event already rolled server-side)
+  if ((status.skill_picks_remaining || 0) > 0 && (stage === 'graduated' || stage === 'failed_grad')) {
     const remaining = status.skill_picks_remaining;
     const pool = status.skill_pool || [];
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
+    const lr = uiState.lastRoll;
+    const eventHTML = lr?.event ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Education Event [2D=${lr.event.roll?.total ?? '?'}]</span>
+        <div>${escapeHTML(lr.event.event_text || '')}</div>
+        ${lr.event.auto_applied?.length ? lr.event.auto_applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('') : ''}
+      </div>
+    ` : '';
     const picker = pool.map(s => {
       const sel = picked.includes(s);
       return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
@@ -923,28 +928,14 @@ function renderPreCareerPhase() {
       <div class="stage-content">
         <div class="phase-label">Graduation — Pick Your Skills</div>
         <h2 class="phase-title">Pick ${remaining} Skill${remaining === 1 ? '' : 's'}</h2>
-        <p class="phase-body">Your academy graduation grants <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1. Pick ${remaining === 1 ? 'one' : `all ${remaining}`} before continuing to your service career.</p>
+        ${eventHTML}
+        <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1 from the list.</p>
         <div class="skill-picker">${picker}</div>
         <div class="phase-actions">
           <button class="btn primary" id="btn-confirm-pc-skills"
             ${picked.length !== remaining ? 'disabled' : ''}>
             ${picked.length === remaining ? `CONFIRM ${remaining}/${remaining} →` : `PICK ${remaining - picked.length} MORE`}
           </button>
-        </div>
-      </div>
-    `;
-  }
-
-  // Graduated with no lastRoll (e.g. after skill picks confirmed) — show event button
-  if ((stage === 'graduated' || stage === 'failed_grad') && (status.events_remaining ?? 0) > 0 && !uiState.lastRoll) {
-    return `
-      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
-      <div class="stage-content">
-        <div class="phase-label">Pre-Career Education Chart</div>
-        <h2 class="phase-title">Roll Your Event</h2>
-        <p class="phase-subtitle">Roll once on the pre-career education chart to see what happened during your time in education.</p>
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-pc-event">ROLL PRE-CAREER EVENT →</button>
         </div>
       </div>
     `;
@@ -979,48 +970,29 @@ function renderPreCareerPhase() {
     `;
   }
 
-  // Post-roll view: graduation outcome
+  // Post-roll view: graduation outcome (event already rolled, shown inline)
   if (uiState.lastRoll?.type === 'precareer_graduate') {
     const lr = uiState.lastRoll;
     const labels = { pass: 'Graduated', honours: 'Graduated with Honours', fail: 'Failed to Graduate' };
-    const remaining = status.skill_picks_remaining || 0;
-    const pool = status.skill_pool || [];
-
+    const ev = lr.event || {};
     const appliedHTML = lr.applied?.length ? `
       <div class="dm-applied-box">
         <span class="event-label">Graduation benefits</span>
         ${lr.applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}
       </div>
     ` : '';
-
-    // If there are still skill picks to make, render the picker here
-    if (remaining > 0) {
-      const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
-      const picker = pool.map(s => {
-        const sel = picked.includes(s);
-        return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
-          ${!sel && picked.length >= remaining ? 'disabled' : ''}>${escapeHTML(s)}</button>`;
-      }).join('');
-      return `
-        <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
-        <div class="stage-content">
-          <div class="phase-label">Graduation — ${labels[lr.outcome]}</div>
-          <h2 class="phase-title">Pick Your Skills</h2>
-          ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
-          ${appliedHTML}
-          <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1 from the ${lr.trackName} list.</p>
-          <div class="skill-picker">${picker}</div>
-          <div class="phase-actions">
-            <button class="btn primary" id="btn-confirm-pc-skills"
-              ${picked.length === 0 ? 'disabled' : ''}>
-              CONFIRM ${picked.length}/${remaining} →
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    const eventsRemaining = status.events_remaining ?? 0;
+    const eventHTML = `
+      <div class="event-box">
+        <span class="event-label">Education Event [2D=${ev.roll?.total ?? '?'}]</span>
+        ${escapeHTML(ev.event_text || 'Nothing remarkable happens.')}
+      </div>
+      ${ev.auto_applied?.length ? `
+        <div class="dm-applied-box">
+          <span class="event-label">Auto-applied</span>
+          ${ev.auto_applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}
+        </div>` : ''}
+      ${ev.forced_fail ? `<p class="phase-body" style="color:var(--danger)">This event overrides your graduation — you fail to graduate.</p>` : ''}
+    `;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1028,50 +1000,10 @@ function renderPreCareerPhase() {
         <h2 class="phase-title">${labels[lr.outcome]}</h2>
         ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
         ${appliedHTML}
+        ${eventHTML}
+        <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">
-          ${eventsRemaining > 0
-            ? `<button class="btn primary" id="btn-pc-event">ROLL PRE-CAREER EVENT →</button>`
-            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`
-          }
-        </div>
-      </div>
-    `;
-  }
-
-  // Helper: derive events_remaining when the field is absent (old characters).
-  const _PC_AGE_COSTS = { university: 4, military_academy: 3 };
-  function _eventsLeft(st) {
-    if (st.events_remaining !== undefined && st.events_remaining !== null) return st.events_remaining;
-    const total = _PC_AGE_COSTS[st.track] || 0;
-    const rolled = (st.events_rolled || []).length;
-    return Math.max(0, total - rolled);
-  }
-
-  // Post-event view: show what happened this year
-  if (uiState.lastRoll?.type === 'precareer_event') {
-    const lr = uiState.lastRoll;
-    const eventsLeft = _eventsLeft(status);
-    const autoHTML = lr.autoApplied?.length ? `
-      <div class="dm-applied-box">
-        <span class="event-label">Auto-applied</span>
-        ${lr.autoApplied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}
-      </div>
-    ` : '';
-    return `
-      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
-      <div class="stage-content">
-        <div class="phase-label">Pre-Career Event · Year ${(lr.yearNumber || 1)}</div>
-        <h2 class="phase-title">${lr.forcedFail ? 'Education Cut Short' : 'Something Happened'}</h2>
-        ${rollReadoutHTML(lr.data, { label: '2D', showTarget: false })}
-        <div class="event-box">
-          <span class="event-label">Event [2D=${lr.data?.total ?? '?'}]</span>
-          ${escapeHTML(lr.eventText || '')}
-        </div>
-        ${autoHTML}
-        ${lr.forcedFail ? `<p class="phase-body" style="color:var(--danger)">You fail to graduate this term. Proceeding to career phase.</p>` : ''}
-        <p class="picker-status"><em>Apply any remaining effects manually to your notes.</em></p>
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-post-precareer-qualify">CONTINUE TO CAREER →</button>
+          <button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>
         </div>
       </div>
     `;
@@ -1240,34 +1172,11 @@ function wirePreCareerPhase() {
     }
   });
 
-  // Pre-career event roll button (rolled once, after graduation)
-  const eventBtn = document.getElementById('btn-pc-event');
-  if (eventBtn) eventBtn.addEventListener('click', async () => {
-    try {
-      const status = character.pre_career_status || {};
-      const eventsRolled = (status.events_rolled || []).length;
-      const yearNumber = eventsRolled + 1;
-      const response = await apiCall('/api/character/pre-career/event');
-      await applyResponse(response);
-      uiState.lastRoll = {
-        type: 'precareer_event',
-        data: response.roll,
-        eventText: response.event_text,
-        autoApplied: response.auto_applied || [],
-        forcedFail: !!response.forced_fail,
-        eventsRemaining: response.events_remaining,
-        yearNumber,
-      };
-      renderAll();
-    } catch (e) { alert(e.message); }
-  });
-
-  // Graduation roll button
+  // Graduation roll button — also auto-rolls the education event server-side
   const gradBtn = document.getElementById('btn-pc-graduate');
   if (gradBtn) gradBtn.addEventListener('click', async () => {
     try {
-      const response = await apiCall('/api/character/pre-career/graduate',
-        { chosen_skills: [] });
+      const response = await apiCall('/api/character/pre-career/graduate', { chosen_skills: [] });
       await applyResponse(response);
       const track = character.pre_career_status?.track;
       const service = character.pre_career_status?.service;
@@ -1282,6 +1191,7 @@ function wirePreCareerPhase() {
         data: response.roll,
         outcome: response.outcome,
         applied: response.applied || [],
+        event: response.event || null,
         trackName,
         charLabel,
         target,
@@ -1319,12 +1229,15 @@ function wirePreCareerPhase() {
     } catch (e) { alert(e.message); }
   });
 
-  // Post-graduate continue (no picks path)
+  // Post-graduate continue — phase already set to career by server
   const postGrad = document.getElementById('btn-post-precareer-graduate');
   if (postGrad) postGrad.addEventListener('click', () => {
     uiState.lastRoll = null;
     renderAll();
   });
+
+  // Post-qualify continue — clear lastRoll and route by phase
+  // (already handled above by btn-post-precareer-qualify, kept for clarity)
 }
 
 // ============================================================

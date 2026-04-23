@@ -933,23 +933,7 @@ def pre_career_graduate(
             character.add_skill(name, level=1, speciality=speciality)
         picks_remaining -= len(chosen_skills)
 
-    # Update status + phase.
-    # One event roll is always required post-graduation (the pre-career events
-    # table applies for the single term spent in education).
-    still_needs_picks = picks_remaining > 0
-    character.pre_career_status = {
-        "track": track,
-        "service": service,
-        "stage": "graduated" if outcome != "fail" else "failed_grad",
-        "outcome": outcome,
-        "skill_picks_remaining": picks_remaining,
-        "skill_pool": skill_pool,
-        "events_remaining": 1,
-        "events_rolled": [],
-    }
-    # Phase stays pre_career until the event is also rolled.
-    character.phase = "pre_career"
-
+    # Log graduation result.
     label = {"pass": "GRADUATED", "honours": "GRADUATED w/ HONOURS",
              "fail": "FAILED TO GRADUATE"}[outcome]
     character.log(
@@ -959,6 +943,66 @@ def pre_career_graduate(
         + ("; ".join(applied_note) if applied_note else "")
     )
 
+    # Always roll the pre-career education chart event immediately after
+    # graduation — one roll regardless of pass/fail.
+    edu = rules.education()
+    events_table: dict = edu.get("pre_career_events", {})
+    ev = dice.roll("2D")
+    ev_key = str(ev.total)
+    event_text: str = events_table.get(ev_key, "Nothing remarkable happens.")
+    event_auto_applied: list[str] = []
+    forced_fail = False
+
+    if ev.total == 3:
+        forced_fail = True
+        if outcome in ("pass", "honours"):
+            # Override graduation: character fails.
+            outcome = "fail"
+            character.starts_commissioned_career_id = None
+            character.academy_commission_career_id = None
+            character.academy_commission_dm = 0
+            if track == "military_academy" and service:
+                edu_track = _edu_track(track)
+                fail_block = edu_track["graduation"].get("on_failure", {})
+                if fail_block.get("auto_entry_if_not_natural_2"):
+                    svc = _academy_service(service)
+                    character.auto_entry_career_id = svc["career_id"]
+                    event_auto_applied.append(
+                        f"Forced failure — automatic entry into {svc['name']} (no Commission roll)"
+                    )
+            # Clear any skill picks that were granted — they no longer apply.
+            picks_remaining = 0
+            skill_pool = []
+            event_auto_applied.append("Graduation result overridden — failed to graduate")
+
+    if ev.total == 5:
+        character.add_skill("Carouse", level=1)
+        event_auto_applied.append("Gained Carouse 1")
+
+    if ev.total == 12:
+        current_soc = character.characteristics.get("SOC")
+        character.characteristics.set("SOC", current_soc + 1)
+        event_auto_applied.append("SOC +1")
+
+    character.log(
+        f"Pre-career education event [{ev.total}]: {event_text}"
+        + (f" — {', '.join(event_auto_applied)}" if event_auto_applied else "")
+    )
+
+    # Set final status. Phase stays pre_career if skill picks are still pending;
+    # otherwise advance to career now.
+    character.pre_career_status = {
+        "track": track,
+        "service": service,
+        "stage": "graduated" if outcome != "fail" else "failed_grad",
+        "outcome": outcome,
+        "skill_picks_remaining": picks_remaining,
+        "skill_pool": skill_pool,
+        "events_remaining": 0,
+        "events_rolled": [ev.total],
+    }
+    character.phase = "pre_career" if picks_remaining > 0 else "career"
+
     return {
         "roll": r.to_dict(),
         "outcome": outcome,
@@ -966,6 +1010,12 @@ def pre_career_graduate(
         "skill_pool": skill_pool,
         "skill_picks_remaining": picks_remaining,
         "applied": applied_note,
+        "event": {
+            "roll": ev.to_dict(),
+            "event_text": event_text,
+            "auto_applied": event_auto_applied,
+            "forced_fail": forced_fail,
+        },
         "character": character.model_dump(),
     }
 
@@ -1004,7 +1054,7 @@ def pre_career_choose_skills(
         f"Picked {len(chosen_skills)} pre-career graduation skill(s): "
         + ", ".join(chosen_skills)
     )
-    if remaining == 0 and int(status.get("events_remaining", 0)) <= 0:
+    if remaining == 0:
         character.phase = "career"
     return {
         "chosen": chosen_skills,
