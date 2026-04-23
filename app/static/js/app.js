@@ -935,6 +935,21 @@ function renderPreCareerPhase() {
     `;
   }
 
+  // Graduated with no lastRoll (e.g. after skill picks confirmed) — show event button
+  if ((stage === 'graduated' || stage === 'failed_grad') && (status.events_remaining ?? 0) > 0 && !uiState.lastRoll) {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Pre-Career Education Chart</div>
+        <h2 class="phase-title">Roll Your Event</h2>
+        <p class="phase-subtitle">Roll once on the pre-career education chart to see what happened during your time in education.</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-pc-event">ROLL PRE-CAREER EVENT →</button>
+        </div>
+      </div>
+    `;
+  }
+
   // Post-roll view: show the qualification roll outcome
   if (uiState.lastRoll?.type === 'precareer_qualify') {
     const lr = uiState.lastRoll;
