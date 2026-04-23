@@ -1004,7 +1004,7 @@ def pre_career_choose_skills(
         f"Picked {len(chosen_skills)} pre-career graduation skill(s): "
         + ", ".join(chosen_skills)
     )
-    if remaining == 0:
+    if remaining == 0 and int(status.get("events_remaining", 0)) <= 0:
         character.phase = "career"
     return {
         "chosen": chosen_skills,
