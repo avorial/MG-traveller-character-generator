@@ -85,17 +85,26 @@ async function freshCharacter() {
 // ------------------------------------------------------------
 
 async function apiCall(endpoint, extraData = {}) {
-  // GM Mode: parse roll overrides from the GM panel input.
+  // GM Mode: always prompt for roll overrides when panel input is empty.
   let gm_rolls = [];
   if (uiState.gmMode) {
     const input = document.getElementById('gm-roll-input');
-    if (input && input.value.trim()) {
-      gm_rolls = input.value.trim().split(/[\s,]+/)
+    let raw = input ? input.value.trim() : '';
+    if (!raw) {
+      // Auto-prompt so every action can be overridden.
+      const answer = window.prompt(
+        '⚙ GM MODE — Enter roll total(s) for this action\n' +
+        '(comma-separated for multiple rolls, or leave blank for random):',
+        ''
+      );
+      raw = (answer || '').trim();
+    }
+    if (raw) {
+      gm_rolls = raw.split(/[\s,]+/)
         .map(v => parseInt(v, 10))
         .filter(n => !isNaN(n));
-      // Show what was sent, then clear the input for the next action.
       uiState.gmLastRolls = [...gm_rolls];
-      input.value = '';
+      if (input) input.value = '';
       renderGMPanel();
     }
   }
