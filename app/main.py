@@ -126,6 +126,7 @@ class EndTermAction(CharacterAction):
 class MusterOutAction(CharacterAction):
     career_id: str
     column: str  # "cash" | "benefit"
+    use_good_fortune: bool = False
 
 
 class PreCareerQualifyAction(CharacterAction):
@@ -147,6 +148,10 @@ class PreCareerEvent10Action(CharacterAction):
 
 class PreCareerEvent11Action(CharacterAction):
     choice: str  # "drifter" | "draft" | "dodge"
+
+
+class LifeEventChoiceAction(CharacterAction):
+    choice: str  # "rival" | "enemy" | "lose_benefit" | "prisoner"
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +330,28 @@ async def api_pre_career_event11_choice(action: PreCareerEvent11Action):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/life-event")
+async def api_life_event(action: CharacterAction):
+    """Roll 2D on the Life Events table and auto-apply the result."""
+    character = action.character.model_copy(deep=True)
+    try:
+        result = lifepath.apply_life_event(character)
+        result["character"] = character.model_dump()
+        return result
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/life-event-choice")
+async def api_life_event_choice(action: LifeEventChoiceAction):
+    """Resolve a pending interactive Life Event choice."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_life_event_choice(character, action.choice)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/pre-career/event")
 async def api_pre_career_event(action: CharacterAction):
     """Roll one event on the pre-career events table (2D). Called once per year
@@ -488,7 +515,9 @@ async def api_end_term(action: EndTermAction):
 async def api_muster_out(action: MusterOutAction):
     character = action.character.model_copy(deep=True)
     try:
-        return lifepath.muster_out_roll(character, action.career_id, action.column)
+        return lifepath.muster_out_roll(
+            character, action.career_id, action.column, action.use_good_fortune
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 
