@@ -10,6 +10,30 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+# ---------------------------------------------------------------------------
+# GM Mode — forced roll queue
+# ---------------------------------------------------------------------------
+# In GM mode the client sends a list of raw dice totals that override the
+# random rolls consumed in sequence. Set by the API layer before each
+# lifepath call; cleared by middleware after the response is sent.
+
+_forced_rolls: list[int] = []
+
+
+def set_forced_rolls(rolls: list[int]) -> None:
+    global _forced_rolls
+    _forced_rolls = [int(r) for r in rolls]
+
+
+def clear_forced_rolls() -> None:
+    global _forced_rolls
+    _forced_rolls = []
+
+
+def _pop_forced() -> Optional[int]:
+    global _forced_rolls
+    return _forced_rolls.pop(0) if _forced_rolls else None
+
 
 @dataclass
 class RollResult:
@@ -47,7 +71,25 @@ def roll(notation: str, modifier: int = 0, target: Optional[int] = None) -> Roll
 
     Supports: 1D, 2D, 3D, 1D+n, 2D-n, D3, D6
     D3 is a 1D roll divided by 2 rounded up (1-1-2-2-3-3 on a d6).
+
+    In GM mode a forced raw total is consumed from the queue first; the
+    modifier is still applied on top so natural-2 checks (raw_total == 2)
+    continue to work correctly.
     """
+    forced = _pop_forced()
+    if forced is not None:
+        total = forced + modifier
+        return RollResult(
+            dice=[forced],
+            raw_total=forced,
+            modifier=modifier,
+            total=total,
+            target=target,
+            succeeded=(total >= target) if target is not None else None,
+            margin=(total - target) if target is not None else None,
+            notation=f"GM:{forced}",
+        )
+
     notation = notation.strip().upper().replace(" ", "")
 
     # D3 is a special case - Traveller shorthand for "1 to 3"

@@ -28,12 +28,27 @@
         <span class="title-sub">Character Generation Terminal</span>
       </h1>
       <div class="header-right">
+        <button id="btn-gm-mode" class="gm-toggle" title="Toggle GM Mode — set dice results manually for testing">GM</button>
         <span class="status-dot"></span>
         <span class="status-text">READY</span>
         <span class="app-version" title="Version">v{{ app_version }}</span>
       </div>
     </div>
   </header>
+
+  <!-- GM Mode Panel — fixed overlay, hidden when GM mode is off -->
+  <div id="gm-panel" class="gm-panel" style="display:none">
+    <div class="gm-panel-header">
+      <span class="gm-panel-label">⚙ GM MODE — ROLL OVERRIDE</span>
+      <span class="gm-panel-hint">Enter raw dice total(s) for the next action, comma-separated. Leave blank for random.</span>
+    </div>
+    <div class="gm-panel-body">
+      <input id="gm-roll-input" class="gm-roll-input" type="text"
+             placeholder="e.g. 8   or   10, 5   for two consecutive rolls"
+             autocomplete="off" spellcheck="false" />
+      <span id="gm-last-rolls" class="gm-last-rolls"></span>
+    </div>
+  </div>
 
   <main class="layout">
     <!-- LEFT: Character Sheet (always visible) -->

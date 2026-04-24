@@ -85,7 +85,22 @@ async function freshCharacter() {
 // ------------------------------------------------------------
 
 async function apiCall(endpoint, extraData = {}) {
-  const payload = { character, ...extraData };
+  // GM Mode: parse roll overrides from the GM panel input.
+  let gm_rolls = [];
+  if (uiState.gmMode) {
+    const input = document.getElementById('gm-roll-input');
+    if (input && input.value.trim()) {
+      gm_rolls = input.value.trim().split(/[\s,]+/)
+        .map(v => parseInt(v, 10))
+        .filter(n => !isNaN(n));
+      // Show what was sent, then clear the input for the next action.
+      uiState.gmLastRolls = [...gm_rolls];
+      input.value = '';
+      renderGMPanel();
+    }
+  }
+
+  const payload = { character, ...extraData, ...(gm_rolls.length ? { gm_rolls } : {}) };
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4020,10 +4035,25 @@ async function importCharacter(file) {
 // Initial render
 // ============================================================
 
+function renderGMPanel() {
+  const panel = document.getElementById('gm-panel');
+  if (!panel) return;
+  panel.style.display = uiState.gmMode ? 'block' : 'none';
+  if (!uiState.gmMode) return;
+  const lastEl = document.getElementById('gm-last-rolls');
+  if (lastEl) {
+    const rolls = uiState.gmLastRolls;
+    lastEl.textContent = rolls?.length
+      ? `Last sent: [${rolls.join(', ')}]`
+      : '';
+  }
+}
+
 function renderAll() {
   renderSheet();
   renderStage();
   renderLog();
+  renderGMPanel();
 }
 
 async function bootstrap() {
@@ -4058,15 +4088,16 @@ async function bootstrap() {
   if (btnGm) {
     const paintGm = () => {
       btnGm.classList.toggle('active', !!uiState.gmMode);
-      btnGm.textContent = uiState.gmMode ? 'GM MODE: ON' : 'GM MODE';
+      btnGm.textContent = uiState.gmMode ? 'GM ●' : 'GM';
       document.body.classList.toggle('gm-mode', !!uiState.gmMode);
+      renderGMPanel();
     };
     paintGm();
     btnGm.addEventListener('click', () => {
       uiState.gmMode = !uiState.gmMode;
+      uiState.gmLastRolls = [];
       try { localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0'); } catch (e) { /* ignore */ }
       paintGm();
-      renderAll();
     });
   }
 

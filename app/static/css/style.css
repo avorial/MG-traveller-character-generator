@@ -1554,6 +1554,99 @@ body {
   text-shadow: 0 0 6px var(--danger);
 }
 
+/* GM Mode toggle button in the header */
+.gm-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.gm-toggle:hover { border-color: var(--danger); color: var(--danger); }
+.gm-toggle.active {
+  background: rgba(255, 82, 51, 0.15);
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: 0 0 6px rgba(255, 82, 51, 0.3);
+}
+
+/* Fixed GM Mode overlay panel at the bottom of the viewport */
+#gm-panel.gm-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #0f0808;
+  border-top: 2px solid var(--danger);
+  box-shadow: 0 -4px 20px rgba(255, 82, 51, 0.25);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gm-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.gm-panel-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--danger);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gm-panel-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.gm-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-roll-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--danger);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  outline: none;
+  letter-spacing: 0.1em;
+}
+.gm-roll-input:focus { box-shadow: 0 0 0 2px rgba(255, 82, 51, 0.3); }
+.gm-roll-input::placeholder { color: var(--muted); font-style: italic; font-size: 11px; }
+
+.gm-last-rolls {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--amber-dim);
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+}
+
+/* Offset the main layout when GM panel is open */
+body.gm-mode .layout {
+  padding-bottom: 80px;
+}
+
 .gm-panel {
   border: 1px dashed var(--danger);
   background: rgba(212, 85, 85, 0.06);
