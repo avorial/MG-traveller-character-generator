@@ -2140,6 +2140,28 @@ function wireCareerPhase() {
   });
 
 
+  // Agent event 8: cross-career roll on Rogue or Citizen table
+  ['rogue', 'citizen'].forEach(careerId => {
+    const btn = document.getElementById(`btn-cross-career-${careerId}`);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const lr = uiState.lastRoll;
+      if (!lr) return;
+      const succeeded = lr.eventContestedResolved && lr.eventContestedResolved.success;
+      const tbl = succeeded ? 'event' : 'mishap';
+      btn.disabled = true;
+      try {
+        const response = await apiCall('/api/character/cross-career-roll', { career_id: careerId, table: tbl });
+        await applyResponse(response);
+        lr.crossCareerResult = response;
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Cross-career roll failed.');
+        btn.disabled = false;
+      }
+    });
+  });
+
   // Associate outcomes — "Gain a Contact/Ally/Rival/Enemy" or Betrayal convert.
   const labelAssoc = (k) => ({contact:'Contact', ally:'Ally', rival:'Rival', enemy:'Enemy'}[k] || k);
   const recordAssocDone = (opIdx, summary) => {
@@ -2209,6 +2231,10 @@ function wireCareerPhase() {
         type: 'mishap',
         data: response.roll,
         mishapText: response.mishap,
+        autoApplied: response.auto_applied || [],
+        injuryPending: response.injury_pending || false,
+        injuryTitle: response.injury_data?.title || null,
+        injuryText: response.injury_data?.text || null,
       };
       renderAll();
     });
@@ -2226,6 +2252,105 @@ function wireCareerPhase() {
       renderAll();
     });
   }
+
+  // Helper: call career-mishap-choice and refresh state
+  async function resolveMishapChoice(choiceData) {
+    const response = await apiCall('/api/character/career-mishap-choice', { choice_data: choiceData });
+    await applyResponse(response);
+    if (uiState.lastRoll) {
+      uiState.lastRoll.autoApplied = [
+        ...(uiState.lastRoll.autoApplied || []),
+        ...(response.auto_applied || []),
+      ];
+      uiState.lastRoll.injuryPending = response.injury_pending || false;
+      if (response.injury_data) {
+        uiState.lastRoll.injuryTitle = response.injury_data.title;
+        uiState.lastRoll.injuryText = response.injury_data.text;
+      }
+      if (response.skill_check) {
+        uiState.lastRoll.skillCheckResult = response.skill_check;
+      }
+    }
+    renderAll();
+  }
+
+  // Injury severity choice buttons
+  const btnSeverityResult2 = document.getElementById('btn-mishap-choice-result2');
+  if (btnSeverityResult2) {
+    btnSeverityResult2.addEventListener('click', () => resolveMishapChoice({ choice: 'result_2' }));
+  }
+  const btnSeverityRollTwice = document.getElementById('btn-mishap-choice-roll-twice');
+  if (btnSeverityRollTwice) {
+    btnSeverityRollTwice.addEventListener('click', () => resolveMishapChoice({ choice: 'roll_twice' }));
+  }
+
+  // Stat choice buttons
+  document.querySelectorAll('[id^="btn-mishap-statchoice-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stat = btn.id.replace('btn-mishap-statchoice-', '');
+      resolveMishapChoice({ stat });
+    });
+  });
+
+  // Skill choice buttons
+  document.querySelectorAll('[id^="btn-mishap-skillchoice-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const skill = btn.id.replace('btn-mishap-skillchoice-', '');
+      resolveMishapChoice({ skill });
+    });
+  });
+
+  // Free skill choice
+  const btnFreeSkillConfirm = document.getElementById('btn-mishap-freeskill-confirm');
+  if (btnFreeSkillConfirm) {
+    btnFreeSkillConfirm.addEventListener('click', () => {
+      const input = document.getElementById('input-mishap-freeskill');
+      const skill = input ? input.value.trim() : '';
+      if (!skill) { alert('Enter a skill name.'); return; }
+      resolveMishapChoice({ skill });
+    });
+  }
+
+  // Deal choice buttons
+  const btnDealAccept = document.getElementById('btn-mishap-deal-accept');
+  if (btnDealAccept) {
+    btnDealAccept.addEventListener('click', () => resolveMishapChoice({ option_id: 'accept' }));
+  }
+  const btnDealRefuse = document.getElementById('btn-mishap-deal-refuse');
+  if (btnDealRefuse) {
+    btnDealRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
+  }
+
+  // Army join/cooperate buttons
+  const btnArmyJoin = document.getElementById('btn-mishap-armyjoin-join');
+  if (btnArmyJoin) {
+    btnArmyJoin.addEventListener('click', () => resolveMishapChoice({ option_id: 'join' }));
+  }
+  const btnArmyCooperate = document.getElementById('btn-mishap-armyjoin-cooperate');
+  if (btnArmyCooperate) {
+    btnArmyCooperate.addEventListener('click', () => resolveMishapChoice({ option_id: 'cooperate' }));
+  }
+
+  // Mishap victim buttons
+  document.querySelectorAll('[id^="btn-mishap-victim-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.id === 'btn-mishap-victim-skip') {
+        // No contacts/allies — clear pending
+        resolveMishapChoice({ option_id: 'skip' });
+        return;
+      }
+      const idx = parseInt(btn.getAttribute('data-assoc-idx'), 10);
+      resolveMishapChoice({ associate_index: idx });
+    });
+  });
+
+  // Skill check buttons
+  document.querySelectorAll('[id^="btn-mishap-skillcheck-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const skillName = btn.getAttribute('data-skill');
+      resolveMishapChoice({ skill_name: skillName });
+    });
+  });
 
   const btnAdvance = document.getElementById('btn-advance');
   if (btnAdvance) {
@@ -3450,6 +3575,28 @@ function renderEventStep() {
         ${associatePickerHTML}
         ${assocSummaryHTML}
         ${mishapRolledHTML}
+        ${(() => {
+          // Agent event 8: cross-career roll on Rogue or Citizen event/mishap table
+          if (!(lr.eventText || '').includes('Rogue or Citizen')) return '';
+          if (!lr.eventContestedResolved) return '';  // wait for contested roll first
+          const succeeded = lr.eventContestedResolved.success;
+          const tbl = succeeded ? 'event' : 'mishap';
+          if (lr.crossCareerResult) {
+            return `
+              <div class="event-box" style="margin-top:12px">
+                <span class="event-label">${escapeHTML(lr.crossCareerResult.career_name)} ${tbl === 'event' ? 'Event' : 'Mishap'} [${tbl === 'event' ? '2D' : '1D'}=${lr.crossCareerResult.roll?.total ?? '?'}]</span>
+                ${escapeHTML(lr.crossCareerResult.text || '')}
+              </div>`;
+          }
+          return `
+            <div class="event-box" style="margin-top:12px">
+              <p class="phase-body"><strong>Roll on which career's ${tbl} table?</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-cross-career-rogue">ROGUE</button>
+                <button class="btn" id="btn-cross-career-citizen">CITIZEN</button>
+              </div>
+            </div>`;
+        })()}
         ${showPicker || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
@@ -3473,6 +3620,156 @@ function renderEventStep() {
 function renderMishapStep() {
   if (uiState.lastRoll?.type === 'mishap') {
     const lr = uiState.lastRoll;
+    const pending = character.pending_career_mishap_choice;
+    const injPending = character.pending_injury_choice;
+    const statDescs = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance', INT: 'Intellect', EDU: 'Education', SOC: 'Social' };
+
+    // Auto-applied chips
+    let autoHtml = '';
+    if (lr.autoApplied && lr.autoApplied.length) {
+      const chips = lr.autoApplied.map(a => `<span class="skill-chip dm-chip">${escapeHTML(a)}</span>`).join('');
+      autoHtml = `<div class="dm-applied-box" style="margin-top:10px">${chips}</div>`;
+    }
+
+    // Injury data box (from auto-resolved injury effect)
+    let injDataHtml = '';
+    if (lr.injuryTitle) {
+      injDataHtml = `
+        <div class="event-box" style="margin-top:12px">
+          <span class="event-label">Injury — ${escapeHTML(lr.injuryTitle)}</span>
+          ${escapeHTML(lr.injuryText || '')}
+        </div>`;
+    }
+
+    // Pending choice UI
+    let pendingHtml = '';
+    if (pending) {
+      const ptype = pending.type;
+      const pprompt = pending.prompt || '';
+
+      if (ptype === 'injury_severity_choice') {
+        pendingHtml = `
+          <div class="event-box" style="margin-top:14px">
+            <p class="phase-body"><strong>Choose how to handle this injury:</strong></p>
+            <div class="phase-actions" style="margin-top:8px">
+              <button class="btn" id="btn-mishap-choice-result2">TAKE RESULT 2 (GRIEVOUS INJURY)</button>
+              <button class="btn" id="btn-mishap-choice-roll-twice">ROLL TWICE, TAKE LOWER</button>
+            </div>
+          </div>`;
+      } else if (ptype === 'stat_choice') {
+        const opts = (pending.options || []).map(stat => `
+          <button class="card" id="btn-mishap-statchoice-${stat}">
+            <div class="card-title">${stat} — ${statDescs[stat] || stat}</div>
+            <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
+            <div class="card-desc">Reduce by ${Math.abs(pending.amount || 1)}</div>
+          </button>`).join('');
+        pendingHtml = `
+          <div class="event-box" style="margin-top:14px">
+            <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+            <div class="card-grid">${opts}</div>
+          </div>`;
+      } else if (ptype === 'skill_choice') {
+        const opts = (pending.options || []).map(sk => `
+          <button class="btn" id="btn-mishap-skillchoice-${escapeHTML(sk)}">${escapeHTML(sk)}</button>`).join('');
+        pendingHtml = `
+          <div class="event-box" style="margin-top:14px">
+            <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+            <div class="phase-actions" style="margin-top:8px">${opts}</div>
+          </div>`;
+      } else if (ptype === 'free_skill_choice') {
+        pendingHtml = `
+          <div class="event-box" style="margin-top:14px">
+            <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <input type="text" id="input-mishap-freeskill" placeholder="Skill name…" style="flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--amber-dim);color:var(--text);border-radius:4px"/>
+              <button class="btn" id="btn-mishap-freeskill-confirm">CONFIRM</button>
+            </div>
+          </div>`;
+      } else if (ptype === 'pending_choice') {
+        const pid = pending.id || '';
+        if (pid === 'mishap_deal') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-deal-accept">ACCEPT DEAL</button>
+                <button class="btn danger" id="btn-mishap-deal-refuse">REFUSE — FIGHT BACK</button>
+              </div>
+            </div>`;
+        } else if (pid === 'army_join_cooperate') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-armyjoin-join">JOIN THEIR RING</button>
+                <button class="btn" id="btn-mishap-armyjoin-cooperate">CO-OPERATE WITH POLICE</button>
+              </div>
+            </div>`;
+        } else if (pid === 'mishap_victim') {
+          const opts = (pending.options || []);
+          if (opts.length === 0) {
+            pendingHtml = `
+              <div class="event-box" style="margin-top:14px">
+                <p class="phase-body"><em>No contacts or allies to target — mishap effect skipped.</em></p>
+                <div class="phase-actions" style="margin-top:8px">
+                  <button class="btn" id="btn-mishap-victim-skip">CONTINUE</button>
+                </div>
+              </div>`;
+          } else {
+            const btns = opts.slice(0, 5).map(o => `
+              <button class="btn" id="btn-mishap-victim-${o.associate_index}"
+                data-assoc-idx="${o.associate_index}">${escapeHTML(o.label)}</button>`).join('');
+            pendingHtml = `
+              <div class="event-box" style="margin-top:14px">
+                <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+                <div class="phase-actions" style="margin-top:8px;flex-direction:column;align-items:flex-start">${btns}</div>
+              </div>`;
+          }
+        }
+      } else if (ptype === 'skill_check') {
+        const skills = (pending.skills || []).map(s => `
+          <button class="btn" id="btn-mishap-skillcheck-${escapeHTML(s.name)}"
+            data-skill="${escapeHTML(s.name)}">${escapeHTML(s.name)}</button>`).join('');
+        pendingHtml = `
+          <div class="event-box" style="margin-top:14px">
+            <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+            <p style="font-size:11px;color:var(--amber-dim)">Choose the skill to roll with (2D + skill DM vs ${pending.target || 8}+).</p>
+            <div class="phase-actions" style="margin-top:8px">${skills}</div>
+          </div>`;
+      }
+    }
+
+    // Skill check result (if stored after resolve)
+    let skillCheckHtml = '';
+    if (lr.skillCheckResult) {
+      const sc = lr.skillCheckResult;
+      skillCheckHtml = `
+        <div class="event-box" style="margin-top:12px">
+          <span class="event-label">Skill Check — ${escapeHTML(sc.skill)}</span>
+          2D=${sc.raw_2d}, DM${sc.dm >= 0 ? '+' : ''}${sc.dm} = <strong>${sc.total}</strong> vs ${sc.target}+ —
+          <strong style="color:${sc.passed ? 'var(--success,#4caf50)' : 'var(--danger)'}">${sc.passed ? 'PASS' : 'FAIL'}${sc.nat2 ? ' (Natural 2!)' : ''}</strong>
+        </div>`;
+    }
+
+    // Injury stat picker (pending_injury_choice)
+    let injPickerHtml = '';
+    if (injPending) {
+      const inj = injPending;
+      const choices = inj.choices || ['STR', 'DEX', 'END'];
+      const cards = choices.map(stat => `
+        <button class="card" id="btn-career-injury-stat-${stat}">
+          <div class="card-title">${stat} — ${statDescs[stat] || stat}</div>
+          <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
+          <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()}.</div>
+        </button>`).join('');
+      injPickerHtml = `
+        <p class="phase-body" style="margin-top:14px"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}</strong></p>
+        <p style="font-size:11px;color:var(--amber-dim)">Medical care: Cr 5,000 per point lost — added to debt.</p>
+        <div class="card-grid">${cards}</div>`;
+    }
+
+    const canEnd = !pending && !injPending;
+
     return `
       <div class="stage-content">
         <div class="phase-label">Mishap</div>
@@ -3482,32 +3779,13 @@ function renderMishapStep() {
           <span class="event-label">Mishap [1D=${lr.data?.total ?? '?'}]</span>
           ${escapeHTML(lr.mishapText || '')}
         </div>
-        <p class="phase-body empty"><em>Apply any stat reductions, allies/enemies, or ejection effects manually. If the mishap calls for an Injury roll, use the button below.</em></p>
-        ${uiState.lastRoll?.injuryTitle ? `
-          <div class="event-box" style="margin-top:12px">
-            <span class="event-label">Injury [1D] — ${escapeHTML(uiState.lastRoll.injuryTitle)}</span>
-            ${escapeHTML(uiState.lastRoll.injuryText || '')}
-          </div>
-        ` : ''}
-        ${uiState.lastRoll?.injuryPending && character.pending_injury_choice ? (() => {
-          const inj = character.pending_injury_choice;
-          const choices = inj.choices || ['STR', 'DEX', 'END'];
-          const statDescs = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance' };
-          const cards = choices.map(stat => `
-            <button class="card" id="btn-career-injury-stat-${stat}">
-              <div class="card-title">${stat} — ${statDescs[stat]}</div>
-              <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
-              <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()}.</div>
-            </button>
-          `).join('');
-          return `
-            <p class="phase-body"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}</strong></p>
-            <p style="font-size:11px;color:var(--amber-dim)">Medical care: Cr 5,000 per point lost — added to debt.</p>
-            <div class="card-grid">${cards}</div>`;
-        })() : ''}
-        <div class="phase-actions">
-          ${!uiState.lastRoll?.injuryTitle && !character.pending_injury_choice ? `<button class="btn" id="btn-roll-injury">ROLL INJURY (1D)</button>` : ''}
-          ${!character.pending_injury_choice ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}
+        ${autoHtml}
+        ${injDataHtml}
+        ${pendingHtml}
+        ${skillCheckHtml}
+        ${injPickerHtml}
+        <div class="phase-actions" style="margin-top:16px">
+          ${canEnd ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}
         </div>
       </div>
     `;

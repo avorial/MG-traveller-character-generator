@@ -1933,19 +1933,416 @@ def event_roll(character: Character) -> dict:
     }
 
 
+def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[list[str], bool]:
+    """Apply a single mishap effect. Returns (auto_applied_msgs, set_pending).
+
+    set_pending is True if this effect set character.pending_career_mishap_choice.
+    Only one pending can be active at a time — caller skips further pending-creating
+    effects once one is set.
+    """
+    etype = effect["type"]
+    msgs: list[str] = []
+    set_pending = False
+
+    if etype == "injury":
+        # Handled separately — caller stores result in injury_data
+        pass
+
+    elif etype == "injury_severity_choice":
+        character.pending_career_mishap_choice = {"type": "injury_severity_choice"}
+        set_pending = True
+
+    elif etype in ("enemy", "rival", "contact", "ally"):
+        desc = effect.get("desc", "")
+        character.associates.append(Associate(kind=etype, description=desc))
+        msgs.append(f"Gained {etype.capitalize()}: {desc}")
+        character.log(f"Mishap: gained {etype} — {desc}")
+
+    elif etype == "stat":
+        stat = effect["stat"]
+        amount = effect["amount"]
+        old = character.characteristics.get(stat)
+        new_val = max(0, old + amount)
+        character.characteristics.set(stat, new_val)
+        msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
+        character.log(f"Mishap: {stat} {old}→{new_val}")
+
+    elif etype == "stat_choice":
+        if not character.pending_career_mishap_choice:
+            character.pending_career_mishap_choice = {
+                "type": "stat_choice",
+                "options": effect["options"],
+                "amount": effect["amount"],
+                "prompt": f"Choose one stat to reduce by {abs(effect['amount'])}: {', '.join(effect['options'])}",
+            }
+            set_pending = True
+
+    elif etype == "skill":
+        name = effect["name"]
+        level = effect.get("level", 1)
+        msg = character.add_skill(name, level=level)
+        msgs.append(msg)
+
+    elif etype == "skill_choice":
+        if not character.pending_career_mishap_choice:
+            character.pending_career_mishap_choice = {
+                "type": "skill_choice",
+                "options": effect["options"],
+                "prompt": f"Choose one skill to gain at level 1: {', '.join(effect['options'])}",
+            }
+            set_pending = True
+
+    elif etype == "forfeit_benefit":
+        if term is not None:
+            term.benefit_forfeited = True
+        msgs.append("This term's benefit roll forfeited")
+        character.log("Mishap: benefit roll forfeited")
+
+    elif etype == "debt":
+        amount = effect["amount"]
+        character.medical_debt += amount
+        msgs.append(f"Debt: Cr{amount:,} added")
+        character.log(f"Mishap: Cr{amount:,} debt added")
+
+    elif etype == "force_next_career":
+        character.forced_next_career_id = effect["career_id"]
+        msgs.append(f"Forced next career: {effect['career_id']}")
+        character.log(f"Mishap: forced into {effect['career_id']} next")
+
+    elif etype == "d_associates":
+        kind = effect["kind"]
+        dice_str = effect["dice"]
+        if dice_str == "D3":
+            count = (dice.roll("1D").total + 1) // 2
+        else:
+            count = dice.roll(dice_str).total
+        for _ in range(count):
+            character.associates.append(
+                Associate(kind=kind, description="")
+            )
+        msgs.append(f"Gained {count}× {kind.capitalize()}")
+        character.log(f"Mishap: gained {count} {kind}(s)")
+
+    elif etype == "pending_choice":
+        if not character.pending_career_mishap_choice:
+            choice_id = effect.get("id", "")
+            pending = {
+                "type": "pending_choice",
+                "id": choice_id,
+                "prompt": effect.get("prompt", ""),
+                "options": list(effect.get("options", [])),
+            }
+            # Populate mishap_victim options from current contacts/allies
+            if choice_id == "mishap_victim":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": str(i),
+                            "label": f"{assoc.kind.capitalize()}: {assoc.description or '(unnamed)'}",
+                            "associate_index": i,
+                        })
+                pending["options"] = opts
+            character.pending_career_mishap_choice = pending
+            set_pending = True
+
+    elif etype == "skill_check":
+        if not character.pending_career_mishap_choice:
+            character.pending_career_mishap_choice = {
+                "type": "skill_check",
+                "skills": effect["skills"],
+                "target": effect["target"],
+                "on_nat2": effect.get("on_nat2", []),
+                "on_fail": effect.get("on_fail", []),
+                "on_pass": effect.get("on_pass", []),
+                "prompt": f"Roll {'/' .join(s['name'] for s in effect['skills'])} {effect['target']}+",
+            }
+            set_pending = True
+
+    return msgs, set_pending
+
+
 def mishap_roll(character: Character) -> dict:
-    """Roll on the career's mishap table (1D) after a failed survival."""
+    """Roll on the career's mishap table (1D) after a failed survival.
+
+    Processes _MISHAP_EFFECTS for the career and auto-applies or sets pending
+    choices for each effect. Returns structured result with all resolved data.
+    """
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
-    career = rules.careers()[term.career_id]
+    career_id = term.career_id
+    career = rules.careers()[career_id]
     mishaps = career.get("mishaps", {})
     r = dice.roll("1D")
-    mishap_text = mishaps.get(str(r.total), "(No mishap encoded — see rulebook or career JSON.)")
+    mishap_num = r.total
+    mishap_text = mishaps.get(str(mishap_num), "(No mishap encoded — see rulebook or career JSON.)")
 
     term.mishap = mishap_text
-    character.log(f"Mishap [1D={r.total}]: {mishap_text}")
-    return {"roll": r.to_dict(), "mishap": mishap_text, "character": character.model_dump()}
+    character.log(f"Mishap [1D={mishap_num}]: {mishap_text}")
+
+    auto_applied: list[str] = []
+    injury_data: Optional[dict] = None
+    pending_choice = None
+    pending_set = False
+
+    effects = _MISHAP_EFFECTS.get(career_id, {}).get(mishap_num, [])
+
+    for effect in effects:
+        etype = effect["type"]
+
+        if etype == "injury":
+            if injury_data is None:
+                injury_data = apply_injury(character)
+            continue
+
+        if etype in ("injury_severity_choice", "stat_choice", "skill_choice",
+                     "pending_choice", "skill_check") and pending_set:
+            # Only one pending at a time — skip further pending effects
+            continue
+
+        msgs, was_pending = _apply_mishap_effect(character, effect, term)
+        auto_applied.extend(msgs)
+        if was_pending:
+            pending_set = True
+            pending_choice = character.pending_career_mishap_choice
+
+    return {
+        "roll": r.to_dict(),
+        "mishap_number": mishap_num,
+        "mishap": mishap_text,
+        "auto_applied": auto_applied,
+        "pending_choice": pending_choice,
+        "injury_pending": bool(character.pending_injury_choice),
+        "injury_data": injury_data,
+        "character": character.model_dump(),
+    }
+
+
+def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> dict:
+    """Resolve the active pending_career_mishap_choice on the character."""
+    pending = character.pending_career_mishap_choice
+    if not pending:
+        raise ValueError("No pending career mishap choice to resolve.")
+
+    ptype = pending["type"]
+    auto_applied: list[str] = []
+    injury_data: Optional[dict] = None
+    term = character.current_term
+
+    if ptype == "injury_severity_choice":
+        choice = choice_data.get("choice", "result_2")
+        if choice == "result_2":
+            injury_data = _apply_injury_for_result(character, 2)
+        else:  # roll_twice
+            r1 = dice.roll("1D").total
+            r2 = dice.roll("1D").total
+            result = min(r1, r2)
+            auto_applied.append(f"Rolled twice: {r1} and {r2} → took lower ({result})")
+            injury_data = _apply_injury_for_result(character, result)
+
+        # Check for chained "after" pending
+        after = pending.get("after")
+        character.pending_career_mishap_choice = after  # may be None
+
+    elif ptype == "stat_choice":
+        stat = choice_data["stat"]
+        options = pending.get("options", [])
+        if stat not in options:
+            raise ValueError(f"'{stat}' not in options {options}")
+        amount = pending.get("amount", -1)
+        old = character.characteristics.get(stat)
+        new_val = max(0, old + amount)
+        character.characteristics.set(stat, new_val)
+        auto_applied.append(f"{stat} {old}→{new_val} ({amount:+d})")
+        character.log(f"Mishap stat choice: {stat} {old}→{new_val}")
+        character.pending_career_mishap_choice = None
+
+    elif ptype == "skill_choice":
+        skill = choice_data["skill"]
+        options = pending.get("options", [])
+        if skill not in options:
+            raise ValueError(f"'{skill}' not in options {options}")
+        msg = character.add_skill(skill, level=1)
+        auto_applied.append(msg)
+        character.pending_career_mishap_choice = None
+
+    elif ptype == "pending_choice":
+        choice_id = pending.get("id", "")
+        selected = choice_data.get("option_id", "")
+
+        if choice_id == "mishap_deal":
+            if selected == "accept":
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Accepted deal — benefit roll forfeited")
+                character.log("Mishap: accepted deal, benefit forfeited")
+                character.pending_career_mishap_choice = None
+            else:  # refuse
+                character.associates.append(
+                    Associate(
+                        kind="enemy", description="Enemy [Criminal — refused deal]"
+                    )
+                )
+                auto_applied.append("Refused deal — gained Enemy [Criminal — refused deal]")
+                character.log("Mishap: refused deal, gained enemy")
+                # Chain: injury_severity_choice → then free_skill_choice
+                character.pending_career_mishap_choice = {
+                    "type": "injury_severity_choice",
+                    "after": {
+                        "type": "free_skill_choice",
+                        "prompt": "Gain one level in any skill of your choice",
+                    },
+                }
+
+        elif choice_id == "army_join_cooperate":
+            if selected == "join":
+                character.associates.append(
+                    Associate(
+                        kind="ally", description="Ally [Corrupt CO]"
+                    )
+                )
+                auto_applied.append("Joined ring — gained Ally [Corrupt CO]")
+                character.log("Mishap: joined CO ring, gained ally")
+            else:  # cooperate
+                auto_applied.append("Co-operated with military police — benefit roll kept")
+                character.log("Mishap: co-operated with military police")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "mishap_victim":
+            # "skip" is sent when there are no contacts/allies to target
+            if selected == "skip":
+                auto_applied.append("No contacts/allies available — victim effect skipped")
+                character.pending_career_mishap_choice = None
+            else:
+                idx = choice_data.get("associate_index")
+                if idx is None:
+                    raise ValueError("associate_index required for mishap_victim choice")
+                idx = int(idx)
+                if idx < 0 or idx >= len(character.associates):
+                    raise ValueError(f"associate_index {idx} out of range")
+                assoc = character.associates[idx]
+                old_kind = assoc.kind
+                assoc.kind = "rival"
+                assoc.description = f"Injured — {assoc.description}"
+                auto_applied.append(f"{old_kind.capitalize()} → Rival (injured): {assoc.description}")
+                character.log(f"Mishap victim: associate {idx} converted to rival")
+                character.pending_career_mishap_choice = None
+
+        else:
+            raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
+
+    elif ptype == "skill_check":
+        skill_name = choice_data.get("skill_name", "")
+        skills_list = pending.get("skills", [])
+        target = pending.get("target", 8)
+        on_nat2 = pending.get("on_nat2", [])
+        on_fail = pending.get("on_fail", [])
+        on_pass = pending.get("on_pass", [])
+
+        # Determine DM from the skill on the character
+        skill_dm = 0
+        is_stat = any(s.get("is_stat") and s["name"] == skill_name for s in skills_list)
+        if is_stat:
+            val = character.characteristics.get(skill_name)
+            skill_dm = (val - 1) // 3 - 1  # rough DM calculation
+        else:
+            for s in character.skills:
+                if s.name == skill_name and s.speciality is None:
+                    skill_dm = s.level
+                    break
+
+        r2d = dice.roll("2D", modifier=skill_dm)
+        raw_total = r2d.total - skill_dm  # raw 2D before DM
+        total_with_dm = r2d.total
+        passed = total_with_dm >= target
+        nat2 = raw_total == 2
+
+        auto_applied.append(
+            f"Skill check {skill_name} {target}+: rolled 2D={raw_total}, DM{skill_dm:+d} = {total_with_dm} → {'PASS' if passed else 'FAIL'}"
+        )
+        character.log(f"Mishap skill check ({skill_name}): {total_with_dm} vs {target}+ — {'pass' if passed else 'fail'}")
+
+        # Apply consequences
+        consequences = on_nat2 if nat2 else (on_pass if passed else on_fail)
+        for sub_effect in consequences:
+            msgs, was_pending = _apply_mishap_effect(character, sub_effect, term)
+            auto_applied.extend(msgs)
+
+        character.pending_career_mishap_choice = None
+
+        return {
+            "auto_applied": auto_applied,
+            "skill_check": {
+                "skill": skill_name,
+                "roll": r2d.to_dict(),
+                "raw_2d": raw_total,
+                "dm": skill_dm,
+                "total": total_with_dm,
+                "target": target,
+                "passed": passed,
+                "nat2": nat2,
+            },
+            "injury_pending": bool(character.pending_injury_choice),
+            "injury_data": injury_data,
+            "character": character.model_dump(),
+        }
+
+    elif ptype == "free_skill_choice":
+        skill = choice_data.get("skill", "")
+        if not skill:
+            raise ValueError("skill is required for free_skill_choice")
+        msg = character.add_skill(skill, level=1)
+        auto_applied.append(msg)
+        character.log(f"Mishap free skill choice: {skill}")
+        character.pending_career_mishap_choice = None
+
+    else:
+        raise ValueError(f"Unknown pending mishap choice type: '{ptype}'")
+
+    return {
+        "auto_applied": auto_applied,
+        "injury_pending": bool(character.pending_injury_choice),
+        "injury_data": injury_data,
+        "character": character.model_dump(),
+    }
+
+
+def cross_career_event_or_mishap(character: "Character", career_id: str, table: str) -> dict:
+    """Roll on another career's event or mishap table WITHOUT modifying character state.
+
+    Used for agent event 8 (roll on Rogue or Citizen table).
+    """
+    all_careers = rules.careers()
+    if career_id not in all_careers:
+        raise ValueError(f"Unknown career_id: '{career_id}'")
+    career = all_careers[career_id]
+    career_name = career.get("name", career_id)
+
+    if table == "event":
+        events = career.get("events", {})
+        r = dice.roll("2D")
+        text = events.get(str(r.total), "(No event encoded for this roll.)")
+        return {
+            "roll": r.to_dict(),
+            "career_name": career_name,
+            "table": "event",
+            "text": text,
+            "character": character.model_dump(),
+        }
+    elif table == "mishap":
+        mishaps = career.get("mishaps", {})
+        r = dice.roll("1D")
+        text = mishaps.get(str(r.total), "(No mishap encoded for this roll.)")
+        return {
+            "roll": r.to_dict(),
+            "career_name": career_name,
+            "table": "mishap",
+            "text": text,
+            "character": character.model_dump(),
+        }
+    else:
+        raise ValueError(f"Unknown table: '{table}'. Must be 'event' or 'mishap'.")
 
 
 def advancement_roll(character: Character) -> dict:
@@ -2060,49 +2457,140 @@ def purchase_anagathics(character: "Character") -> dict:
 
 
 # ============================================================
+# Mishap effects table
+# ============================================================
+
+_MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
+    "agent": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "pending_choice", "id": "mishap_deal",
+             "prompt": "A criminal offers you a deal to leave without penalty, or you can refuse.",
+             "options": [
+                 {"id": "accept", "label": "Accept — leave without penalty (lose this term's benefit roll)"},
+                 {"id": "refuse", "label": "Refuse — injury ×2 lower, gain Enemy, gain any skill +1"},
+             ]}],
+        3: [{"type": "skill_check", "skills": [{"name": "Advocate"}], "target": 8,
+             "on_nat2": [{"type": "force_next_career", "career_id": "prisoner"}],
+             "on_fail": [{"type": "forfeit_benefit"}],
+             "on_pass": []}],
+        4: [{"type": "enemy", "desc": "Enemy [Investigation Target]"}, {"type": "skill", "name": "Deception", "level": 1}],
+        5: [{"type": "pending_choice", "id": "mishap_victim",
+             "prompt": "Choose which Contact or Ally gets hurt. They will become a Rival.",
+             "options": []}],  # populated dynamically
+        6: [{"type": "injury"}],
+    },
+    "army": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Commander]"}],
+        3: [{"type": "enemy", "desc": "Enemy [Rebels]"}, {"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        4: [{"type": "pending_choice", "id": "army_join_cooperate",
+             "prompt": "Your CO is engaged in illegal activity. What do you do?",
+             "options": [
+                 {"id": "join", "label": "Join their ring — gain them as an Ally (still get discharged later)"},
+                 {"id": "cooperate", "label": "Co-operate with military police — keep your Benefit roll (still discharged)"},
+             ]}],
+        5: [{"type": "rival", "desc": "Rival [Officer]"}],
+        6: [{"type": "injury"}],
+    },
+    "citizen": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rival", "desc": "Rival [Co-worker/Company]"}],
+        3: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
+        4: [{"type": "forfeit_benefit"}],
+        5: [{"type": "enemy", "desc": "Enemy [Co-worker/Customer]"}],
+        6: [{"type": "injury"}],
+    },
+    "drifter": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Kidnapper]"}],
+        3: [{"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -1}],
+        4: [{"type": "rival", "desc": "Rival [Local Criminals/Police]"}],
+        5: [{"type": "forfeit_benefit"}],
+        6: [{"type": "injury"}],
+    },
+    "entertainer": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1}, {"type": "rival", "desc": "Rival [Scandal]"}],
+        3: [{"type": "enemy", "desc": "Enemy [Patron/Critic/Sponsor]"}, {"type": "forfeit_benefit"}],
+        4: [],  # blacklisted — narrative
+        5: [{"type": "stat_choice", "options": ["STR", "DEX", "END", "INT", "EDU"], "amount": -1}],
+        6: [{"type": "injury"}],
+    },
+    "marine": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Disaster Engagement]"}, {"type": "skill", "name": "Gun Combat", "level": 1}],
+        3: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
+        4: [{"type": "contact", "desc": "Contact [Fellow Prisoner]"}, {"type": "enemy", "desc": "Enemy [Captors]"}],
+        5: [{"type": "rival", "desc": "Rival [Commander]"}],
+        6: [{"type": "injury"}],
+    },
+    "merchant": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Pirates/Corsairs]"}, {"type": "forfeit_benefit"}],
+        3: [{"type": "forfeit_benefit"}],
+        4: [{"type": "rival", "desc": "Rival [Political/Legal Dispute]"}],
+        5: [{"type": "forfeit_benefit"}],
+        6: [{"type": "injury"}],
+    },
+    "navy": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "contact", "desc": "Contact [Fellow Survivor]"}],
+        3: [{"type": "rival", "desc": "Rival [Service Member]"}],
+        4: [],  # court-martialled — narrative
+        5: [{"type": "enemy", "desc": "Enemy [Admiralty]"}],
+        6: [{"type": "injury"}],
+    },
+    "noble": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "skill_check", "skills": [{"name": "Stealth"}, {"name": "Deception"}], "target": 8,
+             "on_fail": [{"type": "injury"}], "on_pass": []}],
+        4: [{"type": "skill_choice", "options": ["Diplomat", "Advocate"]}, {"type": "rival", "desc": "Rival [Political Maneuverer]"}],
+        5: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_fail": [{"type": "injury"}], "on_pass": []}],
+        6: [{"type": "injury"}],
+    },
+    "prisoner": {
+        1: [{"type": "injury"}],  # no "twice" option — prisoner mishap 1 is just injury
+        2: [{"type": "enemy", "desc": "Enemy [Gang Leader/Guard/Prisoner]"}],
+        3: [{"type": "forfeit_benefit"}, {"type": "skill", "name": "Streetwise", "level": 1}],
+        4: [{"type": "stat", "stat": "END", "amount": -1}, {"type": "debt", "amount": 20000}],
+        5: [{"type": "enemy", "desc": "Enemy [Witness/Participant]"}, {"type": "skill", "name": "Deception", "level": 1}],
+        6: [{"type": "injury"}],
+    },
+    "rogue": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "forfeit_benefit"}],
+        3: [{"type": "enemy", "desc": "Enemy [Crime Job]"}, {"type": "forfeit_benefit"}],
+        4: [{"type": "enemy", "desc": "Enemy [Partner in Crime]"}],
+        5: [],  # forced to flee — narrative
+        6: [{"type": "injury"}],
+    },
+    "scholar": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -1}, {"type": "forfeit_benefit"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}, {"type": "rival", "desc": "Rival [Academic/Research]"}],
+        4: [{"type": "enemy", "desc": "Enemy [Subject/Colleague Family]"}],
+        5: [],  # funding pulled — narrative
+        6: [{"type": "injury"}],
+    },
+    "scout": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
+        3: [{"type": "d_associates", "kind": "contact", "dice": "1D"}, {"type": "d_associates", "kind": "enemy", "dice": "D3"}],
+        4: [{"type": "rival", "desc": "Rival [Minor World/Race]"}, {"type": "skill", "name": "Diplomat", "level": 1}],
+        5: [],  # narrative only
+        6: [{"type": "injury"}],
+    },
+}
+
+
+# ============================================================
 # Injury resolution (1D) — medical bills land here
 # ============================================================
 
-
-def apply_injury(character: "Character") -> dict:
-    """Roll 1D on the Injury table.
-
-    Result 6 is resolved immediately (no stat loss). Results 1–5 require the
-    player to choose which physical characteristic absorbs the damage, so they
-    set character.pending_injury_choice and return without modifying stats.
-    Call resolve_injury_choice() once the player has decided.
-
-    Medical debt (Cr 5,000 per point lost) is calculated and added when
-    resolve_injury_choice() runs.
-    """
-    data = rules.injury_table()
-    r = dice.roll("1D")
-    total = r.total
-    entry = data["entries"].get(str(total))
-    if entry is None:
-        raise ValueError(f"No injury entry for roll {total}")
-
-    title = entry["title"]
-    text = entry["text"]
-
-    if total == 6:
-        # Lightly Injured — no stat effect, no debt, no choice needed.
-        character.log(f"Injury [1D=6]: {title} — no permanent effect.")
-        return {
-            "roll": r.to_dict(),
-            "title": title,
-            "text": text,
-            "pending_choice": None,
-            "result_text": title,
-            "character": character.model_dump(),
-        }
-
-    # Pre-roll the 1D damage amount for results that need it.
-    damage_roll: Optional[int] = None
-    if total in (1, 2):
-        damage_roll = dice.roll("1D").total
-
-    # Build the pending choice descriptor.
+# Shared choices descriptor used by both apply_injury and _apply_injury_for_result.
+def _build_injury_choices(total: int, damage_roll: Optional[int]) -> dict:
     _choices: dict[int, dict] = {
         1: {
             "damage_to_chosen": damage_roll,
@@ -2138,23 +2626,75 @@ def apply_injury(character: "Character") -> dict:
             "prompt": "Injured — choose any physical stat to lose 1 point.",
         },
     }
+    return _choices[total]
+
+
+def _apply_injury_for_result(character: "Character", result: int) -> dict:
+    """Apply injury for a *specific* result (1–6) without rolling.
+
+    Result 6 auto-resolves immediately. Results 1–5 pre-roll damage dice
+    if needed and set character.pending_injury_choice.
+    Returns the same shape as apply_injury.
+    """
+    data = rules.injury_table()
+    entry = data["entries"].get(str(result))
+    if entry is None:
+        raise ValueError(f"No injury entry for result {result}")
+
+    title = entry["title"]
+    text = entry["text"]
+
+    if result == 6:
+        character.log(f"Injury [result=6]: {title} — no permanent effect.")
+        return {
+            "roll": {"total": 6, "dice": [6], "modifier": 0},
+            "title": title,
+            "text": text,
+            "pending_choice": None,
+            "result_text": title,
+            "character": character.model_dump(),
+        }
+
+    damage_roll: Optional[int] = None
+    if result in (1, 2):
+        damage_roll = dice.roll("1D").total
+
+    choice_data = _build_injury_choices(result, damage_roll)
     pending = {
-        "roll": total,
+        "roll": result,
         "title": title,
-        **_choices[total],
+        **choice_data,
     }
     character.pending_injury_choice = pending
     character.log(
-        f"Injury [1D={total}]: {title} — player must choose stat to absorb damage."
+        f"Injury [result={result}]: {title} — player must choose stat to absorb damage."
     )
     return {
-        "roll": r.to_dict(),
+        "roll": {"total": result, "dice": [result], "modifier": 0},
         "title": title,
         "text": text,
         "pending_choice": pending,
         "result_text": title,
         "character": character.model_dump(),
     }
+
+
+def apply_injury(character: "Character") -> dict:
+    """Roll 1D on the Injury table.
+
+    Result 6 is resolved immediately (no stat loss). Results 1–5 require the
+    player to choose which physical characteristic absorbs the damage, so they
+    set character.pending_injury_choice and return without modifying stats.
+    Call resolve_injury_choice() once the player has decided.
+
+    Medical debt (Cr 5,000 per point lost) is calculated and added when
+    resolve_injury_choice() runs.
+    """
+    r = dice.roll("1D")
+    result = _apply_injury_for_result(character, r.total)
+    # Override the roll dict with the actual dice roll object
+    result["roll"] = r.to_dict()
+    return result
 
 
 def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
@@ -2278,12 +2818,16 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         # Benefit rolls = 1 per full term + rank bonus
         rank_bonus = _benefit_rolls_from_rank(term.rank)
         earned = terms_in_career + rank_bonus
+        forfeit_note = ""
+        if term.benefit_forfeited:
+            earned = max(0, earned - 1)
+            forfeit_note = " (−1 forfeited by mishap)"
         character.pending_benefit_rolls += earned
         character.current_term = None
         character.log(
             f"Left {rules.careers()[term.career_id]['name']} "
             f"({reason}). {terms_in_career} terms served. "
-            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus)."
+            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note})."
         )
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
