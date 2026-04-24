@@ -172,6 +172,15 @@ class InjuryChoiceAction(CharacterAction):
     chosen_stat: str  # "STR" | "DEX" | "END"
 
 
+class CareerMishapChoiceAction(CharacterAction):
+    choice_data: dict = {}
+
+
+class CrossCareerRollAction(CharacterAction):
+    career_id: str
+    table: str  # "event" | "mishap"
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -448,6 +457,24 @@ async def api_mishap(action: CharacterAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.mishap_roll(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/career-mishap-choice")
+async def api_career_mishap_choice(action: CareerMishapChoiceAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_career_mishap_choice(character, action.choice_data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/cross-career-roll")
+async def api_cross_career_roll(action: CrossCareerRollAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.cross_career_event_or_mishap(character, action.career_id, action.table)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

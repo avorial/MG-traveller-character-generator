@@ -53,6 +53,7 @@ class CareerTerm(BaseModel):
     advanced: Optional[bool] = None
     mishap: Optional[str] = None
     basic_training: bool = False
+    benefit_forfeited: bool = False
 
 
 class CareerRecord(BaseModel):
@@ -127,6 +128,12 @@ class Character(BaseModel):
     # Shape: {"roll": int, "title": str, "damage_to_chosen": int,
     #         "auto_reduce_others": int, "choices": [str], "prompt": str}
     pending_injury_choice: Optional[dict] = None
+
+    # Pending interactive choice from a career mishap roll. Cleared once
+    # the player resolves it via /api/character/career-mishap-choice.
+    # Shape varies by type: "injury_severity_choice", "stat_choice",
+    # "skill_choice", "pending_choice", "skill_check", "free_skill_choice"
+    pending_career_mishap_choice: Optional[dict] = None
 
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
