@@ -998,15 +998,19 @@ function renderPreCareerPhase() {
     const pendingAnySkill = !!ev.pending_any_skill;
     const pendingEvent10 = !!ev.pending_event10;
     const pendingEvent11 = !!ev.pending_event11;
+    const pendingLifeEvent = !!ev.pending_life_event;
+    const lifeEventChoiceKind = ev.life_event_choice_kind || null;
     const nextBtn = pendingEvent11
       ? `<button class="btn primary" id="btn-show-event11">RESPOND TO DRAFT →</button>`
       : pendingEvent10
         ? `<button class="btn primary" id="btn-show-event10">TAKE TUTOR CHALLENGE →</button>`
-        : pendingAnySkill
-          ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
-          : hasPicks
-            ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
-            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
+        : pendingLifeEvent
+          ? `<button class="btn primary" id="btn-show-life-event-choice">RESOLVE LIFE EVENT →</button>`
+          : pendingAnySkill
+            ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
+            : hasPicks
+              ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
+              : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1017,6 +1021,65 @@ function renderPreCareerPhase() {
         ${eventHTML}
         <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">${nextBtn}</div>
+      </div>
+    `;
+  }
+
+  // Life event interactive choice screen
+  if (uiState.lastRoll?.type === 'precareer_life_event_choice') {
+    const kind = uiState.lastRoll.choiceKind;
+    const hasBenefitRolls = (character.pending_benefit_rolls || 0) > 0;
+
+    let title, body, buttons;
+    if (kind === 'romantic_split') {
+      title = 'Life Event — Relationship Ends Badly';
+      body = 'A romantic relationship involving you ends badly. Choose the consequence:';
+      buttons = `
+        <button class="card" id="btn-life-choice-rival">
+          <div class="card-title">Rival [Romantic]</div>
+          <div class="card-desc">They become a rival — someone who competes with or resents you.</div>
+        </button>
+        <button class="card" id="btn-life-choice-enemy">
+          <div class="card-title">Enemy [Romantic]</div>
+          <div class="card-desc">They become an enemy — actively working against you.</div>
+        </button>`;
+    } else if (kind === 'betrayal_no_associates') {
+      title = 'Life Event — Betrayal';
+      body = 'A friend has betrayed you. You have no existing Contacts or Allies to convert. Gain one of:';
+      buttons = `
+        <button class="card" id="btn-life-choice-rival">
+          <div class="card-title">Rival [Betrayer]</div>
+          <div class="card-desc">They become a rival — someone who resents or opposes you.</div>
+        </button>
+        <button class="card" id="btn-life-choice-enemy">
+          <div class="card-title">Enemy [Betrayer]</div>
+          <div class="card-desc">They become an active enemy — a serious, ongoing threat.</div>
+        </button>`;
+    } else if (kind === 'crime_choice') {
+      title = 'Life Event — Crime';
+      body = 'You commit or are accused of a crime. Choose your consequence:';
+      buttons = `
+        <button class="card ${hasBenefitRolls ? '' : 'locked'}" id="btn-life-choice-lose_benefit" ${hasBenefitRolls ? '' : 'disabled'}>
+          <div class="card-title">Lose a Benefit Roll ${hasBenefitRolls ? '' : '(none available)'}</div>
+          <div class="card-desc">You pay a fine or bribe. Lose one mustering-out benefit roll.</div>
+        </button>
+        <button class="card" id="btn-life-choice-prisoner">
+          <div class="card-title">Take the Prisoner Career</div>
+          <div class="card-desc">You serve time. Your next career must be Prisoner.</div>
+        </button>`;
+    } else {
+      title = 'Life Event Choice';
+      body = 'An unexpected event requires a decision.';
+      buttons = '';
+    }
+
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Life Event — Choose</div>
+        <h2 class="phase-title">${title}</h2>
+        <p class="phase-body">${body}</p>
+        <div class="card-grid">${buttons}</div>
       </div>
     `;
   }
@@ -1285,6 +1348,31 @@ function wirePreCareerPhase() {
     uiState.anySkillFilter = '';
     uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_any_skill_pick' };
     renderStage();
+  });
+
+  // Life event choice: navigate to choice screen
+  const showLifeEventBtn = document.getElementById('btn-show-life-event-choice');
+  if (showLifeEventBtn) showLifeEventBtn.addEventListener('click', () => {
+    const kind = character.pending_life_event_choice?.kind || uiState.lastRoll?.life_event_choice_kind;
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_life_event_choice', choiceKind: kind };
+    renderStage();
+  });
+
+  // Life event choice buttons (rival / enemy / lose_benefit / prisoner)
+  document.querySelectorAll('[id^="btn-life-choice-"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const choice = btn.id.replace('btn-life-choice-', '');
+      try {
+        const response = await apiCall('/api/character/life-event-choice', { choice });
+        await applyResponse(response);
+        // After resolving, check if we can continue or need skill picks
+        const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+        uiState.lastRoll = hasPicks
+          ? { ...uiState.lastRoll, type: 'precareer_skill_pick', pending_life_event: false }
+          : { ...uiState.lastRoll, type: 'precareer_graduate', event: { ...uiState.lastRoll?.event, pending_life_event: false } };
+        renderStage();
+      } catch (e) { alert(e.message); }
+    });
   });
 
   // Event 10: show tutor challenge picker
@@ -3456,9 +3544,19 @@ function renderMusterPhase() {
       <div class="card-grid">${careerPicker}</div>
 
       ${uiState.selectedCareer ? `
+        ${(character.good_fortune_benefit_dm || 0) > 0 ? `
+          <div class="dm-applied-box" style="margin-top:12px">
+            <span class="event-label">Good Fortune</span>
+            <div class="dm-chip applied">DM+2 token available — click to toggle for your next benefit roll</div>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer">
+              <input type="checkbox" id="chk-good-fortune" ${uiState.useGoodFortune ? 'checked' : ''} />
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--amber)">Apply Good Fortune (+2) to next benefit roll</span>
+            </label>
+          </div>
+        ` : ''}
         <div class="phase-actions">
           <button class="btn primary" id="btn-roll-cash" ${cashRolled >= 3 ? 'disabled' : ''}>ROLL CASH (1D)${cashRolled >= 3 ? ' — MAX' : ''}</button>
-          <button class="btn" id="btn-roll-benefit">ROLL BENEFIT (1D)</button>
+          <button class="btn" id="btn-roll-benefit">ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
         </div>
       ` : ''}
     </div>
@@ -3471,6 +3569,11 @@ function wireMusterPhase() {
       uiState.selectedCareer = card.dataset.musterCareer;
       renderStage();
     });
+  });
+  const chkGoodFortune = document.getElementById('chk-good-fortune');
+  if (chkGoodFortune) chkGoodFortune.addEventListener('change', () => {
+    uiState.useGoodFortune = chkGoodFortune.checked;
+    renderStage();
   });
   const btnCash = document.getElementById('btn-roll-cash');
   if (btnCash) {
@@ -3502,15 +3605,18 @@ function wireMusterPhase() {
       try {
         const careerId = uiState.selectedCareer;
         const careerDef = CAREERS.find(x => x.id === careerId);
+        const useGoodFortune = !!(uiState.useGoodFortune && character.good_fortune_benefit_dm > 0);
         const response = await apiCall('/api/character/muster-out',
-          { career_id: careerId, column: 'benefit' });
+          { career_id: careerId, column: 'benefit', use_good_fortune: useGoodFortune });
         await applyResponse(response);
+        uiState.useGoodFortune = false;
         uiState.lastRoll = {
           type: 'muster',
           column: 'benefit',
           data: response.roll,
           result: response.result,
           remaining_rolls: response.remaining_rolls,
+          good_fortune_used: response.good_fortune_used,
           careerId,
           careerName: careerDef?.name || careerId,
         };

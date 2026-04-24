@@ -1023,6 +1023,13 @@ def pre_career_graduate(
             )
         event_auto_applied.append(f"D3={count} — gained {count} Ally [Education]")
 
+    if ev.total == 7:
+        # Life Event — roll on the Life Events table immediately.
+        life_result = apply_life_event(character)
+        event_auto_applied.extend(life_result["auto_applied"])
+        if life_result.get("pending_choice"):
+            event_auto_applied.append("PENDING: resolve the life event choice below")
+
     if ev.total == 8:
         # Political movement — roll SOC 8+: success → Ally [Political Movement] + Enemy [Society].
         soc_val = character.characteristics.get("SOC")
@@ -1128,6 +1135,11 @@ def pre_career_graduate(
             "pending_any_skill": ev.total == 9 and not forced_fail,
             "pending_event10": pending_event10,
             "pending_event11": pending_event11,
+            "pending_life_event": bool(character.pending_life_event_choice),
+            "life_event_choice_kind": (
+                character.pending_life_event_choice.get("kind")
+                if character.pending_life_event_choice else None
+            ),
         },
         "character": character.model_dump(),
     }
@@ -1338,6 +1350,200 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
         "draft_career": draft_career,
         "character": character.model_dump(),
     }
+
+
+def apply_life_event(character: Character) -> dict:
+    """Roll 2D on the Life Events table and auto-apply everything possible.
+
+    Returns a dict describing what happened. Interactive outcomes set
+    character.pending_life_event_choice so the caller can prompt the player.
+    """
+    r = dice.roll("2D")
+    total = r.total
+    auto_applied: list[str] = []
+    pending_choice: Optional[dict] = None
+
+    if total == 2:
+        # Sickness or Injury — roll on the Injury table immediately.
+        injury = apply_injury(character)
+        auto_applied.append(f"Injury: {injury.get('result_text', 'see log')}")
+
+    elif total == 3:
+        # Birth or Death — someone close dies or is born.
+        character.associates.append(
+            Associate(kind="contact", description="Dead — Friend/Family [Birth or Death Event]")
+        )
+        auto_applied.append("Noted Dead — Friend/Family in associates")
+
+    elif total == 4:
+        # Ending of Relationship — player picks Rival or Enemy.
+        pending_choice = {"kind": "romantic_split"}
+        auto_applied.append("PENDING: choose Rival [Romantic] or Enemy [Romantic]")
+
+    elif total == 5:
+        # Improved Relationship — gain Ally [Romantic].
+        character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
+        auto_applied.append("Gained Ally [Romantic]")
+
+    elif total == 6:
+        # New Relationship — gain Ally [Romantic].
+        character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
+        auto_applied.append("Gained Ally [Romantic]")
+
+    elif total == 7:
+        # New Contact — gain Contact [Generic].
+        character.associates.append(Associate(kind="contact", description="Contact [Generic]"))
+        auto_applied.append("Gained Contact [Generic]")
+
+    elif total == 8:
+        # Betrayal — convert first Contact/Ally or gain Rival/Enemy.
+        contacts = [i for i, a in enumerate(character.associates) if a.kind == "contact"]
+        allies = [i for i, a in enumerate(character.associates) if a.kind == "ally"]
+        if contacts:
+            old = character.associates[contacts[0]]
+            old_desc = old.description or "Contact"
+            character.associates[contacts[0]] = Associate(
+                kind="rival", description=f"Rival [Betrayer] (was: {old_desc})"
+            )
+            auto_applied.append(f"Contact '{old_desc}' converted to Rival [Betrayer]")
+        elif allies:
+            old = character.associates[allies[0]]
+            old_desc = old.description or "Ally"
+            character.associates[allies[0]] = Associate(
+                kind="enemy", description=f"Enemy [Betrayer] (was: {old_desc})"
+            )
+            auto_applied.append(f"Ally '{old_desc}' converted to Enemy [Betrayer]")
+        else:
+            # No contacts or allies — player picks which to gain.
+            pending_choice = {"kind": "betrayal_no_associates"}
+            auto_applied.append("PENDING: no existing Contact/Ally — choose Rival or Enemy [Betrayer]")
+
+    elif total == 9:
+        # Travel — DM+2 to next Qualification roll.
+        character.dm_next_qualification += 2
+        auto_applied.append("DM+2 to next Qualification roll")
+
+    elif total == 10:
+        # Good Fortune — one DM+2 token for any benefit roll.
+        character.good_fortune_benefit_dm += 2
+        auto_applied.append("Good Fortune: DM+2 token available for one mustering-out benefit roll")
+
+    elif total == 11:
+        # Crime — player picks: lose a benefit roll OR take Prisoner career.
+        pending_choice = {
+            "kind": "crime_choice",
+            "has_benefit_rolls": character.pending_benefit_rolls > 0,
+        }
+        auto_applied.append("PENDING: choose crime consequence (lose benefit roll or Prisoner career)")
+
+    elif total == 12:
+        # Unusual Event — roll 1D sub-event.
+        d6 = dice.roll("1D")
+        sub = d6.total
+        if sub == 1:
+            # Psionics — test PSI immediately.
+            psi_roll = dice.roll("2D")
+            character.psi = psi_roll.total
+            character.psi_tested = True
+            auto_applied.append(f"Psionics: PSI tested, rolled {psi_roll.total}. Psion career available.")
+        elif sub == 2:
+            # Aliens — gain Science 1 (alien race) + Contact [Alien].
+            character.add_skill("Science", level=1, speciality="Alien Races")
+            character.associates.append(Associate(kind="contact", description="Contact [Alien]"))
+            auto_applied.append("Gained Science (Alien Races) 1 and Contact [Alien]")
+        elif sub == 3:
+            # Alien Artefact — add to equipment.
+            character.equipment.append(Equipment(name="Alien Artefact", notes="Unusual Event 12-3"))
+            auto_applied.append("Alien Artefact added to equipment")
+        elif sub == 4:
+            # Amnesia.
+            character.associates.append(
+                Associate(kind="contact", description="Unknown [Amnesia] — something happened")
+            )
+            auto_applied.append("Noted Unknown [Amnesia] in associates")
+        elif sub == 5:
+            # Contact with Government.
+            character.associates.append(
+                Associate(kind="contact", description="Met [Government Official] — Imperial contact")
+            )
+            auto_applied.append("Noted Met [Government Official] in associates")
+        elif sub == 6:
+            # Ancient Technology — add to equipment.
+            character.equipment.append(Equipment(name="Ancient Technology", notes="Unusual Event 12-6"))
+            auto_applied.append("Ancient Technology added to equipment")
+        auto_applied.insert(0, f"Unusual Event sub-roll: D6={sub}")
+
+    edu = rules.education()
+    life_table: dict = edu.get("life_events", {})
+    event_text = life_table.get(str(total), "Something happens in your life.")
+
+    character.log(
+        f"Life Event [{total}]: {event_text}"
+        + (f" — {', '.join(auto_applied)}" if auto_applied else "")
+    )
+
+    if pending_choice:
+        character.pending_life_event_choice = pending_choice
+
+    return {
+        "roll": r.to_dict(),
+        "total": total,
+        "event_text": event_text,
+        "auto_applied": auto_applied,
+        "pending_choice": pending_choice,
+    }
+
+
+def resolve_life_event_choice(character: Character, choice: str) -> dict:
+    """Resolve a pending interactive Life Event choice.
+
+    choice values per kind:
+      romantic_split          → "rival" | "enemy"
+      betrayal_no_associates  → "rival" | "enemy"
+      crime_choice            → "lose_benefit" | "prisoner"
+    """
+    pending = character.pending_life_event_choice
+    if not pending:
+        raise ValueError("No pending life event choice to resolve.")
+
+    kind = pending.get("kind")
+    if kind == "romantic_split":
+        if choice == "rival":
+            character.associates.append(Associate(kind="rival", description="Rival [Romantic]"))
+            character.log("Life Event 4: gained Rival [Romantic]")
+        elif choice == "enemy":
+            character.associates.append(Associate(kind="enemy", description="Enemy [Romantic]"))
+            character.log("Life Event 4: gained Enemy [Romantic]")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for romantic_split")
+
+    elif kind == "betrayal_no_associates":
+        if choice == "rival":
+            character.associates.append(Associate(kind="rival", description="Rival [Betrayer]"))
+            character.log("Life Event 8: gained Rival [Betrayer]")
+        elif choice == "enemy":
+            character.associates.append(Associate(kind="enemy", description="Enemy [Betrayer]"))
+            character.log("Life Event 8: gained Enemy [Betrayer]")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for betrayal_no_associates")
+
+    elif kind == "crime_choice":
+        if choice == "lose_benefit":
+            if character.pending_benefit_rolls <= 0:
+                raise ValueError("No benefit rolls remaining to lose.")
+            character.pending_benefit_rolls -= 1
+            character.log("Life Event 11 (Crime): lost one benefit roll")
+        elif choice == "prisoner":
+            character.forced_next_career_id = "prisoner"
+            character.log("Life Event 11 (Crime): must take Prisoner career next term")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for crime_choice")
+
+    else:
+        raise ValueError(f"Unknown pending life event kind: {kind!r}")
+
+    character.pending_life_event_choice = None
+    return {"choice": choice, "kind": kind, "character": character.model_dump()}
 
 
 def pre_career_event_roll(character: Character) -> dict:
@@ -2088,7 +2294,9 @@ def _apply_aging_effect(character: Character, effect: dict) -> list[str]:
 # ============================================================
 
 
-def muster_out_roll(character: Character, career_id: str, column: str) -> dict:
+def muster_out_roll(
+    character: Character, career_id: str, column: str, use_good_fortune: bool = False
+) -> dict:
     """Roll on the mustering-out table (1D), applying the chosen column: cash or benefits."""
     if character.pending_benefit_rolls <= 0:
         raise ValueError("No benefit rolls remaining")
@@ -2112,6 +2320,13 @@ def muster_out_roll(character: Character, career_id: str, column: str) -> dict:
     dm += character.dm_next_benefit
     pending_dm = character.dm_next_benefit
     character.dm_next_benefit = 0
+
+    # Good Fortune token (Life Event 10) — voluntary DM+2 on benefit rolls.
+    good_fortune_used = False
+    if use_good_fortune and character.good_fortune_benefit_dm > 0:
+        dm += 2
+        character.good_fortune_benefit_dm -= 2
+        good_fortune_used = True
 
     r = dice.roll("1D", modifier=dm)
     # 1D result capped to 1-6 for table lookup
@@ -2147,9 +2362,14 @@ def muster_out_roll(character: Character, career_id: str, column: str) -> dict:
         character.log(f"Muster out (benefit)[{r.total}]: {benefit}")
 
     character.pending_benefit_rolls -= 1
-    return {"roll": r.to_dict(), "result": result_text,
-            "remaining_rolls": character.pending_benefit_rolls,
-            "character": character.model_dump()}
+    return {
+        "roll": r.to_dict(),
+        "result": result_text,
+        "remaining_rolls": character.pending_benefit_rolls,
+        "good_fortune_used": good_fortune_used,
+        "good_fortune_remaining": character.good_fortune_benefit_dm,
+        "character": character.model_dump(),
+    }
 
 
 def _apply_benefit(character: Character, benefit: str) -> None:

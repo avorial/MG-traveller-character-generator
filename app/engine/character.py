@@ -117,6 +117,15 @@ class Character(BaseModel):
     # only allow this career until it is consumed.
     forced_next_career_id: Optional[str] = None
 
+    # Pending interactive choice from a Life Event roll. Cleared once the
+    # player resolves it via /api/character/life-event-choice.
+    # Shape: {"kind": str, ...context keys...}
+    pending_life_event_choice: Optional[dict] = None
+
+    # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
+    # voluntarily applied to one mustering-out benefit roll.
+    good_fortune_benefit_dm: int = 0
+
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None

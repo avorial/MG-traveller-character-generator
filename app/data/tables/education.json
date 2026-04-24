@@ -13,6 +13,19 @@
     "11": "War comes and a wide-ranging draft is instigated. You can either flee and join the Drifter career next term or be drafted (roll 1D: 1-3 Army, 4-5 Marine, 6 Navy). Either way, you do not graduate this term. However, if you roll SOC 9+, you can get enough strings pulled to avoid the draft and complete your education — you may attempt graduation normally and are not drafted.",
     "12": "You gain wide-ranging recognition of your initiative and innovative approach to study. Increase your SOC by +1."
   },
+  "life_events": {
+    "2":  "Sickness or Injury: You are injured or become sick. Roll on the Injury Table.",
+    "3":  "Birth or Death: Someone close to you dies, like a friend or family member. Alternatively, someone close to you gives birth (or is born!). You are involved in some fashion.",
+    "4":  "Ending of Relationship: A romantic relationship involving you ends. Badly. Gain a Rival or Enemy.",
+    "5":  "Improved Relationship: A romantic relationship involving you deepens, possibly leading to marriage or some other emotional commitment. Gain an Ally.",
+    "6":  "New Relationship: You become involved in a romantic relationship. Gain an Ally.",
+    "7":  "New Contact: You gain a new Contact.",
+    "8":  "Betrayal: You are betrayed in some fashion by a friend. If you have any Contacts or Allies, convert one into a Rival or Enemy. Otherwise, gain a Rival or an Enemy.",
+    "9":  "Travel: You move to another world. You gain DM+2 to your next Qualification roll.",
+    "10": "Good Fortune: Something good happens to you; you come into money unexpectedly, have a lifelong dream come true, get a book published or have some other stroke of good fortune. Gain DM+2 to any one Benefit roll.",
+    "11": "Crime: You commit or are the victim (or are accused) of a crime. Lose one Benefit roll or take the Prisoner career in your next term.",
+    "12": "Unusual Event: Something weird happens. Roll 1D: 1 Psionics, 2 Aliens, 3 Alien Artefact, 4 Amnesia, 5 Contact with Government, 6 Ancient Technology."
+  },
   "tracks": {
     "university": {
       "id": "university",
