@@ -324,6 +324,20 @@ body {
   font-weight: 500;
 }
 
+.noble-title-badge {
+  grid-column: 1 / -1;
+  color: var(--gold, #c9a84c);
+  border: 1px solid var(--gold, #c9a84c);
+  border-radius: 2px;
+  padding: 2px 6px;
+  text-align: center;
+  letter-spacing: 0.15em;
+}
+.noble-title-badge strong {
+  color: var(--gold, #c9a84c);
+  font-size: 13px;
+}
+
 .sheet-section {
   margin-bottom: 20px;
 }

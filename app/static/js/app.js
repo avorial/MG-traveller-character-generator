@@ -230,6 +230,14 @@ function rollReadoutHTML(r, opts = {}) {
 // Rendering: Character Sheet (left panel)
 // ------------------------------------------------------------
 
+const NOBLE_TITLES = { 11: 'Knight', 12: 'Baron', 13: 'Marquis', 14: 'Count', 15: 'Duke' };
+const IMPERIAL_SPECIES = new Set(['imperial_human', 'human', 'solomani', 'vilani', 'mixed_human']);
+
+function nobleTitle(speciesId, soc) {
+  if (!IMPERIAL_SPECIES.has(speciesId)) return null;
+  return NOBLE_TITLES[soc] || (soc > 15 ? 'Archduke' : null);
+}
+
 function renderSheet() {
   const sheet = document.getElementById('sheet');
   const stats = character.characteristics;
@@ -311,6 +319,7 @@ function renderSheet() {
           <span>AGE<br><strong>${character.age}</strong></span>
           <span>TERMS<br><strong>${character.total_terms}</strong></span>
           <span>CREDITS<br><strong>Cr${character.credits.toLocaleString()}</strong></span>
+          ${nobleTitle(character.species_id, character.characteristics?.SOC) ? `<span class="noble-title-badge" title="Imperial Noble Title">TITLE<br><strong>${nobleTitle(character.species_id, character.characteristics?.SOC)}</strong></span>` : ''}
         </div>
       </div>
 
