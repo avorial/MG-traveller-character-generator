@@ -181,6 +181,10 @@ class CrossCareerRollAction(CharacterAction):
     table: str  # "event" | "mishap"
 
 
+class BanCareerAction(CharacterAction):
+    career_id: str
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -475,6 +479,15 @@ async def api_cross_career_roll(action: CrossCareerRollAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.cross_career_event_or_mishap(character, action.career_id, action.table)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/ban-career")
+async def api_ban_career(action: BanCareerAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.ban_career(character, action.career_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
