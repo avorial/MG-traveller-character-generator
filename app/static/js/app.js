@@ -996,11 +996,17 @@ function renderPreCareerPhase() {
     `;
     const hasPicks = (status.skill_picks_remaining || 0) > 0;
     const pendingAnySkill = !!ev.pending_any_skill;
-    const nextBtn = pendingAnySkill
-      ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
-      : hasPicks
-        ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
-        : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
+    const pendingEvent10 = !!ev.pending_event10;
+    const pendingEvent11 = !!ev.pending_event11;
+    const nextBtn = pendingEvent11
+      ? `<button class="btn primary" id="btn-show-event11">RESPOND TO DRAFT →</button>`
+      : pendingEvent10
+        ? `<button class="btn primary" id="btn-show-event10">TAKE TUTOR CHALLENGE →</button>`
+        : pendingAnySkill
+          ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
+          : hasPicks
+            ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
+            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1011,6 +1017,53 @@ function renderPreCareerPhase() {
         ${eventHTML}
         <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">${nextBtn}</div>
+      </div>
+    `;
+  }
+
+  // Event 10 — tutor challenge skill picker
+  if (uiState.lastRoll?.type === 'precareer_event10') {
+    const lr = uiState.lastRoll;
+    const pool = status.event10_skill_pool || [];
+    const filter = uiState.event10Filter || '';
+    const filtered = pool.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
+    const chips = filtered.map(s =>
+      `<button class="skill-chip" data-event10-skill="${escapeHTML(s)}">${escapeHTML(s)}</button>`
+    ).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Education Event 10 — Tutor Challenge</div>
+        <h2 class="phase-title">Challenge Your Tutor</h2>
+        <p class="phase-body">Pick a skill from your education curriculum, then roll 2D 9+. Success: +1 level in that skill and gain a Rival [Tutor].</p>
+        <input class="skill-search" id="event10-skill-search" type="text" placeholder="Filter skills…" value="${escapeHTML(filter)}" autocomplete="off" />
+        <div class="skill-picker">${chips}</div>
+      </div>
+    `;
+  }
+
+  // Event 11 — draft event: Drifter / Draft / Dodge
+  if (uiState.lastRoll?.type === 'precareer_event11') {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Education Event 11 — Draft!</div>
+        <h2 class="phase-title">War Is Coming</h2>
+        <p class="phase-body">A wide-ranging draft has been instigated. Choose your response:</p>
+        <div class="card-grid">
+          <button class="card" id="btn-event11-drifter">
+            <div class="card-title">Flee — Drifter</div>
+            <div class="card-desc">Avoid the draft by dropping out. You do not graduate. Your next career must be Drifter.</div>
+          </button>
+          <button class="card" id="btn-event11-draft">
+            <div class="card-title">Accept the Draft</div>
+            <div class="card-desc">Roll 1D: 1–3 Army, 4–5 Marine, 6 Navy. You do not graduate but enter that service directly.</div>
+          </button>
+          <button class="card" id="btn-event11-dodge">
+            <div class="card-title">Pull Strings — Dodge (SOC 9+)</div>
+            <div class="card-desc">Roll SOC 9+. Success: ignore the draft and continue to graduation. Failure: you do not graduate.</div>
+          </button>
+        </div>
       </div>
     `;
   }
@@ -1234,6 +1287,90 @@ function wirePreCareerPhase() {
     renderStage();
   });
 
+  // Event 10: show tutor challenge picker
+  const showEvent10Btn = document.getElementById('btn-show-event10');
+  if (showEvent10Btn) showEvent10Btn.addEventListener('click', () => {
+    uiState.event10Filter = '';
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_event10' };
+    renderStage();
+  });
+
+  // Event 10 search filter
+  const event10Search = document.getElementById('event10-skill-search');
+  if (event10Search) {
+    event10Search.focus();
+    event10Search.addEventListener('input', () => {
+      uiState.event10Filter = event10Search.value;
+      renderStage();
+    });
+  }
+
+  // Event 10 skill chip click — roll 2D 9+ and resolve
+  document.querySelectorAll('[data-event10-skill]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const skill = chip.dataset.event10Skill;
+      try {
+        const response = await apiCall('/api/character/pre-career/event10-skill', { skill_text: skill });
+        await applyResponse(response);
+        const succeeded = response.roll?.succeeded;
+        const msg = succeeded
+          ? `Tutor challenge on ${skill}: SUCCESS! Gained +1 level and Rival [Tutor].`
+          : `Tutor challenge on ${skill}: failed. No bonus.`;
+        alert(msg);
+        uiState.event10Filter = '';
+        uiState.lastRoll = null;
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
+  // Event 11: show draft event screen
+  const showEvent11Btn = document.getElementById('btn-show-event11');
+  if (showEvent11Btn) showEvent11Btn.addEventListener('click', () => {
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_event11' };
+    renderStage();
+  });
+
+  // Event 11 choice buttons
+  const ev11Drifter = document.getElementById('btn-event11-drifter');
+  if (ev11Drifter) ev11Drifter.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/event11-choice', { choice: 'drifter' });
+      await applyResponse(response);
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  const ev11Draft = document.getElementById('btn-event11-draft');
+  if (ev11Draft) ev11Draft.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/event11-choice', { choice: 'draft' });
+      await applyResponse(response);
+      const career = response.draft_career || 'unknown';
+      const d6 = response.roll?.dice?.[0] ?? '?';
+      alert(`Drafted! D6=${d6} — you must enter the ${career.toUpperCase()} career.`);
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  const ev11Dodge = document.getElementById('btn-event11-dodge');
+  if (ev11Dodge) ev11Dodge.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/event11-choice', { choice: 'dodge' });
+      await applyResponse(response);
+      const roll = response.roll;
+      const succeeded = roll?.succeeded;
+      const msg = succeeded
+        ? `Draft dodged! (SOC check: ${roll.total} vs 9+). Graduation stands.`
+        : `Draft dodge failed (SOC check: ${roll.total} vs 9+). Did not graduate.`;
+      alert(msg);
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
   // Any-skill search filter
   const anySkillSearch = document.getElementById('any-skill-search');
   if (anySkillSearch) {
@@ -1343,7 +1480,16 @@ function renderCareerPhase() {
 }
 
 function renderChooseCareer() {
-  const cards = CAREERS.map(c => {
+  const forcedId = character.forced_next_career_id || null;
+  const careerList = forcedId
+    ? CAREERS.filter(c => c.id === forcedId)
+    : CAREERS;
+  const forcedBanner = forcedId ? `
+    <p class="phase-body" style="color:var(--danger);font-weight:bold">
+      ⚠ You must enter the ${forcedId.toUpperCase()} career this term (education event mandate).
+    </p>` : '';
+
+  const cards = careerList.map(c => {
     const isComplete = c.complete;
     const qual = c.qualification || {};
     let qualText;
@@ -1370,6 +1516,7 @@ function renderChooseCareer() {
     <div class="stage-content">
       <div class="phase-label">Term ${character.total_terms + 1} · Age ${character.age}</div>
       <h2 class="phase-title">Choose a Career</h2>
+      ${forcedBanner}
       <p class="phase-subtitle">${character.total_terms === 0
         ? 'Your first career defines the first four years of your adult life.'
         : 'You survived. Another four years await — continue, or try something new.'}</p>
@@ -1398,6 +1545,11 @@ function wireCareerPhase() {
       uiState.selectedCareer = careerId;
       uiState.selectedAssignment = null;
       uiState.subPhase = 'qualify';
+      // Consume forced_next_career_id so it doesn't restrict future terms.
+      if (character.forced_next_career_id) {
+        character.forced_next_career_id = null;
+        saveCharacter();
+      }
       const response = await apiCall('/api/character/qualify', { career_id: careerId });
       await applyResponse(response);
       uiState.lastRoll = response;

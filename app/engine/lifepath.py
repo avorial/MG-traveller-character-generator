@@ -953,6 +953,14 @@ def pre_career_graduate(
     event_auto_applied: list[str] = []
     forced_fail = False
 
+    if ev.total == 2:
+        # Psionic contact — roll 2D for PSI characteristic, flag Psion available.
+        psi_roll = dice.roll("2D")
+        character.psi = psi_roll.total
+        character.psi_tested = True
+        event_auto_applied.append(f"PSI tested: rolled {psi_roll.total} — PSI = {psi_roll.total}")
+        event_auto_applied.append("Psion career now available in any subsequent term")
+
     if ev.total == 3:
         forced_fail = True
         if outcome in ("pass", "honours"):
@@ -975,14 +983,80 @@ def pre_career_graduate(
             skill_pool = []
             event_auto_applied.append("Graduation result overridden — failed to graduate")
 
+    if ev.total == 4:
+        # Prank gone wrong — roll SOC 8+. Natural 2 = must take Prisoner next term.
+        soc_val = character.characteristics.get("SOC")
+        soc_dm = dice.characteristic_dm(soc_val)
+        soc_roll = dice.roll("2D", modifier=soc_dm, target=8)
+        if soc_roll.raw_total == 2:
+            # Natural 2 — forced into Prisoner career.
+            character.forced_next_career_id = "prisoner"
+            event_auto_applied.append(
+                f"SOC check: natural 2! Must take Prisoner career next term."
+            )
+        elif soc_roll.succeeded:
+            character.associates.append(
+                Associate(kind="rival", description="Rival [Education] — prank gone wrong")
+            )
+            event_auto_applied.append(
+                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): passed — gained Rival [Education]"
+            )
+        else:
+            character.associates.append(
+                Associate(kind="enemy", description="Enemy [Education] — prank gone wrong")
+            )
+            event_auto_applied.append(
+                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): failed — gained Enemy [Education]"
+            )
+
     if ev.total == 5:
         character.add_skill("Carouse", level=1)
         event_auto_applied.append("Gained Carouse 1")
 
+    if ev.total == 6:
+        # Tight-knit clique — gain D3 Allies.
+        d3_roll = dice.roll("D3")
+        count = d3_roll.total
+        for _ in range(count):
+            character.associates.append(
+                Associate(kind="ally", description="Ally [Education] — close clique")
+            )
+        event_auto_applied.append(f"D3={count} — gained {count} Ally [Education]")
+
+    if ev.total == 8:
+        # Political movement — roll SOC 8+: success → Ally [Political Movement] + Enemy [Society].
+        soc_val = character.characteristics.get("SOC")
+        soc_dm = dice.characteristic_dm(soc_val)
+        soc_roll = dice.roll("2D", modifier=soc_dm, target=8)
+        if soc_roll.succeeded:
+            character.associates.append(
+                Associate(kind="ally", description="Ally [Political Movement]")
+            )
+            character.associates.append(
+                Associate(kind="enemy", description="Enemy [Society]")
+            )
+            event_auto_applied.append(
+                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): passed — "
+                f"Ally [Political Movement] + Enemy [Society]"
+            )
+        else:
+            event_auto_applied.append(
+                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): failed — no effect"
+            )
+
     if ev.total == 9:
         # Player picks any skill (except Jack-of-All-Trades) at level 0 — resolved by JS.
-        forced_fail = forced_fail  # no change
-        event_auto_applied.append("PENDING: choose any skill at level 0 (see skill picker)")
+        event_auto_applied.append("Pending: choose any skill at level 0 (see skill picker below)")
+
+    if ev.total == 10:
+        # Tutor challenge — player picks an education skill, rolls 2D 9+ for bonus.
+        # Resolved interactively; flag for JS.
+        event_auto_applied.append("Pending: pick an education skill for the tutor challenge")
+
+    if ev.total == 11:
+        # Draft event — player must choose: Drifter / be Drafted / Dodge (SOC 9+).
+        # Resolved interactively; flag for JS.
+        event_auto_applied.append("Pending: choose your response to the draft (see options below)")
 
     if ev.total == 12:
         current_soc = character.characteristics.get("SOC")
@@ -993,6 +1067,31 @@ def pre_career_graduate(
         f"Pre-career education event [{ev.total}]: {event_text}"
         + (f" — {', '.join(event_auto_applied)}" if event_auto_applied else "")
     )
+
+    # Build the event 10 skill pool: same as graduation skill_pool if non-empty,
+    # else fall back to the full track skill list (covers the failed-grad case).
+    event10_pool: list[str] = list(skill_pool) if skill_pool else []
+    if not event10_pool:
+        if track == "university":
+            td = _edu_track(track)
+            event10_pool = list(td.get("skill_list", []))
+        elif track == "military_academy" and service:
+            svc = _academy_service(service)
+            career_data = rules.careers().get(svc["career_id"], {})
+            ss = career_data.get("skill_tables", {}).get("service_skills", {})
+            _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
+            for k, v in ss.items():
+                if k in _skip:
+                    continue
+                for part in v.split(" or "):
+                    part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
+                    if part:
+                        event10_pool.append(part)
+            if not event10_pool:
+                event10_pool = ["Gun Combat", "Melee", "Drive", "Electronics", "Tactics"]
+
+    pending_event10 = ev.total == 10 and not forced_fail
+    pending_event11 = ev.total == 11 and not forced_fail
 
     # Set final status. Phase stays pre_career if skill picks are still pending;
     # otherwise advance to career now.
@@ -1005,6 +1104,9 @@ def pre_career_graduate(
         "skill_pool": skill_pool,
         "events_remaining": 0,
         "events_rolled": [ev.total],
+        "pending_event10": pending_event10,
+        "pending_event11": pending_event11,
+        "event10_skill_pool": event10_pool,
     }
     # Always stay in pre_career so the JS can show the graduation+event screen.
     # The phase advances to career when the user clicks Continue (no picks)
@@ -1024,6 +1126,8 @@ def pre_career_graduate(
             "auto_applied": event_auto_applied,
             "forced_fail": forced_fail,
             "pending_any_skill": ev.total == 9 and not forced_fail,
+            "pending_event10": pending_event10,
+            "pending_event11": pending_event11,
         },
         "character": character.model_dump(),
     }
@@ -1088,6 +1192,152 @@ def pre_career_grant_any_skill(character: Character, skill_text: str) -> dict:
     character.add_skill(name, level=0, speciality=speciality)
     character.log(f"Education event 9: gained {text} 0")
     return {"character": character.model_dump()}
+
+
+def pre_career_event10_skill(character: Character, skill_text: str) -> dict:
+    """Event 10 — tutor challenge.
+
+    Player picks a skill from the education skill pool and rolls 2D 9+.
+    Success: +1 in that skill + Rival [Tutor].
+    """
+    status = character.pre_career_status or {}
+    if not status.get("pending_event10"):
+        raise ValueError("No pending event 10 tutor challenge.")
+
+    pool = status.get("event10_skill_pool", [])
+    text = (skill_text or "").strip()
+    if not text:
+        raise ValueError("No skill specified.")
+    if pool and text not in pool:
+        raise ValueError(f"'{text}' is not in the education skill pool for this track.")
+
+    r = dice.roll("2D", target=9)
+    if r.succeeded:
+        name = text
+        speciality: str | None = None
+        if "(" in text and text.endswith(")"):
+            name = text[: text.index("(")].strip()
+            speciality = text[text.index("(") + 1 : -1].strip()
+        msg = character.add_skill(name, level=1, speciality=speciality)
+        character.associates.append(
+            Associate(kind="rival", description="Rival [Tutor] — education event 10")
+        )
+        character.log(
+            f"Education event 10: tutor challenge on {text} — 2D={r.total} (9+) SUCCESS. "
+            f"{msg}. Rival [Tutor] added."
+        )
+    else:
+        character.log(
+            f"Education event 10: tutor challenge on {text} — 2D={r.total} (9+) FAILED. No bonus."
+        )
+
+    character.pre_career_status = {**status, "pending_event10": False}
+    if not character.pre_career_status.get("skill_picks_remaining"):
+        character.phase = "career"
+
+    return {
+        "roll": r.to_dict(),
+        "succeeded": r.succeeded,
+        "skill": text,
+        "character": character.model_dump(),
+    }
+
+
+def pre_career_event11_choice(character: Character, choice: str) -> dict:
+    """Event 11 — draft event.
+
+    choice: "drifter" | "draft" | "dodge"
+    - drifter: forced into Drifter career next term (no graduation).
+    - draft: roll 1D, forced into Army/Marine/Navy (no graduation).
+    - dodge: roll SOC 9+. Success = keep graduation. Fail = fail to graduate.
+    """
+    status = character.pre_career_status or {}
+    if not status.get("pending_event11"):
+        raise ValueError("No pending event 11 draft choice.")
+
+    roll_result: Optional[dict] = None
+    draft_career: Optional[str] = None
+
+    def _clear_graduation_bonuses() -> None:
+        character.starts_commissioned_career_id = None
+        character.academy_commission_career_id = None
+        character.academy_commission_dm = 0
+        character.auto_entry_career_id = None
+
+    if choice == "drifter":
+        _clear_graduation_bonuses()
+        character.forced_next_career_id = "drifter"
+        character.pre_career_status = {
+            **status,
+            "stage": "failed_grad",
+            "outcome": "fail",
+            "skill_picks_remaining": 0,
+            "pending_event11": False,
+        }
+        character.log("Education event 11: fled into Drifter career (did not graduate)")
+        character.phase = "career"
+
+    elif choice == "draft":
+        d6 = random.randint(1, 6)
+        if d6 <= 3:
+            draft_career = "army"
+        elif d6 <= 5:
+            draft_career = "marine"
+        else:
+            draft_career = "navy"
+        _clear_graduation_bonuses()
+        character.forced_next_career_id = draft_career
+        character.pre_career_status = {
+            **status,
+            "stage": "failed_grad",
+            "outcome": "fail",
+            "skill_picks_remaining": 0,
+            "pending_event11": False,
+        }
+        character.log(
+            f"Education event 11: drafted — D6={d6} → {draft_career} (did not graduate)"
+        )
+        roll_result = {"dice": [d6], "raw_total": d6, "total": d6}
+        character.phase = "career"
+
+    elif choice == "dodge":
+        soc_val = character.characteristics.get("SOC")
+        soc_dm = dice.characteristic_dm(soc_val)
+        r = dice.roll("2D", modifier=soc_dm, target=9)
+        roll_result = r.to_dict()
+        if r.succeeded:
+            # Draft dodged — keep graduation result unchanged.
+            character.pre_career_status = {**status, "pending_event11": False}
+            character.log(
+                f"Education event 11: draft dodge — SOC {soc_val} check "
+                f"2D{soc_dm:+d}={r.total} vs 9+ SUCCESS. Graduation stands."
+            )
+            # Advance to career if no picks left.
+            if not character.pre_career_status.get("skill_picks_remaining"):
+                character.phase = "career"
+        else:
+            _clear_graduation_bonuses()
+            character.pre_career_status = {
+                **status,
+                "stage": "failed_grad",
+                "outcome": "fail",
+                "skill_picks_remaining": 0,
+                "pending_event11": False,
+            }
+            character.log(
+                f"Education event 11: draft dodge — SOC {soc_val} check "
+                f"2D{soc_dm:+d}={r.total} vs 9+ FAILED. Did not graduate."
+            )
+            character.phase = "career"
+    else:
+        raise ValueError(f"Unknown event 11 choice: {choice!r}. Must be 'drifter', 'draft', or 'dodge'.")
+
+    return {
+        "choice": choice,
+        "roll": roll_result,
+        "draft_career": draft_career,
+        "character": character.model_dump(),
+    }
 
 
 def pre_career_event_roll(character: Character) -> dict:
