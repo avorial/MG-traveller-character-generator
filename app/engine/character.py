@@ -122,6 +122,12 @@ class Character(BaseModel):
     # Shape: {"kind": str, ...context keys...}
     pending_life_event_choice: Optional[dict] = None
 
+    # Pending injury stat choice. Set by apply_injury when the player must
+    # choose which physical characteristic absorbs the damage.
+    # Shape: {"roll": int, "title": str, "damage_to_chosen": int,
+    #         "auto_reduce_others": int, "choices": [str], "prompt": str}
+    pending_injury_choice: Optional[dict] = None
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

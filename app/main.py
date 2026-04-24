@@ -154,6 +154,10 @@ class LifeEventChoiceAction(CharacterAction):
     choice: str  # "rival" | "enemy" | "lose_benefit" | "prisoner"
 
 
+class InjuryChoiceAction(CharacterAction):
+    chosen_stat: str  # "STR" | "DEX" | "END"
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -348,6 +352,16 @@ async def api_life_event_choice(action: LifeEventChoiceAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.resolve_life_event_choice(character, action.choice)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/injury-choice")
+async def api_injury_choice(action: InjuryChoiceAction):
+    """Resolve a pending injury stat choice (which characteristic absorbs damage)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_injury_choice(character, action.chosen_stat)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

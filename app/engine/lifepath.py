@@ -1140,6 +1140,8 @@ def pre_career_graduate(
                 character.pending_life_event_choice.get("kind")
                 if character.pending_life_event_choice else None
             ),
+            "pending_injury": bool(character.pending_injury_choice),
+            "injury_pending_data": character.pending_injury_choice,
         },
         "character": character.model_dump(),
     }
@@ -1364,9 +1366,11 @@ def apply_life_event(character: Character) -> dict:
     pending_choice: Optional[dict] = None
 
     if total == 2:
-        # Sickness or Injury — roll on the Injury table immediately.
+        # Sickness or Injury — roll on the Injury table; stat choice is pending.
         injury = apply_injury(character)
-        auto_applied.append(f"Injury: {injury.get('result_text', 'see log')}")
+        auto_applied.append(f"Injury rolled: {injury.get('title', 'see log')} — choose stat below")
+        if injury.get("pending_choice"):
+            auto_applied.append("PENDING: choose which physical stat absorbs the damage")
 
     elif total == 3:
         # Birth or Death — someone close dies or is born.
@@ -2061,82 +2065,164 @@ def purchase_anagathics(character: "Character") -> dict:
 
 
 def apply_injury(character: "Character") -> dict:
-    """Roll 1D on the Injury table and apply its effects plus medical bills.
+    """Roll 1D on the Injury table.
 
-    Used after a mishap or a "serious injury" event outcome. Severity
-    drives both characteristic loss and the resulting medical debt,
-    which is then deducted from mustering-out cash.
+    Result 6 is resolved immediately (no stat loss). Results 1–5 require the
+    player to choose which physical characteristic absorbs the damage, so they
+    set character.pending_injury_choice and return without modifying stats.
+    Call resolve_injury_choice() once the player has decided.
+
+    Medical debt (Cr 5,000 per point lost) is calculated and added when
+    resolve_injury_choice() runs.
     """
     data = rules.injury_table()
     r = dice.roll("1D")
-    entry = data["entries"].get(str(r.total))
+    total = r.total
+    entry = data["entries"].get(str(total))
     if entry is None:
-        raise ValueError(f"No injury entry for roll {r.total}")
+        raise ValueError(f"No injury entry for roll {total}")
 
-    effects_applied: list[str] = []
-    for effect in entry.get("effects", []):
-        effects_applied.extend(_apply_injury_effect(character, effect))
+    title = entry["title"]
+    text = entry["text"]
 
-    # Medical bills scale with severity (rulebook: "medical care" costs).
-    severity_cost = {
-        1: 100000,  # Nearly killed
-        2: 50000,   # Severely injured
-        3: 30000,   # Missing Eye or Limb
-        4: 10000,   # Scarred
-        5: 10000,   # Injured
-        6: 0,       # Lightly Injured
+    if total == 6:
+        # Lightly Injured — no stat effect, no debt, no choice needed.
+        character.log(f"Injury [1D=6]: {title} — no permanent effect.")
+        return {
+            "roll": r.to_dict(),
+            "title": title,
+            "text": text,
+            "pending_choice": None,
+            "result_text": title,
+            "character": character.model_dump(),
+        }
+
+    # Pre-roll the 1D damage amount for results that need it.
+    damage_roll: Optional[int] = None
+    if total in (1, 2):
+        damage_roll = dice.roll("1D").total
+
+    # Build the pending choice descriptor.
+    _choices: dict[int, dict] = {
+        1: {
+            "damage_to_chosen": damage_roll,
+            "auto_reduce_others": 2,
+            "choices": ["STR", "DEX", "END"],
+            "prompt": (
+                f"Choose one physical stat to take {damage_roll} damage. "
+                f"The other two each automatically take 2 damage."
+            ),
+        },
+        2: {
+            "damage_to_chosen": damage_roll,
+            "auto_reduce_others": 0,
+            "choices": ["STR", "DEX", "END"],
+            "prompt": f"Choose which physical stat takes {damage_roll} damage.",
+        },
+        3: {
+            "damage_to_chosen": 2,
+            "auto_reduce_others": 0,
+            "choices": ["STR", "DEX"],
+            "prompt": "Missing Eye or Limb — choose STR or DEX to lose 2 points.",
+        },
+        4: {
+            "damage_to_chosen": 2,
+            "auto_reduce_others": 0,
+            "choices": ["STR", "DEX", "END"],
+            "prompt": "Scarred — choose any physical stat to lose 2 points.",
+        },
+        5: {
+            "damage_to_chosen": 1,
+            "auto_reduce_others": 0,
+            "choices": ["STR", "DEX", "END"],
+            "prompt": "Injured — choose any physical stat to lose 1 point.",
+        },
     }
-    debt = severity_cost.get(r.total, 0)
-    if debt:
-        character.medical_debt += debt
-        character.log(
-            f"Medical bills: Cr{debt:,} added to debt "
-            f"(now Cr{character.medical_debt:,} owed)."
-        )
-
+    pending = {
+        "roll": total,
+        "title": title,
+        **_choices[total],
+    }
+    character.pending_injury_choice = pending
     character.log(
-        f"Injury [1D={r.total}]: {entry['title']} — "
-        + (", ".join(effects_applied) if effects_applied else "no stat effect")
+        f"Injury [1D={total}]: {title} — player must choose stat to absorb damage."
     )
     return {
         "roll": r.to_dict(),
-        "title": entry["title"],
-        "text": entry["text"],
-        "effects_applied": effects_applied,
-        "medical_debt_added": debt,
-        "medical_debt_total": character.medical_debt,
+        "title": title,
+        "text": text,
+        "pending_choice": pending,
+        "result_text": title,
         "character": character.model_dump(),
     }
 
 
-def _apply_injury_effect(character: "Character", effect: dict) -> list[str]:
-    """Apply one injury-table effect dict to the character."""
-    physical = ["STR", "DEX", "END"]
-    logs: list[str] = []
-    etype = effect.get("type")
-    amount = effect.get("amount", 0)
-    if isinstance(amount, str) and amount.upper() == "1D":
-        amount = dice.roll("1D").total
+def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
+    """Apply the player's injury stat choice.
 
-    if etype == "reduce_physical_random":
-        target = random.choice(physical)
-        old = character.characteristics.get(target)
-        character.characteristics.set(target, old - amount)
-        logs.append(f"{target} {old}→{character.characteristics.get(target)}")
-    elif etype == "reduce_physical_other":
-        count = effect.get("count", 1)
-        targets = random.sample(physical, min(count, len(physical)))
-        for stat in targets:
-            old = character.characteristics.get(stat)
-            character.characteristics.set(stat, old - amount)
-            logs.append(f"{stat} {old}→{character.characteristics.get(stat)}")
-    elif etype == "reduce_choice":
-        options = effect.get("characteristics", physical)
-        target = random.choice(options)
-        old = character.characteristics.get(target)
-        character.characteristics.set(target, old - amount)
-        logs.append(f"{target} {old}→{character.characteristics.get(target)}")
-    return logs
+    Reduces chosen_stat by damage_to_chosen, then reduces the other
+    physical stats by auto_reduce_others each (for result 1).
+    Adds Cr 5,000 per point lost as medical debt.
+    """
+    pending = character.pending_injury_choice
+    if not pending:
+        raise ValueError("No pending injury choice to resolve.")
+
+    choices = pending.get("choices", [])
+    if chosen_stat not in choices:
+        raise ValueError(
+            f"'{chosen_stat}' is not a valid choice. Options: {choices}"
+        )
+
+    physical = ["STR", "DEX", "END"]
+    total_loss = 0
+    applied: list[str] = []
+
+    # Primary stat damage.
+    amount = pending["damage_to_chosen"]
+    old = character.characteristics.get(chosen_stat)
+    new_val = max(0, old - amount)
+    character.characteristics.set(chosen_stat, new_val)
+    actual_loss = old - new_val
+    total_loss += actual_loss
+    applied.append(f"{chosen_stat} {old}→{new_val} (-{actual_loss})")
+
+    # Secondary auto-reduce (result 1 only: other two stats each lose 2).
+    auto = pending.get("auto_reduce_others", 0)
+    if auto > 0:
+        others = [s for s in physical if s != chosen_stat]
+        for stat in others:
+            old_v = character.characteristics.get(stat)
+            new_v = max(0, old_v - auto)
+            character.characteristics.set(stat, new_v)
+            loss = old_v - new_v
+            total_loss += loss
+            applied.append(f"{stat} {old_v}→{new_v} (-{loss})")
+
+    # Medical debt: Cr 5,000 per point lost.
+    debt = total_loss * 5000
+    if debt > 0:
+        character.medical_debt += debt
+        applied.append(f"Medical debt: Cr{debt:,} (Cr5,000 × {total_loss} pts)")
+        character.log(
+            f"Medical bills: Cr{debt:,} added "
+            f"(Cr{character.medical_debt:,} total owed)."
+        )
+
+    character.log(
+        f"Injury resolved ({pending['title']}): {chosen_stat} chosen. "
+        + ", ".join(applied)
+    )
+    character.pending_injury_choice = None
+
+    return {
+        "chosen_stat": chosen_stat,
+        "applied": applied,
+        "total_loss": total_loss,
+        "medical_debt_added": debt,
+        "medical_debt_total": character.medical_debt,
+        "character": character.model_dump(),
+    }
 
 
 

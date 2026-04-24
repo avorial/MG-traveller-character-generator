@@ -1000,17 +1000,21 @@ function renderPreCareerPhase() {
     const pendingEvent11 = !!ev.pending_event11;
     const pendingLifeEvent = !!ev.pending_life_event;
     const lifeEventChoiceKind = ev.life_event_choice_kind || null;
+    const pendingInjury = !!ev.pending_injury;
+    const injuryData = ev.injury_pending_data || character.pending_injury_choice || null;
     const nextBtn = pendingEvent11
       ? `<button class="btn primary" id="btn-show-event11">RESPOND TO DRAFT →</button>`
       : pendingEvent10
         ? `<button class="btn primary" id="btn-show-event10">TAKE TUTOR CHALLENGE →</button>`
-        : pendingLifeEvent
-          ? `<button class="btn primary" id="btn-show-life-event-choice">RESOLVE LIFE EVENT →</button>`
-          : pendingAnySkill
-            ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
-            : hasPicks
-              ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
-              : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
+        : (pendingInjury || character.pending_injury_choice)
+          ? `<button class="btn primary" id="btn-show-injury-choice">RESOLVE INJURY →</button>`
+          : pendingLifeEvent
+            ? `<button class="btn primary" id="btn-show-life-event-choice">RESOLVE LIFE EVENT →</button>`
+            : pendingAnySkill
+              ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
+              : hasPicks
+                ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
+                : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1021,6 +1025,36 @@ function renderPreCareerPhase() {
         ${eventHTML}
         <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">${nextBtn}</div>
+      </div>
+    `;
+  }
+
+  // Injury stat choice screen — shown when pending_injury_choice is set
+  if (uiState.lastRoll?.type === 'precareer_injury_choice') {
+    const inj = character.pending_injury_choice || uiState.lastRoll.injuryData || {};
+    const choices = inj.choices || ['STR', 'DEX', 'END'];
+    const prompt = inj.prompt || 'Choose a physical characteristic to absorb the damage.';
+    const title = inj.title || 'Injury';
+    const dmgAmount = inj.damage_to_chosen ?? '?';
+    const autoOthers = inj.auto_reduce_others || 0;
+
+    const statDescriptions = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance' };
+    const cards = choices.map(stat => `
+      <button class="card" id="btn-injury-stat-${stat}">
+        <div class="card-title">${stat} — ${statDescriptions[stat] || stat}</div>
+        <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
+        <div class="card-desc">Reduce by ${dmgAmount}${autoOthers ? ` (other two: each -${autoOthers})` : ''}. Medical debt: Cr${(dmgAmount * 5000).toLocaleString()} + ${autoOthers ? `Cr${(autoOthers * 2 * 5000).toLocaleString()} others` : 'none'}.</div>
+      </button>
+    `).join('');
+
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Injury — ${title}</div>
+        <h2 class="phase-title">${title}</h2>
+        <p class="phase-body">${prompt}</p>
+        <p class="phase-body" style="color:var(--amber-dim);font-size:11px">Medical care costs Cr 5,000 per point lost. This will be recorded as debt and deducted from mustering-out cash.</p>
+        <div class="card-grid">${cards}</div>
       </div>
     `;
   }
@@ -1348,6 +1382,41 @@ function wirePreCareerPhase() {
     uiState.anySkillFilter = '';
     uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_any_skill_pick' };
     renderStage();
+  });
+
+  // Injury choice: navigate to injury stat picker
+  const showInjuryBtn = document.getElementById('btn-show-injury-choice');
+  if (showInjuryBtn) showInjuryBtn.addEventListener('click', () => {
+    const inj = character.pending_injury_choice || uiState.lastRoll?.injury_pending_data;
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_injury_choice', injuryData: inj };
+    renderStage();
+  });
+
+  // Injury stat buttons
+  ['STR', 'DEX', 'END'].forEach(stat => {
+    const btn = document.getElementById(`btn-injury-stat-${stat}`);
+    if (btn) btn.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
+        await applyResponse(response);
+        const debtAdded = response.medical_debt_added || 0;
+        const totalDebt = response.medical_debt_total || 0;
+        if (debtAdded > 0) {
+          alert(`Injury applied: ${response.applied?.join(', ') || stat}.\nMedical debt: Cr${debtAdded.toLocaleString()} added (Cr${totalDebt.toLocaleString()} total owed — deducted from mustering-out cash).`);
+        }
+        // After injury, check if life event choice is still pending
+        const lr = uiState.lastRoll;
+        if (character.pending_life_event_choice) {
+          uiState.lastRoll = { ...lr, type: 'precareer_graduate', pending_injury: false };
+        } else {
+          const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+          uiState.lastRoll = hasPicks
+            ? { ...lr, type: 'precareer_skill_pick' }
+            : { ...lr, type: 'precareer_graduate', pending_injury: false };
+        }
+        renderStage();
+      } catch (e) { alert(e.message); }
+    });
   });
 
   // Life event choice: navigate to choice screen
@@ -2194,6 +2263,44 @@ function wireCareerPhase() {
       renderAll();
     });
   }
+
+  // Injury roll (from mishap screen)
+  const btnRollInjury = document.getElementById('btn-roll-injury');
+  if (btnRollInjury) {
+    btnRollInjury.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/injury');
+        await applyResponse(response);
+        uiState.lastRoll = {
+          ...uiState.lastRoll,
+          type: 'mishap',
+          injuryTitle: response.title,
+          injuryText: response.text,
+          injuryPending: !!response.pending_choice,
+          injuryData: response.pending_choice,
+        };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  }
+
+  // Injury stat choice buttons (career phase)
+  ['STR', 'DEX', 'END'].forEach(stat => {
+    const btn = document.getElementById(`btn-career-injury-stat-${stat}`);
+    if (btn) btn.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
+        await applyResponse(response);
+        const debtAdded = response.medical_debt_added || 0;
+        const totalDebt = response.medical_debt_total || 0;
+        if (debtAdded > 0) {
+          alert(`Injury applied: ${response.applied?.join(', ') || stat}.\nMedical debt: Cr${debtAdded.toLocaleString()} added (Cr${totalDebt.toLocaleString()} total owed).`);
+        }
+        uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
 }
 
 function renderActiveTerm() {
@@ -3343,17 +3450,31 @@ function renderMishapStep() {
           ${escapeHTML(lr.mishapText || '')}
         </div>
         <p class="phase-body empty"><em>Apply any stat reductions, allies/enemies, or ejection effects manually. If the mishap calls for an Injury roll, use the button below.</em></p>
-        ${uiState.lastRoll && uiState.lastRoll.type === 'injury' ? `
-          <div class="injury-box">
-            <strong>Injury: ${escapeHTML(uiState.lastRoll.title || '')}</strong>
-            <p class="empty" style="margin:4px 0">${escapeHTML(uiState.lastRoll.text || '')}</p>
-            ${uiState.lastRoll.effects && uiState.lastRoll.effects.length ? `<p style="color:var(--cream);margin:2px 0">Applied: ${uiState.lastRoll.effects.map(escapeHTML).join(', ')}</p>` : ''}
-            ${uiState.lastRoll.medical_debt_added ? `<p style="color:var(--danger);margin:2px 0">+Cr${uiState.lastRoll.medical_debt_added.toLocaleString()} medical debt.</p>` : ''}
+        ${uiState.lastRoll?.injuryTitle ? `
+          <div class="event-box" style="margin-top:12px">
+            <span class="event-label">Injury [1D] — ${escapeHTML(uiState.lastRoll.injuryTitle)}</span>
+            ${escapeHTML(uiState.lastRoll.injuryText || '')}
           </div>
         ` : ''}
+        ${uiState.lastRoll?.injuryPending && character.pending_injury_choice ? (() => {
+          const inj = character.pending_injury_choice;
+          const choices = inj.choices || ['STR', 'DEX', 'END'];
+          const statDescs = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance' };
+          const cards = choices.map(stat => `
+            <button class="card" id="btn-career-injury-stat-${stat}">
+              <div class="card-title">${stat} — ${statDescs[stat]}</div>
+              <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
+              <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()}.</div>
+            </button>
+          `).join('');
+          return `
+            <p class="phase-body"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}</strong></p>
+            <p style="font-size:11px;color:var(--amber-dim)">Medical care: Cr 5,000 per point lost — added to debt.</p>
+            <div class="card-grid">${cards}</div>`;
+        })() : ''}
         <div class="phase-actions">
-          <button class="btn" id="btn-roll-injury">ROLL INJURY (1D)</button>
-          <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
+          ${!uiState.lastRoll?.injuryTitle && !character.pending_injury_choice ? `<button class="btn" id="btn-roll-injury">ROLL INJURY (1D)</button>` : ''}
+          ${!character.pending_injury_choice ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}
         </div>
       </div>
     `;
