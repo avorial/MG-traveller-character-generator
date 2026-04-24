@@ -1671,12 +1671,17 @@ function renderCareerPhase() {
 
 function renderChooseCareer() {
   const forcedId = character.forced_next_career_id || null;
+  const banned = new Set(character.banned_career_ids || []);
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
-    : CAREERS;
+    : CAREERS.filter(c => !banned.has(c.id));
   const forcedBanner = forcedId ? `
     <p class="phase-body" style="color:var(--danger);font-weight:bold">
       ⚠ You must enter the ${forcedId.toUpperCase()} career this term (education event mandate).
+    </p>` : '';
+  const bannedBanner = banned.size && !forcedId ? `
+    <p class="phase-body" style="color:var(--amber-dim);font-size:11px">
+      Banned from re-entry: ${[...banned].map(id => id.toUpperCase()).join(', ')}
     </p>` : '';
 
   const cards = careerList.map(c => {
@@ -1707,6 +1712,7 @@ function renderChooseCareer() {
       <div class="phase-label">Term ${character.total_terms + 1} · Age ${character.age}</div>
       <h2 class="phase-title">Choose a Career</h2>
       ${forcedBanner}
+      ${bannedBanner}
       <p class="phase-subtitle">${character.total_terms === 0
         ? 'Your first career defines the first four years of your adult life.'
         : 'You survived. Another four years await — continue, or try something new.'}</p>
@@ -1909,6 +1915,30 @@ function wireCareerPhase() {
     });
   }
 
+  // Prisoner event 7 parole — leave career immediately on success.
+  const btnParole = document.getElementById('btn-prisoner-parole');
+  if (btnParole) {
+    btnParole.addEventListener('click', async () => {
+      const endResp = await apiCall('/api/character/end-term', { leaving: true, reason: 'parole' });
+      await applyResponse(endResp);
+      uiState.lastRoll = null;
+      uiState.subPhase = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
+      renderAll();
+    });
+  }
+
+  // Citizen event 8 — retroactive survival failure → trigger mishap flow.
+  const btnCitizenEv8Mishap = document.getElementById('btn-citizen-ev8-mishap');
+  if (btnCitizenEv8Mishap) {
+    btnCitizenEv8Mishap.addEventListener('click', () => {
+      uiState.lastRoll = null;
+      uiState.subPhase = 'mishap';
+      renderAll();
+    });
+  }
+
   // "Roll on the Mishap Table" event (non-ejecting disaster): roll the mishap
   // inline and display the result right inside the event panel.
   const btnForcedMishap = document.getElementById('btn-event-forced-mishap');
@@ -2055,6 +2085,43 @@ function wireCareerPhase() {
           target: parsed.target, skillLabel, branchText, appliedMsgs,
           pendingSkillPick,
         };
+
+        // Citizen event 8: retroactive survival DM-2 check.
+        // If DM-2 to survival would have caused a failure, flag it.
+        if (!success && /DM-2 to your Survival roll this term/i.test(lr.eventText || '')) {
+          const term = character.current_term;
+          const career = CAREERS.find(c => c.id === term?.career_id);
+          const asgn = career?.assignments?.[term?.assignment_id];
+          const survTarget = asgn?.survival?.target ?? 99;
+          const survTotal = term?.survival_roll_total ?? null;
+          if (survTotal !== null && (survTotal - 2) < survTarget) {
+            lr.citizenEv8SurvivalFailed = true;
+          }
+        }
+        if (success && /DM-2 to your Survival roll this term/i.test(lr.eventText || '')) {
+          const term = character.current_term;
+          const career = CAREERS.find(c => c.id === term?.career_id);
+          const asgn = career?.assignments?.[term?.assignment_id];
+          const survTarget = asgn?.survival?.target ?? 99;
+          const survTotal = term?.survival_roll_total ?? null;
+          if (survTotal !== null && (survTotal - 2) < survTarget) {
+            lr.citizenEv8SurvivalFailed = true;
+          }
+        }
+
+        // Scout event 2: on failure, ban Scout from future careers.
+        if (!success && /may not re-enlist in the Scouts/i.test(branchText || '')) {
+          try {
+            const resp = await apiCall('/api/character/ban-career', { career_id: 'scout' });
+            await applyResponse(resp);
+            lr.scoutBanned = true;
+          } catch (_) {}
+        }
+
+        // Prisoner event 7: on success, mark parole granted.
+        if (success && /you leave at the end of this term/i.test(branchText || '')) {
+          lr.prisonerParoleGranted = true;
+        }
       }
       renderAll();
     });
@@ -2161,6 +2228,42 @@ function wireCareerPhase() {
       }
     });
   });
+
+  // Entertainer event 5: two-stage associate picker (type → person).
+  document.querySelectorAll('[data-ent-assoc-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lr = uiState.lastRoll;
+      if (!lr) return;
+      lr.entertainerAssocType = btn.getAttribute('data-ent-assoc-type');
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-ent-assoc-person]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lr = uiState.lastRoll;
+      if (!lr) return;
+      lr.entertainerPersonType = btn.getAttribute('data-ent-assoc-person');
+      renderAll();
+    });
+  });
+  const btnEntConfirm = document.getElementById('btn-ent-assoc-confirm');
+  if (btnEntConfirm) {
+    btnEntConfirm.addEventListener('click', async () => {
+      const lr = uiState.lastRoll;
+      if (!lr || !lr.entertainerAssocType || !lr.entertainerPersonType) return;
+      const kind = lr.entertainerAssocType;
+      const person = lr.entertainerPersonType;
+      const desc = `${person} [Entertainer event]`;
+      try {
+        const resp = await apiCall('/api/character/associate', { kind, description: desc });
+        await applyResponse(resp);
+        lr.entertainerAssocDone = `${kind.charAt(0).toUpperCase()+kind.slice(1)}: ${desc}`;
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Could not add associate.');
+      }
+    });
+  }
 
   // Associate outcomes — "Gain a Contact/Ally/Rival/Enemy" or Betrayal convert.
   const labelAssoc = (k) => ({contact:'Contact', ally:'Ally', rival:'Rival', enemy:'Enemy'}[k] || k);
@@ -3535,13 +3638,80 @@ function renderEventStep() {
       </div>
     ` : '';
 
+    // Entertainer event 5: two-stage associate picker (type + person category).
+    const isEntertainerEv5 = /Contact, Ally, Rival or Enemy \(your choice\)/i.test(lr.eventText || '');
+    const entertainerAssocHTML = (isEntertainerEv5 && !lr.entertainerAssocDone) ? (() => {
+      const stage1 = lr.entertainerAssocType || null;
+      const stage2 = lr.entertainerPersonType || null;
+      if (!stage1) return `
+        <div class="event-skill-picker">
+          <span class="event-label">What kind of relationship? (step 1 of 2)</span>
+          <div class="skill-picker">
+            ${['contact','ally','rival','enemy'].map(k =>
+              `<button class="skill-chip" data-ent-assoc-type="${k}">${k.charAt(0).toUpperCase()+k.slice(1)}</button>`
+            ).join('')}
+          </div>
+        </div>`;
+      if (!stage2) return `
+        <div class="event-skill-picker">
+          <span class="event-label">Who are they? (step 2 of 2 — ${stage1})</span>
+          <div class="skill-picker">
+            ${['Celebrity','Noble','Criminal'].map(p =>
+              `<button class="skill-chip" data-ent-assoc-person="${p}">${p}</button>`
+            ).join('')}
+          </div>
+        </div>`;
+      return `
+        <div class="dm-applied-box">
+          <span class="event-label">Ready to confirm</span>
+          <div class="dm-chip applied">${stage1.charAt(0).toUpperCase()+stage1.slice(1)}: ${stage2} — Entertainer event</div>
+          <div class="skill-picker" style="margin-top:6px">
+            <button class="skill-chip" id="btn-ent-assoc-confirm">CONFIRM</button>
+          </div>
+        </div>`;
+    })() : (isEntertainerEv5 && lr.entertainerAssocDone) ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Associate added</span>
+        <div class="dm-chip applied">${escapeHTML(lr.entertainerAssocDone)}</div>
+      </div>` : '';
+
+    // Citizen event 8: retroactive survival check warning.
+    const citizenEv8HTML = lr.citizenEv8SurvivalFailed ? `
+      <div class="mishap-box">
+        <span class="event-label">Retroactive Survival Failure</span>
+        <p style="margin:4px 0">DM-2 to your survival roll would have caused a failure. You must resolve a Mishap instead of continuing the event.</p>
+        <div class="phase-actions" style="margin-top:8px">
+          <button class="btn danger" id="btn-citizen-ev8-mishap">RESOLVE MISHAP INSTEAD →</button>
+        </div>
+      </div>` : '';
+
+    // Prisoner event 7: parole button after successful contested roll.
+    const prisonerParoleHTML = lr.prisonerParoleGranted && !lr.prisonerParoleTaken ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Parole Granted</span>
+        <p style="margin:4px 0 8px">You leave this career at the end of the term with no penalty.</p>
+        <button class="btn primary" id="btn-prisoner-parole">ACCEPT PAROLE — LEAVE CAREER →</button>
+      </div>` : '';
+
+    // Scout event 2: show ban confirmation after failure.
+    const scoutBanHTML = lr.scoutBanned ? `
+      <div class="dm-applied-box" style="border-color:var(--danger)">
+        <span class="event-label" style="color:var(--danger)">Re-enlistment Banned</span>
+        <div class="dm-chip applied">SCOUT career removed from future options</div>
+      </div>` : '';
+
+    const entertainerPending = isEntertainerEv5 && !lr.entertainerAssocDone;
+    const citizenMishapPending = !!lr.citizenEv8SurvivalFailed;
+
     const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
-      || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen);
+      || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen)
+      || entertainerPending || citizenMishapPending;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP + skip
     // - Forced mishap already rolled, career ends: show END CAREER
-    // - Normal flow (or forced mishap + stay in career): show ATTEMPT/SKIP advancement
+    // - Citizen ev8 survival failed: show mishap button (handled inline above)
+    // - Normal flow: show ATTEMPT/SKIP advancement
     const actionsHTML = pendingMishapRoll ? `
       <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
       <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
@@ -3597,7 +3767,11 @@ function renderEventStep() {
               </div>
             </div>`;
         })()}
-        ${showPicker || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
+        ${entertainerAssocHTML}
+        ${citizenEv8HTML}
+        ${prisonerParoleHTML}
+        ${scoutBanHTML}
+        ${showPicker || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>

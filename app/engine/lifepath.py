@@ -1866,6 +1866,7 @@ def survival_roll(character: Character) -> dict:
     dm = dice.characteristic_dm(character.characteristics.get(char_key))
     r = dice.roll("2D", modifier=dm, target=target)
     term.survived = bool(r.succeeded)
+    term.survival_roll_total = r.total
 
     msg = (
         f"Survival ({char_key} {target}+): 2D{dm:+d} = {r.total} "
@@ -2343,6 +2344,14 @@ def cross_career_event_or_mishap(character: "Character", career_id: str, table: 
         }
     else:
         raise ValueError(f"Unknown table: '{table}'. Must be 'event' or 'mishap'.")
+
+
+def ban_career(character: "Character", career_id: str) -> dict:
+    """Permanently ban a career from re-entry (e.g. Scout event 2 failure)."""
+    if career_id not in character.banned_career_ids:
+        character.banned_career_ids.append(career_id)
+        character.log(f"Career '{career_id}' banned from re-entry.")
+    return {"banned": career_id, "character": character.model_dump()}
 
 
 def advancement_roll(character: Character) -> dict:

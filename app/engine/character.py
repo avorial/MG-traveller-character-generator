@@ -54,6 +54,7 @@ class CareerTerm(BaseModel):
     mishap: Optional[str] = None
     basic_training: bool = False
     benefit_forfeited: bool = False
+    survival_roll_total: Optional[int] = None
 
 
 class CareerRecord(BaseModel):
@@ -117,6 +118,9 @@ class Character(BaseModel):
     # natural 2 → Prisoner, event 11 Drifter / Draft). The career picker will
     # only allow this career until it is consumed.
     forced_next_career_id: Optional[str] = None
+
+    # Careers permanently banned from re-entry (e.g. Scout event 2 failure).
+    banned_career_ids: list[str] = Field(default_factory=list)
 
     # Pending interactive choice from a Life Event roll. Cleared once the
     # player resolves it via /api/character/life-event-choice.
