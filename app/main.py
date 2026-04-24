@@ -152,6 +152,7 @@ async def index(request: Request):
         "index.html",
         {"species_list": rules.list_species(),
          "careers_list": rules.list_careers(),
+         "skills_data": rules.skills(),
          "app_version": APP_VERSION},
     )
 
@@ -282,6 +283,16 @@ async def api_pre_career_choose_skills(action: PreCareerSkillsAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.pre_career_choose_skills(character, action.chosen_skills)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/any-skill")
+async def api_pre_career_any_skill(action: EventSkillGrantAction):
+    """Grant the free 'any skill at level 0' from education event 9."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_grant_any_skill(character, action.skill_text)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -517,6 +528,11 @@ async def api_connection(action: ConnectionAction):
 @app.get("/api/tables/psionics")
 async def api_psionics_table():
     return rules.psionics()
+
+
+@app.get("/api/tables/skills")
+async def api_skills():
+    return rules.skills()
 
 
 @app.post("/api/character/psionics/test")

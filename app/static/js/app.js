@@ -9,6 +9,16 @@
 
 const SPECIES = JSON.parse(document.getElementById('bootstrap-species').textContent);
 const CAREERS = JSON.parse(document.getElementById('bootstrap-careers').textContent);
+const SKILLS_DATA = JSON.parse(document.getElementById('bootstrap-skills').textContent);
+
+// Flat list of all skills as "Skill" or "Skill (Speciality)" strings.
+const ALL_SKILLS = [
+  ...SKILLS_DATA.core,
+  ...Object.entries(SKILLS_DATA.speciality).flatMap(([parent, specs]) =>
+    specs.map(s => `${parent} (${s})`)
+  )
+];
+const ALL_SKILLS_NO_JOT = ALL_SKILLS.filter(s => s !== 'Jack-of-All-Trades');
 
 const STORAGE_KEY = 'traveller-character-v1';
 
@@ -985,6 +995,12 @@ function renderPreCareerPhase() {
       ${ev.forced_fail ? `<p class="phase-body" style="color:var(--danger)">This event overrides your graduation — you fail to graduate.</p>` : ''}
     `;
     const hasPicks = (status.skill_picks_remaining || 0) > 0;
+    const pendingAnySkill = !!ev.pending_any_skill;
+    const nextBtn = pendingAnySkill
+      ? `<button class="btn primary" id="btn-show-any-skill-pick">CHOOSE EVENT SKILL →</button>`
+      : hasPicks
+        ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
+        : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -994,12 +1010,27 @@ function renderPreCareerPhase() {
         ${appliedHTML}
         ${eventHTML}
         <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
-        <div class="phase-actions">
-          ${hasPicks
-            ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
-            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`
-          }
-        </div>
+        <div class="phase-actions">${nextBtn}</div>
+      </div>
+    `;
+  }
+
+  // Event 9 any-skill picker
+  if (uiState.lastRoll?.type === 'precareer_any_skill_pick') {
+    const lr = uiState.lastRoll;
+    const filter = uiState.anySkillFilter || '';
+    const filtered = ALL_SKILLS_NO_JOT.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
+    const chips = filtered.slice(0, 60).map(s =>
+      `<button class="skill-chip" data-any-skill="${escapeHTML(s)}">${escapeHTML(s)}</button>`
+    ).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Education Event — Free Skill</div>
+        <h2 class="phase-title">Choose Any Skill (Level 0)</h2>
+        <p class="phase-body">Pick any skill except Jack-of-All-Trades. It is gained at level 0.</p>
+        <input class="skill-search" id="any-skill-search" type="text" placeholder="Filter skills…" value="${escapeHTML(filter)}" autocomplete="off" />
+        <div class="skill-picker">${chips}</div>
       </div>
     `;
   }
@@ -1193,6 +1224,45 @@ function wirePreCareerPhase() {
       };
       renderAll();
     } catch (e) { alert(e.message); }
+  });
+
+  // Event 9: show any-skill picker
+  const showAnySkillBtn = document.getElementById('btn-show-any-skill-pick');
+  if (showAnySkillBtn) showAnySkillBtn.addEventListener('click', () => {
+    uiState.anySkillFilter = '';
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_any_skill_pick' };
+    renderStage();
+  });
+
+  // Any-skill search filter
+  const anySkillSearch = document.getElementById('any-skill-search');
+  if (anySkillSearch) {
+    anySkillSearch.focus();
+    anySkillSearch.addEventListener('input', () => {
+      uiState.anySkillFilter = anySkillSearch.value;
+      renderStage();
+    });
+  }
+
+  // Any-skill chip click — apply and advance
+  document.querySelectorAll('[data-any-skill]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const skill = chip.dataset.anySkill;
+      try {
+        const response = await apiCall('/api/character/pre-career/any-skill', { skill_text: skill });
+        await applyResponse(response);
+        const lr = uiState.lastRoll;
+        const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+        uiState.anySkillFilter = '';
+        if (hasPicks) {
+          uiState.selectedPreCareerSkills = new Set();
+          uiState.lastRoll = { ...lr, type: 'precareer_skill_pick', pending_any_skill: false };
+        } else {
+          uiState.lastRoll = { ...lr, type: 'precareer_graduate', event: { ...lr.event, pending_any_skill: false } };
+        }
+        renderStage();
+      } catch (e) { alert(e.message); }
+    });
   });
 
   // Transition from graduation result screen to skill picker screen
