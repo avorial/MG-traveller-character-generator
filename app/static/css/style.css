@@ -932,6 +932,20 @@ body {
 
 /* ============ Background skills picker ============ */
 
+.skill-search {
+  width: 100%;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+.skill-search::placeholder { color: var(--amber-dim); }
+
 .skill-picker {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

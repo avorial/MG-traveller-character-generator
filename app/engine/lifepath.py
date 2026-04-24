@@ -979,6 +979,11 @@ def pre_career_graduate(
         character.add_skill("Carouse", level=1)
         event_auto_applied.append("Gained Carouse 1")
 
+    if ev.total == 9:
+        # Player picks any skill (except Jack-of-All-Trades) at level 0 — resolved by JS.
+        forced_fail = forced_fail  # no change
+        event_auto_applied.append("PENDING: choose any skill at level 0 (see skill picker)")
+
     if ev.total == 12:
         current_soc = character.characteristics.get("SOC")
         character.characteristics.set("SOC", current_soc + 1)
@@ -1018,6 +1023,7 @@ def pre_career_graduate(
             "event_text": event_text,
             "auto_applied": event_auto_applied,
             "forced_fail": forced_fail,
+            "pending_any_skill": ev.total == 9 and not forced_fail,
         },
         "character": character.model_dump(),
     }
@@ -1064,6 +1070,24 @@ def pre_career_choose_skills(
         "skill_picks_remaining": remaining,
         "character": character.model_dump(),
     }
+
+
+def pre_career_grant_any_skill(character: Character, skill_text: str) -> dict:
+    """Grant the free skill from education event 9 (any skill at level 0)."""
+    text = (skill_text or "").strip()
+    if not text:
+        raise ValueError("No skill specified.")
+    if text == "Jack-of-All-Trades":
+        raise ValueError("Jack-of-All-Trades cannot be chosen for this event.")
+    speciality: str | None = None
+    if "(" in text and text.endswith(")"):
+        name = text[: text.index("(")].strip()
+        speciality = text[text.index("(") + 1 : -1].strip()
+    else:
+        name = text
+    character.add_skill(name, level=0, speciality=speciality)
+    character.log(f"Education event 9: gained {text} 0")
+    return {"character": character.model_dump()}
 
 
 def pre_career_event_roll(character: Character) -> dict:

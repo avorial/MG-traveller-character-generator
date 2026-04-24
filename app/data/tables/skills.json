@@ -1,0 +1,29 @@
+{
+  "core": [
+    "Admin", "Advocate", "Astrogation", "Broker", "Carouse", "Deception",
+    "Diplomat", "Explosives", "Gambler", "Investigate", "Jack-of-All-Trades",
+    "Leadership", "Mechanic", "Medic", "Navigation", "Persuade", "Recon",
+    "Stealth", "Steward", "Streetwise", "Survival", "Vacc Suit"
+  ],
+  "speciality": {
+    "Animals":       ["Handling", "Veterinary", "Training"],
+    "Art":           ["Performer", "Holography", "Instrument", "Visual Media", "Write"],
+    "Athletics":     ["Dexterity", "Endurance", "Strength"],
+    "Drive":         ["Hovercraft", "Mole", "Track", "Walker", "Wheel"],
+    "Electronics":   ["Comms", "Computers", "Remote Ops", "Sensors"],
+    "Engineer":      ["M-drive", "J-drive", "Life Support", "Power"],
+    "Flyer":         ["Airship", "Grav", "Ornithopter", "Rotor", "Wing"],
+    "Gun Combat":    ["Archaic", "Energy", "Slug"],
+    "Gunner":        ["Turret", "Ortillery", "Screen", "Capital"],
+    "Heavy Weapons": ["Artillery", "Man Portable", "Vehicle"],
+    "Language":      ["Anglic", "Vilani", "Zdetl", "Oynprith"],
+    "Melee":         ["Unarmed", "Blade", "Bludgeon", "Natural"],
+    "Pilot":         ["Small Craft", "Spacecraft", "Capital Ships"],
+    "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "Polymers"],
+    "Science":       ["Archaeology", "Astronomy", "Biology", "Chemistry", "Cosmology", "Cybernetics",
+                      "Economics", "Genetics", "History", "Linguistics", "Philosophy", "Physics",
+                      "Planetology", "Psionicology", "Psychology", "Robotics", "Sophontology", "Xenology"],
+    "Seafarer":      ["Ocean Ships", "Personal", "Sail", "Submarine"],
+    "Tactics":       ["Military", "Naval"]
+  }
+}

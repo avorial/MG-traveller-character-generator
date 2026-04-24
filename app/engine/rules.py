@@ -109,6 +109,25 @@ def psionics() -> dict:
     return _load_file("tables/psionics.json")
 
 
+@lru_cache(maxsize=1)
+def skills() -> dict:
+    return _load_file("tables/skills.json")
+
+
+def all_skills_flat(exclude_jot: bool = False) -> list[str]:
+    """Return every skill name as a flat list in 'Skill (Speciality)' format."""
+    data = skills()
+    result: list[str] = []
+    for s in data["core"]:
+        if exclude_jot and s == "Jack-of-All-Trades":
+            continue
+        result.append(s)
+    for parent, specs in data["speciality"].items():
+        for spec in specs:
+            result.append(f"{parent} ({spec})")
+    return result
+
+
 def _unique_entries(data: dict[str, dict]) -> list[dict]:
     """Return unique entries from an id->entry dict, skipping aliases.
 
