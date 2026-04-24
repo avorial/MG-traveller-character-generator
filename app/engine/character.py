@@ -112,6 +112,11 @@ class Character(BaseModel):
     # is skipped for the matching target career).
     pending_transfer_career_id: Optional[str] = None
 
+    # Forced next career — set by pre-career education events (e.g. event 4
+    # natural 2 → Prisoner, event 11 Drifter / Draft). The career picker will
+    # only allow this career until it is consumed.
+    forced_next_career_id: Optional[str] = None
+
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None

@@ -141,6 +141,14 @@ class PreCareerSkillsAction(CharacterAction):
     chosen_skills: list[str]
 
 
+class PreCareerEvent10Action(CharacterAction):
+    skill_text: str
+
+
+class PreCareerEvent11Action(CharacterAction):
+    choice: str  # "drifter" | "draft" | "dodge"
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -293,6 +301,26 @@ async def api_pre_career_any_skill(action: EventSkillGrantAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.pre_career_grant_any_skill(character, action.skill_text)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/event10-skill")
+async def api_pre_career_event10_skill(action: PreCareerEvent10Action):
+    """Education event 10 — tutor challenge: pick a skill and roll 2D 9+."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_event10_skill(character, action.skill_text)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/event11-choice")
+async def api_pre_career_event11_choice(action: PreCareerEvent11Action):
+    """Education event 11 — draft event: choose Drifter, Draft, or Dodge."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_event11_choice(character, action.choice)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
