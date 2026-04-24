@@ -231,7 +231,7 @@ function rollReadoutHTML(r, opts = {}) {
 // ------------------------------------------------------------
 
 const NOBLE_TITLES = { 11: 'Knight', 12: 'Baron', 13: 'Marquis', 14: 'Count', 15: 'Duke' };
-const IMPERIAL_SPECIES = new Set(['imperial_human', 'human', 'solomani', 'vilani', 'mixed_human']);
+const IMPERIAL_SPECIES = new Set(['imperial_human', 'imperial_aslan', 'imperial_vargr', 'human', 'solomani', 'vilani', 'mixed_human']);
 
 function nobleTitle(speciesId, soc) {
   if (!IMPERIAL_SPECIES.has(speciesId)) return null;
