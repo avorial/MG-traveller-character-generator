@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from .engine import lifepath, rules
+from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
 
 
@@ -34,6 +34,13 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
+@app.middleware("http")
+async def clear_gm_rolls_after_request(request: Request, call_next):
+    response = await call_next(request)
+    _dice.clear_forced_rolls()
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Request schemas
 # ---------------------------------------------------------------------------
@@ -41,6 +48,13 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 class CharacterAction(BaseModel):
     """Base shape for any action — character state plus optional action params."""
     character: Character
+    # GM Mode: list of raw dice totals to use instead of rolling randomly,
+    # consumed in sequence. Ignored when empty.
+    gm_rolls: list[int] = []
+
+    def model_post_init(self, __context) -> None:
+        if self.gm_rolls:
+            _dice.set_forced_rolls(self.gm_rolls)
 
 
 class SpeciesAction(CharacterAction):
