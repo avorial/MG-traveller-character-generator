@@ -912,11 +912,12 @@ function renderPreCareerPhase() {
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
     const lr = uiState.lastRoll;
     const eventHTML = lr?.event ? `
-      <div class="dm-applied-box">
+      <div class="event-box">
         <span class="event-label">Education Event [2D=${lr.event.roll?.total ?? '?'}]</span>
-        <div>${escapeHTML(lr.event.event_text || '')}</div>
-        ${lr.event.auto_applied?.length ? lr.event.auto_applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('') : ''}
+        ${escapeHTML(lr.event.event_text || '')}
       </div>
+      ${lr.event.auto_applied?.length ? `<div class="dm-applied-box"><span class="event-label">Auto-applied</span>${lr.event.auto_applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}</div>` : ''}
+      ${lr.event.forced_fail ? `<p class="phase-body" style="color:var(--danger)">This event overrides your graduation — you fail to graduate.</p>` : ''}
     ` : '';
     const picker = pool.map(s => {
       const sel = picked.includes(s);
@@ -1229,9 +1230,11 @@ function wirePreCareerPhase() {
     } catch (e) { alert(e.message); }
   });
 
-  // Post-graduate continue — phase already set to career by server
+  // Post-graduate continue — advance phase client-side (server stays in pre_career to show the page)
   const postGrad = document.getElementById('btn-post-precareer-graduate');
   if (postGrad) postGrad.addEventListener('click', () => {
+    character.phase = 'career';
+    saveCharacter();
     uiState.lastRoll = null;
     renderAll();
   });

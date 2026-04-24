@@ -1001,7 +1001,10 @@ def pre_career_graduate(
         "events_remaining": 0,
         "events_rolled": [ev.total],
     }
-    character.phase = "pre_career" if picks_remaining > 0 else "career"
+    # Always stay in pre_career so the JS can show the graduation+event screen.
+    # The phase advances to career when the user clicks Continue (no picks)
+    # or when pre_career_choose_skills completes the last pick.
+    character.phase = "pre_career"
 
     return {
         "roll": r.to_dict(),
