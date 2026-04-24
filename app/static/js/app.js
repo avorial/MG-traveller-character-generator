@@ -905,20 +905,11 @@ function renderPreCareerPhase() {
   const status = character.pre_career_status || {};
   const stage = status.stage || 'none';
 
-  // Pending skill picks after graduation — show picker (event already rolled server-side)
-  if ((status.skill_picks_remaining || 0) > 0 && (stage === 'graduated' || stage === 'failed_grad')) {
-    const remaining = status.skill_picks_remaining;
+  // Skill picker screen — shown after user clicks through the graduation result
+  if (uiState.lastRoll?.type === 'precareer_skill_pick') {
+    const remaining = status.skill_picks_remaining || 0;
     const pool = status.skill_pool || [];
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
-    const lr = uiState.lastRoll;
-    const eventHTML = lr?.event ? `
-      <div class="event-box">
-        <span class="event-label">Education Event [2D=${lr.event.roll?.total ?? '?'}]</span>
-        ${escapeHTML(lr.event.event_text || '')}
-      </div>
-      ${lr.event.auto_applied?.length ? `<div class="dm-applied-box"><span class="event-label">Auto-applied</span>${lr.event.auto_applied.map(s => `<div class="dm-chip applied">${escapeHTML(s)}</div>`).join('')}</div>` : ''}
-      ${lr.event.forced_fail ? `<p class="phase-body" style="color:var(--danger)">This event overrides your graduation — you fail to graduate.</p>` : ''}
-    ` : '';
     const picker = pool.map(s => {
       const sel = picked.includes(s);
       return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
@@ -927,10 +918,9 @@ function renderPreCareerPhase() {
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
-        <div class="phase-label">Graduation — Pick Your Skills</div>
+        <div class="phase-label">Graduation Skills</div>
         <h2 class="phase-title">Pick ${remaining} Skill${remaining === 1 ? '' : 's'}</h2>
-        ${eventHTML}
-        <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1 from the list.</p>
+        <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1.</p>
         <div class="skill-picker">${picker}</div>
         <div class="phase-actions">
           <button class="btn primary" id="btn-confirm-pc-skills"
@@ -994,6 +984,7 @@ function renderPreCareerPhase() {
         </div>` : ''}
       ${ev.forced_fail ? `<p class="phase-body" style="color:var(--danger)">This event overrides your graduation — you fail to graduate.</p>` : ''}
     `;
+    const hasPicks = (status.skill_picks_remaining || 0) > 0;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1004,7 +995,10 @@ function renderPreCareerPhase() {
         ${eventHTML}
         <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">
-          <button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>
+          ${hasPicks
+            ? `<button class="btn primary" id="btn-start-skill-pick">PICK GRADUATION SKILLS →</button>`
+            : `<button class="btn primary" id="btn-post-precareer-graduate">CONTINUE TO CAREER →</button>`
+          }
         </div>
       </div>
     `;
@@ -1199,6 +1193,14 @@ function wirePreCareerPhase() {
       };
       renderAll();
     } catch (e) { alert(e.message); }
+  });
+
+  // Transition from graduation result screen to skill picker screen
+  const startPickBtn = document.getElementById('btn-start-skill-pick');
+  if (startPickBtn) startPickBtn.addEventListener('click', () => {
+    uiState.selectedPreCareerSkills = new Set();
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_skill_pick' };
+    renderStage();
   });
 
   // Skill picker chips
