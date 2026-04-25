@@ -4554,6 +4554,27 @@ async function bootstrap() {
     renderAll();
   });
 
+  document.getElementById('btn-make-npc').addEventListener('click', async () => {
+    if (!confirm('Generate a complete NPC? This will replace the current character.')) return;
+    const btn = document.getElementById('btn-make-npc');
+    btn.textContent = 'GENERATING…';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/character/generate-npc');
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      character = data.character;
+      uiState.log = data.log || [];
+      saveCharacter();
+      renderAll();
+    } catch (e) {
+      alert('NPC generation failed: ' + e.message);
+    } finally {
+      btn.textContent = 'MAKE NPC';
+      btn.disabled = false;
+    }
+  });
+
   const btnGm = document.getElementById('btn-gm-mode');
   if (btnGm) {
     const paintGm = () => {

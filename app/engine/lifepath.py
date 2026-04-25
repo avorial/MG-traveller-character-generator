@@ -3335,3 +3335,235 @@ def convert_associate(character: Character, index: int, to_kind: str) -> dict:
         },
         "character": character.model_dump(),
     }
+
+
+# ============================================================
+# NPC Auto-generation
+# ============================================================
+
+def _npc_pick_career(character: "Character") -> str:
+    """Score each complete career by the character's DM for its qualification stat."""
+    all_careers = rules.careers()
+    scores: list[tuple[int, str]] = []
+    for cid, career in all_careers.items():
+        if not career.get("complete"):
+            continue
+        if cid in (character.banned_career_ids or []):
+            continue
+        qual = career.get("qualification", {})
+        if qual.get("automatic"):
+            score = 0
+        else:
+            char_key = qual.get("characteristic", "INT")
+            if char_key == "DEX_OR_INT":
+                score = max(
+                    dice.characteristic_dm(character.characteristics.DEX),
+                    dice.characteristic_dm(character.characteristics.INT),
+                )
+            else:
+                score = dice.characteristic_dm(
+                    getattr(character.characteristics, char_key, 7)
+                )
+        scores.append((score, cid))
+    scores.sort(reverse=True)
+    # Pick randomly among the top scorers (within 1 point of best)
+    best = scores[0][0] if scores else 0
+    top = [cid for s, cid in scores if s >= best - 1]
+    return random.choice(top) if top else "drifter"
+
+
+def _npc_best_assignment(career: dict, character: "Character") -> str:
+    """Return the assignment with the best survival DM for the character."""
+    best_id = list(career["assignments"].keys())[0]
+    best_dm = -99
+    for aid, asgn in career["assignments"].items():
+        char_key = asgn.get("survival", {}).get("characteristic", "END")
+        dm = dice.characteristic_dm(getattr(character.characteristics, char_key, 7))
+        if dm > best_dm:
+            best_dm = dm
+            best_id = aid
+    return best_id
+
+
+def generate_npc() -> dict:
+    """Generate a complete NPC character automatically.
+
+    Rolls characteristics, picks the most suitable career, runs 2-4 terms,
+    then mustering out — all server-side with no player interaction.
+    """
+    char = Character()
+
+    # ── Characteristics
+    for stat, val in dice.roll_characteristics().items():
+        setattr(char.characteristics, stat, val)
+
+    # ── Species: Imperial Human (no modifiers, but apply traits)
+    sp = rules.species().get("imperial_human", {})
+    char.species_id = "imperial_human"
+    char.traits = sp.get("traits", [])
+    char.phase = "background"
+
+    # ── Background skills (3 + EDU DM, min 1)
+    edu_dm = dice.characteristic_dm(char.characteristics.EDU)
+    bg_count = max(1, 3 + edu_dm)
+    bg = rules.background_skills()
+    for sk in list(bg.get("skills", {}).keys())[:bg_count]:
+        char.add_skill(sk, level=0)
+
+    char.phase = "career"
+
+    # ── Career selection
+    career_id = _npc_pick_career(char)
+    career = rules.careers()[career_id]
+    assignment_id = _npc_best_assignment(career, char)
+    char.log(f"NPC: Selected {career['name']} / {assignment_id}")
+
+    # ── Basic training: all service skills at level 0
+    service_table = career.get("skill_tables", {}).get("service_skills", {})
+    for i in range(1, 7):
+        sk = service_table.get(str(i), "")
+        if sk:
+            _apply_skill_result(char, sk.split(" ")[0] if "+" not in sk else "")
+    # More reliable: just add service skills at 0
+    for i in range(1, 7):
+        sk = service_table.get(str(i), "")
+        if sk and "+" not in sk:
+            char.add_skill(sk.split("(")[0].strip(), level=0)
+
+    # ── Run terms
+    num_terms = random.randint(2, 4)
+    assignment = career["assignments"][assignment_id]
+    surv_cfg = assignment["survival"]
+    adv_cfg = assignment["advancement"]
+
+    for term_num in range(1, num_terms + 1):
+        overall_num = char.total_terms + 1
+        term = CareerTerm(
+            career_id=career_id,
+            assignment_id=assignment_id,
+            term_number=term_num,
+            overall_term_number=overall_num,
+        )
+        char.current_term = term
+
+        # One service skill roll
+        r = dice.roll("1D")
+        sk_result = service_table.get(str(r.total), "")
+        if sk_result:
+            applied = _apply_skill_result(char, sk_result)
+            term.skills_gained.append(f"Service: {sk_result}")
+
+        # Survival
+        surv_dm = dice.characteristic_dm(
+            getattr(char.characteristics, surv_cfg["characteristic"], 7)
+        )
+        surv_roll = dice.roll("2D", modifier=surv_dm, target=surv_cfg["target"])
+        term.survived = bool(surv_roll.succeeded)
+        term.survival_roll_total = surv_roll.total
+
+        if not surv_roll.succeeded:
+            # Mishap — auto-apply safe effects, end career
+            mishap_r = dice.roll("1D")
+            mishap_num = mishap_r.total
+            mishap_text = career.get("mishaps", {}).get(str(mishap_num), "Mishap.")
+            term.mishap = mishap_text
+            char.log(f"NPC Mishap [1D={mishap_num}]: {mishap_text}")
+            effects = _MISHAP_EFFECTS.get(career_id, {}).get(mishap_num, [])
+            for eff in effects:
+                if eff["type"] in ("enemy", "rival", "contact", "ally", "stat", "skill",
+                                   "forfeit_benefit", "debt", "d_associates"):
+                    _apply_mishap_effect(char, eff, term)
+            # Light auto-injury for result 1/6 mishaps
+            if any(e["type"] in ("injury", "injury_severity_choice") for e in effects):
+                inj = _apply_injury_for_result(char, 5)  # result 5 = lose 1 physical
+                if char.pending_injury_choice:
+                    resolve_injury_choice(char, char.pending_injury_choice["choices"][0])
+            # End career via mishap
+            char.age += 4
+            char.total_terms += 1
+            char.term_history.append(term)
+            char.current_term = None
+            terms_in_career = sum(1 for h in char.term_history if h.career_id == career_id)
+            rank_bonus = _benefit_rolls_from_rank(term.rank)
+            earned = max(0, terms_in_career + rank_bonus - (1 if term.benefit_forfeited else 0))
+            char.pending_benefit_rolls += earned
+            char.completed_careers.append(CareerRecord(
+                career_id=career_id, assignment_id=assignment_id,
+                terms_served=terms_in_career, final_rank=term.rank,
+                final_rank_title=term.rank_title, left_due_to="mishap",
+            ))
+            break
+
+        # Event (auto-apply safe effects only)
+        events_table = career.get("events", {})
+        ev_r = dice.roll("2D")
+        ev_text = events_table.get(str(ev_r.total), "")
+        if ev_text:
+            term.events.append(ev_text)
+            _apply_event_dms(char, ev_text)
+            _apply_event_stat_bonuses(char, ev_text)
+            _apply_event_auto_promotion(char, ev_text)
+            # Life event sub-roll
+            if ev_text.lower().startswith("life event"):
+                life_r = dice.roll("2D")
+                life_data = rules.life_events()["entries"].get(str(life_r.total))
+                if life_data:
+                    term.events[-1] += f" — {life_data['title']}: {life_data['text']}"
+
+        # Advancement
+        adv_dm = dice.characteristic_dm(
+            getattr(char.characteristics, adv_cfg["characteristic"], 7)
+        )
+        adv_dm += char.dm_next_advancement
+        char.dm_next_advancement = 0
+        adv_roll = dice.roll("2D", modifier=adv_dm, target=adv_cfg["target"])
+        term.advanced = bool(adv_roll.succeeded)
+        if adv_roll.succeeded:
+            term.rank += 1
+            term.rank_title = _rank_title(career, assignment_id, term.rank)
+            rd = _rank_data(career, assignment_id, term.rank)
+            if rd and rd.get("bonus"):
+                _apply_skill_result(char, rd["bonus"])
+                term.skills_gained.append(f"Rank bonus: {rd['bonus']}")
+
+        # End term
+        char.age += 4
+        char.total_terms += 1
+        char.term_history.append(term)
+        char.current_term = None
+
+    # ── Finalise career (if not already ended by mishap)
+    if not char.completed_careers:
+        terms_in_career = sum(1 for h in char.term_history if h.career_id == career_id)
+        rank_bonus = _benefit_rolls_from_rank(
+            char.term_history[-1].rank if char.term_history else 0
+        )
+        char.pending_benefit_rolls += terms_in_career + rank_bonus
+        final_term = char.term_history[-1] if char.term_history else None
+        char.completed_careers.append(CareerRecord(
+            career_id=career_id, assignment_id=assignment_id,
+            terms_served=terms_in_career,
+            final_rank=final_term.rank if final_term else 0,
+            final_rank_title=final_term.rank_title if final_term else None,
+            left_due_to="voluntary",
+        ))
+
+    # ── Muster out: roll all pending benefit rolls (max 3 cash rolls)
+    muster_table = career.get("mustering_out", {})
+    max_entries = len(muster_table)
+    while char.pending_benefit_rolls > 0:
+        char.pending_benefit_rolls -= 1
+        r = min(dice.roll("1D").total, max_entries)
+        entry = muster_table.get(str(r), {})
+        if isinstance(entry, dict):
+            if char.cash_rolls_used < 3:
+                char.credits += entry.get("cash", 0)
+                char.cash_rolls_used += 1
+            else:
+                benefit = entry.get("benefit", "")
+                if benefit:
+                    _apply_skill_result(char, benefit)
+
+    char.phase = "complete"
+    char.log(f"NPC generation complete. Age {char.age}, {char.total_terms} terms.")
+    return {"character": char.model_dump()}

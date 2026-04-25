@@ -1589,20 +1589,9 @@ body {
   box-shadow: 0 0 6px rgba(255, 82, 51, 0.3);
 }
 
-/* Fixed GM Mode overlay panel at the bottom of the viewport */
+/* Fixed GM Mode overlay panel — hidden; GM state shown via button color only */
 #gm-panel.gm-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-  background: #0f0808;
-  border-top: 2px solid var(--danger);
-  box-shadow: 0 -4px 20px rgba(255, 82, 51, 0.25);
-  padding: 8px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: none !important;
 }
 
 .gm-panel-header {
@@ -1656,9 +1645,11 @@ body {
   letter-spacing: 0.08em;
 }
 
-/* Offset the main layout when GM panel is open */
-body.gm-mode .layout {
-  padding-bottom: 80px;
+/* GM active: button turns red to signal override mode is on */
+body.gm-mode #btn-gm-mode {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(255, 82, 51, 0.12);
 }
 
 .gm-panel {

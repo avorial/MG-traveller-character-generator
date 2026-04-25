@@ -678,3 +678,12 @@ async def api_psionics_train(action: PsionicTalentAction):
         return lifepath.train_psionic_talent(character, action.talent_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.get("/api/character/generate-npc")
+async def api_generate_npc():
+    """Generate a fully fleshed-out NPC character server-side."""
+    try:
+        return lifepath.generate_npc()
+    except Exception as e:
+        raise HTTPException(500, str(e))
