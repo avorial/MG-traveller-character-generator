@@ -272,20 +272,31 @@ def test_psionics(character: "Character") -> dict:
     data = rules.psionics()
     pot = data["potential_test"]
     dm = -character.total_terms  # -1 per term
-    r = dice.roll("2D", modifier=dm, target=pot["target"])
+
+    # Check for species-level psionic bane (e.g. Bwaps).
+    species_data = rules.species().get(character.species_id, {})
+    has_psionic_bane = species_data.get("psionic_bane", False)
+
+    if has_psionic_bane:
+        r = dice.roll_bane_2d(modifier=dm, target=pot["target"])
+        roll_label = f"BANE 3D drop highest{dm:+d}={r.total}"
+    else:
+        r = dice.roll("2D", modifier=dm, target=pot["target"])
+        roll_label = f"2D{dm:+d}={r.total}"
 
     character.psi_tested = True
 
     if not r.succeeded:
         character.psi = 0
         character.log(
-            f"Psionic potential test [2D{dm:+d}={r.total}]: FAILED "
+            f"Psionic potential test [{roll_label}]: FAILED "
             f"(needed {pot['target']}+). No psionic ability."
         )
         return {
             "potential_roll": r.to_dict(),
             "potential_succeeded": False,
             "psi": 0,
+            "psionic_bane_applied": has_psionic_bane,
             "character": character.model_dump(),
         }
 
@@ -296,7 +307,7 @@ def test_psionics(character: "Character") -> dict:
     psi_val = max(formula.get("min", 0), min(formula.get("max", 15), psi_val))
     character.psi = psi_val
     character.log(
-        f"Psionic potential [2D{dm:+d}={r.total}]: PASSED. "
+        f"Psionic potential [{roll_label}]: PASSED. "
         f"Psi strength [2D-{character.total_terms}={raw.total}-{character.total_terms}={psi_val}]."
     )
     return {
@@ -304,6 +315,7 @@ def test_psionics(character: "Character") -> dict:
         "potential_succeeded": True,
         "psi_roll": raw.to_dict(),
         "psi": psi_val,
+        "psionic_bane_applied": has_psionic_bane,
         "character": character.model_dump(),
     }
 
@@ -324,6 +336,9 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
         raise ValueError(f"Unknown talent: {talent_id}")
 
     cost = talent.get("cost_cr", 200000)
+    pcs = (character.pre_career_status or {}) if hasattr(character, "pre_career_status") else {}
+    if pcs.get("pending_psionic_training"):
+        cost = 0
     if character.credits < cost:
         raise ValueError(
             f"Insufficient credits: need Cr{cost:,}, have Cr{character.credits:,}."

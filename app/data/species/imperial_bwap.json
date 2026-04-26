@@ -1,0 +1,31 @@
+{
+  "id": "imperial_bwap",
+  "name": "Bwap (Imperial Raised)",
+  "description": "Also known as Wabs, or — less charitably — Newts, Bwaps are a semi-aquatic reptiloid species found throughout the Imperium. Each clan and family bears a distinctive skin pattern of greens, browns, yellows, or blues, determined by careful manipulation of the mother's diet during egg formation. Bwaps are uncomfortable at less than 98% humidity; their characteristic layered garments weave a network of fine water-filled tubes to keep their skin moist, and thin waterproof gloves protect delicate documents and electronics from inadvertent dampening. Humans often remark on the Bwap obsession with order and minutiae — but that structural thinking makes them superlative bureaucrats, administrators, mathematicians, scientists, and historians. Imperial-raised Bwaps have adapted their drive for systematic perfection to the vast legal and commercial apparatus of the Third Imperium, where their reputation for meticulous record-keeping and procedural mastery is well-earned and widely valued.",
+  "characteristic_modifiers": {
+    "STR": -4,
+    "DEX": 0,
+    "END": -4,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "psionic_bane": true,
+  "traits": [
+    {
+      "name": "Structured Mind",
+      "description": "Bwaps possess a deeply logical, hierarchical way of thinking. They receive a permanent Boon (roll 3D, keep the two highest) on all Admin and Science skill checks. This represents their extraordinary aptitude for procedure, taxonomy, and ordered systems — but it does not extend to improvisational or social tasks."
+    },
+    {
+      "name": "Psionic Incompatibility",
+      "description": "The Bwap neural architecture is highly ordered and resistant to the chaotic resonances underlying psionic ability. Whenever a Bwap tests for psionic potential, the roll is made with a Bane (roll 3D, keep the two lowest) rather than the normal 2D. This is applied automatically by the engine."
+    },
+    {
+      "name": "Moisture Dependent",
+      "description": "Bwap skin must be kept moist. Without their specialized clothing (a moisture-circulating garment and hood), they suffer increasing discomfort in dry environments. For purposes of equipment and survival in arid or vacuum conditions, Bwaps require their moisture-suit in addition to any other environmental protection. Role-play flavour; no additional mechanical penalty beyond the need for appropriate gear."
+    }
+  ],
+  "aliases": ["bwap", "wab"],
+  "source": "Traveller Core Rulebook (Mongoose Publishing); Bwap species detail from Aliens of Charted Space Vol. 1"
+}

@@ -160,6 +160,46 @@ def characteristic_dm(score: int) -> int:
     return 3
 
 
+def roll_bane_2d(modifier: int = 0, target: Optional[int] = None) -> RollResult:
+    """Roll 3D and drop the highest die (bane = take the two lowest).
+
+    MgT 2e bane mechanic: generate three d6s, discard the best, sum
+    the remaining two. The modifier and target are applied on top of
+    that reduced sum, exactly like a normal 2D roll.
+    """
+    forced = _pop_forced()
+    if forced is not None:
+        # GM override: treat as a straight 2D result with the forced raw total.
+        total = forced + modifier
+        return RollResult(
+            dice=[forced],
+            raw_total=forced,
+            modifier=modifier,
+            total=total,
+            target=target,
+            succeeded=(total >= target) if target is not None else None,
+            margin=(total - target) if target is not None else None,
+            notation=f"BANE(GM:{forced})",
+        )
+
+    three = [random.randint(1, 6), random.randint(1, 6), random.randint(1, 6)]
+    kept = sorted(three)[:2]          # two lowest
+    raw_total = sum(kept)
+    total = raw_total + modifier
+
+    return RollResult(
+        dice=three,
+        raw_total=raw_total,
+        modifier=modifier,
+        total=total,
+        target=target,
+        succeeded=(total >= target) if target is not None else None,
+        margin=(total - target) if target is not None else None,
+        notation=f"BANE(3D drop highest:{three}→{kept})"
+                 + (f"+{modifier}" if modifier > 0 else f"{modifier}" if modifier < 0 else ""),
+    )
+
+
 def roll_characteristics() -> dict[str, int]:
     """Roll 2D for each of the six characteristics."""
     return {

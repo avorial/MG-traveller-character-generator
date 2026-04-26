@@ -111,6 +111,7 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 | `imperial_vargr` | Imperial Vargr | Imperial space Vargr |
 | `extents_vargr` | Extents Vargr | Vargr Extents cultural modifiers |
 | `vargr` | Vargr (generic) | Base modifiers |
+| `imperial_bwap` | Bwap (Imperial Raised) | STR−4, END−4; Boon on Admin/Science; Bane on psionic test |
 
 ---
 
