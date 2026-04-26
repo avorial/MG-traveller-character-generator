@@ -1,0 +1,27 @@
+{
+  "id": "jonkeereen",
+  "name": "Jonkeereen",
+  "description": "The Jonkeereen are genetically engineered humans, a deliberate creation of the Third Imperium designed for survival in extreme arid conditions. The original population was seeded on Jonkeer in Deneb sector, where they thrived; subsequent groups have been introduced to worlds across the Trailing Frontier, not always willingly. Their transplantation has occasionally sparked rebellion, and a vocal lobby continues to advocate for their right to self-determination. On average, Jonkeereen are tall and slender with dark skin that sheds heat efficiently. They require only about 20% of the water that a standard human needs, extract maximum nutrition from almost any food, and possess an inner eyelid membrane that filters out dust and UV radiation. The price of these desert adaptations is longevity — Jonkeereen average only 60–65 years. Many communities have quietly drifted from their assigned worlds and built unofficial settlements in the harshest of environments, surviving without any technological assistance. These fringe populations mostly wish to be left alone, though they will trade with friendly visitors and fight those who threaten them.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 2,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 50,
+  "traits": [
+    {
+      "name": "Desert Survival",
+      "description": "Jonkeereen are engineered to survive where others cannot. They can breathe most tainted atmospheres without a filter mask, as their respiratory system can tolerate or neutralise most common contaminants. They gain DM+3 to all Survival checks made in desert, arid, or similar hot environments. At the Referee's discretion this DM may also offset penalties imposed by adverse desert conditions — blowing dust, intense UV, glare — on other skill checks where those conditions would normally impair performance."
+    },
+    {
+      "name": "Short-Lived",
+      "description": "Jonkeereen genetics produce accelerated cellular aging; the average lifespan is 60–65 years. For purposes of the aging table, Jonkeereen age one additional step faster than normal humans (apply aging rolls from the third term rather than the fourth). Roleplaying note: this is a source of ongoing political tension with Imperial society, which has not prioritised longevity treatment for a species it manufactured."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

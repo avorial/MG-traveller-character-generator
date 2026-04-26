@@ -26,6 +26,7 @@
       "description": "Bwap skin must be kept moist. Without their specialized clothing (a moisture-circulating garment and hood), they suffer increasing discomfort in dry environments. For purposes of equipment and survival in arid or vacuum conditions, Bwaps require their moisture-suit in addition to any other environmental protection. Role-play flavour; no additional mechanical penalty beyond the need for appropriate gear."
     }
   ],
+  "sort_order": 40,
   "aliases": ["bwap", "wab"],
   "source": "Traveller Core Rulebook (Mongoose Publishing); Bwap species detail from Aliens of Charted Space Vol. 1"
 }

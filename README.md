@@ -101,17 +101,23 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 ### Species
 
-| File ID | Name | Notes |
-|---|---|---|
-| `imperial_human` | Imperial Human | Default |
-| `human` | Generic Human | No SOC |
-| `imperial_aslan` | Imperial Aslan | Imperial space Aslan |
-| `hierate_aslan` | Hierate Aslan | Aslan Hierate cultural modifiers |
-| `aslan` | Aslan (generic) | Base modifiers |
-| `imperial_vargr` | Imperial Vargr | Imperial space Vargr |
-| `extents_vargr` | Extents Vargr | Vargr Extents cultural modifiers |
-| `vargr` | Vargr (generic) | Base modifiers |
-| `imperial_bwap` | Bwap (Imperial Raised) | STR−4, END−4; Boon on Admin/Science; Bane on psionic test |
+Species are listed in picker order (set by `sort_order` in each JSON).
+
+| File ID | Name | Key Modifiers | Notes |
+|---|---|---|---|
+| `imperial_human` | Imperial Human | — | Default; no modifiers |
+| `imperial_vargr` | Vargr (Imperial Raised) | STR−1 DEX+1 END−1 | Bite, Heightened Senses |
+| `imperial_aslan` | Aslan (Imperial Raised) | STR+2 DEX−2 | Dewclaw, Heightened Senses |
+| `imperial_bwap` | Bwap (Imperial Raised) | STR−4 END−4 | Boon on Admin/Science; Bane on psionic test |
+| `jonkeereen` | Jonkeereen | END+2 | Desert Survival DM+3; breathe tainted atmo; shorter lifespan |
+| `luriani` | Luriani | DEX+1 END+1 SOC−2 | Aquatic Adaptation; Histrionics |
+| `sydite` | Sydite | STR+2 END+2 DEX−2 INT−3 EDU−3 | Four-Armed; Resilient (Protection+1); Plodding Along |
+| `akeed` | Akeed | STR−2 END−2 INT+1 | Akeed Debate DM+2; Akeed Friendship bond; non-humanoid physiology |
+| `capry_female` | Capry — Female | STR−3 DEX+2 END−2 INT+1 | Liberating Fatalism; Third Hand |
+| `capry_big_male` | Capry — Big Male | STR−1 END+1 | Liberating Fatalism; Third Hand |
+| `capry_small_male` | Capry — Small Male | STR−4 DEX+3 END−3 EDU+2 | Liberating Fatalism; Third Hand |
+| `droashav` | Droashav | STR+2 DEX−1 END+3 INT−1 | Six-limbed; Natural Defences (Protection+1, claw 1D+2) |
+| `faar` | Faar | INT+1 | Closed Book (DM−2 to read); Homesickness |
 
 ---
 

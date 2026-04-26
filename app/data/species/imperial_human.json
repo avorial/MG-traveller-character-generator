@@ -21,6 +21,7 @@
       "description": "Your specific human culture (Solomani, Vilani, Mixed-Imperial, Frontier, etc.) is set by your homeworld UWP and background. Feel free to flavor your character's manners, name, and accent accordingly — but by Core rules it grants no additional DMs."
     }
   ],
+  "sort_order": 10,
   "aliases": ["human", "solomani", "vilani", "mixed_human"],
   "source": "Traveller Core Rulebook, Mongoose Publishing"
 }

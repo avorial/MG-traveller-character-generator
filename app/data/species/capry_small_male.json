@@ -1,0 +1,27 @@
+{
+  "id": "capry_small_male",
+  "name": "Capry — Small Male",
+  "description": "The Capry (known as the Remnants) are native to Basternevis in Gateway. Bipedal and broadly humanoid, they are covered in soft feathers and possess a prehensile tail ending in a cluster of dense, brightly coloured feather-fingers capable of gripping and manipulating small objects. Capry stand 1.4–1.6 metres tall and are more lightly built than humans. They have three biological sexes: females tend to be dextrous and technically minded; big males are physically robust; small males are agile and abstractly intelligent. A female requires fertilisation from both male types to conceive. Families are complex groupings of 2–5 pairs. The Capry reached starfaring capability during the late Long Night but their explosive industrial development destroyed their homeworld, triggering wars that wrecked their civilisation. Today they are a dying species — scattered in small enclaves at starports and aboard ships, their numbers still declining, likely past the threshold for long-term survival. Many Capry find this strangely liberating: their species is doomed and they can do nothing about it, so they experience as much of the cosmos as possible without ties to home or pressure to reproduce. Small male Capry are agile and possess a sharp, abstract, scientific intelligence.",
+  "characteristic_modifiers": {
+    "STR": -4,
+    "DEX": 3,
+    "END": -3,
+    "INT": 0,
+    "EDU": 2,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 92,
+  "traits": [
+    {
+      "name": "Liberating Fatalism",
+      "description": "A Capry may choose three areas of special interest (which can change over time) and gains DM+1 whenever they carry out a task that benefits from near-obsessive focus on one of those areas — whether scientific research, navigation, computing, or any other appropriate activity at the Referee's discretion. This reflects the Capry drive to experience and excel at things that matter to them while time remains."
+    },
+    {
+      "name": "Third Hand",
+      "description": "All Capry can use their feather-finger tail appendage for simple tasks such as eating, opening a door, or steadying a component. The tail is not strong enough to wield a weapon or bear the Capry's weight, but whenever it can assist in a task — holding something in place during a delicate repair, for example — DM+2 may be applied to the relevant check."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

@@ -25,6 +25,7 @@
       "description": "Pack instincts channeled through Imperial institutions. DM+1 to Persuade and Leadership checks in informal or crew-level social settings. The character chafes under rigid hierarchy: DM-1 to any Admin check that requires deference to a chain of command they don't personally respect."
     }
   ],
+  "sort_order": 20,
   "aliases": ["vargr", "extents_vargr"],
   "source": "Traveller Core Rulebook, Mongoose Publishing; home-society flavor derived for the Imperium-raised variant"
 }

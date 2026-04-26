@@ -153,8 +153,15 @@ def _unique_entries(data: dict[str, dict]) -> list[dict]:
 
 
 def list_species() -> list[dict]:
-    """Deduped, canonical list of species for UI enumeration."""
-    return _unique_entries(species())
+    """Deduped, canonical list of species for UI enumeration.
+
+    Entries are sorted by their ``sort_order`` field (ascending); entries
+    without that field sort after those that have it, then alphabetically
+    by name so the order is always deterministic.
+    """
+    entries = _unique_entries(species())
+    entries.sort(key=lambda e: (e.get("sort_order", 9999), e.get("name", "")))
+    return entries
 
 
 def list_careers() -> list[dict]:

@@ -1,0 +1,31 @@
+{
+  "id": "akeed",
+  "name": "Akeed",
+  "description": "The Akeed are native to Akeen in Gateway and rule a multi-world state called the Akeena Union, in which many humans live as willing partners. Humans often describe Akeed as 'lovably yucky' — their damp, slimy appearance is initially off-putting, but their natural scent is pleasant to most species, and their sharp wit and irreverent humour quickly win over anyone who interacts with them for any length of time. Physically, Akeed are highly alien. The lower body is a boneless blob-like foot — broader than a snail's — from which the upper body bulges upward. Two pairs of tentacles on each side of the upper body end in four boneless fingers. The head is protected by a cartilaginous case with semi-extended eye stalks. Akeed have no sense of smell or taste and no conventional mouth, though their breathing hole can produce intelligible speech, and they are remarkably gifted singers. They feed by drawing minerals directly from soil through the base of their foot. They can move slowly through water by pulsing the foot, or make quick bursts by jet-propulsion. They stand about 75 cm tall normally, can surge to 1.25 m for short periods, and move at 4 m per round. Akeed society settles disputes through long arguments, preferring to wear down opposition rather than resort to conflict. They understand humans well enough to serve as remarkably effective mediators. The Akeena Union's military is largely staffed by its human population.",
+  "characteristic_modifiers": {
+    "STR": -2,
+    "DEX": 0,
+    "END": -2,
+    "INT": 1,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 80,
+  "traits": [
+    {
+      "name": "Akeed Debate",
+      "description": "Akeed receive DM+2 on all checks to argue a point, convince someone they are correct, or confound someone's reasoning — including, at the Referee's discretion, resisting interrogation or sowing confusion during questioning. When mediating between two parties seeking a fair settlement, DM+2 applies to checks made to achieve a mutually agreeable outcome."
+    },
+    {
+      "name": "Akeed Friendship",
+      "description": "An Akeed may attempt to form a deep bond with a human or Vargr. Only one such attempt can be made per individual, and only one bond can be pursued at a time. The Akeed must interact with the target for 2D hours (not necessarily in one sitting), then make a Difficult (10+) Persuade check — if the target is unwilling, their INT modifier is applied as a negative DM. On success, the target develops a profound, compulsive bond: they will always miss their Akeed friend when apart and cannot bear to see them come to harm. This translates to DM+1 on all checks that benefit the friend. If the bonded character wishes to act against their Akeed friend or allow them to come to harm, they must make an Average (8+) INT check first. The Akeed feels a genuine reciprocal bond and is happiest in the company of their chosen friend."
+    },
+    {
+      "name": "Unusual Physiology",
+      "description": "Akeed cannot traverse vertical surfaces (they can cling to slopes up to 70° at 1 m per round). They cannot wield conventional weapons designed for humanoid hands and require specially adapted equipment. They cannot wear standard armour or clothing. Movement speed is 4 m per round on land; faster in short jet-propelled bursts in water. These are physical constraints, not DM penalties."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

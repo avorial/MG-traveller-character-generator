@@ -1,0 +1,31 @@
+{
+  "id": "sydite",
+  "name": "Sydite",
+  "description": "Sydites are one of the most divergent human sub-species, showing clear signs of Ancient genetic engineering. They stand around 2.5 metres tall and possess four arms: an upper pair intended for fine work, and a lower pair for heavy labour. The muscle groups are interlinked, making independent movement of the two pairs difficult — Sydites have developed a characteristic 'fold the lower' gesture, locking the lower arms across the torso before undertaking delicate tasks. Their features are described by most observers as slab-like, and they are not considered fast thinkers, though to dismiss them as brutes is a mistake — they did build a lasting interstellar empire. Sydites were apparently intended as workers or expendable warriors, and the abandonment by their Ancient creators profoundly shaped their culture. Loyalty is paramount: once a Sydite gives their word they will complete a task, they will do so at any cost, with grim fatalism if necessary. Leadership authority must be earned by demonstrated competence — titles and inheritances mean nothing. Their society organises into small groups-of-groups that can operate autonomously or coalesce into larger formations as needed, making Sydite communities highly resilient. Some scientists note a superficial similarity to Vargr social structures, but Sydite loyalty is far deeper and more durable. There are small enclaves throughout Gateway and the surrounding region, centred on their homeworld of Sopater (Khuur in everyone else's language), once the capital of a significant empire destroyed by the Third Imperium and replaced by the Khuur League trade federation.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 2,
+    "INT": -3,
+    "EDU": -3,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 70,
+  "traits": [
+    {
+      "name": "Resilient",
+      "description": "Sydites are large and powerfully muscled, giving them natural resistance to harm. They are considered to have one point of natural armour (Protection +1) against most physical damage. They are particularly resistant to electric shocks, heat, and cold, gaining DM+2 on checks to avoid or reduce damage from these sources — translating to an additional Protection +1 against such attacks where appropriate."
+    },
+    {
+      "name": "Plodding Along",
+      "description": "Most Sydites lack initiative and imagination for organisation or leadership — they were not designed for it. A Sydite with this trait suffers DM−4 on Leadership and Tactics checks. Conversely, they will often persist at a task long after others would have given up, simply because they lack the initiative to quit: DM+4 applies to checks to avoid becoming demoralised or discouraged, including combat morale. At the Referee's discretion, Travellers and Sydites in leadership roles may not have this trait."
+    },
+    {
+      "name": "Four-Armed",
+      "description": "Sydites have two pairs of arms. The upper pair is weaker and suited for fine manipulation; the lower pair is powerful. The interlinking of their musculature means it is difficult to use both pairs independently. When working with the lower arms for heavy tasks, STR is treated as +2 higher. When the lower arms are folded and only the upper arms are used for fine work, DEX is treated as +2 higher (offsetting the base DEX penalty). A Sydite can wield a weapon in each hand simultaneously without the normal off-hand penalty, though they rarely do so."
+    }
+  ],
+  "aliases": ["sydites"],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "faar",
+  "name": "Faar",
+  "description": "The Faar are native to Alphaaric in the Gateway sector — a non-human species that is nonetheless broadly humanoid, squat and heavily built from their high-gravity homeworld. They average 1.5 metres in height, with very pale skin, no body hair, and pale blue or green eyes. Their hips and shoulders are structured differently from humans, though this is not immediately apparent. The Faar are highly intelligent and technologically advanced, with technology superior to most of Gateway. They trade electronics and recreational technology with a few select partners — notably the Galian Federation — but never sell weapons or starship components. They are deeply hedonistic at home; visitors to Alphaaric report a people who work with great efficiency to clear their obligations so they can return to art, music, theatre, and enjoying life. Away from home, the Faar become the opposite: taciturn, single-minded, and difficult to read, as if unable to wait to return. Rumours suggest the Faar are afraid of something 'out there' and stay close to home by choice. Most visitors to the Alphaaric system meet with human and Faar representatives at Faarview, an orbital city in the system, rather than on Alphaaric itself. Individual Faar do travel for personal business, but as a species they have no expansionist ambitions and no interest in empire.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 1,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 110,
+  "traits": [
+    {
+      "name": "Closed Book",
+      "description": "Away from their homeworld, Faar are taciturn and closed-off. They are exceptionally difficult to read. All skills or abilities that depend on understanding a Faar's emotional state, reactions, or intentions — including relevant Recon, Persuade, and psionic checks — suffer DM−2 when targeting a Faar."
+    },
+    {
+      "name": "Homesickness",
+      "description": "A Faar away from Alphaaric — even at Faarview in the same system — is prone to bouts of intense homesickness. Every 2D days, the Faar must make an Average (8+) END check or fall into melancholy, applying a blanket DM−1 to all tasks not connected with immediate danger or survival. This lasts 1D days. The check resets when the episode ends."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

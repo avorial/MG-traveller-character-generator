@@ -1,0 +1,27 @@
+{
+  "id": "droashav",
+  "name": "Droashav",
+  "description": "Droashav are six-limbed pseudoreptilians from Trevannic in Gateway. They stand 1.5–2 metres tall on their hind limbs and have two pairs of arms and clawed feet that can be used in close combat. Their greeny-brown hide provides natural protection and they are generally tough and uncomplaining. It is strongly suspected the Droashav are not native to Trevannic — there are no other six-limbed creatures on the planet, no fossil record of their evolution there, and the Droashav themselves have folk tales of ancestors who wandered among the stars, suggesting the possibility of other enclaves elsewhere. Some scientists speculate a connection to the K'Kree due to similar six-limbed physiology; the more provocative theory holds the Droashav may be the G'naak that the K'Kree believed they had exterminated in their ancient genocidal campaigns. If true, this would make the Droashav an existential target for the Lords of Thunder. The majority of the Droashav population lives as TL1 desert nomads, with a TL4 civilisation in the planet's northern reaches and a few higher-technology enclaves, sometimes mixed with humans. Droashav equipment tends to be optimised for their physiology rather than humanoid use, suggesting at least some of their technology is homegrown or derived from remnants of a fallen civilisation.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -1,
+    "END": 3,
+    "INT": -1,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 100,
+  "traits": [
+    {
+      "name": "Natural Defences",
+      "description": "Droashav tough hide and generally resilient constitution grant Protection +1 against physical damage. They can use their rear foot-claws in close combat as a natural weapon, dealing 1D+2 damage using the Melee (natural) skill."
+    },
+    {
+      "name": "Six-Limbed",
+      "description": "Droashav possess two pairs of arms and one pair of legs. They can carry and use items in up to four hands simultaneously, though most conventional equipment is not designed for this body plan. At the Referee's discretion, tasks that benefit from additional hands (steadying, holding, bracing) may gain DM+1."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

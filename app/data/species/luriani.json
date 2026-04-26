@@ -1,0 +1,27 @@
+{
+  "id": "luriani",
+  "name": "Luriani",
+  "description": "The Luriani are humans genetically adapted by the Ancients for an aquatic world — but that simple description barely scratches the surface. They have webbed hands and feet, insulating layers of fat for cold water, and a blood-regulation system that allows them to reduce flow to non-vital organs, enabling sustained underwater action or up to 30 minutes in an airless environment. Equally distinctive is their culture: the Luriani are intensely emotional people who consider open displays of feeling — hugs, tears, sudden outbursts — not merely acceptable but essential to honest communication. Luriani society is built on highly complex family groupings and encompasses three genetic streams: the original genetic Luriani (who possess Aquatic Adaptation), the Verasti Dtareen (humans of Solomani descent absorbed into Luriani culture, who are often more militarily inclined), and the Mmarislusant (humans of Vilani descent, somewhat more restrained). About 35% of the Luriani cultural nation is not genetically Luriani. All streams share the Histrionics trait. This entry represents a genetic Luriani with both traits.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 1,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -2
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 60,
+  "traits": [
+    {
+      "name": "Aquatic Adaptation",
+      "description": "Luriani can dive to a depth of 500 metres without artificial aids (at standard atmospheric pressure) and can survive without breathing for up to an hour, though it becomes increasingly unpleasant after 20 minutes. They gain DM+2 on all Survival checks made in an aquatic environment and DM+2 on all checks involving swimming or underwater activity."
+    },
+    {
+      "name": "Histrionics",
+      "description": "Luriani express emotion freely and compulsively. Any time a Luriani attempts to conceal their feelings, DM−2 applies to relevant Persuade or Deception checks. Conversely, DM+2 applies to any situation where the Luriani wants to draw attention to themselves — this does not make them more persuasive, only more noticeable. A Luriani actor can steal a scene with a sudden outpouring of emotion, but that does not mean the performance will impress the critics."
+    }
+  ],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+}

@@ -25,6 +25,7 @@
       "description": "Raised between Imperial bureaucracy and distant Aslan tradition. DM+1 to Diplomat or Advocate checks that involve bridging Imperial and Aslan parties. Hierate-born Aslan see this character as not fully kin — DM-1 to Persuade checks against Hierate society."
     }
   ],
+  "sort_order": 30,
   "aliases": ["aslan", "hierate_aslan"],
   "source": "Traveller Core Rulebook, Mongoose Publishing; home-society flavor derived for the Imperium-raised variant"
 }
