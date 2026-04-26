@@ -1,0 +1,27 @@
+{
+  "id": "confederation_human",
+  "name": "Non-Solomani Human (Confederation)",
+  "description": "Non-Solomani humans in the Solomani Confederation are those whose ancestry is entirely non-Solomani — Vilani, Zhodani-descended, Solomani Rim emigrants, or simply of documented non-Terran stock. They are second-class citizens in the Confederation by default, unable to join the Solomani Party and facing varying degrees of institutionalised discrimination depending on the world and local administration. Some worlds in the Confederation are more tolerant than others; the discrimination tends to be more political and economic than physical, and outsiders often initially mistake it for the same snobbery found everywhere. Non-Solomani humans can live, work, and build careers in the Confederation, but advancement in most careers is harder, and the Party career is completely closed to them. They cannot join SolSec as full agents (though they may be recruited as informants). Despite the disadvantages, many Non-Solomani remain in the Confederation by choice — they were born there, their families are there, or simply because the opportunities are better than wherever else they might go.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 202,
+  "traits": [
+    {
+      "name": "Non-Solomani Status",
+      "description": "Cannot qualify for the Solomani Party career. Cannot serve as a SolSec Field Agent or Secret Agent (Administration is possible in a supporting role). No penalty to advancement in the Drifter career. No Party Patronage benefit — SOC modifier does NOT apply to qualification rolls. Normal advancement applies in all other careers."
+    },
+    {
+      "name": "Outsider's Perspective",
+      "description": "Having navigated a society that does not fully accept them, Non-Solomani humans in the Confederation develop a sharp awareness of social dynamics. DM+1 to Recon checks that involve reading political or social situations — noticing who the real power is, detecting institutional bias, or understanding unspoken social hierarchies."
+    }
+  ],
+  "aliases": ["non_solomani", "confederation_non_solomani"],
+  "source": "Solomani Confederation sourcebook, Mongoose Publishing"
+}

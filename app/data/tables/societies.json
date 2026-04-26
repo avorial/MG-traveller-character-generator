@@ -12,7 +12,7 @@
       "name": "Solomani Confederation",
       "subtitle": "Children of Terra — humanity's original homeworld",
       "description": "The Solomani Confederation claims dominion over the region of space closest to Earth, the original human homeworld. Solomani culture prizes human heritage, individual initiative, and a fierce pride in their claim to be the 'true' humans. Relations with the Third Imperium are often tense, sometimes outright hostile.",
-      "species_ids": ["solomani_human"]
+      "species_ids": ["solomani_racial", "solomani_mixed", "confederation_human"]
     },
     {
       "id": "aslan_hierate",

@@ -1,0 +1,165 @@
+{
+  "id": "solsec",
+  "name": "SolSec",
+  "description": "The Solomani Security service is the secret police, intelligence agency and ideological watchdog of the Solomani Confederation. SolSec agents monitor citizens, crush dissent, hunt enemies of the Cause, and conduct operations against the Imperium and other foreign powers. Qualification: INT 6+. DM-2 if aged 34 or more. DM-1 for every previous career. Non-Solomani humans cannot qualify as Field Agents or Secret Agents (Administration is possible in a supporting role).",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [
+      {
+        "description": "DM-2 if aged 34 or more",
+        "type": "age",
+        "age_threshold": 34,
+        "dm": -2
+      },
+      {
+        "description": "DM-1 for every previous career",
+        "type": "per_previous_career",
+        "dm": -1
+      }
+    ]
+  },
+  "assignments": [
+    {
+      "id": "field_agent",
+      "name": "Field Agent",
+      "description": "You worked as an active SolSec field operative, monitoring dissidents, conducting surveillance, enforcing ideological conformity and occasionally eliminating enemies of the Confederation through direct action."
+    },
+    {
+      "id": "administration",
+      "name": "Administration",
+      "description": "You worked in SolSec's administrative and analytical branches, processing intelligence reports, managing informant networks, coordinating with other Confederation agencies and maintaining the vast bureaucracy of the secret police."
+    },
+    {
+      "id": "secret_agent",
+      "name": "Secret Agent",
+      "description": "You operated deep undercover, maintaining a cover identity in another career while secretly reporting to SolSec. Your survival and advancement depend on your cover career rather than SolSec's own benchmarks."
+    }
+  ],
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Deception",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Persuade",
+      "5": "INT +1",
+      "6": "Gun Combat"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics (comms)",
+      "2": "Drive",
+      "3": "Flyer",
+      "4": "Gun Combat",
+      "5": "Recon",
+      "6": "Electronics (computers)"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Advocate",
+      "2": "Engineer",
+      "3": "Medic",
+      "4": "Electronics",
+      "5": "Pilot",
+      "6": "Science (psychology)"
+    },
+    "field_agent": {
+      "name": "Field Agent",
+      "1": "Explosives",
+      "2": "Gun Combat",
+      "3": "Recon",
+      "4": "Stealth",
+      "5": "Athletics",
+      "6": "Melee"
+    },
+    "administration": {
+      "name": "Administration",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Electronics (computers)",
+      "4": "Diplomat",
+      "5": "Investigate",
+      "6": "Science (psychology)"
+    },
+    "secret_agent": {
+      "name": "Secret Agent",
+      "1": "Deception",
+      "2": "Persuade",
+      "3": "Carouse",
+      "4": "Stealth",
+      "5": "Streetwise",
+      "6": "Recon"
+    }
+  },
+  "ranks": {
+    "field_agent": {
+      "0": { "title": "Rookie", "bonus": null },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "2": { "title": "Captain", "bonus": null },
+      "3": { "title": "Major", "bonus": "Deception 1" },
+      "4": { "title": "Lieutenant Colonel", "bonus": null },
+      "5": { "title": "Colonel", "bonus": null },
+      "6": { "title": "Coordinator General", "bonus": "SOC 11 or SOC +1, whichever is higher" }
+    },
+    "administration": {
+      "0": { "title": "Rookie", "bonus": null },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "2": { "title": "Captain", "bonus": null },
+      "3": { "title": "Major", "bonus": "Deception 1" },
+      "4": { "title": "Lieutenant Colonel", "bonus": null },
+      "5": { "title": "Colonel", "bonus": null },
+      "6": { "title": "Coordinator General", "bonus": "SOC 11 or SOC +1, whichever is higher" }
+    },
+    "secret_agent": {
+      "0": { "title": "Rookie", "bonus": null },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "2": { "title": "Captain", "bonus": null },
+      "3": { "title": "Major", "bonus": "Deception 1" },
+      "4": { "title": "Lieutenant Colonel", "bonus": null },
+      "5": { "title": "Colonel", "bonus": null },
+      "6": { "title": "Coordinator General", "bonus": "SOC 11 or SOC +1, whichever is higher" }
+    }
+  },
+  "survival": {
+    "field_agent": { "characteristic": "INT", "target": 7 },
+    "administration": { "characteristic": "EDU", "target": 5 },
+    "secret_agent": { "characteristic": "INT", "target": 7, "note": "Use cover career's survival characteristic and target with DM-1 instead if operating undercover." }
+  },
+  "advancement": {
+    "field_agent": { "characteristic": "INT", "target": 5 },
+    "administration": { "characteristic": "INT", "target": 7 },
+    "secret_agent": { "characteristic": "INT", "target": 5, "note": "Use cover career's advancement characteristic and target with DM+1 instead if operating undercover." }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "Your cover is blown and you are captured by enemies of the Confederation. You must take the Prisoner career for your next term. You may not take a Benefit roll this term.",
+    "3": "You make an enemy within SolSec — perhaps you know too much, or you are a rival for a promotion. You are forced out. Gain a SolSec officer as an Enemy.",
+    "4": "You are implicated in a failed operation. SolSec disavows you. You lose one rank (minimum Rank 0) and are forced out of the service. You may keep this term's Benefit roll only if you successfully pin the blame on a colleague — if so, gain a Rival.",
+    "5": "A network you built is compromised, blown by an informant or enemy agent. You are pulled from the field and forced out of SolSec. You may take a Benefit roll if you expose the traitor; gain them as an Enemy.",
+    "6": "A political purge sweeps through SolSec. You are among those forced out. Roll END 8+; if you succeed, you saw it coming and kept your Benefit roll. If you fail, you are lucky to escape with your life."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You uncover evidence of corruption inside SolSec itself. If you report it up the chain, gain DM+2 on your next advancement roll but gain an Enemy. If you suppress it, gain an Ally inside SolSec.",
+    "4": "You are assigned to monitor a prominent citizen. Choose: surveil aggressively and gain Investigate 1 or Stealth 1, or build a friendly rapport and gain a Contact.",
+    "5": "You are sent on a cross-border operation into Imperial space. Roll Deception or Stealth 8+. Success: gain one of Electronics (comms) 1, Deception 1, Recon 1 or Stealth 1 and gain a Contact in the Solomani underground. Failure: you are burned and must immediately roll on the Mishap table (but are not ejected from the career).",
+    "6": "You assist in a crackdown on anti-Confederation dissidents. Gain one of Advocate 1, Investigate 1, Persuade 1 or Streetwise 1.",
+    "7": "Life Event. Roll on the Solomani Life Events table.",
+    "8": "You are seconded to work alongside Confederation Navy intelligence. Gain one of Astrogation 1, Electronics (sensors) 1, Gunner 1, Pilot 1 or Tactics (naval) 1 and gain a Contact in the Navy.",
+    "9": "You develop a network of civilian informants. Gain Streetwise 1 or Carouse 1 and 1D Contacts drawn from ordinary Confederation society.",
+    "10": "You discover a Solomani Party official is secretly disloyal to the Cause. You may expose them: gain DM+2 on your next advancement roll and gain them as an Enemy. Or you may use the information as leverage — gain them as an Ally, but gain a Rival from a rival SolSec faction who suspects you.",
+    "11": "A senior SolSec officer becomes your patron and mentor. Gain one level in Deception, Investigate or Science (psychology), or take DM+4 on your next advancement roll.",
+    "12": "Your operation is a complete success, breaking a major enemy ring and earning commendation from the highest levels of the Confederation. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 1000, "benefit": "Scientific Equipment" },
+    "2": { "cash": 5000, "benefit": "INT +1" },
+    "3": { "cash": 10000, "benefit": "EDU +1" },
+    "4": { "cash": 10000, "benefit": "Weapon" },
+    "5": { "cash": 20000, "benefit": "Combat Implant or two Ship Shares" },
+    "6": { "cash": 30000, "benefit": "SOC +1 and a Contact" },
+    "7": { "cash": 50000, "benefit": "SC Courier" }
+  },
+  "complete": true
+}

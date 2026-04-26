@@ -1,0 +1,170 @@
+{
+  "id": "party",
+  "name": "Solomani Party",
+  "description": "Influential members of the Solomani Movement and its ruling Party. Qualification: SOC 6+. Must be of pure Solomani race (or successfully pass as one) with SOC 7+. If aged 34 or more: DM-1. DM-1 for every previous career. You qualify automatically if your SOC is 10+. Mixed Race characters suffer DM-3 to this qualification roll. Non-Solomani humans cannot qualify.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 6,
+    "modifiers": [
+      {
+        "description": "DM-1 if aged 34 or more",
+        "type": "age",
+        "age_threshold": 34,
+        "dm": -1
+      },
+      {
+        "description": "DM-1 for every previous career",
+        "type": "per_previous_career",
+        "dm": -1
+      },
+      {
+        "description": "Auto-qualify if SOC 10+",
+        "type": "note",
+        "dm": 0
+      }
+    ]
+  },
+  "assignments": [
+    {
+      "id": "official",
+      "name": "Official",
+      "description": "You served in the ruling Solomani Party organisation, making you eligible for a government or civil service position, or appointment to one of the many corporations or non-governmental organisations run by the Party."
+    },
+    {
+      "id": "intellectual",
+      "name": "Intellectual",
+      "description": "You were a philosopher or spokesperson for the Solomani Cause, working to promote and develop the views of your particular Party faction. You could be a rabble-rousing activist or work for a Party-affiliated mass media, a think tank or an academic institution."
+    },
+    {
+      "id": "militant",
+      "name": "Militant",
+      "description": "You were a front-line fighter for the Solomani Cause. You may have been a rebel waging a guerrilla war to topple non-Solomani governments, or a tough Party street fighter who may turn a noisy demonstration into a bloody riot. Many militant groups are not officially recognised by the Confederation and might actually be condemned for their actions."
+    }
+  ],
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Carouse",
+      "2": "END +1",
+      "3": "Persuade",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Advocate",
+      "2": "Electronics (comms)",
+      "3": "Deception",
+      "4": "Drive",
+      "5": "Flyer",
+      "6": "Leadership"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Advocate",
+      "2": "Electronics (computers)",
+      "3": "Language",
+      "4": "Pilot",
+      "5": "Any Science",
+      "6": "Any Science"
+    },
+    "official": {
+      "name": "Official",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Advocate",
+      "4": "Science (genetics)",
+      "5": "Diplomat",
+      "6": "Science (history or philosophy)"
+    },
+    "intellectual": {
+      "name": "Intellectual",
+      "1": "Advocate",
+      "2": "Art (writing or performance)",
+      "3": "Persuade",
+      "4": "SOC +1",
+      "5": "Language",
+      "6": "Science (history, philosophy or psychology)"
+    },
+    "militant": {
+      "name": "Militant",
+      "1": "Melee",
+      "2": "Stealth",
+      "3": "Explosives",
+      "4": "Recon",
+      "5": "Streetwise",
+      "6": "Tactics (military)"
+    }
+  },
+  "ranks": {
+    "official": {
+      "0": { "title": "Cadre", "bonus": null },
+      "1": { "title": "Alternate", "bonus": "Admin 1 and SOC 10" },
+      "2": { "title": "Delegate", "bonus": null },
+      "3": { "title": "Deputy", "bonus": "Advocate 1 and SOC 12" },
+      "4": { "title": "Commissioner", "bonus": "Leadership 1 and SOC 13" },
+      "5": { "title": "Chairman", "bonus": "Leadership 1" },
+      "6": { "title": "Minister", "bonus": "SOC 15" }
+    },
+    "intellectual": {
+      "0": { "title": "Pundit", "bonus": "Advocate 1 or Science 1" },
+      "1": { "title": "Commentator", "bonus": "Advocate 1" },
+      "2": { "title": "Voice", "bonus": null },
+      "3": { "title": "Philosopher", "bonus": "SOC +1" },
+      "4": { "title": "Luminary", "bonus": null },
+      "5": { "title": "Leader", "bonus": "SOC 10 or SOC +1, whichever is higher" },
+      "6": { "title": "Grand Theorist", "bonus": null }
+    },
+    "militant": {
+      "0": { "title": "Follower", "bonus": "Gun Combat 1 or Melee 1" },
+      "1": { "title": "Soldier", "bonus": null },
+      "2": { "title": "Activist", "bonus": null },
+      "3": { "title": "Cell Leader", "bonus": "Advocate 1 or Leadership 1" },
+      "4": { "title": "Commander", "bonus": null },
+      "5": { "title": "Brigade Commander", "bonus": null },
+      "6": { "title": "Director", "bonus": "Tactics (military) 1" }
+    }
+  },
+  "survival": {
+    "official": { "characteristic": "INT", "target": 5 },
+    "intellectual": { "characteristic": "EDU", "target": 6 },
+    "militant": { "characteristic": "END", "target": 7 }
+  },
+  "advancement": {
+    "official": { "characteristic": "SOC", "target": 7 },
+    "intellectual": { "characteristic": "INT", "target": 6 },
+    "militant": { "characteristic": "INT", "target": 6 }
+  },
+  "mishaps": {
+    "1": "You are involved in a riot, revolution, assassination attempt or terrorist attack and suffer injury. Roll once on the Injury table.",
+    "2": "An anonymous SolSec monitor transmits reports claiming your political views are out of step with the current zeitgeist. You are denounced, ending your career.",
+    "3": "You become disillusioned with the inability of the Solomani Party to achieve its objectives and feel compelled to walk away. If your current career term is Drifter, gain an extra roll on the assignment skill table of your choice.",
+    "4": "A senior Party member who was your patron falls from favour and in the ensuing purge you go down with them. You may denounce them — increase Advocate 1 but lose SOC-1. Either way you are forced out; if you denounce them, you keep this term's Benefit roll as a reward for loyalty.",
+    "5": "An intimate or friend is discovered to have secret non-Solomani blood. Due to your connection to them, you are tainted by association and forced out of the Party. If you decide to remain on favourable terms with them, gain them as an Ally but lose SOC-1.",
+    "6": "You travel to the Imperium to serve the Solomani Movement. Imperial authorities discover your Party-affiliated mission. You are arrested, imprisoned, and deported. You must take the Prisoner career in your next term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your connections in the Solomani Movement open up lucrative opportunities at a Party-owned corporation. If the Traveller pursues a Citizen or Merchant career next term, you automatically qualify and gain DM+2 on an advancement roll in that term.",
+    "4": "Your accomplishments see you selected to deliver a speech at a Party Congress. Roll Advocate or Art (acting) 7+. If successful, gain SOC+1. If unsuccessful, lose SOC-1.",
+    "5": "You are asked to take blame for a senior Party member's mistakes. If you agree, gain an Ally or one extra Benefit roll. If you refuse, take DM-2 to your next advancement roll and gain them as a Rival.",
+    "6": "Your faction is involved in a violent political struggle. Make an Advocate, Gun Combat, Explosives, Leadership or Streetwise check. If you succeed, you come out on the winning side and gain DM+2 on your next survival roll. Fail and you suffer DM-2 on your next survival roll.",
+    "7": "Life Event. Roll on the Solomani Life Events table.",
+    "8": "You find evidence that casts doubt on a superior's commitment to the Solomani Cause. If you expose and denounce them, gain DM+2 to your next advancement roll. If you suppress the evidence and support them anyway, they become an Ally.",
+    "9": "You become deeply involved in the Solomani Movement's factional politics. Gain one level in Advocate, Diplomat, Persuade or Science (philosophy). Gain a Rival from another Party faction.",
+    "10": "You use your standing with the Party to promote the career of an ideologically correct artist, journalist or performer. Receive either Art 1 or Carouse 1 and gain a Contact in the media or entertainment industry.",
+    "11": "You befriend a senior member of the Party hierarchy, who becomes an Ally and mentor. Either gain one level in Advocate, Diplomat or Science (philosophy), or take DM+4 on your next advancement roll and acquire a Rival from another Party faction.",
+    "12": "Your efforts to advance the Solomani Cause are recognised by the Party. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 5000, "benefit": "Weapon and a Contact" },
+    "2": { "cash": 15000, "benefit": "INT +1" },
+    "3": { "cash": 30000, "benefit": "EDU +1" },
+    "4": { "cash": 40000, "benefit": "Weapon" },
+    "5": { "cash": 50000, "benefit": "Ship Share and an Ally" },
+    "6": { "cash": 60000, "benefit": "Terran Adventurers Society membership" },
+    "7": { "cash": 70000, "benefit": "SC Courier" }
+  },
+  "complete": true
+}

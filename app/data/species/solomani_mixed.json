@@ -1,0 +1,27 @@
+{
+  "id": "solomani_mixed",
+  "name": "Mixed Race (Confederation)",
+  "description": "Mixed Race humans in the Solomani Confederation share Solomani ancestry from one side of their family — typically one Solomani parent and one non-Solomani (often Vilani, or another minor human ethnic group). They are culturally Solomani and may be physically indistinguishable from Racial Solomani, but genetic testing reveals their heritage. This has real consequences: the Confederation's racial hierarchy places them below Racial Solomani, and the Solomani Party regards them with varying degrees of suspicion. Some Mixed Race citizens hide their background — successfully passing as racial Solomani requires falsified documents, bribery, forgery, or a natural 2 on the Racial Background roll. Passing successfully grants all racial Solomani benefits until discovered; discovery immediately strips Party membership and career advancement, and halves SOC. Mixed Race Travellers face structural disadvantages in advancement throughout most careers.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 201,
+  "traits": [
+    {
+      "name": "Mixed Heritage",
+      "description": "DM-3 to qualification rolls for the Solomani Party career. DM-1 to advancement in every career except Drifter, Rogue, and the Worker assignment of Citizen. Mixed Race characters may still join the Party career if they qualify (they may have a sympathetic sponsor), but advancement within it is harder."
+    },
+    {
+      "name": "Passing",
+      "description": "A Mixed Race character may attempt to pass as Racial Solomani. Success requires falsified genetic records (available at TL6+ with sufficient Credits or a Deception/Forgery roll) or significant social influence. If discovered — by a natural 2 on any survival roll in a military or Party career, or through SolSec investigation — the character immediately loses any Party membership, is dismissed from their career without Benefit rolls, and loses half their SOC (round down). Passing grants all Racial Solomani benefits while it holds."
+    }
+  ],
+  "aliases": [],
+  "source": "Solomani Confederation sourcebook, Mongoose Publishing"
+}

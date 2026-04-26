@@ -1,27 +1,5 @@
 {
-  "id": "solomani_human",
-  "name": "Solomani Human",
-  "description": "Solomani are the descendants of Earth-stock humans who remained closest to Terra — the original human homeworld — and who regard themselves as the 'true' humans of Charted Space. Their Confederation stretches across the Solomani Rim and beyond, in ongoing friction with the Third Imperium over territory and ideology. Solomani culture prizes individual achievement, a deep pride in Terran heritage, and a wariness of Imperial authority. They tend to be direct, confident, and strongly attached to their own cultural identity. Statistically they are indistinguishable from other human variants; their edge comes from cultural conditioning and a chip-on-the-shoulder determination to prove they are the best humanity has to offer.",
-  "characteristic_modifiers": {
-    "STR": 0,
-    "DEX": 0,
-    "END": 0,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": 0
-  },
-  "characteristic_maximum": 15,
-  "sort_order": 200,
-  "traits": [
-    {
-      "name": "Terran Heritage",
-      "description": "Solomani carry a deep awareness of being humanity's original stock. Once per situation, a Solomani may invoke their cultural pride to push through a task that would cow a lesser being — gaining DM+1 on one check where raw determination is a factor. This represents drive, not raw ability, and is at the Referee's discretion."
-    },
-    {
-      "name": "Confederation Schooling",
-      "description": "The Solomani Confederation places heavy emphasis on human history, political science, and social cohesion. Solomani characters start play with a broad cultural education covering Terran history and Confederation politics. DM+1 to any check that benefits from knowledge of Solomani Confederation political structures or pre-Imperial human history."
-    }
-  ],
-  "aliases": ["solomani", "solomani_confederation_human"],
-  "source": "Traveller Core Rulebook; Solomani Rim sourcebook, Mongoose Publishing"
+  "deprecated": true,
+  "replaced_by": "solomani_racial",
+  "note": "Split into solomani_racial, solomani_mixed, and confederation_human when proper Solomani sourcebook rules were added. Old saves that referenced 'solomani_human' resolve to solomani_racial."
 }

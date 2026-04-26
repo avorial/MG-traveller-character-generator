@@ -1,0 +1,187 @@
+{
+  "id": "confederation_navy",
+  "name": "Confederation Navy",
+  "description": "The Confederation Navy patrols Solomani space and stands ready to resist Imperial, Aslan and Hiver aggression. They also perform exploration missions on the rimward frontiers and engage in routine survey and message transmission activities. Qualification: INT 5+. DM-2 if aged 34 or more. DM-1 for every previous career. Commission: SOC 8+.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 5,
+    "modifiers": [
+      {
+        "description": "DM-2 if aged 34 or more",
+        "type": "age",
+        "age_threshold": 34,
+        "dm": -2
+      },
+      {
+        "description": "DM-1 for every previous career",
+        "type": "per_previous_career",
+        "dm": -1
+      }
+    ]
+  },
+  "commission": {
+    "characteristic": "SOC",
+    "target": 8
+  },
+  "assignments": [
+    {
+      "id": "line_crew",
+      "name": "Line/Crew",
+      "description": "You served as a general crewman, officer or political officer aboard a Solomani warship. This provides you with a range of skills but fewer opportunities for advancement."
+    },
+    {
+      "id": "technical",
+      "name": "Technical",
+      "description": "You served as a specialist technician, gunner, scientific or engineering officer aboard a Solomani warship. This will provide you with good technical skills but fewer opportunities for advancement."
+    },
+    {
+      "id": "flight",
+      "name": "Flight",
+      "description": "You served as the pilot of a fighter, assault shuttle, system defence boat or other small vessel. This gives you excellent piloting skills and is a fast track to promotion but is also the most dangerous assignment."
+    }
+  ],
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Language",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "Carouse"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics (comms)",
+      "2": "Gun Combat",
+      "3": "Gunner",
+      "4": "Mechanic",
+      "5": "Melee",
+      "6": "Vacc Suit"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Admin",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Medic",
+      "5": "Leadership",
+      "6": "Navigation"
+    },
+    "officer_skills": {
+      "name": "Officer Skills (Commissioned Only)",
+      "1": "Admin",
+      "2": "Astrogation",
+      "3": "Diplomat",
+      "4": "Leadership",
+      "5": "Tactics (naval)",
+      "6": "Tactics (naval)"
+    },
+    "line_crew": {
+      "name": "Line/Crew",
+      "1": "Electronics (comms)",
+      "2": "Gun Combat",
+      "3": "Mechanic",
+      "4": "Melee",
+      "5": "Electronics (sensors)",
+      "6": "Vacc Suit"
+    },
+    "technical": {
+      "name": "Technical",
+      "1": "Engineer",
+      "2": "Engineer",
+      "3": "Gunner",
+      "4": "Mechanic",
+      "5": "Electronics (remote ops)",
+      "6": "Electronics (sensors)"
+    },
+    "flight": {
+      "name": "Flight",
+      "1": "Pilot",
+      "2": "Flyer",
+      "3": "Gunner",
+      "4": "Gunner",
+      "5": "Astrogation",
+      "6": "Electronics"
+    }
+  },
+  "ranks": {
+    "line_crew": {
+      "0": { "title": "Starman", "bonus": null },
+      "1": { "title": "Able Starman", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Petty Officer 3rd Class", "bonus": null },
+      "3": { "title": "Petty Officer 2nd Class", "bonus": "Gun Combat 1" },
+      "4": { "title": "Petty Officer 1st Class", "bonus": null },
+      "5": { "title": "Chief Petty Officer", "bonus": null },
+      "6": { "title": "Master Chief", "bonus": null }
+    },
+    "technical": {
+      "0": { "title": "Starman", "bonus": null },
+      "1": { "title": "Able Starman", "bonus": "Mechanic 1 or Electronics 1" },
+      "2": { "title": "Petty Officer 3rd Class", "bonus": null },
+      "3": { "title": "Petty Officer 2nd Class", "bonus": "Engineer 1" },
+      "4": { "title": "Petty Officer 1st Class", "bonus": null },
+      "5": { "title": "Chief Petty Officer", "bonus": null },
+      "6": { "title": "Master Chief", "bonus": null }
+    },
+    "flight": {
+      "0": { "title": "Starman", "bonus": null },
+      "1": { "title": "Able Starman", "bonus": "Pilot 1" },
+      "2": { "title": "Petty Officer 3rd Class", "bonus": null },
+      "3": { "title": "Petty Officer 2nd Class", "bonus": null },
+      "4": { "title": "Petty Officer 1st Class", "bonus": null },
+      "5": { "title": "Chief Petty Officer", "bonus": null },
+      "6": { "title": "Master Chief", "bonus": null }
+    },
+    "_officer": {
+      "0": { "title": "Ensign", "bonus": "SOC +1" },
+      "1": { "title": "Lieutenant Junior Grade", "bonus": "Leadership 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Commander", "bonus": null },
+      "4": { "title": "Captain", "bonus": "Tactics (naval) 1" },
+      "5": { "title": "Admiral", "bonus": "SOC 12 or SOC +1, whichever is higher" },
+      "6": { "title": "Grand Admiral", "bonus": "SOC 12 or SOC +1, whichever is higher" }
+    }
+  },
+  "survival": {
+    "line_crew": { "characteristic": "INT", "target": 5 },
+    "technical": { "characteristic": "INT", "target": 6 },
+    "flight": { "characteristic": "DEX", "target": 7 }
+  },
+  "advancement": {
+    "line_crew": { "characteristic": "EDU", "target": 7 },
+    "technical": { "characteristic": "EDU", "target": 6 },
+    "flight": { "characteristic": "EDU", "target": 5 }
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "You spend the entire term in the Frozen Watch, in cold sleep within a cryoberth. You are not ejected from the career but may not make either an advancement or skill roll this term. You may automatically re-enlist. This term is not counted toward your physical age — your physical age will be four years younger than your chronological age.",
+    "3": "In a moment of anger, you criticise the incompetence of an officer you believe was promoted due to Party connections. They discover or trump up evidence questioning your loyalty, triggering an intense investigation that forces you out of the service. If you agree to SolSec interrogation, you leave the service without a Benefit roll. If you refuse, roll END 8+ — success means you leave with your Benefit roll intact.",
+    "4": "During a crisis or battle, the ship's safety hinges on your actions. You must make a check with Electronics (sensors) or Gunner if Technical, or Pilot or Tactics (naval) if Flight. If you fail, the ship suffers severe damage and you are court-martialed and dishonourably discharged. If you succeed, you are still discharged but honourably — you may keep your Benefit roll from this term.",
+    "5": "In a three-way political conflict between the Party, the Navy and SolSec, the Navy loses. You are among many personnel who are purged, ending your career. Exception: If you are a Secret Agent, you were instrumental in the purge. Your cover is blown, ending your career, but you gain an Enemy rather than losing a Benefit roll.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your starship explores an alien world. Gain one of Animals (riding or training) 1, Survival 1, Recon 1 or Science (any) 1.",
+    "4": "Your warship is assigned to a lengthy patrol. In your off-duty time, choose recreation or a Party-sponsored study group. Recreation: gain Carouse 1 or Gambler 1. Study group: gain DM+2 on your next advancement roll or roll INT 8+ to gain one of Advocate, History or Science.",
+    "5": "You are assigned to test a new starship or weapon system, a prestige project of the Solomani Party. Roll EDU 8+ to gain one of Admin or Engineer (any). Gain one Contact at a Party-run corporation or in the Confederation.",
+    "6": "Your vessel fights in a notable space engagement. Gain one of Electronics (sensors) 1, Engineer 1, Gunner 1, Pilot 1 or Tactics (naval) 1.",
+    "7": "Life Event. Roll on the Solomani Life Events table.",
+    "8": "Your vessel participates in a diplomatic mission. Gain one of Language 1, Recon 1, Diplomat 1, Steward 1 or a Contact.",
+    "9": "Your vessel is assigned to a deep space survey mission. Gain Astrogation 1 or Science (any) 1.",
+    "10": "Your vessel is sent on a covert mission to support Solomani guerrillas in Imperial space. Gain one of Electronics (comms) 1, Deception 1 or Recon 1. Gain a Contact among the guerrillas.",
+    "11": "Your commanding officer takes an interest in your advancement. Gain Tactics (naval) 1 or take DM+4 on your next advancement roll thanks to their aid.",
+    "12": "You display uncommon valour in a crisis, saving the entire ship. You gain a promotion or commission automatically."
+  },
+  "mustering_out": {
+    "1": { "cash": 4000, "benefit": "Air/Raft or Ship Share" },
+    "2": { "cash": 8000, "benefit": "INT +1" },
+    "3": { "cash": 12000, "benefit": "EDU +2 or two Ship Shares" },
+    "4": { "cash": 10000, "benefit": "Weapon" },
+    "5": { "cash": 20000, "benefit": "Two Ship Shares" },
+    "6": { "cash": 40000, "benefit": "Terran Adventurers Society membership" },
+    "7": { "cash": 50000, "benefit": "SOC +2" }
+  },
+  "complete": true
+}

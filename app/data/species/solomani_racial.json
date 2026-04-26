@@ -1,0 +1,31 @@
+{
+  "id": "solomani_racial",
+  "name": "Racial Solomani",
+  "description": "Racial Solomani are of pure Solomani ancestry — direct descendants of the human stock closest to Terra, the original homeworld. They are statistically identical to other humans but carry a cultural significance in Confederation society that opens doors closed to others. Their DNA can be confirmed by blood tests at TL6 and by more precise genetic testing at TL7, and it is recorded on Confederation identity documents. Racial Solomani grow up immersed in the ideology of the Solomani Cause and the pervasive influence of the Solomani Party. SOC in the Confederation reflects one's relationship with the Party rather than noble birth: SOC 6–8 is a normal citizen relationship, SOC 9+ indicates Party connections or patronage, and SOC 10+ effectively means full Party membership. Racial Solomani tend to be proud, competitive, and convinced of their species' special destiny — which an outsider might uncharitably describe as group narcissism. They are eligible for the Solomani Party career and receive the full benefit of Party Patronage (SOC modifier applies to qualification rolls in all Confederation careers).",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 200,
+  "traits": [
+    {
+      "name": "Party Patronage",
+      "description": "SOC modifier (standard characteristic DM) applies to qualification rolls in all Solomani Confederation careers except Drifter and Rogue. Additionally, SOC 10 grants automatic commission on a failed commission roll; SOC 10 = auto-advancement if Rank 0; SOC 11 = auto-advancement if Rank 0–2; SOC 12+ = auto-advancement if Rank 0–3. A Racial Solomani automatically qualifies for the Solomani Party career if SOC is 10+."
+    },
+    {
+      "name": "Solomani Heritage",
+      "description": "Racial Solomani identity can be confirmed by genetic testing at TL6+ and is recorded on Confederation identity papers. This grants full access to the Solomani Party career, Terran Adventurers' Society membership, and normal pension rights. It also makes the character a legitimate target of Imperial prejudice in some regions, and a subject of SolSec interest if their loyalty is ever questioned."
+    },
+    {
+      "name": "Solomani Cause",
+      "description": "Raised within the ideological framework of the Solomani Cause. DM+1 to Persuade checks when arguing in favour of Solomani political positions or recruiting others to the Cause. The flip side: DM-1 to social checks with Imperial citizens who know the character's background and hold strong pro-Imperial views."
+    }
+  ],
+  "aliases": ["solomani", "solomani_confederation_human"],
+  "source": "Solomani Confederation sourcebook, Mongoose Publishing"
+}
