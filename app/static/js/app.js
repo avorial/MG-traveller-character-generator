@@ -1272,6 +1272,28 @@ function renderPreCareerPhase() {
     const service = status.service;
     const trackName = trackDisplayName(track, service, status);
     const gradHint = trackGradHint(track);
+
+    if (track === 'psionic_community' && status.pending_psionic_training) {
+      const trainedTalents = character.psi_trained_talents || [];
+      const talentsHTML = ['telepathy','clairvoyance','telekinesis','awareness','teleportation'].map(id => {
+        const trained = trainedTalents.includes(id);
+        const label = id.charAt(0).toUpperCase() + id.slice(1);
+        return `<button class="btn ${trained ? 'ghost' : ''}" data-pc-psi-talent="${id}" ${trained ? 'disabled' : ''}>${trained ? '✓ ' : ''}${label}${trained ? '' : ' — free'}</button>`;
+      }).join('');
+      return `
+        <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+        <div class="stage-content">
+          <div class="phase-label">Enrolled · ${trackName}</div>
+          <h2 class="phase-title">Psionic Training</h2>
+          <p class="phase-body">Your community will train you at no cost. Train one or more talents, then graduate.</p>
+          <div class="psi-talents">${talentsHTML}</div>
+          <div class="phase-actions" style="margin-top:1rem">
+            <button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1362,21 +1384,27 @@ function renderPreCareerPhase() {
           <div class="card-title">Merchant Academy</div>
           <div class="card-desc">INT 9+ to qualify, 4 years. Choose Business or Shipboard curriculum. Graduate for +1 EDU and start Merchant/Citizen at officer rank with a permanent advancement bonus.</div>
         </button>
-        ${canColonial ? `
-        <button class="card" id="btn-pc-colonial">
+        <button class="card${canColonial ? '' : ' card-disabled'}" id="btn-pc-colonial"${canColonial ? '' : ' disabled'}>
           <div class="card-title">Colonial Upbringing</div>
-          <div class="card-desc">Homeworld TL ${hwTL} ≤ 8 — automatic. Broad survival skills (Survival 1 + 10 skills at 0). Graduate for END+1, JoaT 1, but EDU−D3 and permanent qualification penalties.</div>
-        </button>` : ''}
-        ${canHardKnocks ? `
-        <button class="card" id="btn-pc-hard-knocks">
+          <div class="card-desc">${canColonial
+            ? `Homeworld TL ${hwTL} ≤ 8 — automatic. Broad survival skills (Survival 1 + 10 skills at 0). Graduate for END+1, JoaT 1, but EDU−D3 and permanent qualification penalties.`
+            : `Requires homeworld TL 8 or less (your homeworld is TL ${hwTL === 99 ? 'unknown' : hwTL}).`
+          }</div>
+        </button>
+        <button class="card${canHardKnocks ? '' : ' card-disabled'}" id="btn-pc-hard-knocks"${canHardKnocks ? '' : ' disabled'}>
           <div class="card-title">School of Hard Knocks</div>
-          <div class="card-desc">SOC ${soc} ≤ 6 — automatic. Street smarts: Streetwise 1 + 2 skill picks. Graduate for Gun Combat 0 and 3 more skills, but DM−2 commission in first career.</div>
-        </button>` : ''}
-        ${canSpacer ? `
-        <button class="card" id="btn-pc-spacer">
+          <div class="card-desc">${canHardKnocks
+            ? `SOC ${soc} ≤ 6 — automatic. Street smarts: Streetwise 1 + 2 skill picks. Graduate for Gun Combat 0 and 3 more skills, but DM−2 commission in first career.`
+            : `Requires SOC 6 or less (your SOC is ${soc}).`
+          }</div>
+        </button>
+        <button class="card${canSpacer ? '' : ' card-disabled'}" id="btn-pc-spacer"${canSpacer ? '' : ' disabled'}>
           <div class="card-title">Spacer Community</div>
-          <div class="card-desc">Homeworld size 0 (${hwSize === 0 ? 'yours qualifies' : 'does not qualify'}), INT 4+. 3 years. Vacc Suit 1 + 2 picks. Graduate for DEX+1, Pilot 0, and DM+1 to Merchant (Free Trader) advancement.</div>
-        </button>` : ''}
+          <div class="card-desc">${canSpacer
+            ? `Homeworld size 0 — automatic, INT 4+. 3 years. Vacc Suit 1 + 2 picks. Graduate for DEX+1, Pilot 0, and DM+1 to Merchant (Free Trader) advancement.`
+            : `Requires a homeworld of size 0 (asteroid belt). Your homeworld size is ${hwSize === 99 ? 'unknown' : hwSize}.`
+          }</div>
+        </button>
         <button class="card" id="btn-pc-psionic">
           <div class="card-title">Psionic Community</div>
           <div class="card-desc">Tests PSI (if untested). Requires PSI 8+. 3 years. Psionic talent training during enrollment. Graduate for PSI+1 and permanent Psion career auto-entry.</div>
@@ -1617,6 +1645,18 @@ function wirePreCareerPhase() {
       };
       renderAll();
     } catch (e) { alert(e.message); }
+  });
+
+  // Psionic community enrollment: free talent training buttons
+  document.querySelectorAll('[data-pc-psi-talent]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const talent = btn.dataset.pcPsiTalent;
+      try {
+        const response = await apiCall('/api/character/psionics/train', { talent_id: talent });
+        await applyResponse(response);
+      } catch (e) { alert(e.message); }
+      renderAll();
+    });
   });
 
   // Event 9: show any-skill picker
