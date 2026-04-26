@@ -1702,9 +1702,10 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
 
-    # Event-granted career transfer (e.g. army[10] "transfer to the Marines
-    # without a Qualification roll"). Consume the offer and skip qualification.
-    if character.pending_transfer_career_id == career_id:
+    # Event-granted career transfer. Consume the offer and skip qualification.
+    # 'any' means the player accepted an open transfer to any career.
+    if (character.pending_transfer_career_id == career_id
+            or character.pending_transfer_career_id == "any"):
         character.pending_transfer_career_id = None
         character.log(
             f"Transferring to {career['name']} via event offer — no qualification roll required."
@@ -3249,7 +3250,16 @@ def apply_event_stat_change(
 def accept_transfer_offer(character: Character, target_career_id: str) -> dict:
     """Record a career-transfer offer from an event. On the next qualify
     call targeting this career, the qualification roll is skipped.
+    'any' means the player may transfer to ANY career without a qualification roll.
     """
+    if target_career_id == "any":
+        character.pending_transfer_career_id = "any"
+        msg = "Event choice: may transfer to any career at term end (no qualification roll)"
+        if character.current_term is not None:
+            character.current_term.events.append(msg)
+        character.log(msg)
+        return {"pending_transfer": "any", "target_name": "any career",
+                "character": character.model_dump()}
     careers = rules.careers()
     if target_career_id not in careers:
         raise ValueError(f"Unknown career: {target_career_id!r}")

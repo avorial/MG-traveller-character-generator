@@ -2884,8 +2884,8 @@ function parseEventSkillOptions(text) {
   }
 
   // Pattern 2: "Either gain one level of X, Y or Z, or DM+N..."
-  //           "Either gain a level of X or ..."
-  m = text.match(/Either\s+gain\s+(?:one|a|\d+)\s+level\s+(?:of|in)\s+([^.]+?)(?:,\s*or\s+DM|\.|$)/i);
+  //           "Either gain a level of X or ..."  (comma before "or DM" is optional)
+  m = text.match(/Either\s+gain\s+(?:one|a|\d+)\s+level\s+(?:of|in)\s+([^.]+?)(?:,?\s*or\s+DM|\.|$)/i);
   if (m) {
     const parts = splitToParts(m[1].trim());
     if (parts.length >= 1) return parts;
@@ -2910,6 +2910,15 @@ function parseEventSkillOptions(text) {
   if (m) {
     const parts = splitToParts(m[1].trim());
     if (parts.length >= 2) return parts;
+  }
+
+  // Pattern 4c: "pick up X 1, Y 1, or Z 1" (prisoner[5])
+  m = text.match(/pick\s+up\s+([^.]+?)(?:\.|$)/i);
+  if (m) {
+    // Strip trailing level digits ("Streetwise 1" → "Streetwise")
+    const cleaned = m[1].trim().replace(/\s+\d+\b/g, '');
+    const parts = splitToParts(cleaned);
+    if (parts.length >= 1) return parts;
   }
 
   // Pattern 5: "Gain Vacc Suit 1 or Athletics (dexterity) 1"
@@ -2973,7 +2982,12 @@ function parseEventWildcardSkill(text) {
 // null. Maps mentioned career names to the JSON keys used by the backend.
 function parseEventTransferOffer(text) {
   if (!text) return null;
-  // Match "transfer to THE? <Career>" up to punctuation/paren.
+  // Generic open transfer: "transfer to any other [non-military] career"
+  if (/transfer\s+to\s+any\s+other\s+(?:non-military\s+)?career/i.test(text)) {
+    const nonMilitary = /non-military/i.test(text);
+    return { career_id: 'any', career_name: 'any career', nonMilitary };
+  }
+  // Named career transfer: "transfer to the Marines" / "transfer to the Army"
   const m = /transfer\s+to\s+(?:the\s+)?([A-Z][A-Za-z]+)/.exec(text);
   if (!m) return null;
   const name = m[1];
@@ -3189,10 +3203,10 @@ function resolveWildcardSkillOptions(wildcard, careerKey) {
 }
 
 function parseEventDmAlternative(text) {
-  // Detect "or DM+N to your next Advancement roll" as an alternative reward.
+  // Detect "or DM+N to your next/an Advancement roll" as an alternative reward.
   // Returns { dm: 4, target: 'advancement' } or null.
   if (!text) return null;
-  const m = text.match(/or\s+DM\s*([+-]?\d+)\s+to\s+(?:your\s+)?next\s+(Advancement|Qualification|Survival|Promotion)\s+roll/i);
+  const m = text.match(/or\s+DM\s*([+-]?\d+)\s+to\s+(?:(?:your\s+)?next\s+|an?\s+)(Advancement|Qualification|Survival|Promotion)\s+roll/i);
   if (!m) return null;
   return { dm: parseInt(m[1], 10), target: m[2].toLowerCase() };
 }
@@ -3336,7 +3350,36 @@ function renderEventStep() {
       </div>
     ` : '';
 
-    const pendingHTML = pendingGrants.length ? `
+    // Compute picker state early so pendingHTML knows whether DMs appear inside
+    // the picker (reversed pattern: DM first, skill alt) or as a dual-DM choice.
+    const _eSkillOpts = parseEventSkillOptions(lr.eventText || '');
+    const _eWild = !_eSkillOpts ? parseEventWildcardSkill(lr.eventText || '') : null;
+    const _eCareerKey = (character?.current_term?.career) || null;
+    const _eWildOpts = _eWild ? resolveWildcardSkillOptions(_eWild, _eCareerKey) : null;
+    const _eDmAlt = parseEventDmAlternative(lr.eventText || '');
+    const _eTransfer = parseEventTransferOffer(lr.eventText || '');
+    const _eChosen = lr.eventChoicePath;
+    const _ePickerOpts = _eSkillOpts || _eWildOpts;
+    const _eShowPicker = !_eChosen && (
+      (_ePickerOpts && _ePickerOpts.length > 0) ||
+      (_eWild && (_eDmAlt || pendingGrants.length > 0)) ||
+      _eTransfer
+    );
+    // DMs embedded as alternatives in the skill picker (prisoner[5] pattern)
+    const pendingGrantsInPicker = _eShowPicker && pendingGrants.length > 0 && !_eDmAlt;
+    // Two competing DM choices with no skill picker (citizen[10], merchant[8])
+    const showDualDmChoice = !_eChosen && !_eShowPicker && pendingGrants.length >= 2;
+
+    const pendingHTML = showDualDmChoice ? `
+      <div class="event-skill-picker">
+        <span class="event-label">Choose one DM reward</span>
+        <div class="skill-picker">
+          ${pendingGrants.map(g => `
+            <button class="skill-chip dm-alt" data-event-dm="${g.dm}" data-event-dm-target="${escapeHTML(g.target)}">DM${g.dm >= 0 ? '+' : ''}${g.dm} to next ${escapeHTML(g.target)} roll</button>
+          `).join('')}
+        </div>
+      </div>
+    ` : (!pendingGrantsInPicker && pendingGrants.length) ? `
       <div class="dm-pending-box">
         <span class="event-label">DM grants (conditional — resolve manually)</span>
         ${pendingGrants.map(g => `
@@ -3375,23 +3418,14 @@ function renderEventStep() {
       </div>
     ` : '');
 
-    // Skill-choice picker — only show if the event text offers a choice AND
-    // the player hasn't already picked one for this event. If the explicit-
-    // list parser returns null, fall back to the wildcard parser for "any
-    // skill you already have" / "of your choice" / "any Service Skill".
-    const skillOptions = parseEventSkillOptions(lr.eventText || '');
-    const wildcardSpec = !skillOptions ? parseEventWildcardSkill(lr.eventText || '') : null;
-    const careerKey = (character && character.current_term && character.current_term.career) || null;
-    const wildcardOptions = wildcardSpec
-      ? resolveWildcardSkillOptions(wildcardSpec, careerKey)
-      : null;
-    const dmAlternative = parseEventDmAlternative(lr.eventText || '');
-    const transferOffer = parseEventTransferOffer(lr.eventText || '');
-    const chosenPath = lr.eventChoicePath; // 'skill' | 'dm' | 'transfer' | undefined
-
-    // Resolve which option list to display. Wildcard picker gets a subtitle
-    // so the player knows where the list came from.
-    const pickerOptions = skillOptions || wildcardOptions;
+    // Skill-choice picker — reuse variables computed above for pendingHTML.
+    const skillOptions = _eSkillOpts;
+    const wildcardSpec = _eWild;
+    const wildcardOptions = _eWildOpts;
+    const dmAlternative = _eDmAlt;
+    const transferOffer = _eTransfer;
+    const chosenPath = _eChosen;
+    const pickerOptions = _ePickerOpts;
     const wildcardLabel = wildcardSpec ? ({
       'already-have': 'any skill you already have',
       'free': 'any skill of your choice',
@@ -3400,29 +3434,29 @@ function renderEventStep() {
       'officer-or-advanced': 'Officer or Advanced Education tables',
       'science': 'any Science specialty',
     }[wildcardSpec.type]) : null;
-
-    // If a wildcard was detected but we resolved zero options (e.g. character
-    // has no skills yet, or careerKey isn't loaded), still render the DM-alt
-    // chip alone so the user isn't stuck with a manual-apply caveat.
-    const showPicker = !chosenPath && (
-      (pickerOptions && pickerOptions.length > 0) ||
-      (wildcardSpec && dmAlternative) ||
-      transferOffer
-    );
+    const showPicker = _eShowPicker;
 
     const pickerHTML = showPicker ? `
       <div class="event-skill-picker">
         <span class="event-label">Choose your reward</span>
         ${wildcardLabel ? `<p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>Pick ${escapeHTML(wildcardLabel)}${(pickerOptions && pickerOptions.length) ? '' : ' — none available, take the DM instead'}:</em></p>` : ''}
         <div class="skill-picker">
-          ${(pickerOptions || []).map(opt => `
-            <button class="skill-chip" data-event-skill="${escapeHTML(opt)}">+ ${escapeHTML(opt)} 1</button>
-          `).join('')}
+          ${(pickerOptions || []).map(opt => {
+            const display = opt.replace(/\s+\d+\s*$/, '');
+            return `<button class="skill-chip" data-event-skill="${escapeHTML(opt)}">+ ${escapeHTML(display)} 1</button>`;
+          }).join('')}
           ${dmAlternative ? `
             <button class="skill-chip dm-alt" data-event-dm="${dmAlternative.dm}" data-event-dm-target="${escapeHTML(dmAlternative.target)}">DM${dmAlternative.dm >= 0 ? '+' : ''}${dmAlternative.dm} to next ${escapeHTML(dmAlternative.target)} roll</button>
           ` : ''}
+          ${pendingGrantsInPicker ? pendingGrants.map(g =>
+            `<button class="skill-chip dm-alt" data-event-dm="${g.dm}" data-event-dm-target="${escapeHTML(g.target)}">DM${g.dm >= 0 ? '+' : ''}${g.dm} to next ${escapeHTML(g.target)} roll</button>`
+          ).join('') : ''}
           ${transferOffer ? `
-            <button class="skill-chip dm-alt" data-event-transfer="${escapeHTML(transferOffer.career_id)}">Transfer to ${escapeHTML(transferOffer.career_name)} (no qualification)</button>
+            <button class="skill-chip dm-alt" data-event-transfer="${escapeHTML(transferOffer.career_id)}">${
+              transferOffer.career_id === 'any'
+                ? `Transfer to a career of your choice (no qualification roll)`
+                : `Transfer to ${escapeHTML(transferOffer.career_name)} (no qualification)`
+            }</button>
           ` : ''}
         </div>
         <p class="picker-status">Pick one to continue.</p>
