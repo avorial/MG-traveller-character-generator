@@ -3986,6 +3986,9 @@ function renderMishapStep() {
         <div class="mishap-box">
           <span class="event-label">Mishap [1D=${lr.data?.total ?? '?'}]</span>
           ${escapeHTML(lr.mishapText || '')}
+          ${(!lr.injuryPending && !character.pending_career_mishap_choice && !(lr.autoApplied && lr.autoApplied.length)) ? `
+            <p class="small-hint" style="margin-top:8px;color:var(--muted)">Career ends — no further mechanical effects apply.</p>
+          ` : ''}
         </div>
         ${autoHtml}
         ${injDataHtml}
