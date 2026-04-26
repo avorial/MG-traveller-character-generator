@@ -149,5 +149,6 @@
     "6": {"cash": 100000, "benefit": "Yacht"},
     "7": {"cash": 200000, "benefit": "SOC +1 and Yacht"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_societies": ["solomani_confederation"]
 }

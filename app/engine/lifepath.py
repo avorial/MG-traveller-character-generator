@@ -612,6 +612,38 @@ def apply_species(character: Character, species_id: str) -> dict:
     return {"applied": applied, "traits": character.traits, "character": character.model_dump()}
 
 
+def racial_background_roll(character: Character) -> dict:
+    """Roll 2D to determine Solomani heritage subtype and apply the result.
+
+    Table (from Solomani Confederation sourcebook):
+      2        → confederation_human  (Non-Solomani Human)
+      3–5      → solomani_mixed       (Mixed Heritage)
+      6–12     → solomani_racial      (Racial Solomani)
+    """
+    r = dice.roll("2D")
+    total = r.total
+
+    if total <= 2:
+        resolved_id = "confederation_human"
+        result_name = "Non-Solomani Human"
+    elif total <= 5:
+        resolved_id = "solomani_mixed"
+        result_name = "Mixed Heritage Solomani"
+    else:
+        resolved_id = "solomani_racial"
+        result_name = "Racial Solomani"
+
+    character.log(
+        f"Solomani Heritage Roll: 2D={total} → {result_name} ({resolved_id})"
+    )
+
+    apply_result = apply_species(character, resolved_id)
+    apply_result["heritage_roll"] = r.to_dict()
+    apply_result["result_name"] = result_name
+    apply_result["resolved_species_id"] = resolved_id
+    return apply_result
+
+
 def set_background_skills(character: Character, chosen: list[str]) -> dict:
     """Grant the selected background skills at level 0."""
     edu_dm = dice.characteristic_dm(character.characteristics.EDU)
@@ -1913,12 +1945,23 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
 
     elif choice == "draft":
         d6 = random.randint(1, 6)
-        if d6 <= 3:
-            draft_career = "army"
-        elif d6 <= 5:
-            draft_career = "marine"
+        if character.society_id == "solomani_confederation":
+            # Solomani draft table:
+            # 1=Confederation Navy, 2=Confederation Army, 3=Star Marines,
+            # 4=Merchant, 5=SolSec, 6=Agent
+            solomani_draft = [
+                "confederation_navy", "confederation_army", "solomani_marine",
+                "merchant", "solsec", "agent",
+            ]
+            draft_career = solomani_draft[d6 - 1]
         else:
-            draft_career = "navy"
+            # Imperial draft table: 1-3=Army, 4-5=Marine, 6=Navy
+            if d6 <= 3:
+                draft_career = "army"
+            elif d6 <= 5:
+                draft_career = "marine"
+            else:
+                draft_career = "navy"
         _clear_graduation_bonuses()
         character.forced_next_career_id = draft_career
         character.pre_career_status = {
@@ -2437,6 +2480,21 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     elif qual_dm_perm:
         dm += qual_dm_perm
 
+    # Party Patronage: Racial Solomani characters add their SOC DM to
+    # qualification rolls for Confederation-specific careers.
+    party_patronage_dm = 0
+    if character.species_id == "solomani_racial" and career_id in rules.SOLOMANI_CAREER_IDS:
+        soc_val = character.characteristics.get("SOC", 7)
+        party_patronage_dm = dice.characteristic_dm(soc_val)
+        if party_patronage_dm != 0:
+            dm += party_patronage_dm
+
+    # Mixed Heritage penalty: DM-1 to qualification for Confederation careers.
+    mixed_heritage_dm = 0
+    if character.species_id == "solomani_mixed" and career_id in rules.SOLOMANI_CAREER_IDS:
+        mixed_heritage_dm = -1
+        dm += mixed_heritage_dm
+
     # Apply DM from prior events (e.g. Travel life event)
     dm += character.dm_next_qualification
     pending = character.dm_next_qualification
@@ -2446,9 +2504,15 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     result = r.to_dict()
     result["characteristic_used"] = char_display
     result["pending_dm_consumed"] = pending
+    qual_notes = []
+    if party_patronage_dm:
+        qual_notes.append(f"Party Patronage DM{party_patronage_dm:+d}")
+    if mixed_heritage_dm:
+        qual_notes.append(f"Mixed Heritage DM{mixed_heritage_dm:+d}")
+    note_str = f" [{', '.join(qual_notes)}]" if qual_notes else ""
     character.log(
         f"Qualification for {career['name']}: 2D{dm:+d} vs {target}+ "
-        f"= {r.total} ({'pass' if r.succeeded else 'fail'})"
+        f"= {r.total} ({'pass' if r.succeeded else 'fail'}){note_str}"
     )
     return {"succeeded": r.succeeded, "roll": result, "character": character.model_dump()}
 

@@ -161,5 +161,6 @@
     "6": { "cash": 30000, "benefit": "SOC +1 and a Contact" },
     "7": { "cash": 50000, "benefit": "SC Courier" }
   },
-  "complete": true
+  "complete": true,
+  "societies": ["solomani_confederation"]
 }

@@ -1,0 +1,159 @@
+{
+  "id": "confederation_army",
+  "name": "Confederation Army",
+  "description": "The ground forces of the Solomani Confederation, defending the Cause on planetary surfaces from Imperial incursion, alien aggression, and internal insurrection. Political officers are embedded in most units. Qualification: END 5+. DM-1 for every previous career. DM-2 if aged 30 or more. Commission: SOC 8+.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 5,
+    "modifiers": [
+      { "description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1 },
+      { "description": "DM-2 if aged 30 or more", "type": "age", "age_threshold": 30, "dm": -2 }
+    ]
+  },
+  "commission": {
+    "characteristic": "SOC",
+    "target": 8
+  },
+  "assignments": {
+    "support": {
+      "name": "Support",
+      "description": "You serve in logistics, engineering, or a political officer role embedded with front-line troops.",
+      "survival": { "characteristic": "END", "target": 5 },
+      "advancement": { "characteristic": "EDU", "target": 7 }
+    },
+    "infantry": {
+      "name": "Infantry",
+      "description": "You serve as front-line Solomani ground troops, fighting planetary campaigns for the Confederation.",
+      "survival": { "characteristic": "STR", "target": 6 },
+      "advancement": { "characteristic": "EDU", "target": 6 }
+    },
+    "cavalry": {
+      "name": "Cavalry",
+      "description": "You operate armoured vehicles and gunships in the service of the Confederation.",
+      "survival": { "characteristic": "DEX", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 5 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Carouse",
+      "5": "Medic",
+      "6": "Melee"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Drive or Vacc Suit",
+      "2": "Athletics",
+      "3": "Gun Combat",
+      "4": "Recon",
+      "5": "Melee",
+      "6": "Heavy Weapons"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "requires_edu": 8,
+      "1": "Tactics (military)",
+      "2": "Electronics",
+      "3": "Navigation",
+      "4": "Explosives",
+      "5": "Engineer",
+      "6": "Survival"
+    },
+    "officer": {
+      "name": "Officer (Commissioned Only)",
+      "requires_commission": true,
+      "1": "Tactics (military)",
+      "2": "Leadership",
+      "3": "Advocate",
+      "4": "Diplomat",
+      "5": "Electronics",
+      "6": "Admin"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Mechanic",
+      "2": "Drive or Flyer",
+      "3": "Admin",
+      "4": "Explosives",
+      "5": "Electronics (comms)",
+      "6": "Medic"
+    },
+    "infantry": {
+      "name": "Infantry",
+      "assignment_only": "infantry",
+      "1": "Gun Combat",
+      "2": "Melee",
+      "3": "Heavy Weapons",
+      "4": "Stealth",
+      "5": "Athletics",
+      "6": "Recon"
+    },
+    "cavalry": {
+      "name": "Cavalry",
+      "assignment_only": "cavalry",
+      "1": "Mechanic",
+      "2": "Drive",
+      "3": "Flyer",
+      "4": "Recon",
+      "5": "Heavy Weapons (vehicle)",
+      "6": "Electronics (sensors)"
+    }
+  },
+  "ranks": {
+    "enlisted": {
+      "0": { "title": "Private", "bonus": "Gun Combat 1" },
+      "1": { "title": "Lance Corporal", "bonus": "Recon 1" },
+      "2": { "title": "Corporal", "bonus": null },
+      "3": { "title": "Lance Sergeant", "bonus": "Leadership 1" },
+      "4": { "title": "Sergeant", "bonus": null },
+      "5": { "title": "Gunnery Sergeant", "bonus": null },
+      "6": { "title": "Sergeant Major", "bonus": null }
+    },
+    "officer": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": "Lieutenant", "bonus": "Leadership 1" },
+      "2": { "title": "Captain", "bonus": null },
+      "3": { "title": "Major", "bonus": "Tactics (military) 1" },
+      "4": { "title": "Lieutenant Colonel", "bonus": null },
+      "5": { "title": "Colonel", "bonus": null },
+      "6": { "title": "General", "bonus": "SOC 10 or SOC +1, whichever is higher" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "Your unit suffers a catastrophic defeat against Imperial or alien forces. The embedded political officer blames you for the failure. Gain them as an Enemy and you are forced out of the service.",
+    "3": "A Party political officer declares your unit's actions ideologically unsound. You are court-martialled on political grounds. If you submit to SolSec interrogation, you leave the service without a Benefit roll. If you refuse, roll END 8+ — success allows you to keep your Benefit roll.",
+    "4": "You discover your commanding officer is engaged in illegal activities or black-market dealings with Confederation contraband. You can join their ring and gain them as an Ally before the investigation ends your career, or co-operate with the military authorities — the whitewash gets you discharged but you keep your Benefit roll.",
+    "5": "You are tormented by or quarrel with a political officer or superior who questions your commitment to the Cause. Gain them as a Rival as they drive you out of the service.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You are deployed to a world with a hostile environment on the rimward frontier. Gain one of Vacc Suit 1, Engineer 1, Animals (riding or training) 1 or Recon 1.",
+    "4": "Your unit is assigned to an urbanised world torn by conflict with anti-Solomani elements or resistance movements. Gain one of Stealth 1, Streetwise 1, Persuade 1 or Recon 1.",
+    "5": "You are given a special assignment or commendation by your commanding officer. Gain DM+1 to any one Benefit roll.",
+    "6": "You are thrown into a brutal ground war against Imperial forces or local insurgents. Roll EDU 8+ to avoid injury; if you succeed, gain one level in Gun Combat or Leadership.",
+    "7": "Life Event. Roll on the Solomani Life Events table.",
+    "8": "You receive advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "9": "Surrounded and outnumbered, your unit holds the line until Confederation reinforcements arrive. Gain DM+2 to your next Advancement check.",
+    "10": "Your unit is assigned to a peacekeeping or occupation role. Gain one of Admin 1, Investigate 1, Deception 1 or Recon 1.",
+    "11": "You receive specialist training. Either gain one level in Heavy Weapons, Electronics or Engineer, or take DM+4 to your next Advancement roll.",
+    "12": "Your actions in a decisive engagement bring honour to the Confederation. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 2000, "benefit": "Combat Implant" },
+    "2": { "cash": 5000, "benefit": "INT +1" },
+    "3": { "cash": 10000, "benefit": "EDU +1" },
+    "4": { "cash": 10000, "benefit": "Weapon" },
+    "5": { "cash": 10000, "benefit": "Armour" },
+    "6": { "cash": 20000, "benefit": "END +1 or Combat Implant" },
+    "7": { "cash": 30000, "benefit": "SOC +1" }
+  },
+  "complete": true,
+  "societies": ["solomani_confederation"]
+}

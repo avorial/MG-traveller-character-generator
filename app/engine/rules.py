@@ -69,9 +69,37 @@ def species() -> dict[str, dict]:
     return _load_dir("species")
 
 
+def _normalize_career(data: dict) -> dict:
+    """Normalize career JSON to the canonical engine format.
+
+    Some Solomani career files use an older list-based assignments format
+    where survival/advancement live at the top level keyed by assignment_id.
+    This converts them to the standard dict-in-assignment format the engine
+    expects everywhere.
+    """
+    assignments = data.get("assignments", {})
+    if not isinstance(assignments, list):
+        return data  # Already canonical
+
+    survival_map: dict = data.get("survival", {})
+    advancement_map: dict = data.get("advancement", {})
+    new_assignments: dict = {}
+    for asgn in assignments:
+        aid = asgn.get("id") or asgn.get("name", "unknown").lower().replace(" ", "_").replace("/", "_")
+        entry = {k: v for k, v in asgn.items() if k != "id"}
+        entry["survival"] = survival_map.get(aid, {})
+        entry["advancement"] = advancement_map.get(aid, {})
+        new_assignments[aid] = entry
+
+    normalized = {k: v for k, v in data.items() if k not in ("survival", "advancement")}
+    normalized["assignments"] = new_assignments
+    return normalized
+
+
 @lru_cache(maxsize=1)
 def careers() -> dict[str, dict]:
-    return _load_dir("careers")
+    raw = _load_dir("careers")
+    return {cid: _normalize_career(cdata) for cid, cdata in raw.items()}
 
 
 @lru_cache(maxsize=1)

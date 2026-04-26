@@ -154,5 +154,6 @@
     "6": {"cash": 20000, "benefit": "END +1 or Combat Implant"},
     "7": {"cash": 30000, "benefit": "SOC +1"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_societies": ["solomani_confederation"]
 }

@@ -1,0 +1,158 @@
+{
+  "id": "solomani_marine",
+  "name": "Solomani Star Marines",
+  "description": "The Confederation's elite shipboard assault troops — the Star Marines. Trained for zero-g operations, boarding actions, orbital assault drops, and Battle Dress deployment. The premier strike force of the Solomani military. Qualification: END 6+. DM-1 for every previous career. Commission: SOC 8+.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 6,
+    "modifiers": [
+      { "description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1 }
+    ]
+  },
+  "commission": {
+    "characteristic": "SOC",
+    "target": 8
+  },
+  "assignments": {
+    "support": {
+      "name": "Support",
+      "description": "You provide logistics, medical support and technical backup to the assault teams.",
+      "survival": { "characteristic": "END", "target": 5 },
+      "advancement": { "characteristic": "EDU", "target": 7 }
+    },
+    "star_marine": {
+      "name": "Star Marine",
+      "description": "You fight in zero-g environments, shipboard boarding actions, and orbital assault drops.",
+      "survival": { "characteristic": "END", "target": 6 },
+      "advancement": { "characteristic": "EDU", "target": 6 }
+    },
+    "battledress": {
+      "name": "Battledress",
+      "description": "You operate Battle Dress armour in the Confederation's most dangerous and prestigious assault operations.",
+      "survival": { "characteristic": "END", "target": 7 },
+      "advancement": { "characteristic": "DEX", "target": 5 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Gambler",
+      "5": "Melee (unarmed)",
+      "6": "Melee (blade)"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Vacc Suit",
+      "3": "Tactics (military)",
+      "4": "Heavy Weapons",
+      "5": "Gun Combat",
+      "6": "Stealth"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "requires_edu": 8,
+      "1": "Medic",
+      "2": "Survival",
+      "3": "Explosives",
+      "4": "Engineer",
+      "5": "Electronics",
+      "6": "Navigation"
+    },
+    "officer": {
+      "name": "Officer (Commissioned Only)",
+      "requires_commission": true,
+      "1": "Leadership",
+      "2": "Diplomat",
+      "3": "Tactics (military)",
+      "4": "Electronics",
+      "5": "Admin",
+      "6": "Advocate"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Mechanic",
+      "2": "Electronics (comms)",
+      "3": "Drive",
+      "4": "Medic",
+      "5": "Heavy Weapons",
+      "6": "Gun Combat"
+    },
+    "star_marine": {
+      "name": "Star Marine",
+      "assignment_only": "star_marine",
+      "1": "Vacc Suit",
+      "2": "Athletics (dexterity)",
+      "3": "Gunner",
+      "4": "Melee (blade)",
+      "5": "Electronics",
+      "6": "Gun Combat"
+    },
+    "battledress": {
+      "name": "Battledress",
+      "assignment_only": "battledress",
+      "1": "Battle Dress",
+      "2": "Heavy Weapons",
+      "3": "Gun Combat",
+      "4": "Athletics",
+      "5": "Tactics (military)",
+      "6": "Recon"
+    }
+  },
+  "ranks": {
+    "enlisted": {
+      "0": { "title": "Marine", "bonus": "Gun Combat 1" },
+      "1": { "title": "Lance Corporal", "bonus": "Gun Combat 1" },
+      "2": { "title": "Corporal", "bonus": null },
+      "3": { "title": "Lance Sergeant", "bonus": "Leadership 1" },
+      "4": { "title": "Sergeant", "bonus": null },
+      "5": { "title": "Gunnery Sergeant", "bonus": null },
+      "6": { "title": "Sergeant Major", "bonus": null }
+    },
+    "officer": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": "Lieutenant", "bonus": "Leadership 1" },
+      "2": { "title": "Captain", "bonus": null },
+      "3": { "title": "Force Commander", "bonus": "Tactics (military) 1" },
+      "4": { "title": "Lieutenant Colonel", "bonus": null },
+      "5": { "title": "Colonel", "bonus": null },
+      "6": { "title": "Brigadier", "bonus": "SOC +1" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "An orbital assault goes catastrophically wrong and you are stranded behind enemy lines. Gain an Enemy and one level in any skill you choose.",
+    "3": "You witness atrocities — committed by your own unit or the enemy — that cannot be reconciled with the Solomani Cause. Reduce INT or SOC by 1 and muster out.",
+    "4": "You are captured by Imperial or alien forces and spend months as a prisoner before repatriation. Gain a Contact (fellow prisoner) and an Enemy; you cannot re-enlist this term.",
+    "5": "Your commanding officer is killed, disgraced or promoted past you, and you are forced out. Gain a Rival.",
+    "6": "Injured. Roll on the Injury Table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "You are involved in a boarding action against an Imperial or pirate vessel. Gain one of Vacc Suit 1, Gun Combat 1, Melee 1 or Tactics (military) 1.",
+    "4": "You are deployed to a war-torn planet in a combined-arms orbital assault. Gain one of Recon 1, Survival 1, Stealth 1 or Gun Combat 1.",
+    "5": "You receive a commendation for your actions in the field. Gain DM+1 to any one Benefit roll.",
+    "6": "You perform with distinction in a zero-g engagement. Gain Vacc Suit 1 or Athletics (dexterity) 1.",
+    "7": "Life Event. Roll on the Solomani Life Events table.",
+    "8": "You receive advanced specialist training. Roll EDU 8+ to gain any one skill listed on the Service or Advanced Education tables at level 1.",
+    "9": "Your unit leads a successful orbital drop or boarding action that becomes a model for future operations. Gain DM+2 to your next Advancement check.",
+    "10": "You rescue a fellow Star Marine under heavy fire. Gain them as an Ally and DM+1 to any one Benefit roll, or transfer to the Confederation Army without a Qualification roll.",
+    "11": "You attend advanced specialist training. Either gain one level in Battle Dress, Heavy Weapons, Explosives or Tactics (military), or take DM+4 to your next Advancement roll.",
+    "12": "Your actions in a critical operation bring honour to the Confederation and the Corps. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 2000, "benefit": "Armour" },
+    "2": { "cash": 5000, "benefit": "INT +1" },
+    "3": { "cash": 5000, "benefit": "EDU +1" },
+    "4": { "cash": 10000, "benefit": "Weapon" },
+    "5": { "cash": 20000, "benefit": "TAS Membership" },
+    "6": { "cash": 30000, "benefit": "END +1" },
+    "7": { "cash": 40000, "benefit": "SOC +2" }
+  },
+  "complete": true,
+  "societies": ["solomani_confederation"]
+}

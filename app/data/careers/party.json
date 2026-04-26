@@ -166,5 +166,6 @@
     "6": { "cash": 60000, "benefit": "Terran Adventurers Society membership" },
     "7": { "cash": 70000, "benefit": "SC Courier" }
   },
-  "complete": true
+  "complete": true,
+  "societies": ["solomani_confederation"]
 }

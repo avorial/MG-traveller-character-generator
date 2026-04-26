@@ -297,6 +297,15 @@ async def api_apply_species(action: SpeciesAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/racial-background-roll")
+async def api_racial_background_roll(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.racial_background_roll(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/background-skills")
 async def api_background_skills_set(action: BackgroundSkillsAction):
     character = action.character.model_copy(deep=True)

@@ -148,5 +148,6 @@
     "6": {"cash": 50000, "benefit": "SOC +1"},
     "7": {"cash": 50000, "benefit": "Ship's Boat or SOC +2"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_societies": ["solomani_confederation"]
 }

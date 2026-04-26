@@ -130,5 +130,6 @@
     "6": {"cash": 50000, "benefit": "Scout Ship"},
     "7": {"cash": 50000, "benefit": "Scout Ship"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_societies": ["solomani_confederation"]
 }

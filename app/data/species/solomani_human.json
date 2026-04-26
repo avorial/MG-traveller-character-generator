@@ -1,5 +1,24 @@
 {
-  "deprecated": true,
-  "replaced_by": "solomani_racial",
-  "note": "Split into solomani_racial, solomani_mixed, and confederation_human when proper Solomani sourcebook rules were added. Old saves that referenced 'solomani_human' resolve to solomani_racial."
+  "id": "solomani_human",
+  "name": "Human (Solomani Confederation)",
+  "description": "Citizens of the Solomani Confederation are not all equal under Solomani ideology. Your precise ancestry within the Confederation is determined by a 2D Heritage Roll: on a 2 you are a Non-Solomani Human; on 3–5 you are of Mixed Heritage; on 6–12 you are a Racial Solomani. The roll represents where your family falls in the Confederation's complex social and genetic hierarchy.",
+  "racial_background_roll": true,
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 200,
+  "traits": [
+    {
+      "name": "Heritage Roll Required",
+      "description": "Click ROLL HERITAGE to determine your ancestry. Result 2: Non-Solomani Human (second-class citizen, Party career closed). Result 3–5: Mixed Heritage Solomani (DM-3 to Party qualification, DM-1 to advancement in Confederation careers). Result 6–12: Racial Solomani (SOC modifier applies as bonus DM to Confederation career qualification rolls — Party Patronage)."
+    }
+  ],
+  "aliases": ["solomani"],
+  "source": "Solomani Confederation sourcebook, Mongoose Publishing"
 }

@@ -879,6 +879,11 @@ function wireSocietyPhase() {
 // ============================================================
 
 function renderSpeciesPhase() {
+  // If a Heritage Roll result is pending, show the result panel instead
+  if (uiState.racialBackgroundResult) {
+    return renderRacialBackgroundResult();
+  }
+
   const selected = uiState.selectedSpecies || character.species_id;
   const speciesApplied = character.species_id && character.traits && character.traits.length >= 0 && character.phase !== 'species';
 
@@ -888,15 +893,19 @@ function renderSpeciesPhase() {
   const filteredSpecies = allowedIds ? SPECIES.filter(sp => allowedIds.has(sp.id)) : SPECIES;
 
   const cards = filteredSpecies.map(sp => {
-    const modsText = Object.entries(sp.characteristic_modifiers)
-      .filter(([, v]) => v !== 0)
-      .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
-      .join(' · ') || 'No modifiers';
+    const isRollTrigger = !!sp.racial_background_roll;
+    const modsText = isRollTrigger
+      ? '2D Heritage Roll'
+      : (Object.entries(sp.characteristic_modifiers)
+          .filter(([, v]) => v !== 0)
+          .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+          .join(' · ') || 'No modifiers');
     return `
       <button class="card ${selected === sp.id ? 'selected' : ''}" data-species="${sp.id}">
         <div class="card-title">${sp.name}</div>
         <div class="card-meta">${modsText}</div>
         <div class="card-desc">${sp.description}</div>
+        ${isRollTrigger ? '<div class="card-meta" style="color:var(--amber)">🎲 Roll determines your exact heritage</div>' : ''}
       </button>
     `;
   }).join('');
@@ -942,14 +951,76 @@ function renderSpeciesPhase() {
       <div class="phase-actions">
         <button class="btn ghost" id="btn-back-stats">← ORIGIN</button>
         <button class="btn primary" id="btn-apply-species" ${selected ? '' : 'disabled'}>
-          APPLY ${selectedSp ? selectedSp.name.toUpperCase() : 'SPECIES'} →
+          ${selectedSp?.racial_background_roll
+            ? '🎲 ROLL HERITAGE →'
+            : 'APPLY ' + (selectedSp ? selectedSp.name.toUpperCase() : 'SPECIES') + ' →'}
         </button>
       </div>
     </div>
   `;
 }
 
+function renderRacialBackgroundResult() {
+  const result = uiState.racialBackgroundResult;
+  const resolvedSp = SPECIES.find(s => s.id === character.species_id);
+  const dice = result.heritage_roll?.dice || [];
+  const total = result.heritage_roll?.total ?? '?';
+  const mods = resolvedSp ? Object.entries(resolvedSp.characteristic_modifiers || {})
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+    .join(' · ') : '';
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 02b — HERITAGE ROLL</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Solomani Heritage Determination</div>
+      <h2 class="phase-title">Heritage Determined</h2>
+      <p class="phase-subtitle">A 2D roll determines your ancestry within the Solomani Confederation.</p>
+
+      <div class="roll-result-block" style="text-align:center;margin:24px 0">
+        <div style="font-size:11px;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px">HERITAGE ROLL</div>
+        <div style="font-size:48px;font-weight:900;color:var(--accent)">${total}</div>
+        <div style="font-size:13px;color:var(--text-dim)">(${dice.join(' + ')})</div>
+      </div>
+
+      <div class="result-block" style="border:1px solid var(--accent);border-radius:6px;padding:16px;margin-bottom:20px">
+        <div style="font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:6px">RESULT</div>
+        <div style="font-size:20px;font-weight:700">${result.result_name}</div>
+        ${mods ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">Characteristic modifiers: ${mods}</div>` : ''}
+        ${resolvedSp?.description ? `<p style="font-size:13px;margin-top:10px">${resolvedSp.description}</p>` : ''}
+      </div>
+
+      ${resolvedSp?.traits?.length ? `
+        <div class="species-traits-panel">
+          <h4>Heritage Traits — ${resolvedSp.name}</h4>
+          ${resolvedSp.traits.map(t => `
+            <div class="trait">
+              <span class="trait-name">${t.name}</span>
+              <span class="trait-desc">${t.description}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-after-heritage">CONTINUE →</button>
+      </div>
+    </div>
+  `;
+}
+
 function wireSpeciesPhase() {
+  // Heritage roll result screen — just needs a Continue button
+  if (uiState.racialBackgroundResult) {
+    document.getElementById('btn-after-heritage').addEventListener('click', () => {
+      uiState.racialBackgroundResult = null;
+      character.phase = 'background';
+      saveCharacter();
+      renderAll();
+    });
+    return;
+  }
+
   document.querySelectorAll('[data-species]').forEach(card => {
     card.addEventListener('click', () => {
       uiState.selectedSpecies = card.dataset.species;
@@ -963,6 +1034,15 @@ function wireSpeciesPhase() {
   });
   document.getElementById('btn-apply-species').addEventListener('click', async () => {
     if (!uiState.selectedSpecies) return;
+    const sp = SPECIES.find(s => s.id === uiState.selectedSpecies);
+    if (sp?.racial_background_roll) {
+      // Solomani heritage: roll 2D to determine subtype
+      const response = await apiCall('/api/character/racial-background-roll', {});
+      await applyResponse(response);
+      uiState.racialBackgroundResult = response;
+      renderStage();
+      return;
+    }
     const response = await apiCall('/api/character/apply-species', { species_id: uiState.selectedSpecies });
     await applyResponse(response);
     character.phase = 'background';
@@ -2010,9 +2090,17 @@ function renderCareerPhase() {
 function renderChooseCareer() {
   const forcedId = character.forced_next_career_id || null;
   const banned = new Set(character.banned_career_ids || []);
+  const soc = character.society_id || 'third_imperium';
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
-    : CAREERS.filter(c => !banned.has(c.id));
+    : CAREERS.filter(c => {
+        if (banned.has(c.id)) return false;
+        // "societies" = whitelist: only show for these societies
+        if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
+        // "blocked_societies" = blacklist: hide for these societies
+        if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
+        return true;
+      });
   const forcedBanner = forcedId ? `
     <p class="phase-body" style="color:var(--danger);font-weight:bold">
       ⚠ You must enter the ${forcedId.toUpperCase()} career this term (education event mandate).
