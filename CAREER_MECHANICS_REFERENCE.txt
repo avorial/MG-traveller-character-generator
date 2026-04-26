@@ -1,0 +1,1009 @@
+================================================================================
+TRAVELLER CHARACTER CREATOR — CAREER EVENTS & MISHAPS MECHANICS REFERENCE
+Generated: 2026-04-25  |  App Version 4.1
+================================================================================
+
+KEY:
+  [AUTO]      — Applied automatically, no player input needed
+  [CHOICE]    — Interactive picker shown to player
+  [SKILL CHK] — Skill/stat check roll, branches on pass/fail
+  [TEXT ONLY] — Narrative display only; nothing mechanical happens
+  [DM AUTO]   — DM to next qualification/advancement/benefit auto-applied
+
+================================================================================
+AGENT
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured — roll twice on Injury Table, take lower result."
+   [CHOICE] injury_severity_choice — player picks which physical stat absorbs
+            the heavier damage
+
+2  "A criminal offers you a deal: accept (lose benefit roll) or refuse
+   (take double injury roll, gain Enemy, gain any skill +1)."
+   [CHOICE] Two buttons: ACCEPT / REFUSE
+   → Accept: [AUTO] forfeits this term's benefit roll, career ends
+   → Refuse: [AUTO] double injury applied (result-2 effectively), Enemy added,
+             then free skill choice picker shown
+
+3  "Investigation goes critically wrong. Roll Advocate 8+. On success keep
+   benefit roll. On natural 2 you must take Prisoner next term."
+   [SKILL CHK] Advocate vs 8
+   → Natural 2: [AUTO] forced_next_career_id = "prisoner"
+   → Fail:      [AUTO] forfeits benefit roll
+   → Pass:      benefit roll kept (nothing extra to apply)
+
+4  "You learn something you shouldn't. Gain Enemy [Investigation Target]
+   and Deception 1."
+   [AUTO] Enemy added; Deception +1 granted
+
+5  "Someone close to you gets hurt. Choose one of your Contacts or Allies —
+   they roll twice on the Injury Table and take the lower result."
+   [CHOICE] Lists current Contacts/Allies; player picks one.
+            The chosen associate is downgraded (Ally→Contact, Contact→Rival)
+            and an injury-severity note is logged.
+
+6  "Injured. Roll on the Injury Table."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — rolls on Mishap table but NOT ejected from career.
+    [AUTO] Mishap roll triggered; stay in career
+
+3   "Roll Investigate 8+ or Streetwise 8+. On fail → Mishap (not ejected).
+    On success gain one of Deception, Jack-of-all-Trades, Persuade, or Tactics."
+    [SKILL CHK] Contested roll shown; success grants one-of skill picker
+    [TEXT ONLY] Fail path: mishap roll triggered (not ejected)
+
+4   "Suitably rewarded — gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+5   "Establish a network of contacts. Gain D3 Contacts."
+    [AUTO] 1D3 Contacts added
+
+6   "Advanced training in specialist field. Roll EDU 8+ to raise one
+    existing skill by 1."
+    [SKILL CHK] EDU vs 8; on pass, skill-level-up picker for existing skills
+
+7   Life Event. Roll on the Life Events Table.
+    [AUTO] Life event table rolled
+
+8   "Go undercover. Roll Deception 8+. On success: roll on Rogue OR Citizen
+    event table and gain one skill from that career's specialist table.
+    On fail: roll on that career's Mishap table."
+    [CHOICE] Deception roll → then ROGUE / CITIZEN career picker shown
+    → Success path: event or specialist skill roll for chosen career
+    → Fail path: mishap roll for chosen career (not ejected)
+    [NOTE] This is the cross-career roll mechanic
+
+9   "Above and beyond. Gain DM+2 to next Advancement check."
+    [DM AUTO] dm_next_advancement +2
+
+10  "Specialist training in vehicles. Gain one of Drive 1, Flyer 1, Pilot 1,
+    or Gunner 1."
+    [CHOICE] Skill picker: Drive / Flyer / Pilot / Gunner
+
+11  "Befriended by senior agent. Gain Investigate +1 OR DM+4 to Advancement."
+    [TEXT ONLY] Two options in text; DM auto-parsed if text contains "DM+4 to
+    advancement" but choice between them is manual / narrative
+
+12  "Uncover major conspiracy. Automatically promoted."
+    [AUTO] auto-promotion applied (rank +1)
+
+================================================================================
+ARMY
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured — roll twice on Injury Table, take lower result."
+   [CHOICE] injury_severity_choice
+
+2  "Unit slaughtered, blame your commander. Gain them as Enemy."
+   [AUTO] Enemy [Commander] added
+
+3  "Sent to unpleasant region against guerrillas. Gain Recon OR Survival +1,
+   gain rebels as Enemy."
+   [CHOICE] Skill picker: Recon / Survival
+   [AUTO] Enemy [Rebels] added
+
+4  "CO is engaged in illegal activity. Join their ring (gain Ally, still
+   discharged) OR co-operate with military police (keep Benefit roll,
+   still discharged)."
+   [CHOICE] Two buttons: JOIN RING / CO-OPERATE
+   → Join: [AUTO] Ally [Commander] added, career ends
+   → Co-operate: [AUTO] benefit roll kept, career ends
+
+5  "Tormented by an officer. Gain Rival [Officer]."
+   [AUTO] Rival added
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Hostile environment assignment. Gain one of Vacc Suit, Engineer,
+    Animals (riding/training), or Recon at level 1."
+    [CHOICE] Skill picker
+
+4   "Urbanised war zone. Gain one of Stealth, Streetwise, Persuade, or Recon."
+    [CHOICE] Skill picker
+
+5   "Special assignment. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Brutal ground war. Roll EDU 8+; on success gain Gun Combat or Leadership."
+    [SKILL CHK] EDU vs 8; on pass skill picker
+    [TEXT ONLY] On fail — injury implied but not explicitly stated in event;
+                no injury auto-roll triggered (text says "avoid injury")
+
+7   Life Event.
+    [AUTO]
+
+8   "Advanced training. Roll EDU 8+ to raise one existing skill."
+    [SKILL CHK] EDU vs 8; on pass skill-level-up picker
+
+9   "Guerrilla insurgency. Gain one of Gun Combat, Recon, or Stealth."
+    [CHOICE] Skill picker
+
+10  "Heroism noted. Gain DM+2 to one Advancement roll, OR transfer to Marines
+    without Qualification roll."
+    [DM AUTO] dm_next_advancement +2 auto-applied
+    [TEXT ONLY] Transfer option surfaced as narrative; pending_transfer_career_id
+                set if player elects transfer path
+
+11  "Specialist training. Gain Heavy Weapons, Electronics, or Engineer +1,
+    OR DM+4 to next Advancement."
+    [TEXT ONLY] Dual option narrated; DM+4 not auto-applied (it's a choice)
+
+12  "Notable engagement. Automatically promoted."
+    [AUTO] auto-promotion
+
+================================================================================
+CITIZEN
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Unjustly accused. Gain Rival [Co-worker/Company]."
+   [AUTO] Rival added
+
+3  "Mental illness/addiction. Reduce INT or SOC by 1."
+   [CHOICE] Stat picker: INT / SOC (−1)
+
+4  "Business deal collapses. Lose Benefit rolls this term."
+   [AUTO] Benefit rolls forfeited
+
+5  "Make an Enemy of co-worker, customer or rival."
+   [AUTO] Enemy [Co-worker/Customer] added
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Additional duties. Gain any one Service Skill at level 1."
+    [CHOICE] Skill picker (service skills for assignment)
+
+4   "Clash with rival co-worker. Gain a Rival AND raise one existing skill."
+    [AUTO] Rival added
+    [CHOICE] Skill-level-up picker for existing skills
+
+5   "Friendship helps you. Gain a Contact AND DM+1 to one Benefit roll."
+    [AUTO] Contact added
+    [DM AUTO] dm_next_benefit +1
+
+6   "Advanced training. Roll EDU 8+ to raise one existing skill."
+    [SKILL CHK] EDU vs 8; on pass skill-level-up picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Extended assignment. Gain one of Admin, Profession, Steward, or Survival."
+    [CHOICE] Skill picker
+
+9   "Extra hours — gain DM+2 to one Advancement roll, but DM-2 to Survival
+    this term."
+    [AUTO] dm_next_advancement +2 applied
+    [NOTE] The DM-2 to survival is applied retroactively — this event fires
+           AFTER survival, so the retroactive check runs: if they wouldn't
+           have passed at (target + 2), they are treated as having failed
+           survival (mishap roll triggered, not ejected). This was a special
+           mechanic added at user request.
+
+10  "Singled out. Gain DM+2 to next Advancement OR DM+1 to one Benefit roll."
+    [TEXT ONLY] Dual option; one is auto-parsed ("DM+2 to advancement") but
+                choice between the two is narrative
+
+11  "Specialist training — gain one service skill OR transfer to any
+    non-military career without Qualification roll."
+    [TEXT ONLY] Transfer option is narrative; skill picker shown if player
+                takes the skill path
+
+12  "Strike it rich. Automatically promoted AND DM+2 to one Benefit roll."
+    [AUTO] auto-promotion
+    [DM AUTO] dm_next_benefit +2
+
+================================================================================
+DRIFTER
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Kidnapped or enslaved. Gain Enemy [Kidnapper]."
+   [AUTO] Enemy added
+
+3  "Addiction/bad habits. Reduce one physical characteristic by 1."
+   [CHOICE] Stat picker: STR / DEX / END (−1)
+
+4  "Fall foul of local criminals/police. Gain Rival [Local Criminals/Police]."
+   [AUTO] Rival added
+
+5  "Scheme to make fortune goes wrong. Lose ALL Benefit rolls this term."
+   [AUTO] Benefit rolls forfeited
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Street fight or brawl. Gain one of Melee, Gun Combat, or Athletics."
+    [CHOICE] Skill picker
+
+4   "Work a starship passage. Gain one of Steward, Vacc Suit, Mechanic,
+    or Astrogation."
+    [CHOICE] Skill picker
+
+5   "Fall in with drifters. Gain an Ally AND raise Streetwise, Deception,
+    or Persuade by 1."
+    [AUTO] Ally added
+    [CHOICE] Skill picker: Streetwise / Deception / Persuade
+
+6   "Hired for dangerous job. Roll END 8+; on success DM+2 to Benefit roll;
+    on fail Mishap (not ejected)."
+    [SKILL CHK] END vs 8
+    → Pass: [DM AUTO] dm_next_benefit +2
+    → Fail: mishap roll, not ejected
+
+7   Life Event.
+    [AUTO]
+
+8   "Remote region survival. Roll Survival 8+; on success gain Survival 1
+    and a Contact; on fail lose 1 END."
+    [SKILL CHK] Survival vs 8
+    → Pass: [AUTO] Survival +1, Contact added
+    → Fail: [AUTO] END −1
+
+9   "Discover something of value. Gain DM+2 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +2
+
+10  "Help a local in trouble. Gain an Ally AND DM+2 to next Advancement."
+    [AUTO] Ally added
+    [DM AUTO] dm_next_advancement +2
+
+11  "Pick up useful knowledge. Gain one level in any skill OR transfer to any
+    career without Qualification roll."
+    [TEXT ONLY] Transfer option narrative; skill picker for skill path
+
+12  "Recruited into major enterprise. Automatically promoted."
+    [AUTO] auto-promotion
+
+================================================================================
+ENTERTAINER
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Scandal destroys career. Lose 1 SOC, gain Rival [Scandal]."
+   [AUTO] SOC −1; Rival added
+
+3  "Offend powerful patron/critic/sponsor. Gain Enemy, lose Benefit rolls."
+   [AUTO] Enemy [Patron/Critic/Sponsor] added; benefit rolls forfeited
+
+4  "A story gets you into legal/political trouble. Blacklisted."
+   [TEXT ONLY] Narrative only — no mechanic applies beyond career ending
+
+5  "Addiction/lifestyle excess. Reduce one physical OR mental characteristic."
+   [CHOICE] Stat picker: STR / DEX / END / INT / EDU (−1)
+   [NOTE] SOC excluded — scandal/SOC loss is mishap 2
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Fall foul of a critic or backer. Gain a Rival."
+    [AUTO] Rival added
+
+4   "Hone your craft. Gain one of Art, Persuade, Deception, or Carouse."
+    [CHOICE] Skill picker
+
+5   "Darling of a social circle. Gain DM+2 to a Benefit roll this term."
+    [DM AUTO] dm_next_benefit +2
+
+6   "Brush with a celebrity/noble/criminal. Gain them as Contact, Ally,
+    Rival, or Enemy (your choice)."
+    [CHOICE] 4-button associate type picker
+    Then a second picker: Celebrity / Noble / Criminal for description
+    Both picks confirmed together before associate is saved.
+
+7   Life Event.
+    [AUTO]
+
+8   "Prestigious venue. Roll Art 8+ or Persuade 8+; on success Art +1 and
+    DM+2 to next Advancement; on fail lose 1 SOC."
+    [SKILL CHK] Art or Persuade vs 8
+    → Pass: [AUTO] Art +1; dm_next_advancement +2
+    → Fail: [AUTO] SOC −1
+
+9   "Tour many worlds. Gain one of Streetwise, Language, Pilot (small craft),
+    or Steward."
+    [CHOICE] Skill picker
+
+10  "Work becomes a sensation. Gain DM+2 to Benefit roll AND DM+1 to next
+    Advancement."
+    [DM AUTO] dm_next_benefit +2; dm_next_advancement +1
+
+11  "Major patronage or breakthrough. Gain one skill level OR DM+4 to next
+    Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied (true player choice)
+
+12  "Become a superstar. Automatically promoted AND gain SOC +1."
+    [AUTO] auto-promotion; SOC +1
+
+================================================================================
+MARINES
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Boarding action goes wrong. Gain Enemy [Disaster Engagement] and
+   Gun Combat 1."
+   [AUTO] Enemy added; Gun Combat +1 granted
+
+3  "Witness atrocity. Reduce INT or SOC by 1."
+   [CHOICE] Stat picker: INT / SOC (−1)
+
+4  "Captured by enemy. Gain Contact [Fellow Prisoner] and Enemy [Captors]."
+   [AUTO] Contact and Enemy both added
+
+5  "CO killed/disgraced. Gain Rival [Commander]."
+   [AUTO] Rival added
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Boarding action against pirates. Gain one of Vacc Suit, Gun Combat,
+    Melee, or Tactics (military)."
+    [CHOICE] Skill picker
+
+4   "Deployed to war-torn planet. Gain one of Recon, Survival, Stealth,
+    or Gun Combat."
+    [CHOICE] Skill picker
+
+5   "Special assignment/commendation. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Zero-g engagement. Gain Vacc Suit or Athletics (dexterity)."
+    [CHOICE] Skill picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Advanced training. Roll EDU 8+ to gain any skill from service or
+    advanced tables."
+    [SKILL CHK] EDU vs 8; on pass skill picker
+
+9   "Successful drop or boarding. Gain DM+2 to next Advancement."
+    [DM AUTO] dm_next_advancement +2
+
+10  "Rescue a fellow Marine. Gain them as Ally AND DM+1 to one Benefit roll,
+    OR transfer to Army without Qualification."
+    [AUTO] Ally added; dm_next_benefit +1
+    [TEXT ONLY] Transfer option narrative
+
+11  "Specialist training. Gain Battle Dress, Heavy Weapons, Explosives, or
+    Tactics (military), OR DM+4 to next Advancement."
+    [TEXT ONLY] Dual option; DM+4 not auto-applied (choice)
+
+12  "Critical operation honour. Automatically promoted AND gain medal."
+    [AUTO] auto-promotion; medal noted in log
+
+================================================================================
+MERCHANT
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Ship attacked by pirates. Gain Enemy, lose all Benefits this term."
+   [AUTO] Enemy [Pirates/Corsairs] added; benefit rolls forfeited
+
+3  "Cargo deal collapses catastrophically. Benefit rolls forfeit."
+   [AUTO] Benefit rolls forfeited
+
+4  "Political/legal dispute. Gain Rival [Political/Legal Dispute]."
+   [AUTO] Rival added
+
+5  "Ship impounded/lost/destroyed. Lose one Benefit roll."
+   [AUTO] Benefit roll forfeited (one fewer pending roll)
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Ship attacked. Roll Gun Combat 8+ or Gunner 8+ to escape; on fail
+    Mishap (not ejected). Either way gain an Enemy."
+    [SKILL CHK] Gun Combat or Gunner vs 8
+    → Fail: mishap roll, not ejected
+    [AUTO] Enemy added regardless of outcome
+
+4   "Trading on fringes. Gain one of Streetwise, Broker, Diplomat,
+    or Carouse."
+    [CHOICE] Skill picker
+
+5   "Lucrative deal. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Extensive travel. Gain one of Language, Pilot (spacecraft), Astrogation,
+    or Steward."
+    [CHOICE] Skill picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Long-term cargo agreement. Gain Ally AND DM+1 to Benefit roll, OR DM+2
+    to next Advancement."
+    [AUTO] Ally added; dm_next_benefit +1
+    [TEXT ONLY] Advancement DM alternative is narrative
+
+9   "Pursued by creditors/pirates. Roll Pilot 8+ or Deception 8+; on success
+    gain Contact in ISA; on fail gain Enemy and Mishap (not ejected)."
+    [SKILL CHK] Pilot or Deception vs 8
+    → Pass: [AUTO] Contact [Imperial Starport Authority] added
+    → Fail: [AUTO] Enemy added; mishap roll (not ejected)
+
+10  "Well-known on a route. Gain DM+2 to next Advancement."
+    [DM AUTO] dm_next_advancement +2
+
+11  "Valuable/sensitive cargo. Gain one of Diplomat, Broker, or Advocate,
+    OR DM+4 to next Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied
+
+12  "Deal of a lifetime. Automatically promoted AND DM+2 to one Benefit."
+    [AUTO] auto-promotion
+    [DM AUTO] dm_next_benefit +2
+
+================================================================================
+NAVY
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Ship destroyed. Gain Contact [Fellow Survivor]."
+   [AUTO] Contact added
+
+3  "Disgraced by ship's actions. Gain Rival [Service Member]."
+   [AUTO] Rival added
+
+4  "Court-martialled. Forced out."
+   [TEXT ONLY] Narrative only — no additional mechanic beyond career ending
+
+5  "Political scandal ends career. Gain Enemy [Admiralty]."
+   [AUTO] Enemy added
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Enemy vessel engagement. Roll Gunner 8+ or Tactics (naval) 8+; on
+    success gain Gunner 1 or Tactics (naval) 1 and DM+1 to next Advancement;
+    on fail Mishap (not ejected)."
+    [SKILL CHK] Gunner or Tactics vs 8
+    → Pass: [CHOICE] Gunner / Tactics picker; [DM AUTO] dm_next_advancement +1
+    → Fail: mishap roll, not ejected
+
+4   "Long-range patrol. Gain one of Astrogation, Survival, Electronics,
+    or Vacc Suit."
+    [CHOICE] Skill picker
+
+5   "Commendation. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Excellent captain. Gain them as Contact OR Ally."
+    [CHOICE] Contact / Ally button
+
+7   Life Event.
+    [AUTO]
+
+8   "Officer training or specialist school. Roll EDU 8+ to gain any skill
+    from officer or advanced education tables."
+    [SKILL CHK] EDU vs 8; on pass skill picker
+
+9   "Distinguish yourself in ship-to-ship. Gain DM+2 to next Advancement."
+    [DM AUTO] dm_next_advancement +2
+
+10  "Transfer to elite unit. Gain one of Gun Combat, Melee (blade), Vacc
+    Suit, or Leadership, OR transfer to Marines without Qualification."
+    [CHOICE] Skill picker for skill path
+    [TEXT ONLY] Transfer option narrative
+
+11  "Advanced training. Gain one level in any skill you already have, OR
+    DM+4 to next Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied
+
+12  "Major fleet action heroism. Automatically promoted AND gain medal."
+    [AUTO] auto-promotion; medal noted in log
+
+================================================================================
+NOBILITY
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Family scandal. Lose 1 SOC."
+   [AUTO] SOC −1
+
+3  "Disaster or war strikes. Roll Stealth 8+ or Deception 8+ to escape.
+   On fail, roll on Injury Table."
+   [SKILL CHK] Stealth or Deception vs 8
+   → Fail: [AUTO] Injury roll applied
+   → Pass: no injury
+
+4  "Political manoeuvrings usurp your position. Gain Diplomat OR Advocate +1
+   and gain Rival [Political Maneuverer]."
+   [CHOICE] Skill picker: Diplomat / Advocate
+   [AUTO] Rival added
+
+5  "Assassin attempts to end your life. Roll END 8+. On fail, roll on
+   Injury Table."
+   [SKILL CHK] END vs 8 (stat check)
+   → Fail: [AUTO] Injury roll applied
+   → Pass: no injury
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Challenged to a duel. Refuse: lose 1 SOC. Accept: Roll Melee (blade)
+    8+. Win: gain 1 SOC. Fail: Injury Table + lose 1 SOC. Either way gain
+    one of Melee (blade), Leadership, Tactics, or Deception."
+    [CHOICE] REFUSE / ACCEPT buttons
+    → Refuse: [AUTO] SOC −1; [CHOICE] skill picker
+    → Accept: [SKILL CHK] Melee (blade) vs 8
+              Pass: [AUTO] SOC +1; [CHOICE] skill picker
+              Fail: [AUTO] Injury roll; SOC −1; [CHOICE] skill picker
+
+4   "Ruler/playboy experiences. Gain one of Animals (riding), Art, Carouse,
+    or Streetwise."
+    [CHOICE] Skill picker
+
+5   "Inherit a gift. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Deeply involved in politics. Gain one of Advocate, Admin, Diplomat, or
+    Persuade. Gain a Rival."
+    [CHOICE] Skill picker
+    [AUTO] Rival added
+
+7   Life Event.
+    [AUTO]
+
+8   "Conspiracy recruits you. Refuse: gain them as Enemy. Accept: Roll
+    Deception 8+ or Persuade 8+. On fail: Mishap. On success: gain one of
+    Deception, Persuade, Tactics, or Carouse."
+    [CHOICE] REFUSE / ACCEPT buttons
+    → Refuse: [AUTO] Enemy added
+    → Accept: [SKILL CHK] Deception or Persuade vs 8
+              Fail: mishap roll (not ejected)
+              Pass: [CHOICE] skill picker (Deception/Persuade/Tactics/Carouse)
+
+9   "Reign acclaimed — OR dilettante sponging. Gain jealous relative or
+    unhappy subject as Enemy. Gain DM+2 to next Advancement."
+    [AUTO] Enemy added (generic "Jealous relative or unhappy subject")
+    [DM AUTO] dm_next_advancement +2
+
+10  "Charm through high society. Gain one of Carouse, Diplomat, Persuade,
+    or Steward. Gain a Rival AND an Ally."
+    [CHOICE] Skill picker
+    [AUTO] Rival added; Ally added
+
+11  "Alliance with powerful noble. Gain Leadership +1 OR DM+4 to next
+    Advancement."
+    [AUTO] Ally [Powerful Noble] added
+    [TEXT ONLY] Leadership vs DM+4 choice is narrative
+
+12  "Efforts noted by Imperium. Automatically promoted."
+    [AUTO] auto-promotion
+
+================================================================================
+PRISONER
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured in riot, assault, or accident. Roll on Injury Table."
+   [AUTO] Injury roll applied (no severity choice — prisoner mishap 1 is
+          a single roll, not the double-take-lower variant)
+
+2  "Make a powerful enemy inside. Gain Enemy [Gang Leader/Guard/Prisoner]."
+   [AUTO] Enemy added
+
+3  "Transferred to harsher facility. Lose one Benefit roll, gain
+   Streetwise 1."
+   [AUTO] Benefit roll forfeited; Streetwise +1 granted
+
+4  "Contract disease/injury. Reduce END by 1, gain Cr20,000 medical debt."
+   [AUTO] END −1; Cr20,000 added to medical_debt
+
+5  "Witness something you can't undo. Gain Enemy [Witness/Participant] and
+   Deception 1."
+   [AUTO] Enemy added; Deception +1 granted
+
+6  "Injured in solitary or labour accident."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Block riot. Roll Melee (unarmed) 8+ or Stealth 8+. On fail, roll on
+    Injury Table."
+    [SKILL CHK] Melee (unarmed) or Stealth vs 8
+    → Fail: [AUTO] Injury roll applied
+    → Pass: no harm
+
+4   "Fellow prisoner with connections. Gain a Contact [criminal underworld
+    or political dissidents]."
+    [AUTO] Contact added
+
+5   "Smuggle contraband. Gain DM+2 to next Benefit roll OR pick one of
+    Streetwise, Deception, or Gambler."
+    [TEXT ONLY] Dual option; neither auto-applied (true choice)
+
+6   "Serve time quietly. Gain one of Athletics, Melee (unarmed), Streetwise,
+    or Deception."
+    [CHOICE] Skill picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Parole hearing. Roll SOC 8+ or Advocate 8+. On success: leave at end
+    of term, no penalty. On fail: DM-2 to next Advancement."
+    [SKILL CHK] SOC or Advocate vs 8
+    → Pass: [AUTO] career ends gracefully (no mishap, no penalty);
+            PAROLE button shown to let player trigger clean exit
+    → Fail: [AUTO] dm_next_advancement −2
+
+9   "Cross a guard or gang. Roll END 8+ or Melee 8+. On fail: Injury Table
+    and gain Enemy."
+    [SKILL CHK] END or Melee vs 8
+    → Fail: [AUTO] Injury roll applied; Enemy added
+
+10  "Earn respect inside. Gain DM+2 to next Advancement."
+    [DM AUTO] dm_next_advancement +2
+
+11  "Study in prison library. Gain one of Admin, Medic, Advocate, Mechanic,
+    or Language."
+    [CHOICE] Skill picker
+
+12  "Organise something big. Automatically promoted, gain Ally among
+    prisoners."
+    [AUTO] auto-promotion; Ally [Fellow Prisoner] added
+
+================================================================================
+ROGUE
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Arrested and sent to prison. Benefit rolls forfeit."
+   [AUTO] Benefit rolls forfeited; career ends
+   [NOTE] Does NOT set forced_next_career_id = "prisoner" — that would
+          require a separate design decision; currently just ends career
+
+3  "Job goes spectacularly wrong. Gain Enemy, lose all Benefit rolls."
+   [AUTO] Enemy [Crime Job] added; benefit rolls forfeited
+
+4  "Betray or are betrayed by a partner in crime. Gain Enemy [Partner]."
+   [AUTO] Enemy added
+
+5  "Rival criminal organisation forces you to flee or go straight."
+   [TEXT ONLY] Narrative only — no additional mechanic beyond career ending
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Job goes wrong, pursued by law. Roll Stealth 8+ or Deception 8+.
+    On fail: Mishap (not ejected). Either way gain Enemy in law enforcement."
+    [SKILL CHK] Stealth or Deception vs 8
+    → Fail: mishap roll, not ejected
+    [AUTO] Enemy [Law Enforcement] added regardless
+
+4   "Befriend fence, crime boss, or fellow criminal. Gain a Contact or Ally
+    in the underworld."
+    [CHOICE] Contact / Ally button
+
+5   "Lucrative heist. Gain DM+2 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +2
+
+6   "Working the shadows. Gain one of Streetwise, Stealth, Deception,
+    or Persuade."
+    [CHOICE] Skill picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Delicate job for major syndicate. Roll Stealth 8+ or Deception 8+.
+    On success: Contact in syndicate and DM+2 to next Advancement.
+    On fail: Enemy and Mishap (not ejected)."
+    [SKILL CHK] Stealth or Deception vs 8
+    → Pass: [AUTO] Contact [Syndicate] added; dm_next_advancement +2
+    → Fail: [AUTO] Enemy added; mishap roll (not ejected)
+
+9   "Clash with law enforcement. Roll Streetwise 8+ or Gun Combat 8+.
+    On fail: Enemy in Agents AND Rival on streets."
+    [SKILL CHK] Streetwise or Gun Combat vs 8
+    → Fail: [AUTO] Enemy [Agents] added; Rival [Streets] added
+    → Pass: escape, nothing added
+
+10  "Earn reputation in underworld. Gain DM+2 to next Advancement."
+    [DM AUTO] dm_next_advancement +2
+
+11  "Acquire specialist knowledge. Gain one of Gun Combat, Stealth,
+    Electronics, or Melee, OR DM+4 to next Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied
+
+12  "Legendary caper. Automatically promoted AND DM+2 to one Benefit roll."
+    [AUTO] auto-promotion
+    [DM AUTO] dm_next_benefit +2
+
+================================================================================
+SCHOLAR
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Experiment goes wrong. Reduce one physical characteristic by 1, lose
+   Benefit rolls this term."
+   [CHOICE] Stat picker: STR / DEX / END (−1)
+   [AUTO] Benefit rolls forfeited
+
+3  "Research discredited. Lose 1 SOC, gain Rival [Academic/Research]."
+   [AUTO] SOC −1; Rival added
+
+4  "Patient/subject/colleague dies. Gain Enemy [Subject/Colleague Family]."
+   [AUTO] Enemy added
+
+5  "Funding pulled / department disbanded."
+   [TEXT ONLY] Narrative only — no additional mechanic beyond career ending
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Research expedition goes wrong. Roll Survival 8+ or Medic 8+; on
+    success gain that skill +1; on fail lose 1 END."
+    [SKILL CHK] Survival or Medic vs 8
+    → Pass: [AUTO] whichever skill was rolled +1
+    → Fail: [AUTO] END −1
+
+4   "Major interdisciplinary project. Gain one of Science, Engineer, Medic,
+    or Electronics."
+    [CHOICE] Skill picker
+
+5   "Paper/lecture well received. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Valuable Contact in academia, industry, or government."
+    [AUTO] Contact added
+
+7   Life Event.
+    [AUTO]
+
+8   "Specialised training or fellowship. Roll EDU 8+ to gain one Science
+    specialty level."
+    [SKILL CHK] EDU vs 8; on pass Science speciality picker
+
+9   "Rival researcher tries to scoop work. Roll INT 8+ to publish first.
+    On success: DM+2 to next Advancement. On fail: gain Rival."
+    [SKILL CHK] INT vs 8
+    → Pass: [DM AUTO] dm_next_advancement +2
+    → Fail: [AUTO] Rival added
+
+10  "Research attracts powerful patron. Gain Ally AND DM+2 to next
+    Advancement."
+    [AUTO] Ally added
+    [DM AUTO] dm_next_advancement +2
+
+11  "Invited to join major institution. Gain one of Admin, Advocate, or
+    Diplomat, OR DM+4 to next Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied
+
+12  "Imperial significance breakthrough. Automatically promoted AND DM+2 to
+    one Benefit roll."
+    [AUTO] auto-promotion
+    [DM AUTO] dm_next_benefit +2
+
+================================================================================
+SCOUT
+================================================================================
+
+MISHAPS
+-------
+1  "Severely injured."
+   [CHOICE] injury_severity_choice
+
+2  "Psychologically damaged. Reduce INT or SOC by 1."
+   [CHOICE] Stat picker: INT / SOC (−1)
+
+3  "Ship damaged, hitch-hike back to scout base. Gain 1D Contacts and
+   D3 Enemies."
+   [AUTO] Random number of Contacts (1D) added; random number of Enemies
+          (D3) added (described as generic scout contacts / hostile contacts)
+
+4  "Inadvertently cause conflict between Imperium and minor world/race.
+   Gain Rival [Minor World/Race] and Diplomat 1."
+   [AUTO] Rival added; Diplomat +1 granted
+
+5  "No idea what happened — found ship drifting on fringes."
+   [TEXT ONLY] Narrative only — no mechanic beyond career ending
+
+6  "Injured."
+   [AUTO] Injury roll applied
+
+EVENTS
+------
+2   Disaster — Mishap roll, NOT ejected.
+    [AUTO]
+
+3   "Ship ambushed. Choose: RUN (Roll Pilot 8+) or TREAT WITH THEM
+    (Roll Persuade 10+). On fail: ship destroyed, banned from re-enlisting
+    in Scouts. On success: gain Electronics (sensors) 1. Either way:
+    gain an Enemy."
+    [CHOICE] RUN / TREAT buttons
+    → Run:   [SKILL CHK] Pilot vs 8
+    → Treat: [SKILL CHK] Persuade vs 10
+    → Fail (either): [AUTO] Scout career banned (banned_career_ids);
+                     Enemy added
+    → Pass: [AUTO] Electronics (sensors) +1; Enemy added
+
+4   "Survey alien world. Gain one of Animals (riding/training), Survival,
+    Recon, or Science."
+    [CHOICE] Skill picker
+
+5   "Exemplary service. Gain DM+1 to one Benefit roll."
+    [DM AUTO] dm_next_benefit +1
+
+6   "Jumping world to world. Gain one of Astrogation, Electronics, Navigation,
+    Pilot (small craft), or Mechanic."
+    [CHOICE] Skill picker
+
+7   Life Event.
+    [AUTO]
+
+8   "Alien race intelligence. Roll Electronics 8+ or Deception 8+. On success:
+    Ally in Imperium and DM+2 to next Advancement. On fail: Mishap (not
+    ejected)."
+    [SKILL CHK] Electronics or Deception vs 8
+    → Pass: [AUTO] Ally [Imperium] added; dm_next_advancement +2
+    → Fail: mishap roll, not ejected
+
+9   "First on scene at disaster. Roll Medic 8+ or Engineer 8+. On success:
+    Contact and DM+2 to next Advancement. On fail: Enemy."
+    [SKILL CHK] Medic or Engineer vs 8
+    → Pass: [AUTO] Contact added; dm_next_advancement +2
+    → Fail: [AUTO] Enemy added
+
+10  "Fringe of Charted Space. Roll Survival 8+ or Pilot 8+. On success:
+    Contact in alien race and one level in any skill. On fail: Mishap (not
+    ejected)."
+    [SKILL CHK] Survival or Pilot vs 8
+    → Pass: [AUTO] Contact [Alien Race] added; [CHOICE] any skill picker
+    → Fail: mishap roll, not ejected
+
+11  "Courier for important Imperial message. Gain Diplomat +1 OR DM+4 to
+    next Advancement."
+    [TEXT ONLY] Dual option; neither auto-applied
+
+12  "Discover world/item/info of worth. Automatically promoted."
+    [AUTO] auto-promotion
+
+================================================================================
+SUMMARY: GAPS / TEXT-ONLY ENTRIES THAT NEED FUTURE MECHANICS
+================================================================================
+
+MISHAPS currently text-only (career ends, nothing else applied):
+  Entertainer  4  — "Blacklisted" (no stat/skill/associate mechanic)
+  Navy         4  — "Court-martialled" (no stat/skill/associate mechanic)
+  Rogue        5  — "Forced to flee or go straight" (no mechanic)
+  Scholar      5  — "Funding pulled" (no mechanic)
+  Scout        5  — "No idea what happened" (no mechanic)
+
+EVENTS where dual-option branches are text-only (player self-adjudicates):
+  Agent        11 — Investigate +1 vs DM+4 to Advancement
+  Army         11 — Skill vs DM+4 to Advancement
+  Citizen      10 — DM+2 Advancement vs DM+1 Benefit
+  Citizen      11 — Skill vs career transfer
+  Drifter      11 — Skill vs career transfer
+  Entertainer  11 — Skill vs DM+4 to Advancement
+  Marines      11 — Skill vs DM+4 to Advancement
+  Merchant     8  — Benefit DM+1 vs Advancement DM+2 (partial; ally auto-added)
+  Merchant     11 — Skill vs DM+4 to Advancement
+  Navy         11 — Skill-level-up vs DM+4 to Advancement
+  Noble        11 — Leadership vs DM+4 to Advancement (ally auto-added)
+  Prisoner     5  — DM+2 Benefit vs skill pick
+  Rogue        11 — Skill vs DM+4 to Advancement
+  Scholar      11 — Skill vs DM+4 to Advancement
+  Scout        11 — Diplomat vs DM+4 to Advancement
+
+================================================================================
+END OF REFERENCE
+================================================================================
