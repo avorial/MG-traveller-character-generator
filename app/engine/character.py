@@ -80,6 +80,7 @@ class Character(BaseModel):
     homeworld: str = ""
     homeworld_uwp: str = ""
     species_id: str = "imperial_human"
+    society_id: str = "third_imperium"
 
     # Core stats
     characteristics: Characteristics = Field(default_factory=Characteristics)

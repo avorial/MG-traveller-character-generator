@@ -10,6 +10,7 @@
 const SPECIES = JSON.parse(document.getElementById('bootstrap-species').textContent);
 const CAREERS = JSON.parse(document.getElementById('bootstrap-careers').textContent);
 const SKILLS_DATA = JSON.parse(document.getElementById('bootstrap-skills').textContent);
+const SOCIETIES = JSON.parse(document.getElementById('bootstrap-societies').textContent);
 
 // Flat list of all skills as "Skill" or "Skill (Speciality)" strings.
 const ALL_SKILLS = [
@@ -239,10 +240,15 @@ function rollReadoutHTML(r, opts = {}) {
 // ------------------------------------------------------------
 
 const NOBLE_TITLES = { 11: 'Knight', 12: 'Baron', 13: 'Marquis', 14: 'Count', 15: 'Duke' };
-const IMPERIAL_SPECIES = new Set(['imperial_human', 'imperial_aslan', 'imperial_vargr', 'human', 'solomani', 'vilani', 'mixed_human']);
+// Noble titles apply to Third Imperium citizens (check society_id first,
+// fall back to legacy species-id list for old saved characters).
+const IMPERIAL_SPECIES = new Set(['imperial_human', 'imperial_aslan', 'imperial_vargr',
+  'imperial_bwap', 'jonkeereen', 'luriani', 'human', 'solomani', 'vilani', 'mixed_human']);
 
 function nobleTitle(speciesId, soc) {
-  if (!IMPERIAL_SPECIES.has(speciesId)) return null;
+  const isImperial = (character.society_id === 'third_imperium' || !character.society_id)
+                  || IMPERIAL_SPECIES.has(speciesId);
+  if (!isImperial) return null;
   return NOBLE_TITLES[soc] || (soc > 15 ? 'Archduke' : null);
 }
 
@@ -487,6 +493,10 @@ function renderStage() {
       stage.innerHTML = renderCharacteristicsPhase();
       wireCharacteristicsPhase();
       break;
+    case 'society':
+      stage.innerHTML = renderSocietyPhase();
+      wireSocietyPhase();
+      break;
     case 'species':
       stage.innerHTML = renderSpeciesPhase();
       wireSpeciesPhase();
@@ -661,7 +671,7 @@ function renderCharacteristicsPhase() {
 
       <div class="phase-actions">
         <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : 'ROLL 2D × 6'}</button>
-        <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>ADVANCE TO SPECIES →</button>
+        <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
       </div>
     </div>
   `;
@@ -676,7 +686,7 @@ function wireCharacteristicsPhase() {
   });
   document.getElementById('btn-to-species').addEventListener('click', () => {
     uiState.swapPick = null;
-    character.phase = 'species';
+    character.phase = 'society';
     saveCharacter();
     renderAll();
   });
@@ -799,14 +809,85 @@ function wireCharacteristicsPhase() {
 }
 
 // ============================================================
-// PHASE 2: Species
+// PHASE 2a: Society of Origin
+// ============================================================
+
+function renderSocietyPhase() {
+  const selected = character.society_id || '';
+  const cards = SOCIETIES.map((soc, idx) => {
+    const num = String(idx + 1).padStart(2, '0');
+    const isSelected = selected === soc.id;
+    const speciesCount = soc.species_ids.length;
+    const speciesLabel = speciesCount === 1 ? '1 species' : `${speciesCount} species`;
+    return `
+      <button class="card ${isSelected ? 'selected' : ''}" data-society="${soc.id}">
+        <div class="card-title">${num}. ${soc.name}</div>
+        <div class="card-meta">${soc.subtitle} · ${speciesLabel}</div>
+        <div class="card-desc">${soc.description}</div>
+      </button>
+    `;
+  }).join('');
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 02 — SOCIETY OF ORIGIN</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Cultural Background</div>
+      <h2 class="phase-title">Where Were You Raised?</h2>
+      <p class="phase-subtitle">Your society of origin determines which species are available and shapes your cultural background. It does not restrict your career choices — Travellers move between polities.</p>
+
+      <div class="card-grid">${cards}</div>
+
+      <div class="phase-actions">
+        <button class="btn ghost" id="btn-back-society">← BACK</button>
+        <button class="btn primary" id="btn-confirm-society" ${selected ? '' : 'disabled'}>
+          SELECT SPECIES →
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function wireSocietyPhase() {
+  document.querySelectorAll('[data-society]').forEach(card => {
+    card.addEventListener('click', () => {
+      character.society_id = card.dataset.society;
+      uiState.selectedSpecies = null; // reset any prior species pick when society changes
+      saveCharacter();
+      renderStage();
+    });
+  });
+
+  document.getElementById('btn-back-society').addEventListener('click', () => {
+    character.phase = 'characteristics';
+    saveCharacter();
+    renderAll();
+  });
+
+  const confirmBtn = document.getElementById('btn-confirm-society');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => {
+      if (!character.society_id) return;
+      character.phase = 'species';
+      saveCharacter();
+      renderAll();
+    });
+  }
+}
+
+// ============================================================
+// PHASE 2b: Species
 // ============================================================
 
 function renderSpeciesPhase() {
   const selected = uiState.selectedSpecies || character.species_id;
   const speciesApplied = character.species_id && character.traits && character.traits.length >= 0 && character.phase !== 'species';
 
-  const cards = SPECIES.map(sp => {
+  // Filter species list by the selected society
+  const activeSociety = SOCIETIES.find(s => s.id === (character.society_id || 'third_imperium'));
+  const allowedIds = activeSociety ? new Set(activeSociety.species_ids) : null;
+  const filteredSpecies = allowedIds ? SPECIES.filter(sp => allowedIds.has(sp.id)) : SPECIES;
+
+  const cards = filteredSpecies.map(sp => {
     const modsText = Object.entries(sp.characteristic_modifiers)
       .filter(([, v]) => v !== 0)
       .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
@@ -834,7 +915,7 @@ function renderSpeciesPhase() {
   ` : (selectedSp ? '<p class="empty" style="margin-top:14px">No special traits. The baseline Traveller experience.</p>' : '');
 
   return `
-    <div class="panel-header"><span class="led"></span><span>PHASE 02 — SPECIES SELECTION</span></div>
+    <div class="panel-header"><span class="led"></span><span>PHASE 02b — SPECIES SELECTION</span></div>
     <div class="stage-content">
       <div class="phase-label">Genetic Profile</div>
       <h2 class="phase-title">Choose Your Species</h2>
@@ -842,16 +923,15 @@ function renderSpeciesPhase() {
 
       <div class="species-intro">
         <p>
-          Charted Space is crowded with sophonts. The Ancients scattered Earth humanity across the stars three hundred
-          millennia ago, and in the gaps between those seedings other species rose on their own — the Vargr uplifted
-          from Terran canines, the Aslan of Kusu, and countless others. This generator assumes your character grew up
-          as a citizen of the <strong>Third Imperium</strong>, so non-human options are the "Imperial-raised" variants:
-          they keep their physiology and instincts, but their culture is shaped by Imperial schools, Galanglic, and
-          Imperial law rather than the homeworlds of their kin.
+          ${activeSociety
+            ? `Showing species available to characters raised in the <strong>${activeSociety.name}</strong>.`
+            : 'Showing all available species.'
+          }
+          Species modifiers apply once, now, to the characteristics you just rolled.
         </p>
         <p class="species-intro-hint">
           <em>Pick whichever fits the character concept. The numbers balance out across a full career arc — flavor is
-          usually the deciding factor. Species modifiers apply once, now, to the characteristics you just rolled.</em>
+          usually the deciding factor.</em>
         </p>
       </div>
 
@@ -860,7 +940,7 @@ function renderSpeciesPhase() {
       ${traitsPanel}
 
       <div class="phase-actions">
-        <button class="btn ghost" id="btn-back-stats">← BACK</button>
+        <button class="btn ghost" id="btn-back-stats">← ORIGIN</button>
         <button class="btn primary" id="btn-apply-species" ${selected ? '' : 'disabled'}>
           APPLY ${selectedSp ? selectedSp.name.toUpperCase() : 'SPECIES'} →
         </button>
@@ -877,7 +957,7 @@ function wireSpeciesPhase() {
     });
   });
   document.getElementById('btn-back-stats').addEventListener('click', () => {
-    character.phase = 'characteristics';
+    character.phase = 'society';
     saveCharacter();
     renderAll();
   });

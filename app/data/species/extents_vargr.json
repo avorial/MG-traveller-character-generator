@@ -1,5 +1,31 @@
 {
-  "deprecated": true,
-  "replaced_by": "imperial_vargr",
-  "note": "The Extents-raised variant was dropped in favor of the Imperial-raised flavor — this generator assumes player characters grew up as Imperial citizens. This stub preserves old saves that still reference 'extents_vargr'."
+  "id": "extents_vargr",
+  "name": "Vargr (Extents Raised)",
+  "description": "Vargr uplifted from Terran canines by the Ancients over 300,000 years ago, the Extents Vargr are those who grew up outside the Third Imperium — in the roiling patchwork of pack-states, corsair fleets, and shifting alliances that makes up the Vargr Extents coreward of the Imperial border. Where Imperial Vargr have learned to channel pack instincts through Imperial institutions, Extents Vargr live them raw. Charisma is everything: a Vargr with sufficient personal magnetism can gather a crew or lead a fleet; lose that magnetism and your followers walk. States form and dissolve around strong leaders. Loyalty is genuine but conditional on continued respect. Extents Vargr are more comfortable with fluid authority, faster to challenge and faster to follow, and generally harder-edged than their Imperial cousins.",
+  "characteristic_modifiers": {
+    "STR": -1,
+    "DEX": 1,
+    "END": -1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 700,
+  "traits": [
+    {
+      "name": "Bite",
+      "description": "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (natural) skill and does 1D+1 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Vargr have better hearing and sense of smell than humans. All Vargr receive DM+1 to any Recon and Survival checks they have to make. However, their eyesight is worse in darkness and they suffer DM-1 to any skill check requiring sight in dark conditions."
+    },
+    {
+      "name": "Pack Charisma",
+      "description": "In the Extents, authority flows from personal magnetism, not rank insignia. A Vargr may attempt to assert leadership of any group of Vargr (or mixed group with Vargr members) with a Persuade check (Average 8+). On success, they are treated as the de facto leader for the scene, gaining DM+2 on all social checks with those followers. However, any significant public failure or embarrassment by the character immediately triggers a re-challenge — another Vargr in the group may attempt to displace them. DM+2 on Persuade checks when issuing direct challenges or responding to them."
+    }
+  ],
+  "aliases": [],
+  "source": "Traveller Core Rulebook; Aliens of Charted Space Vol. 1, Mongoose Publishing"
 }

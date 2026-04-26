@@ -1,0 +1,28 @@
+{
+  "id": "zhodani_human",
+  "name": "Zhodani Human",
+  "description": "The Zhodani are a human sub-species who diverged from baseline humanity millennia ago when they embraced psionics as the foundation of society. Unlike the Imperium, which suppresses and fears psionic ability, the Zhodani Consulate tests every citizen for psionic potential in childhood; those with ability are trained, honored, and elevated. The result is a stable, orderly society where privacy of thought is an accepted cost of social harmony — and where psionic Nobles (those who can read and nudge minds) form the ruling class. Zhodani tend to be calm, deliberate, and unsettling to non-Zhodani who know what their kind can do. They regard the Imperium's psi-phobia as barbaric, and the Imperium has never quite shaken the paranoia that a Zhodani in the room might be reading their thoughts.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 1,
+    "EDU": 0,
+    "SOC": 1
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 500,
+  "psionic_society": true,
+  "traits": [
+    {
+      "name": "Psionic Society",
+      "description": "All Zhodani citizens are tested for psionic potential in childhood. A Zhodani character who has not yet been tested may take the psionic potential test at any time during character creation (not just in the finalize phase), and gains DM+1 to that test reflecting their culturally conditioned comfort with psionics. If PSI is 8 or higher after testing, the character is considered a member of the Intendant or Noble caste and may add SOC+1 on top of the species modifier."
+    },
+    {
+      "name": "Consulate Education",
+      "description": "Zhodani schools produce well-rounded, disciplined citizens. DM+1 to any Admin or Science check benefiting from formal education and orderly thinking. Zhodani are trained to accept social hierarchy and the oversight of psionic Nobles — they may find the chaotic personal-liberty culture of the Imperium disorienting."
+    }
+  ],
+  "aliases": ["zhodani"],
+  "source": "Traveller Core Rulebook; Zhodani Consulate sourcebook, Mongoose Publishing"
+}

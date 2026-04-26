@@ -1,0 +1,27 @@
+{
+  "id": "frontier_human",
+  "name": "Frontier Human",
+  "description": "The edges of Charted Space — the Trojan Reach, Reft Sector, the Far Frontiers, and dozens of isolated pocket empires and independent worlds — produce a particular kind of person. Far from the trade routes, the megacorporate networks, and the reassuring weight of Imperial law, frontier-raised humans learn to rely on themselves, their crew, and their wits. They tend to be adaptable, practical, and skeptical of authority figures they can't personally assess. The term covers a range of specific backgrounds: former colonists from a failed settlement, spacers from an independent trader family, children of free traders operating in uncharted space, or citizens of one of dozens of small interstellar states that form and dissolve on the fringe. What they share is a background where resources were scarce, external help was not coming, and improvisation was the primary survival skill.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -1
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 810,
+  "traits": [
+    {
+      "name": "Frontier-Bred",
+      "description": "Raised in conditions where backup was not available, frontier humans develop extraordinary self-reliance. DM+1 to Survival checks and DM+1 to Engineer or Mechanic checks involving field repairs — improvising solutions with available materials rather than purpose-built equipment."
+    },
+    {
+      "name": "Independent Streak",
+      "description": "Frontier-raised characters are deeply skeptical of institutions and hierarchies they didn't choose. DM+1 to resist social coercion, formal intimidation, or legal pressure from authority figures. DM-1 on Admin checks that require working within formal bureaucratic structures — they find the red tape actively aggravating."
+    }
+  ],
+  "aliases": ["frontier", "border_human", "independent_human"],
+  "source": "Traveller — generic frontier human background"
+}

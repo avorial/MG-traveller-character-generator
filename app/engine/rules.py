@@ -105,6 +105,16 @@ def mustering_benefits() -> dict:
 
 
 @lru_cache(maxsize=1)
+def societies() -> dict:
+    return _load_file("tables/societies.json")
+
+
+def list_societies() -> list[dict]:
+    """Return the ordered list of societies for UI enumeration."""
+    return societies().get("societies", [])
+
+
+@lru_cache(maxsize=1)
 def education() -> dict:
     return _load_file("tables/education.json")
 
@@ -173,5 +183,5 @@ def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
     for fn in (species, careers, background_skills, life_events,
                injury_table, aging_table, mustering_benefits, education,
-               psionics):
+               psionics, societies):
         fn.cache_clear()

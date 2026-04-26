@@ -1,0 +1,60 @@
+{
+  "societies": [
+    {
+      "id": "third_imperium",
+      "name": "Third Imperium",
+      "subtitle": "The dominant human polity in Charted Space",
+      "description": "Eleven thousand worlds spanning dozens of sectors. Citizens of the Third Imperium grow up navigating Imperial law, bureaucracy, and a cosmopolitan culture shaped by centuries of trade. Characters from here have the widest range of species options — humans, Vargr, Aslan, and a dozen other sophonts all hold Imperial citizenship.",
+      "species_ids": ["imperial_human", "imperial_vargr", "imperial_aslan", "imperial_bwap", "jonkeereen", "luriani", "sydite", "akeed", "capry_female", "capry_big_male", "capry_small_male", "droashav", "faar"]
+    },
+    {
+      "id": "solomani_confederation",
+      "name": "Solomani Confederation",
+      "subtitle": "Children of Terra — humanity's original homeworld",
+      "description": "The Solomani Confederation claims dominion over the region of space closest to Earth, the original human homeworld. Solomani culture prizes human heritage, individual initiative, and a fierce pride in their claim to be the 'true' humans. Relations with the Third Imperium are often tense, sometimes outright hostile.",
+      "species_ids": ["solomani_human"]
+    },
+    {
+      "id": "aslan_hierate",
+      "name": "Aslan Hierate / Glorious Empire",
+      "subtitle": "Honor, clan, and the eternal drive for land",
+      "description": "The Aslan Hierate is one of the great powers of Charted Space — a confederation of powerful clans driven by an ancient code of honor, a biological imperative toward land ownership, and strict gender-defined social roles. The Glorious Empire is a separate but related Aslan state in the Trojan Reach.",
+      "species_ids": ["hierate_aslan"]
+    },
+    {
+      "id": "hiver_federation",
+      "name": "Hiver Federation",
+      "subtitle": "Masters of manipulation, architects of stability",
+      "description": "The Hivers are six-limbed starfish-shaped beings who never communicate directly — all Hiver interaction is through elaborate indirect manipulation. Their Federation is ancient, stable, and remarkably successful. A handful of humans live and work within Federation space; native Hiver player characters are not yet fully implemented.",
+      "species_ids": ["hiver_federation_human"]
+    },
+    {
+      "id": "zhodani_consulate",
+      "name": "Zhodani Consulate",
+      "subtitle": "A psionic meritocracy beyond the Spinward frontier",
+      "description": "The Zhodani are humans who embraced psionics thousands of years ago and built their entire society around it. Consulate citizens are routinely tested for psionic potential; those who possess it rise in status. The Consulate is orderly, egalitarian within its caste system, and regarded with deep suspicion by the Imperium.",
+      "species_ids": ["zhodani_human"]
+    },
+    {
+      "id": "two_thousand_worlds",
+      "name": "Two Thousand Worlds",
+      "subtitle": "The K'Kree herd-empire — and those who must live within it",
+      "description": "The Two Thousand Worlds is the vast interstellar empire of the K'Kree — six-limbed centauroid obligate herbivores who regard meat-eaters with deep revulsion. Humans who inhabit K'Kree space are rare, operate under strict dietary laws, and are considered of low status. Native K'Kree player characters are not yet fully implemented.",
+      "species_ids": ["two_thousand_worlds_human"]
+    },
+    {
+      "id": "vargr_extents",
+      "name": "Vargr Extents",
+      "subtitle": "A thousand shifting pack-states beyond the Imperial border",
+      "description": "The Vargr Extents are not a unified polity — they are a region of space coreward of the Imperium populated by thousands of small Vargr states, alliances, and raider bands, constantly shifting as charisma rises and falls. Vargr raised here are shaped by pack loyalty, personal magnetism, and a fluid concept of authority.",
+      "species_ids": ["extents_vargr"]
+    },
+    {
+      "id": "other",
+      "name": "Other / Far Domains",
+      "subtitle": "Sword Worlds, Trojan Reach, Reft, and beyond",
+      "description": "The frontiers of Charted Space are home to dozens of smaller human states, pocket empires, and isolated communities. The Sword Worlds are a confederation of worlds with a fierce Scandinavian-influenced culture. The Trojan Reach, Reft Sector, and other border regions produce hard, self-reliant people shaped by distance from any major power.",
+      "species_ids": ["sword_worlds_human", "frontier_human"]
+    }
+  ]
+}

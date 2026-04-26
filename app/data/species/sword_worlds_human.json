@@ -1,0 +1,27 @@
+{
+  "id": "sword_worlds_human",
+  "name": "Sword Worlder",
+  "description": "The Sword Worlds Confederation is a cluster of worlds in the Spinward Marches settled by humans of Scandinavian cultural descent during the Long Night. Their culture glorifies personal courage, martial prowess, and a fierce independence from Imperial authority — whom they regard as occupiers of worlds rightfully theirs. Sword Worlders take names from Norse mythology, maintain a warrior tradition even in peacetime, and have a complicated relationship with the Imperium that oscillates between grudging trade and outright hostility. They are known as blunt-spoken, stubborn, and difficult to intimidate. Their technology is generally somewhat behind the Imperial core, but what they build is solid and made to last. Sword Worlders in Imperial space often face assumptions of piracy or disloyalty; many lean into the reputation.",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": 0,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -1
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 800,
+  "traits": [
+    {
+      "name": "Warrior Culture",
+      "description": "Sword Worlders grow up in a society that valorises combat readiness. They begin play with Melee (any) or Gun Combat (any) at level 0 as an additional background skill, regardless of their EDU DM. DM+1 to all Morale-equivalent checks and checks to resist fear or intimidation."
+    },
+    {
+      "name": "Imperial Wariness",
+      "description": "Sword Worlders have an instinctive distrust of Imperial authority. DM+1 to notice when an Imperial official, agent, or noble is trying to deceive or manipulate them. DM-1 to social checks with Imperial citizens who know the character's origin and hold strong Imperial loyalties."
+    }
+  ],
+  "aliases": ["sword_worlder"],
+  "source": "Traveller Spinward Marches; Mongoose Publishing"
+}

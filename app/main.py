@@ -202,6 +202,7 @@ async def index(request: Request):
         {"species_list": rules.list_species(),
          "careers_list": rules.list_careers(),
          "skills_data": rules.skills(),
+         "societies_list": rules.list_societies(),
          "app_version": APP_VERSION},
     )
 

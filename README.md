@@ -32,7 +32,8 @@ uvicorn app.main:app --reload
 ### Full lifepath phases
 
 1. **Characteristics** — Roll 2D×6 for all six stats, with optional stat swaps.
-2. **Species** — Pick a species; modifiers and traits are applied automatically. Noble titles are granted to high-SOC Imperial-raised characters.
+2. **Society of Origin** — Choose the polity where your character was raised (Third Imperium, Solomani Confederation, Aslan Hierate, Hiver Federation, Zhodani Consulate, Two Thousand Worlds, Vargr Extents, or Other/Frontier). This filters the species picker to only show species relevant to that society.
+3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles are granted to high-SOC Third Imperium characters.
 3. **Background skills** — Skill picks gated by EDU DM.
 4. **Pre-career education** — Optional phase before the career loop (see below).
 5. **Career loop** — Qualify → assignment → basic training → skill training → survival → event → mishap (if failed survival) → advancement → end term (aging at term 4+). Repeats for as many careers and terms as the player chooses.

@@ -1,0 +1,27 @@
+{
+  "id": "two_thousand_worlds_human",
+  "name": "Human (Two Thousand Worlds)",
+  "description": "Humans who live within the Two Thousand Worlds — the vast K'Kree herd-empire — occupy an extremely precarious position. The K'Kree are six-limbed obligate herbivores who regard meat-eaters as an affront to existence; humans who wish to remain in K'Kree space must submit to strict dietary laws, live in designated zones, and demonstrate constant deference to their K'Kree overlords. Failure to comply is not tolerated. The handful of humans who successfully navigate this existence tend to be exceptional survivors: extremely careful, culturally flexible, and very good at reading the desires of their hosts before those desires become demands. They are usually traders, diplomats, or specialists whom the K'Kree find genuinely useful — uselessness is not a comfortable position to occupy. Note: Native K'Kree player characters are not yet implemented.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -1
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 600,
+  "traits": [
+    {
+      "name": "Survival Instinct",
+      "description": "Living as a second-class resident in a society that finds your species philosophically objectionable hones one's instincts considerably. DM+1 to all Survival checks and DM+1 to Recon checks in social situations — detecting hostility, reading a room, noticing when a situation is about to turn dangerous."
+    },
+    {
+      "name": "Herbivore Protocol",
+      "description": "This human is conditioned to a strict herbivore diet and is culturally fluent in K'Kree etiquette. They gain DM+2 on Diplomat checks when dealing with K'Kree, provided they maintain appropriate dietary compliance. Consuming meat in front of K'Kree (or being discovered to have done so) is a social catastrophe with consequences at the Referee's discretion."
+    }
+  ],
+  "aliases": ["k_kree_human", "two_thousand_worlds_human"],
+  "source": "Traveller Core Rulebook; K'Kree sourcebook, Mongoose Publishing"
+}

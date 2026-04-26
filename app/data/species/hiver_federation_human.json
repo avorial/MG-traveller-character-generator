@@ -1,0 +1,27 @@
+{
+  "id": "hiver_federation_human",
+  "name": "Human (Hiver Federation)",
+  "description": "Humans who live and work within the Hiver Federation are a rare and unusual breed. The Hivers — six-limbed starfish-like beings of extraordinary intelligence — never communicate directly; all Hiver social interaction is through elaborate indirect manipulation. Humans in the Federation tend to absorb this cultural approach, becoming skilled at reading subtext, working through intermediaries, and constructing situations where others reach the 'correct' conclusion without being told. They are well-educated, politically astute, and deeply uncomfortable with bluntness. The Federation is ancient and stable; humans who grow up here emerge with a respect for long-term thinking and an instinct for social engineering that can be disquieting to outsiders. Note: Native Hiver player characters are not yet implemented — the physiology and social mechanics are too distinctive for the current framework.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 1,
+    "EDU": 1,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 400,
+  "traits": [
+    {
+      "name": "Indirect Approach",
+      "description": "Years of cultural immersion in Hiver society have trained this human to work through suggestion, implication, and constructed situations rather than direct confrontation. DM+2 on Deception and Persuade checks that involve indirect manipulation — setting up a situation, planting an idea, or guiding someone to a conclusion they believe they reached themselves. DM-1 on checks that require direct, blunt assertion of authority or will."
+    },
+    {
+      "name": "Federation Education",
+      "description": "The Hiver Federation values learning above almost all else. DM+1 to any Science or Investigate check benefiting from broad academic training. The character is also proficient with Hiver-manufactured technology, which tends to be subtle, highly miniaturized, and non-obvious in its operation."
+    }
+  ],
+  "aliases": ["hiver_human"],
+  "source": "Traveller Core Rulebook; Hiver Federation sourcebook, Mongoose Publishing"
+}

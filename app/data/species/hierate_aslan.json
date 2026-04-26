@@ -1,5 +1,35 @@
 {
-  "deprecated": true,
-  "replaced_by": "imperial_aslan",
-  "note": "The Hierate-raised variant was dropped in favor of the Imperial-raised flavor — this generator assumes player characters grew up as Imperial citizens. This stub preserves old saves that still reference 'hierate_aslan'."
+  "id": "hierate_aslan",
+  "name": "Aslan (Hierate / Glorious Empire)",
+  "description": "The Aslan are a proud, honour-driven species who evolved from carnivore ancestors on the world of Kusyu. Aslan society is organized around clans, bound by a strict code of honour (the ihatei tradition), and driven by a biological imperative toward land ownership — the fundamental marker of Aslan status. Gender defines role as thoroughly as rank: males fight, negotiate, and hold territory; females manage finances, technology, and day-to-day clan operations. Aslan raised within the Hierate or the Glorious Empire are steeped in these traditions. The concept of face (the public display of honour) is paramount — an Aslan who is shamed must restore honour or die trying. The Glorious Empire is a separate, more aggressive Aslan state in the Trojan Reach with a reputation for expansion by force. Hierate-raised Aslan are physically identical to their Imperial cousins but their cultural drives are far stronger and their obligations to clan are non-negotiable.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "sort_order": 300,
+  "traits": [
+    {
+      "name": "Dewclaw",
+      "description": "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (natural) skill and does 1D+2 damage."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+    },
+    {
+      "name": "Honour Bound",
+      "description": "Aslan raised in the Hierate operate under a strict code of honour. They cannot back down from a direct challenge without suffering a loss of face (SOC−1 for the remainder of the encounter). Conversely, a Hierate Aslan who demonstrates superior honour or personal courage gains DM+2 on all social checks with other Aslan (Hierate or Imperial) for the remainder of that session. A deal struck with a Hierate Aslan on a matter of honour is absolute — they will not break it regardless of consequences."
+    },
+    {
+      "name": "Land Sense",
+      "description": "The Aslan drive to acquire and hold territory is biological, not merely cultural. An Aslan who owns property (a starship of their own, a land deed, a base of operations) gains DM+1 on all Morale-equivalent checks and checks to resist fear or intimidation while on their own ground. Landless Aslan are subtly restless and may develop the ihatei drive — the compulsion to seek new territory by striking out alone."
+    }
+  ],
+  "aliases": [],
+  "source": "Traveller Core Rulebook; Aliens of Charted Space Vol. 1, Mongoose Publishing"
 }
