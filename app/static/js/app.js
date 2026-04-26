@@ -1270,15 +1270,14 @@ function renderPreCareerPhase() {
   if (stage === 'enrolled') {
     const track = status.track;
     const service = status.service;
-    const trackName = track === 'university'
-      ? 'University'
-      : (PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy');
+    const trackName = trackDisplayName(track, service, status);
+    const gradHint = trackGradHint(track);
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
         <div class="phase-label">Enrolled · ${trackName}</div>
         <h2 class="phase-title">Time to Graduate</h2>
-        <p class="phase-subtitle">Roll for graduation — hit the honours target for even more.</p>
+        <p class="phase-subtitle">${gradHint}</p>
         <div class="phase-actions">
           <button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>
         </div>
@@ -1308,13 +1307,47 @@ function renderPreCareerPhase() {
     `;
   }
 
-  // Default: pick a track (University / Academy / Skip)
+  // Merchant Academy: curriculum selection
+  if (stage === 'choosing_curriculum' && status.track === 'merchant_academy') {
+    const curricula = [
+      { id: 'business', name: 'Business', desc: 'Commerce, brokerage, and trade. Enroll in the Broker skill table. Enter Merchant or Citizen at officer rank.' },
+      { id: 'shipboard', name: 'Shipboard', desc: 'Freight hauling and ship operations. Enroll in the Merchant Marine skill table. Enter Merchant at officer rank.' },
+    ];
+    const cards = curricula.map(c => `
+      <button class="card" data-pc-curriculum="${c.id}">
+        <div class="card-title">${c.name}</div>
+        <div class="card-desc">${c.desc}</div>
+      </button>
+    `).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Merchant Academy · Pick a Curriculum</div>
+        <h2 class="phase-title">Which Programme?</h2>
+        <p class="phase-body">INT 9+ to qualify (DM+1 if SOC 8+). 4 years. Graduate for +1 EDU and permanent advancement bonus in Merchant or Citizen.</p>
+        <div class="card-grid">${cards}</div>
+        <div class="phase-actions">
+          <button class="btn" id="btn-pc-back-to-choose">← BACK</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Default: pick a track
+  const hwUwp = character.homeworld_uwp || '';
+  const hwTL = hwUwp.includes('-') ? parseInt(hwUwp.split('-').pop(), 16) : 99;
+  const hwSize = hwUwp.length >= 2 ? parseInt(hwUwp[1], 16) : -1;
+  const soc = character.characteristics?.SOC ?? 0;
+  const canColonial = hwTL <= 8;
+  const canSpacer = hwSize === 0;
+  const canHardKnocks = soc <= 6;
+
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
     <div class="stage-content">
       <div class="phase-label">Optional · Age ${character.age}</div>
       <h2 class="phase-title">Education Before Service?</h2>
-      <p class="phase-subtitle">Before picking a career, you can spend a few years at University or a Military Academy. Or skip and go straight to the job.</p>
+      <p class="phase-subtitle">Before picking a career, you can spend a few years in education. Or skip and go straight to the job.</p>
 
       <div class="card-grid">
         <button class="card" id="btn-pc-university">
@@ -1325,6 +1358,29 @@ function renderPreCareerPhase() {
           <div class="card-title">Military Academy</div>
           <div class="card-desc">3 years. Qualification varies by service. Pass graduation to roll Commission 8+ with DM+2 — success starts you at officer rank. Graduated with Honours means automatic Rank 1 commission.</div>
         </button>
+        <button class="card" id="btn-pc-merchant-academy">
+          <div class="card-title">Merchant Academy</div>
+          <div class="card-desc">INT 9+ to qualify, 4 years. Choose Business or Shipboard curriculum. Graduate for +1 EDU and start Merchant/Citizen at officer rank with a permanent advancement bonus.</div>
+        </button>
+        ${canColonial ? `
+        <button class="card" id="btn-pc-colonial">
+          <div class="card-title">Colonial Upbringing</div>
+          <div class="card-desc">Homeworld TL ${hwTL} ≤ 8 — automatic. Broad survival skills (Survival 1 + 10 skills at 0). Graduate for END+1, JoaT 1, but EDU−D3 and permanent qualification penalties.</div>
+        </button>` : ''}
+        ${canHardKnocks ? `
+        <button class="card" id="btn-pc-hard-knocks">
+          <div class="card-title">School of Hard Knocks</div>
+          <div class="card-desc">SOC ${soc} ≤ 6 — automatic. Street smarts: Streetwise 1 + 2 skill picks. Graduate for Gun Combat 0 and 3 more skills, but DM−2 commission in first career.</div>
+        </button>` : ''}
+        ${canSpacer ? `
+        <button class="card" id="btn-pc-spacer">
+          <div class="card-title">Spacer Community</div>
+          <div class="card-desc">Homeworld size 0 (${hwSize === 0 ? 'yours qualifies' : 'does not qualify'}), INT 4+. 3 years. Vacc Suit 1 + 2 picks. Graduate for DEX+1, Pilot 0, and DM+1 to Merchant (Free Trader) advancement.</div>
+        </button>` : ''}
+        <button class="card" id="btn-pc-psionic">
+          <div class="card-title">Psionic Community</div>
+          <div class="card-desc">Tests PSI (if untested). Requires PSI 8+. 3 years. Psionic talent training during enrollment. Graduate for PSI+1 and permanent Psion career auto-entry.</div>
+        </button>
         <button class="card" id="btn-pc-skip">
           <div class="card-title">Skip</div>
           <div class="card-desc">Age ${character.age} and hungry for a paycheck. Go straight to the career phase.</div>
@@ -1334,27 +1390,72 @@ function renderPreCareerPhase() {
   `;
 }
 
+// Helper: human-readable track name from status
+function trackDisplayName(track, service, status) {
+  if (track === 'university') return 'University';
+  if (track === 'military_academy') {
+    return PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy';
+  }
+  if (track === 'merchant_academy') {
+    const curr = status?.curriculum_name || status?.curriculum || '';
+    return curr ? `Merchant Academy (${curr})` : 'Merchant Academy';
+  }
+  const TRACK_NAMES = {
+    colonial_upbringing: 'Colonial Upbringing',
+    psionic_community: 'Psionic Community',
+    school_of_hard_knocks: 'School of Hard Knocks',
+    spacer_community: 'Spacer Community',
+  };
+  return TRACK_NAMES[track] || track;
+}
+
+// Helper: graduation hint text for enrolled view
+function trackGradHint(track) {
+  const HINTS = {
+    university: 'Roll EDU 7+ to graduate (10+ for Honours). Then one education event.',
+    military_academy: 'Roll INT 8+ to graduate (11+ for Honours). Then one education event.',
+    merchant_academy: 'Roll INT 7+ to graduate (11+ for Honours). Then one education event.',
+    colonial_upbringing: 'Roll INT 8+ to graduate (12+ for Honours, END 8+ gives DM+1). No age cost.',
+    psionic_community: 'Roll PSI 6+ to graduate (12+ for Honours, INT 8+ gives DM+1). Then one education event.',
+    school_of_hard_knocks: 'Roll INT 7+ to graduate (11+ for Honours, END 9+ gives DM+1). Then one education event.',
+    spacer_community: 'Roll INT 8+ to graduate (12+ for Honours, DEX 6+ gives DM+1). Then one education event.',
+  };
+  return HINTS[track] || 'Roll for graduation — hit the honours target for even more.';
+}
+
 function wirePreCareerPhase() {
-  // Main choice
-  const uni = document.getElementById('btn-pc-university');
-  if (uni) uni.addEventListener('click', async () => {
+  // Helper: fire a simple pre-career qualify call and set lastRoll
+  async function fireQualify(track, extraParams, trackName, charLabel, target, ageCost) {
     try {
       const response = await apiCall('/api/character/pre-career/qualify',
-        { track: 'university' });
+        { track, ...extraParams });
       await applyResponse(response);
+      if (response.choosing_curriculum) { renderStage(); return; }
+      // Automatic tracks (colonial, hard knocks) may not have a roll
+      const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
       uiState.lastRoll = {
-        type: 'precareer_qualify',
-        data: response.roll,
-        passed: response.passed,
-        trackName: 'University',
-        charLabel: 'INT',
-        target: 6,
-        ageCost: 4,
+        type: hasPicks ? 'precareer_skill_pick' : 'precareer_qualify',
+        data: response.roll || null,
+        passed: response.passed ?? true,
+        trackName,
+        charLabel,
+        target,
+        ageCost: ageCost || 0,
         enrollmentApplied: response.enrollment_applied || [],
+        // for automatic tracks that jump straight to skill picker
+        psi: response.psi,
+        psi_roll: response.psi_roll,
       };
+      if (hasPicks) uiState.selectedPreCareerSkills = new Set();
       renderAll();
     } catch (e) { alert(e.message); }
-  });
+  }
+
+  // Main choice
+  const uni = document.getElementById('btn-pc-university');
+  if (uni) uni.addEventListener('click', () =>
+    fireQualify('university', {}, 'University', 'INT', 6, 4)
+  );
 
   const academy = document.getElementById('btn-pc-academy');
   if (academy) academy.addEventListener('click', () => {
@@ -1367,6 +1468,37 @@ function wirePreCareerPhase() {
     renderStage();
   });
 
+  const merchantAcademy = document.getElementById('btn-pc-merchant-academy');
+  if (merchantAcademy) merchantAcademy.addEventListener('click', () => {
+    character.pre_career_status = {
+      ...(character.pre_career_status || {}),
+      track: 'merchant_academy',
+      stage: 'choosing_curriculum',
+    };
+    saveCharacter();
+    renderStage();
+  });
+
+  const colonial = document.getElementById('btn-pc-colonial');
+  if (colonial) colonial.addEventListener('click', () =>
+    fireQualify('colonial_upbringing', {}, 'Colonial Upbringing', 'Auto', null, 0)
+  );
+
+  const hardKnocks = document.getElementById('btn-pc-hard-knocks');
+  if (hardKnocks) hardKnocks.addEventListener('click', () =>
+    fireQualify('school_of_hard_knocks', {}, 'School of Hard Knocks', 'Auto', null, 2)
+  );
+
+  const spacer = document.getElementById('btn-pc-spacer');
+  if (spacer) spacer.addEventListener('click', () =>
+    fireQualify('spacer_community', {}, 'Spacer Community', 'INT', 4, 3)
+  );
+
+  const psionic = document.getElementById('btn-pc-psionic');
+  if (psionic) psionic.addEventListener('click', () =>
+    fireQualify('psionic_community', {}, 'Psionic Community', 'PSI', 8, 3)
+  );
+
   const skip = document.getElementById('btn-pc-skip');
   if (skip) skip.addEventListener('click', async () => {
     try {
@@ -1376,19 +1508,17 @@ function wirePreCareerPhase() {
     } catch (e) { alert(e.message); }
   });
 
-  // Academy service picker
+  // Military Academy service picker
   document.querySelectorAll('[data-pc-service]').forEach(card => {
     card.addEventListener('click', async () => {
       const service = card.dataset.pcService;
       const svc = PRE_CAREER_SERVICES.find(s => s.id === service);
+      const charLabel = service === 'navy' ? 'INT' : 'END';
+      const target = service === 'army' ? 8 : 9;
       try {
         const response = await apiCall('/api/character/pre-career/qualify',
           { track: 'military_academy', service });
         await applyResponse(response);
-        // Target + char key come from the engine response implicitly,
-        // but for display we use the service's known values.
-        const charLabel = service === 'navy' ? 'INT' : 'END';
-        const target = service === 'army' ? 8 : 9;
         uiState.lastRoll = {
           type: 'precareer_qualify',
           data: response.roll,
@@ -1397,6 +1527,29 @@ function wirePreCareerPhase() {
           charLabel,
           target,
           ageCost: 3,
+          enrollmentApplied: response.enrollment_applied || [],
+        };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
+  // Merchant Academy curriculum picker
+  document.querySelectorAll('[data-pc-curriculum]').forEach(card => {
+    card.addEventListener('click', async () => {
+      const curriculum = card.dataset.pcCurriculum;
+      try {
+        const response = await apiCall('/api/character/pre-career/qualify',
+          { track: 'merchant_academy', curriculum });
+        await applyResponse(response);
+        uiState.lastRoll = {
+          type: 'precareer_qualify',
+          data: response.roll,
+          passed: response.passed,
+          trackName: `Merchant Academy (${curriculum})`,
+          charLabel: 'INT',
+          target: 9,
+          ageCost: 4,
           enrollmentApplied: response.enrollment_applied || [],
         };
         renderAll();
@@ -1444,13 +1597,13 @@ function wirePreCareerPhase() {
     try {
       const response = await apiCall('/api/character/pre-career/graduate', { chosen_skills: [] });
       await applyResponse(response);
-      const track = character.pre_career_status?.track;
-      const service = character.pre_career_status?.service;
-      const trackName = track === 'university'
-        ? 'University'
-        : (PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy');
-      const charLabel = track === 'university' ? 'EDU' : 'INT';
-      const target = track === 'university' ? 7 : 8;
+      const st = character.pre_career_status || {};
+      const track = st.track;
+      const service = st.service;
+      const trackName = trackDisplayName(track, service, st);
+      // Prefer server-supplied char_key/target (works for all tracks including PSI)
+      const charLabel = response.char_key || (track === 'university' ? 'EDU' : 'INT');
+      const target = response.target || (track === 'university' ? 7 : 8);
       uiState.selectedPreCareerSkills = new Set();
       uiState.lastRoll = {
         type: 'precareer_graduate',
@@ -1678,12 +1831,16 @@ function wirePreCareerPhase() {
         { chosen_skills: chosen });
       await applyResponse(response);
       uiState.selectedPreCareerSkills = new Set();
-      // If enrollment picks done: stay in pre_career for events/graduation
-      // If graduation picks done: character.phase is already 'career'
       if (response.skill_pick_stage === 'enrollment' && response.skill_picks_remaining === 0) {
+        // Enrollment picks done: stay in pre_career for events/graduation
         uiState.lastRoll = null;
-        renderStage(); // show the enrolled view (events/graduation buttons)
+        renderStage();
+      } else if (response.has_more_rounds || response.new_picks_remaining > 0) {
+        // Next round queued — stay in skill pick screen with updated pool/level
+        uiState.lastRoll = { ...(uiState.lastRoll || {}), type: 'precareer_skill_pick' };
+        renderStage();
       } else {
+        // All done — phase is 'career'
         uiState.lastRoll = null;
         renderAll();
       }

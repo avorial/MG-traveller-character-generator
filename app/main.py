@@ -144,8 +144,9 @@ class MusterOutAction(CharacterAction):
 
 
 class PreCareerQualifyAction(CharacterAction):
-    track: str  # "university" | "military_academy"
-    service: str | None = None  # "army" | "marine" | "navy" (academy only)
+    track: str  # "university" | "military_academy" | "merchant_academy" | etc.
+    service: str | None = None    # "army" | "marine" | "navy" (military_academy only)
+    curriculum: str | None = None  # "business" | "shipboard" (merchant_academy only)
 
 
 class PreCareerGraduateAction(CharacterAction):
@@ -326,7 +327,9 @@ async def api_pre_career_skip(action: CharacterAction):
 async def api_pre_career_qualify(action: PreCareerQualifyAction):
     character = action.character.model_copy(deep=True)
     try:
-        return lifepath.pre_career_qualify(character, action.track, action.service)
+        return lifepath.pre_career_qualify(
+            character, action.track, action.service, action.curriculum
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 

@@ -145,6 +145,13 @@ class Character(BaseModel):
 
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
+    # Permanent career modifiers granted by pre-career education (e.g. colonial
+    # upbringing −2 qualification DM, merchant academy +1 advancement DM).
+    # Keys: qualification_dm, commission_dm, first_career_commission_dm,
+    #       advancement_dm, advancement_dm_careers, auto_rank, auto_rank_careers,
+    #       bonus_qualify_careers, bonus_qualify_dm, psion_career_auto_entry,
+    #       spacer_career_dm, spacer_career_id, spacer_assignment_id.
+    pre_career_permanent_dms: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None
     # Normal Military Academy grad: roll Commission 8+ with this DM before first term.
     academy_commission_career_id: Optional[str] = None

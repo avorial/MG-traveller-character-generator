@@ -644,6 +644,71 @@ def _academy_service(service: str) -> dict:
     return svc
 
 
+def _split_skill_speciality(s: str) -> tuple[str, Optional[str]]:
+    """Split 'Gun Combat (slug)' → ('Gun Combat', 'slug'). Plain name → (name, None)."""
+    s = s.strip()
+    if "(" in s and s.endswith(")"):
+        name = s[: s.index("(")].strip()
+        spec = s[s.index("(") + 1 : -1].strip()
+        return name, spec
+    return s, None
+
+
+def _apply_enrollment_auto_skills(character: Character, skill_list: list[str]) -> list[str]:
+    """Apply a list of 'Skill N' or 'Skill (spec) N' enrollment strings and return log messages."""
+    applied: list[str] = []
+    for skill_str in skill_list:
+        parts = skill_str.rsplit(" ", 1)
+        skill_part = parts[0].strip()
+        level = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+        sn, spec = _split_skill_speciality(skill_part)
+        msg = character.add_skill(sn, level=level, speciality=spec)
+        applied.append(msg)
+    return applied
+
+
+def _homeworld_tl(uwp: str) -> int:
+    """Parse TL from a UWP string (e.g. 'B86899D-A' → 10). Returns 99 if unparseable."""
+    if not uwp:
+        return 99
+    parts = uwp.strip().split("-")
+    if len(parts) < 2:
+        return 99
+    tl_char = parts[-1].strip()
+    if not tl_char:
+        return 99
+    try:
+        return int(tl_char, 16)
+    except ValueError:
+        return 99
+
+
+def _homeworld_size(uwp: str) -> int:
+    """Parse Size from a UWP string (e.g. 'B86899D-A' → 8, '000000 0-0' → 0). Returns -1 if unparseable."""
+    uwp = uwp.strip()
+    if len(uwp) < 2:
+        return -1
+    size_char = uwp[1]
+    try:
+        return int(size_char, 16)
+    except ValueError:
+        return -1
+
+
+def _apply_graduation_permanent(character: Character, perm_block: dict, status: dict) -> list[str]:
+    """Merge a graduation 'permanent' dict into character.pre_career_permanent_dms. Returns log notes."""
+    notes: list[str] = []
+    pdms = character.pre_career_permanent_dms or {}
+    for k, v in perm_block.items():
+        pdms[k] = v
+        notes.append(f"Permanent {k}: {v}")
+    # auto_rank_careers comes from enrollment status, not from the graduation block
+    if "auto_rank" in perm_block and "auto_rank_careers" not in pdms:
+        pdms["auto_rank_careers"] = status.get("auto_rank_careers", [])
+    character.pre_career_permanent_dms = pdms
+    return notes
+
+
 def skip_pre_career(character: Character) -> dict:
     """Player chooses to skip pre-career education and go straight to careers."""
     if character.phase != "pre_career":
@@ -661,26 +726,359 @@ def skip_pre_career(character: Character) -> dict:
 
 
 def pre_career_qualify(
-    character: Character, track: str, service: Optional[str] = None
+    character: Character,
+    track: str,
+    service: Optional[str] = None,
+    curriculum: Optional[str] = None,
 ) -> dict:
-    """Roll qualification for University or a Military Academy service.
+    """Roll qualification for any pre-career education track.
 
-    On success: applies enrollment bonus (e.g. +1 EDU for University,
-    or enrollment skills for an Academy) and advances to the 'enrolled'
-    stage. On failure: no bonus, falls through to career phase.
+    Handles: university, military_academy, merchant_academy, colonial_upbringing,
+    psionic_community, school_of_hard_knocks, spacer_community.
+
+    On success: applies enrollment bonuses and advances to 'enrolled'.
+    On failure: no bonus, falls through to career phase.
     """
     if character.phase != "pre_career":
         raise ValueError(f"Not in pre-career phase (currently: {character.phase})")
 
     track_data = _edu_track(track)
 
+    # ─── Merchant Academy ────────────────────────────────────────────────────────
+    if track == "merchant_academy":
+        if not curriculum:
+            # No curriculum chosen yet — return a "choosing_curriculum" state.
+            character.pre_career_status = {
+                **(character.pre_career_status or {}),
+                "track": "merchant_academy",
+                "stage": "choosing_curriculum",
+                "outcome": None,
+            }
+            return {"choosing_curriculum": True, "character": character.model_dump()}
+
+        if character.age > track_data["max_age"]:
+            raise ValueError(
+                f"Too old for Merchant Academy (age {character.age} > "
+                f"max {track_data['max_age']})"
+            )
+        curricula = track_data.get("curricula", {})
+        curr_data = curricula.get(curriculum)
+        if curr_data is None:
+            raise ValueError(f"Unknown Merchant Academy curriculum: {curriculum!r}")
+
+        qual = track_data["qualification"]
+        char_key = qual["characteristic"]
+        target = qual["target"]
+        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        for mod in qual.get("modifiers", []):
+            if mod.get("type") == "characteristic_threshold":
+                if character.characteristics.get(mod["characteristic"]) >= int(mod["threshold"]):
+                    dm += int(mod["dm"])
+
+        r = dice.roll("2D", modifier=dm, target=target)
+        passed = bool(r.succeeded)
+        enrollment_applied: list[str] = []
+        enrolled_skills: list[str] = []
+
+        if passed:
+            character.age += track_data["age_cost"]
+            # Apply curriculum skill table at level 0
+            skill_ref = curr_data["enrollment_skill_table"]
+            career_data = rules.careers().get(skill_ref["career"], {})
+            skill_table = career_data.get("skill_tables", {}).get(skill_ref["table"], {})
+            _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
+            for k, v in skill_table.items():
+                if k in _skip:
+                    continue
+                entry = v.split(" or ")[0].strip()
+                entry = re.sub(r"\s*\(any\)", "", entry, flags=re.I).strip()
+                if not entry:
+                    continue
+                sn, spec = _split_skill_speciality(entry)
+                msg = character.add_skill(sn, level=0, speciality=spec)
+                enrollment_applied.append(msg)
+                enrolled_skills.append(entry)
+
+            character.pre_career_status = {
+                "track": "merchant_academy",
+                "curriculum": curriculum,
+                "curriculum_name": curr_data.get("name", curriculum),
+                "auto_rank_careers": curr_data.get("auto_rank_careers", []),
+                "enrolled_skills": enrolled_skills,
+                "service": None,
+                "stage": "enrolled",
+                "outcome": None,
+                "skill_picks_remaining": 0,
+                "skill_pick_level": 1,
+                "skill_pick_stage": "graduation",
+                "skill_pool": [],
+                "enrollment_skill_pool": enrolled_skills,
+            }
+            character.log(
+                f"Merchant Academy ({curr_data.get('name', curriculum)}) enrolled "
+                f"({char_key} {target}+): 2D{dm:+d} = {r.total} [PASS]. "
+                f"Curriculum skills: {', '.join(enrollment_applied)}"
+            )
+        else:
+            character.pre_career_status = {
+                "track": "merchant_academy",
+                "curriculum": curriculum,
+                "stage": "not_qualified",
+                "outcome": "not_qualified",
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+            }
+            character.phase = "career"
+            character.log(
+                f"Merchant Academy failed ({char_key} {target}+): "
+                f"2D{dm:+d} = {r.total} [FAIL]."
+            )
+        return {
+            "roll": r.to_dict(),
+            "passed": passed,
+            "track": track,
+            "curriculum": curriculum,
+            "enrollment_applied": enrollment_applied,
+            "character": character.model_dump(),
+        }
+
+    # ─── Colonial Upbringing ─────────────────────────────────────────────────────
+    if track == "colonial_upbringing":
+        hc = track_data["qualification"].get("homeworld_condition", {})
+        tl_max = int(hc.get("tl_max", 8))
+        tl = _homeworld_tl(character.homeworld_uwp or "")
+        if tl > tl_max:
+            raise ValueError(
+                f"Colonial Upbringing requires homeworld TL {tl_max} or less "
+                f"('{character.homeworld}' is TL {tl})."
+            )
+        enrollment_applied = _apply_enrollment_auto_skills(
+            character, track_data.get("enrollment_auto_skills", [])
+        )
+        enrollment_pool = [
+            s.rsplit(" ", 1)[0].strip()
+            for s in track_data.get("enrollment_auto_skills", [])
+        ]
+        # No age cost, no qualification roll — automatic.
+        character.pre_career_status = {
+            "track": "colonial_upbringing",
+            "service": None,
+            "stage": "enrolled",
+            "outcome": None,
+            "skill_picks_remaining": 0,
+            "skill_pool": [],
+            "enrollment_skill_pool": enrollment_pool,
+        }
+        character.log(
+            f"Colonial Upbringing: homeworld TL {tl} (≤{tl_max}). "
+            f"Enrollment: {', '.join(enrollment_applied)}"
+        )
+        return {
+            "passed": True,
+            "automatic": True,
+            "track": track,
+            "enrollment_applied": enrollment_applied,
+            "character": character.model_dump(),
+        }
+
+    # ─── Psionic Community ───────────────────────────────────────────────────────
+    if track == "psionic_community":
+        if character.age > track_data["max_age"]:
+            raise ValueError(
+                f"Too old for Psionic Community (age {character.age} > "
+                f"max {track_data['max_age']})"
+            )
+        psi_roll_result: Optional[dict] = None
+        # Test PSI now if not already tested.
+        if not character.psi_tested:
+            pr = dice.roll("2D")
+            character.psi = pr.total
+            character.psi_tested = True
+            psi_roll_result = pr.to_dict()
+            character.log(f"Psionic community: PSI tested — 2D = {pr.total}, PSI set to {pr.total}")
+
+        qual = track_data["qualification"]
+        target = qual["target"]
+        psi_dm = dice.characteristic_dm(character.psi)
+        for mod in qual.get("modifiers", []):
+            if mod.get("type") == "characteristic_threshold":
+                if character.characteristics.get(mod["characteristic"]) >= int(mod["threshold"]):
+                    psi_dm += int(mod["dm"])
+
+        r = dice.roll("2D", modifier=psi_dm, target=target)
+        passed = bool(r.succeeded)
+        enrollment_applied: list[str] = []
+
+        if passed:
+            character.age += track_data["age_cost"]
+            enrollment_applied = _apply_enrollment_auto_skills(
+                character, track_data.get("enrollment_auto_skills", [])
+            )
+            character.pre_career_status = {
+                "track": "psionic_community",
+                "service": None,
+                "stage": "enrolled",
+                "outcome": None,
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+                "enrollment_skill_pool": [],
+                "pending_psionic_training": True,
+            }
+            character.log(
+                f"Psionic Community enrolled (PSI {target}+): "
+                f"2D{psi_dm:+d} = {r.total} [PASS]. PSI = {character.psi}. "
+                f"Enrollment: {', '.join(enrollment_applied) if enrollment_applied else 'none'}. "
+                "Train a psionic talent from the Psionics panel."
+            )
+        else:
+            character.pre_career_status = {
+                "track": "psionic_community",
+                "stage": "not_qualified",
+                "outcome": "not_qualified",
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+            }
+            character.phase = "career"
+            character.log(
+                f"Psionic Community failed (PSI {target}+): "
+                f"2D{psi_dm:+d} = {r.total} [FAIL]. PSI = {character.psi}."
+            )
+        return {
+            "roll": r.to_dict(),
+            "passed": passed,
+            "track": track,
+            "psi": character.psi,
+            "psi_roll": psi_roll_result,
+            "enrollment_applied": enrollment_applied,
+            "character": character.model_dump(),
+        }
+
+    # ─── School of Hard Knocks ───────────────────────────────────────────────────
+    if track == "school_of_hard_knocks":
+        sc = track_data["qualification"].get("stat_condition", {})
+        soc_max = int(sc.get("max", 6))
+        soc = character.characteristics.get("SOC")
+        if soc > soc_max:
+            raise ValueError(
+                f"School of Hard Knocks requires SOC {soc_max} or less (yours is {soc})."
+            )
+        character.age += track_data.get("age_cost", 2)
+        enrollment_applied = _apply_enrollment_auto_skills(
+            character, track_data.get("enrollment_auto_skills", [])
+        )
+        enrollment_pool = list(track_data.get("enrollment_skill_pool", []))
+        enrollment_picks = int(track_data.get("enrollment_skill_picks", 0))
+        enrollment_level = int(track_data.get("enrollment_pick_level", 0))
+
+        character.pre_career_status = {
+            "track": "school_of_hard_knocks",
+            "service": None,
+            "stage": "enrolled",
+            "outcome": None,
+            "skill_picks_remaining": enrollment_picks,
+            "skill_pick_level": enrollment_level,
+            "skill_pick_stage": "enrollment",
+            "skill_pool": enrollment_pool,
+            "enrollment_skill_pool": enrollment_pool,
+        }
+        character.log(
+            f"School of Hard Knocks: SOC {soc} (≤{soc_max}) qualifies. "
+            f"Enrollment: {', '.join(enrollment_applied) if enrollment_applied else 'none'}. "
+            f"{enrollment_picks} skill picks remaining."
+        )
+        return {
+            "passed": True,
+            "automatic": True,
+            "track": track,
+            "enrollment_applied": enrollment_applied,
+            "enrollment_picks": enrollment_picks,
+            "enrollment_pool": enrollment_pool,
+            "character": character.model_dump(),
+        }
+
+    # ─── Spacer Community ────────────────────────────────────────────────────────
+    if track == "spacer_community":
+        if character.age > track_data["max_age"]:
+            raise ValueError(
+                f"Too old for Spacer Community (age {character.age} > "
+                f"max {track_data['max_age']})"
+            )
+        hc = track_data["qualification"].get("homeworld_condition", {})
+        req_size = int(hc.get("size", 0))
+        size = _homeworld_size(character.homeworld_uwp or "")
+        if size != req_size:
+            raise ValueError(
+                f"Spacer Community requires homeworld size {req_size} "
+                f"('{character.homeworld}' is size {size})."
+            )
+        qual = track_data["qualification"]
+        char_key = qual["characteristic"]
+        target = qual["target"]
+        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        for mod in qual.get("modifiers", []):
+            if mod.get("type") == "characteristic_threshold":
+                if character.characteristics.get(mod["characteristic"]) >= int(mod["threshold"]):
+                    dm += int(mod["dm"])
+
+        r = dice.roll("2D", modifier=dm, target=target)
+        passed = bool(r.succeeded)
+        enrollment_applied: list[str] = []
+        enrollment_pool: list[str] = list(track_data.get("enrollment_skill_pool", []))
+
+        if passed:
+            character.age += track_data["age_cost"]
+            enrollment_applied = _apply_enrollment_auto_skills(
+                character, track_data.get("enrollment_auto_skills", [])
+            )
+            enrollment_picks = int(track_data.get("enrollment_skill_picks", 0))
+            enrollment_level = int(track_data.get("enrollment_pick_level", 0))
+            character.pre_career_status = {
+                "track": "spacer_community",
+                "service": None,
+                "stage": "enrolled",
+                "outcome": None,
+                "skill_picks_remaining": enrollment_picks,
+                "skill_pick_level": enrollment_level,
+                "skill_pick_stage": "enrollment",
+                "skill_pool": enrollment_pool,
+                "enrollment_skill_pool": enrollment_pool,
+            }
+            character.log(
+                f"Spacer Community enrolled ({char_key} {target}+): "
+                f"2D{dm:+d} = {r.total} [PASS]. "
+                f"Enrollment: {', '.join(enrollment_applied) if enrollment_applied else 'none'}. "
+                f"{enrollment_picks} skill picks remaining."
+            )
+        else:
+            character.pre_career_status = {
+                "track": "spacer_community",
+                "stage": "not_qualified",
+                "outcome": "not_qualified",
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+            }
+            character.phase = "career"
+            character.log(
+                f"Spacer Community failed ({char_key} {target}+): "
+                f"2D{dm:+d} = {r.total} [FAIL]."
+            )
+        return {
+            "roll": r.to_dict(),
+            "passed": passed,
+            "track": track,
+            "enrollment_applied": enrollment_applied,
+            "enrollment_picks": int(track_data.get("enrollment_skill_picks", 0)) if passed else 0,
+            "enrollment_pool": enrollment_pool if passed else [],
+            "character": character.model_dump(),
+        }
+
+    # ─── University & Military Academy (original logic) ───────────────────────────
     if character.age > track_data["max_age"]:
         raise ValueError(
             f"Too old for {track_data['name']} (age {character.age} > "
             f"max {track_data['max_age']})"
         )
 
-    # Which qualification block applies?
     if track == "military_academy":
         if not service:
             raise ValueError("Military academy requires a service (army|marine|navy)")
@@ -695,7 +1093,6 @@ def pre_career_qualify(
     target = qual["target"]
     dm = dice.characteristic_dm(character.characteristics.get(char_key))
 
-    # Optional generic modifiers (currently: per_previous_term)
     for mod in qual.get("modifiers", []):
         if mod.get("type") == "per_previous_term":
             dm += mod["dm"] * character.total_terms
@@ -703,16 +1100,10 @@ def pre_career_qualify(
             dm += mod["dm"] * len(character.completed_careers)
 
     r = dice.roll("2D", modifier=dm, target=target)
-
     passed = bool(r.succeeded)
     enrollment_applied: list[str] = []
 
     if passed:
-        # Enrollment bonuses.
-        # University: +1 EDU.
-        # Military Academy: gain ALL service skills of the tied career at level 0
-        #   (p.12 "Gain all Service Skills of the military career the academy is
-        #   tied to at level 0, as with basic training").
         if track == "university":
             bonuses = track_data.get("enrollment_bonus", {})
             for stat, delta in bonuses.items():
@@ -726,7 +1117,6 @@ def pre_career_qualify(
             for k, v in ss.items():
                 if k in _skip:
                     continue
-                # "Drive or Vacc Suit" → take the first concrete option at level 0
                 for part in v.split(" or "):
                     part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
                     if not part:
@@ -738,13 +1128,10 @@ def pre_career_qualify(
                         skill_spec = part[part.index("(") + 1 : -1].strip()
                     msg = character.add_skill(skill_name, level=0, speciality=skill_spec)
                     enrollment_applied.append(msg)
-                    break  # only the first alternative for "X or Y"
+                    break
 
-        # Age ticks on successful enrollment (student has committed).
         character.age += track_data["age_cost"]
 
-        # University: 2 enrollment skill picks at level 0 (your "majors").
-        # Military Academy: no enrollment picks — service skills auto-applied above.
         enrollment_picks = 0
         enrollment_skill_pool: list[str] = []
         if track == "university":
@@ -757,8 +1144,8 @@ def pre_career_qualify(
             "stage": "enrolled",
             "outcome": None,
             "skill_picks_remaining": enrollment_picks,
-            "skill_pick_level": 0,          # enrollment picks are at level 0
-            "skill_pick_stage": "enrollment",  # after picks, stay in pre_career
+            "skill_pick_level": 0,
+            "skill_pick_stage": "enrollment",
             "skill_pool": enrollment_skill_pool,
         }
         character.log(
@@ -769,7 +1156,6 @@ def pre_career_qualify(
             + (f" — {enrollment_picks} enrollment skill picks pending" if enrollment_picks else "")
         )
     else:
-        # Failed qualification — no age cost, fall through to careers.
         character.pre_career_status = {
             "track": track,
             "service": service,
@@ -821,7 +1207,13 @@ def pre_career_graduate(
     char_key = grad["characteristic"]
     target = grad["target"]
     honours_target = grad.get("honours_target")
-    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+    # PSI is stored on character root, not in characteristics block.
+    if char_key == "PSI":
+        char_val = character.psi
+    else:
+        char_val = character.characteristics.get(char_key)
+    dm = dice.characteristic_dm(char_val)
 
     # Apply conditional modifiers (e.g. military academy: DM+1 if END 8+, DM+1 if SOC 8+).
     modifier_descriptions: list[str] = []
@@ -829,7 +1221,11 @@ def pre_career_graduate(
         if mod.get("type") == "characteristic_threshold":
             stat = mod["characteristic"]
             threshold = int(mod["threshold"])
-            if character.characteristics.get(stat) >= threshold:
+            if stat == "PSI":
+                check_val = character.psi
+            else:
+                check_val = character.characteristics.get(stat)
+            if check_val >= threshold:
                 dm += int(mod["dm"])
                 modifier_descriptions.append(mod.get("description", ""))
 
@@ -839,6 +1235,8 @@ def pre_career_graduate(
     applied_note: list[str] = []
     skill_pool: list[str] = []
     picks_remaining = 0
+    pending_pick_rounds: list[dict] = []  # additional pick rounds queued after the first
+    all_rounds: list[dict] = []           # all pick rounds (first assigned to picks_remaining)
 
     if not r.succeeded:
         outcome = "fail"
@@ -860,8 +1258,10 @@ def pre_career_graduate(
         is_honours = honours_target is not None and r.total >= honours_target
         block = grad["on_honours"] if is_honours else grad["on_graduation"]
         outcome = "honours" if is_honours else "pass"
+        # Enrollment pool for this character (used by "from_enrollment" pick types)
+        enroll_pool = list(status.get("enrollment_skill_pool", []))
 
-        # Stat bumps
+        # ── Standard stat bumps ──────────────────────────────────────────────────
         for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
             if stat in block:
                 delta = int(block[stat])
@@ -869,7 +1269,56 @@ def pre_career_graduate(
                 character.characteristics.set(stat, current + delta)
                 applied_note.append(f"{stat} {delta:+d}")
 
-        # Pending DMs for next rolls
+        # PSI bump
+        if "PSI" in block:
+            delta = int(block["PSI"])
+            character.psi = max(0, character.psi + delta)
+            applied_note.append(f"PSI {delta:+d}")
+
+        # ── EDU penalty dice (e.g. colonial upbringing) ──────────────────────────
+        if "EDU_penalty_dice" in block:
+            pen_roll = dice.roll(str(block["EDU_penalty_dice"]))
+            current_edu = character.characteristics.get("EDU")
+            character.characteristics.set("EDU", current_edu - pen_roll.total)
+            applied_note.append(f"EDU -{pen_roll.total} ({block['EDU_penalty_dice']}={pen_roll.total})")
+
+        # ── Age override (e.g. "22+2D3") ────────────────────────────────────────
+        if "age_override" in block:
+            expr = str(block["age_override"])
+            if "+" in expr:
+                base_str, dice_str = expr.split("+", 1)
+                age_roll = dice.roll(dice_str.strip())
+                new_age = int(base_str.strip()) + age_roll.total
+            else:
+                new_age = int(expr)
+            character.age = new_age
+            applied_note.append(f"Age set to {new_age}")
+
+        # ── Jack-of-all-Trades ───────────────────────────────────────────────────
+        if "jack_of_all_trades" in block:
+            joat_level = int(block["jack_of_all_trades"])
+            character.add_skill("Jack-of-all-Trades", level=joat_level)
+            applied_note.append(f"Jack-of-all-Trades {joat_level}")
+
+        # ── Fixed skills ("Leadership 1": true or "fixed_skills": [...]) ─────────
+        # Handle "fixed_skills" list: ["Science (psionicology) 1", "Gun Combat 0"]
+        for sk_str in block.get("fixed_skills", []):
+            parts = sk_str.rsplit(" ", 1)
+            sk_part = parts[0].strip()
+            sk_level = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+            sn, spec = _split_skill_speciality(sk_part)
+            character.add_skill(sn, level=sk_level, speciality=spec)
+            applied_note.append(f"Gained {sk_str}")
+        # Handle "SkillName N": true pattern (e.g. "Leadership 1": true)
+        for bk, bv in block.items():
+            if bv is True and bk[-1].isdigit() and " " in bk:
+                parts = bk.rsplit(" ", 1)
+                if parts[1].isdigit():
+                    sn, spec = _split_skill_speciality(parts[0].strip())
+                    character.add_skill(sn, level=int(parts[1]), speciality=spec)
+                    applied_note.append(f"Gained {bk}")
+
+        # ── Pending DMs for next rolls ───────────────────────────────────────────
         if "dm_next_qualification" in block:
             character.dm_next_qualification += int(block["dm_next_qualification"])
             applied_note.append(
@@ -886,35 +1335,82 @@ def pre_career_graduate(
                 f"DM{int(block['dm_next_benefit']):+d} next benefit"
             )
 
-        # Academy commission handling.
+        # ── Permanent career DMs ──────────────────────────────────────────────────
+        if "permanent" in block:
+            perm_notes = _apply_graduation_permanent(character, block["permanent"], status)
+            applied_note.extend(perm_notes)
+
+        # ── Associates ───────────────────────────────────────────────────────────
+        for assoc in block.get("associates", []):
+            character.associates.append(
+                Associate(kind=assoc["kind"], description=assoc.get("description", ""))
+            )
+            applied_note.append(f"Gained {assoc['kind'].title()}")
+
+        # ── Psionic talent upgrades ───────────────────────────────────────────────
+        psionics_data = rules.psionics()
+        psi_talents_map = psionics_data.get("talents", {})
+
+        if block.get("psionic_talent_upgrade") and character.psi_trained_talents:
+            # Raise first trained talent's skill by 1 level
+            tid = character.psi_trained_talents[0]
+            talent_info = psi_talents_map.get(tid, {})
+            skill_name = talent_info.get("skill", "")
+            if skill_name:
+                for sk in character.skills:
+                    if sk.name == skill_name:
+                        sk.level = min(sk.level + 1, 4)
+                        break
+                applied_note.append(f"Raised {skill_name} (psionic talent) to higher level")
+
+        if block.get("psionic_all_talents_to_1"):
+            for tid in character.psi_trained_talents:
+                talent_info = psi_talents_map.get(tid, {})
+                skill_name = talent_info.get("skill", "")
+                if skill_name:
+                    for sk in character.skills:
+                        if sk.name == skill_name:
+                            sk.level = max(sk.level, 1)
+                            break
+            applied_note.append("All trained psionic talents raised to level 1")
+
+        if block.get("psionic_one_talent_to_2") and character.psi_trained_talents:
+            # Flag: player should choose which talent to raise to 2 manually
+            applied_note.append(
+                "Raise one trained psionic talent to level 2 (use Psionics panel)"
+            )
+
+        # ── Academy commission handling ───────────────────────────────────────────
         if track == "military_academy":
             svc = _academy_service(service)
             if "starts_commissioned_rank" in block:
-                # Honours: auto-commission at Rank 1.
                 character.starts_commissioned_career_id = svc["career_id"]
                 applied_note.append(
                     f"starts {svc['name']} commissioned at Rank "
                     f"{block['starts_commissioned_rank']}"
                 )
             elif "commission_dm" in block:
-                # Normal grad: roll Commission 8+ with the given DM at term start.
                 character.academy_commission_career_id = svc["career_id"]
                 character.academy_commission_dm = int(block["commission_dm"])
                 applied_note.append(
                     f"Commission roll DM+{block['commission_dm']} when starting {svc['name']}"
                 )
 
-        # Skill picks
-        picks = int(block.get("skills_at_level_1", 0))
-        if picks > 0:
-            picks_remaining = picks
+        # ── Graduation skill picks ────────────────────────────────────────────────
+        # Collect all pick rounds, then assign the first one to skill_pool/picks_remaining
+        # and queue the rest in pending_pick_rounds. Higher levels come first.
+        all_rounds: list[dict] = []
+
+        # Classic: skills_at_level_1 from track skill list or service skills
+        picks_l1 = int(block.get("skills_at_level_1", 0))
+        if picks_l1 > 0:
             if track == "university":
-                skill_pool = list(track_data.get("skill_list", []))
-            else:
+                l1_pool = list(track_data.get("skill_list", []))
+            elif track == "military_academy":
                 svc = _academy_service(service)
                 career_data = rules.careers().get(svc["career_id"], {})
                 ss = career_data.get("skill_tables", {}).get("service_skills", {})
-                skill_pool = []
+                l1_pool = []
                 _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
                 for k, v in ss.items():
                     if k in _skip:
@@ -922,10 +1418,45 @@ def pre_career_graduate(
                     for part in v.split(" or "):
                         part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
                         if part:
-                            skill_pool.append(part)
-                if not skill_pool:
-                    skill_pool = ["Gun Combat", "Melee", "Drive",
-                                  "Electronics", "Tactics"]
+                            l1_pool.append(part)
+                if not l1_pool:
+                    l1_pool = ["Gun Combat", "Melee", "Drive", "Electronics", "Tactics"]
+            else:
+                l1_pool = list(enroll_pool)
+            all_rounds.append({"count": picks_l1, "level": 1, "pool": l1_pool,
+                                "label": "Pick skill at level 1"})
+
+        # Upgrade from enrollment pool: pick N enrolled skills to raise to level 1
+        upgrade_count = int(block.get("skills_upgrade_from_enrollment", 0))
+        if upgrade_count > 0:
+            up_pool = list(enroll_pool) if enroll_pool else list(skill_pool)
+            all_rounds.append({"count": upgrade_count, "level": 1, "pool": up_pool,
+                                "label": "Upgrade enrollment skill to level 1"})
+
+        # Pick N from enrollment pool at level 1
+        from_enroll_1 = int(block.get("skills_from_enrollment_1", 0))
+        if from_enroll_1 > 0:
+            fe1_pool = list(enroll_pool) if enroll_pool else list(skill_pool)
+            all_rounds.append({"count": from_enroll_1, "level": 1, "pool": fe1_pool,
+                                "label": "Pick enrollment skill at level 1"})
+
+        # Pick N from enrollment pool at level 0 (goes last — lowest level)
+        from_enroll_0 = int(block.get("additional_skills_from_enrollment_0", 0))
+        if from_enroll_0 > 0:
+            fe0_pool = list(enroll_pool) if enroll_pool else list(skill_pool)
+            all_rounds.append({"count": from_enroll_0, "level": 0, "pool": fe0_pool,
+                                "label": "Pick enrollment skill at level 0"})
+
+        # Assign first round to skill_pool/picks_remaining, queue the rest
+        if all_rounds:
+            first = all_rounds[0]
+            skill_pool = first["pool"]
+            picks_remaining = first["count"]
+            # skill_pick_level will be set from first["level"] when building status
+            pending_pick_rounds = [
+                {"count": rnd["count"], "level": rnd["level"], "pool": rnd["pool"]}
+                for rnd in all_rounds[1:]
+            ]
 
         if block.get("note"):
             applied_note.append(block["note"])
@@ -1117,17 +1648,28 @@ def pre_career_graduate(
     pending_event10 = ev.total == 10 and not forced_fail
     pending_event11 = ev.total == 11 and not forced_fail
 
+    # Determine the pick level for the first pending round (if any).
+    # all_rounds is only defined inside the else block; check if it exists.
+    first_round_level = 1  # classic default (graduation = level 1)
+    if outcome != "fail" and all_rounds:
+        first_round_level = all_rounds[0]["level"] if all_rounds else 1
+
     # Set final status. Phase stays pre_career if skill picks are still pending;
     # otherwise advance to career now.
     character.pre_career_status = {
         "track": track,
         "service": service,
+        "curriculum": status.get("curriculum"),
+        "auto_rank_careers": status.get("auto_rank_careers", []),
+        "enrolled_skills": status.get("enrolled_skills", []),
+        "enrollment_skill_pool": status.get("enrollment_skill_pool", []),
         "stage": "graduated" if outcome != "fail" else "failed_grad",
         "outcome": outcome,
         "skill_picks_remaining": picks_remaining,
-        "skill_pick_level": 1,          # graduation picks are at level 1
+        "skill_pick_level": first_round_level,
         "skill_pick_stage": "graduation",  # when done, advance to career
         "skill_pool": skill_pool,
+        "pending_pick_rounds": pending_pick_rounds,
         "events_remaining": 0,
         "events_rolled": [ev.total],
         "pending_event10": pending_event10,
@@ -1142,8 +1684,11 @@ def pre_career_graduate(
     return {
         "roll": r.to_dict(),
         "outcome": outcome,
+        "char_key": char_key,
+        "target": target,
         "honours_target": honours_target,
         "skill_pool": skill_pool,
+        "skill_pick_level": first_round_level,
         "skill_picks_remaining": picks_remaining,
         "applied": applied_note,
         "event": {
@@ -1206,24 +1751,46 @@ def pre_career_choose_skills(
     )
 
     if remaining == 0:
-        if skill_pick_stage == "graduation":
+        pending_rounds = list(status.get("pending_pick_rounds", []))
+        if pending_rounds and skill_pick_stage == "graduation":
+            # Advance to the next round of graduation picks
+            next_round = pending_rounds.pop(0)
+            character.pre_career_status = {
+                **status,
+                "skill_picks_remaining": next_round["count"],
+                "skill_pick_level": next_round["level"],
+                "skill_pool": next_round["pool"],
+                "pending_pick_rounds": pending_rounds,
+            }
+            # Stay in pre_career for more picks
+        elif skill_pick_stage == "graduation":
             character.phase = "career"
-        # For enrollment: clear picks but stay in pre_career (events/graduation next)
-        character.pre_career_status = {
-            **status,
-            "skill_picks_remaining": 0,
-            "skill_pool": [],
-        }
+            character.pre_career_status = {
+                **status,
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+                "pending_pick_rounds": [],
+            }
+        else:
+            # enrollment stage: clear picks, stay in pre_career for events/graduation
+            character.pre_career_status = {
+                **status,
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+            }
     else:
         character.pre_career_status = {
             **status,
             "skill_picks_remaining": remaining,
         }
 
+    new_remaining = character.pre_career_status.get("skill_picks_remaining", 0)
     return {
         "chosen": chosen_skills,
         "skill_picks_remaining": remaining,
+        "new_picks_remaining": new_remaining,
         "skill_pick_stage": skill_pick_stage,
+        "has_more_rounds": new_remaining > 0 and remaining == 0,
         "character": character.model_dump(),
     }
 
@@ -1798,6 +2365,25 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         elif mod["type"] == "age" and character.age >= mod["threshold"]:
             dm += mod["dm"]
 
+    # Apply permanent pre-career education DMs
+    pdms = character.pre_career_permanent_dms or {}
+
+    # Psion auto-entry (Psionic Community graduate)
+    if career_id == "psion" and pdms.get("psion_career_auto_entry"):
+        character.log(f"Psionic Community graduate — automatic entry into Psion career.")
+        return {"automatic": True, "succeeded": True, "character": character.model_dump()}
+
+    # Global qualification penalty (e.g. colonial_upbringing -2)
+    qual_dm_perm = int(pdms.get("qualification_dm", 0))
+    # Bonus for specific careers (e.g. colonial_upbringing rogue/scout +1 instead)
+    bonus_careers = list(pdms.get("bonus_qualify_careers", []))
+    bonus_dm = int(pdms.get("bonus_qualify_dm", 0))
+    if bonus_careers and career_id in bonus_careers:
+        # Use bonus DM instead of penalty
+        dm += bonus_dm
+    elif qual_dm_perm:
+        dm += qual_dm_perm
+
     # Apply DM from prior events (e.g. Travel life event)
     dm += character.dm_next_qualification
     pending = character.dm_next_qualification
@@ -1859,8 +2445,24 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
             f"= {r_comm.total} ({'commissioned' if commissioned_start else 'not commissioned'})"
         )
 
+    # Merchant Academy auto_rank: first career in a matching career starts at rank N.
+    pdms = character.pre_career_permanent_dms or {}
+    auto_rank = int(pdms.get("auto_rank", 0))
+    auto_rank_careers = list(pdms.get("auto_rank_careers", []))
+    is_first_career = len(character.completed_careers) == 0 and character.total_terms == 0
+    merchant_auto_rank = (
+        auto_rank > 0
+        and first_term_in_this_career
+        and career_id in auto_rank_careers
+        and is_first_career
+        and not commissioned_start
+    )
+
     if commissioned_start:
         starting_rank = 1
+    elif merchant_auto_rank:
+        starting_rank = auto_rank
+        commissioned_start = True  # treat as a commissioned start for term setup purposes
     elif not is_new_career and character.current_term is not None:
         starting_rank = character.current_term.rank
     else:
@@ -2448,6 +3050,20 @@ def advancement_roll(character: Character) -> dict:
     char_key = adv["characteristic"]
     target = adv["target"]
     dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+    # Apply permanent pre-career advancement DMs
+    pdms = character.pre_career_permanent_dms or {}
+    adv_dm_careers = list(pdms.get("advancement_dm_careers", []))
+    if adv_dm_careers and term.career_id in adv_dm_careers:
+        dm += int(pdms.get("advancement_dm", 0))
+    # Spacer community: +N to advancement in specific career/assignment
+    if (pdms.get("spacer_career_dm")
+            and term.career_id == pdms.get("spacer_career_id")
+            and term.assignment_id == pdms.get("spacer_assignment_id")):
+        dm += int(pdms["spacer_career_dm"])
+    # School of Hard Knocks: -2 advancement in first career only
+    if pdms.get("first_career_commission_dm") and len(character.completed_careers) == 0:
+        dm += int(pdms["first_career_commission_dm"])
 
     dm += character.dm_next_advancement
     pending = character.dm_next_advancement

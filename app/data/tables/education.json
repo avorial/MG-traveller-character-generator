@@ -122,6 +122,291 @@
           "note": "Failed to graduate. If you did not roll a natural 2, you may still automatically enter the tied military career — but you may not make a Commission roll."
         }
       }
+    },
+
+    "merchant_academy": {
+      "id": "merchant_academy",
+      "name": "Merchant Academy",
+      "blurb": "Vocational training for interstellar commerce. Choose Business or Shipboard curriculum. Graduates enter the Merchant or Citizen career at officer rank with a permanent advancement bonus.",
+      "age_cost": 4,
+      "max_age": 22,
+      "curricula": {
+        "business": {
+          "id": "business",
+          "name": "Business",
+          "enrollment_skill_table": {"career": "merchant", "table": "broker"},
+          "auto_rank_careers": ["merchant", "citizen"]
+        },
+        "shipboard": {
+          "id": "shipboard",
+          "name": "Shipboard",
+          "enrollment_skill_table": {"career": "merchant", "table": "merchant_marine"},
+          "auto_rank_careers": ["merchant"]
+        }
+      },
+      "enrollment_service_skill_random": 1,
+      "qualification": {
+        "characteristic": "INT",
+        "target": 9,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "INT",
+        "target": 7,
+        "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "EDU", "threshold": 8, "dm": 1},
+          {"type": "characteristic_threshold", "characteristic": "SOC", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "EDU": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "advancement_dm": 1,
+            "advancement_dm_careers": ["merchant", "citizen"],
+            "auto_rank": 1,
+            "auto_rank_requires_first_career": true
+          },
+          "note": "Graduated. +1 EDU. Upgrade one enrollment skill to level 1. Enter Merchant or Citizen at Rank 1 (first career after academy, matching branch). DM+1 advancement in Merchant/Citizen."
+        },
+        "on_honours": {
+          "EDU": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "advancement_dm": 2,
+            "advancement_dm_careers": ["merchant", "citizen"],
+            "auto_rank": 2,
+            "auto_rank_requires_first_career": true
+          },
+          "note": "Graduated with Honours. +1 EDU. Upgrade one enrollment skill to level 1. Enter Merchant or Citizen at Rank 2 (with that rank's automatic skill). DM+2 advancement in Merchant/Citizen."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
+    },
+
+    "colonial_upbringing": {
+      "id": "colonial_upbringing",
+      "name": "Colonial Upbringing",
+      "blurb": "Grew up in the outback or on a new colony (homeworld TL 8 or less). Broad survival skills but limited formal education. Carries permanent career penalties.",
+      "age_cost": 0,
+      "max_age": 99,
+      "qualification": {
+        "automatic": true,
+        "homeworld_condition": {"tl_max": 8},
+        "note": "Automatic if homeworld TL 8 or less."
+      },
+      "enrollment_auto_skills": [
+        "Animals 0", "Athletics 0", "Drive 0", "Gun Combat 0", "Mechanic 0",
+        "Medic 0", "Navigation 0", "Recon 0", "Profession 0", "Seafarer 0", "Survival 1"
+      ],
+      "graduation": {
+        "characteristic": "INT",
+        "target": 8,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "END": 1,
+          "EDU_penalty_dice": "D3",
+          "age_override": "22+2D3",
+          "jack_of_all_trades": 1,
+          "skills_upgrade_from_enrollment": 1,
+          "additional_skills_from_enrollment_0": 2,
+          "permanent": {
+            "commission_dm": -1,
+            "qualification_dm": -2,
+            "bonus_qualify_careers": ["rogue", "scout"],
+            "bonus_qualify_dm": 1
+          },
+          "note": "Graduated. END+1, EDU-D3, age becomes 22+2D3. Jack-of-all-Trades 1. Upgrade one enrollment skill to level 1, gain two more at level 0. Permanent DM-1 commission/promotion, DM-2 all qualifications (except Rogue/Scout get DM+1 instead)."
+        },
+        "on_honours": {
+          "END": 1,
+          "EDU_penalty_dice": "D3",
+          "age_override": "22+2D3",
+          "jack_of_all_trades": 1,
+          "Leadership 1": true,
+          "skills_upgrade_from_enrollment": 2,
+          "additional_skills_from_enrollment_0": 2,
+          "permanent": {
+            "commission_dm": -1,
+            "qualification_dm": -2,
+            "bonus_qualify_careers": ["rogue", "scout"],
+            "bonus_qualify_dm": 1
+          },
+          "note": "Graduated with Honours. END+1, EDU-D3, age becomes 22+2D3. Jack-of-all-Trades 1, Leadership 1. Upgrade two enrollment skills to level 1, gain two more at level 0. Same permanent penalties apply."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No benefits granted."
+        }
+      }
+    },
+
+    "psionic_community": {
+      "id": "psionic_community",
+      "name": "Psionic Community",
+      "blurb": "Raised in a community where psionics are practiced. PSI is tested (2D) if not yet rolled. Requires PSI 8+. Psion career entry is automatic for life.",
+      "age_cost": 3,
+      "max_age": 22,
+      "qualification": {
+        "characteristic": "PSI",
+        "target": 8,
+        "requires_psi_test": true,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "INT", "threshold": 8, "dm": 1}
+        ]
+      },
+      "enrollment_auto_skills": ["Profession 0", "Science 0", "Streetwise 0"],
+      "enrollment_psionic_talents": true,
+      "graduation": {
+        "characteristic": "PSI",
+        "target": 6,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "INT", "threshold": 8, "dm": 1}
+        ],
+        "on_graduation": {
+          "PSI": 1,
+          "fixed_skills": ["Science (psionicology) 1"],
+          "psionic_talent_upgrade": 1,
+          "permanent": {
+            "psion_career_auto_entry": true
+          },
+          "associates": [
+            {"kind": "rival", "description": "Rival — community member unhappy you left"}
+          ],
+          "note": "Graduated. PSI+1, Science (psionicology) 1, one psionic talent raised to level 1. Gain a Rival. Psion career entry is now always automatic."
+        },
+        "on_honours": {
+          "PSI": 1,
+          "fixed_skills": ["Science (psionicology) 1"],
+          "psionic_all_talents_to_1": true,
+          "psionic_one_talent_to_2": true,
+          "permanent": {
+            "psion_career_auto_entry": true
+          },
+          "associates": [
+            {"kind": "enemy", "description": "Enemy — community angered you left"}
+          ],
+          "note": "Graduated with Honours. PSI+1, Science (psionicology) 1, all talents to level 1, one talent to level 2. Gain an Enemy instead of a Rival. Psion career always automatic."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. Basic psionic training incomplete — keep any enrollment skills."
+        }
+      }
+    },
+
+    "school_of_hard_knocks": {
+      "id": "school_of_hard_knocks",
+      "name": "School of Hard Knocks",
+      "blurb": "Grew up on the fringes (SOC 6 or less). Street-smart but rough around the edges. DM-2 on commission and promotion in your first career only.",
+      "age_cost": 2,
+      "max_age": 99,
+      "qualification": {
+        "automatic": true,
+        "stat_condition": {"stat": "SOC", "max": 6},
+        "note": "Automatic if SOC 6 or less."
+      },
+      "enrollment_auto_skills": ["Streetwise 1"],
+      "enrollment_skill_picks": 2,
+      "enrollment_skill_pool": [
+        "Athletics", "Deception", "Drive", "Gambler", "Melee", "Persuade", "Stealth"
+      ],
+      "enrollment_pick_level": 0,
+      "graduation": {
+        "characteristic": "INT",
+        "target": 7,
+        "honours_target": 11,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "END", "threshold": 9, "dm": 1}
+        ],
+        "on_graduation": {
+          "SOC": -1,
+          "fixed_skills": ["Gun Combat 0"],
+          "additional_skills_from_enrollment_0": 3,
+          "permanent": {
+            "first_career_commission_dm": -2
+          },
+          "note": "Graduated. SOC-1, Gun Combat 0. Three more skills from enrollment pool at level 0. DM-2 commission/promotion in first career only."
+        },
+        "on_honours": {
+          "SOC": -1,
+          "fixed_skills": ["Gun Combat 0", "Carouse 1"],
+          "additional_skills_from_enrollment_0": 3,
+          "skills_upgrade_from_enrollment": 1,
+          "permanent": {
+            "first_career_commission_dm": -2
+          },
+          "note": "Graduated with Honours. SOC-1, Gun Combat 0, Carouse 1. Three more skills from enrollment pool at level 0, upgrade one to level 1. DM-2 commission/promotion in first career only."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
+    },
+
+    "spacer_community": {
+      "id": "spacer_community",
+      "name": "Spacer Community",
+      "blurb": "Grew up on an orbital habitat or asteroid belt (homeworld size 0). Practical zero-g skills. DM+1 to enlist, commission, and promotion in the Merchant (Free Trader) career.",
+      "age_cost": 3,
+      "max_age": 22,
+      "qualification": {
+        "characteristic": "INT",
+        "target": 4,
+        "homeworld_condition": {"size": 0},
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "DEX", "threshold": 8, "dm": 1}
+        ],
+        "note": "Requires homeworld size 0. Then INT 4+, DM+1 if DEX 8+."
+      },
+      "enrollment_auto_skills": ["Vacc Suit 1"],
+      "enrollment_skill_picks": 2,
+      "enrollment_skill_pool": ["Astrogation", "Electronics", "Engineer", "Profession"],
+      "enrollment_pick_level": 0,
+      "graduation": {
+        "characteristic": "INT",
+        "target": 8,
+        "honours_target": 12,
+        "modifiers": [
+          {"type": "characteristic_threshold", "characteristic": "DEX", "threshold": 6, "dm": 1}
+        ],
+        "on_graduation": {
+          "DEX": 1,
+          "SOC": -2,
+          "fixed_skills": ["Pilot 0"],
+          "additional_skills_from_enrollment_0": 3,
+          "skills_from_enrollment_1": 1,
+          "permanent": {
+            "spacer_career_dm": 1,
+            "spacer_career_id": "merchant",
+            "spacer_assignment_id": "free_trader"
+          },
+          "note": "Graduated. DEX+1, SOC-2, Pilot 0. Three enrollment skills at level 0, one enrollment skill at level 1. DM+1 enlist/commission/promotion in Merchant (Free Trader)."
+        },
+        "on_honours": {
+          "DEX": 1,
+          "SOC": -2,
+          "fixed_skills": ["Pilot 0"],
+          "jack_of_all_trades": 1,
+          "additional_skills_from_enrollment_0": 3,
+          "skills_from_enrollment_1": 1,
+          "permanent": {
+            "spacer_career_dm": 1,
+            "spacer_career_id": "merchant",
+            "spacer_assignment_id": "free_trader"
+          },
+          "note": "Graduated with Honours. DEX+1, SOC-2, Pilot 0, Jack-of-all-Trades 1. Three enrollment skills at level 0, one at level 1. DM+1 enlist/commission/promotion in Merchant (Free Trader)."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. No graduation benefits."
+        }
+      }
     }
   }
 }
