@@ -1964,10 +1964,10 @@ function wireCareerPhase() {
 
   // Event-choice skill picker: clicking a chip applies the chosen skill.
   const disableAllEventChips = () => {
-    document.querySelectorAll('[data-event-skill],[data-event-dm]').forEach(c => { c.disabled = true; });
+    document.querySelectorAll('[data-event-skill],[data-event-dm],[data-event-transfer]').forEach(c => { c.disabled = true; });
   };
   const enableAllEventChips = () => {
-    document.querySelectorAll('[data-event-skill],[data-event-dm]').forEach(c => { c.disabled = false; });
+    document.querySelectorAll('[data-event-skill],[data-event-dm],[data-event-transfer]').forEach(c => { c.disabled = false; });
   };
   document.querySelectorAll('[data-event-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
@@ -3363,20 +3363,30 @@ function renderEventStep() {
     const _eShowPicker = !_eChosen && (
       (_ePickerOpts && _ePickerOpts.length > 0) ||
       (_eWild && (_eDmAlt || pendingGrants.length > 0)) ||
-      _eTransfer
+      (_eTransfer && !pendingGrants.length)  // transfer alone (no competing DM)
     );
     // DMs embedded as alternatives in the skill picker (prisoner[5] pattern)
     const pendingGrantsInPicker = _eShowPicker && pendingGrants.length > 0 && !_eDmAlt;
-    // Two competing DM choices with no skill picker (citizen[10], merchant[8])
-    const showDualDmChoice = !_eChosen && !_eShowPicker && pendingGrants.length >= 2;
+    // Competing rewards with no skill picker: DM vs DM, or DM vs transfer
+    const showDualChoice = !_eChosen && !_eShowPicker && (
+      pendingGrants.length >= 2 ||
+      (pendingGrants.length >= 1 && !!_eTransfer)
+    );
 
-    const pendingHTML = showDualDmChoice ? `
+    const pendingHTML = showDualChoice ? `
       <div class="event-skill-picker">
-        <span class="event-label">Choose one DM reward</span>
+        <span class="event-label"><strong>PICK ONE</strong></span>
         <div class="skill-picker">
           ${pendingGrants.map(g => `
             <button class="skill-chip dm-alt" data-event-dm="${g.dm}" data-event-dm-target="${escapeHTML(g.target)}">DM${g.dm >= 0 ? '+' : ''}${g.dm} to next ${escapeHTML(g.target)} roll</button>
           `).join('')}
+          ${_eTransfer ? `
+            <button class="skill-chip dm-alt" data-event-transfer="${escapeHTML(_eTransfer.career_id)}">${
+              _eTransfer.career_id === 'any'
+                ? 'Transfer to a career of your choice (no qualification roll)'
+                : `Transfer to ${escapeHTML(_eTransfer.career_name)} (no qualification roll)`
+            }</button>
+          ` : ''}
         </div>
       </div>
     ` : (!pendingGrantsInPicker && pendingGrants.length) ? `
