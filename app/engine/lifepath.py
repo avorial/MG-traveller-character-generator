@@ -3140,16 +3140,47 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         character.ship_shares += dice.roll("2D").total
         return
 
+    # Associates — Ally, Contact, Rival, Enemy
+    _ASSOC_KINDS = {
+        "ally": "ally",
+        "contact": "contact",
+        "rival": "rival",
+        "enemy": "enemy",
+    }
+    b_lower = b.lower()
+    if b_lower in _ASSOC_KINDS:
+        character.associates.append(
+            Associate(kind=_ASSOC_KINDS[b_lower], description="From mustering out")
+        )
+        return
+
     # Multi-part "SOC +1 and Yacht"
     if " and " in b:
         for part in b.split(" and "):
             _apply_benefit(character, part)
         return
+
+    # "X or Y" — if either side is an associate, keep both options visible as a note;
+    # if both sides are concrete items, add as equipment with a choice note
     if " or " in b:
-        # Ambiguous — add as equipment/note with options
-        character.equipment.append(
-            Equipment(name=b, notes="Player choice: pick one")
-        )
+        parts = [p.strip() for p in b.split(" or ")]
+        # Check if any part is an associate kind
+        assoc_parts = [p for p in parts if p.lower() in _ASSOC_KINDS]
+        non_assoc_parts = [p for p in parts if p.lower() not in _ASSOC_KINDS]
+        if assoc_parts and non_assoc_parts:
+            # Mixed: e.g. "Blade or Ally" — add as equipment note so player can choose
+            character.equipment.append(
+                Equipment(name=b, notes="Player choice: pick one (Ally/Contact/Rival/Enemy → Associates)")
+            )
+        elif assoc_parts:
+            # All parts are associates — add the first as a note; player picks
+            character.equipment.append(
+                Equipment(name=b, notes="Player choice: pick one → add to Associates")
+            )
+        else:
+            character.equipment.append(
+                Equipment(name=b, notes="Player choice: pick one")
+            )
         return
 
     # Everything else → equipment/reference
