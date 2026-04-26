@@ -66,7 +66,9 @@ _CONDITIONAL_RE = re.compile(
     r"|,\s*or\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)"
     r"|\bor\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)\s+to\s+(?:a|any|your|one)"
     # DM is the first alternative: "DM+N ... , or pick up / gain / take / increase <skill>"
-    r"|\bdm\s*[+-]\d+[^.]{0,80}?,\s*or\s+(?:pick\s+up|gain|take|increase|learn|get|choose)\b",
+    r"|\bdm\s*[+-]\d+[^.]{0,80}?,\s*or\s+(?:pick\s+up|gain|take|increase|learn|get|choose)\b"
+    # DM is one option, career transfer is the other: ", or transfer to ..."
+    r"|,?\s*or\s+transfer\s+to\b",
     re.IGNORECASE,
 )
 
