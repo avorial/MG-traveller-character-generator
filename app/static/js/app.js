@@ -992,10 +992,14 @@ function renderPreCareerPhase() {
   const status = character.pre_career_status || {};
   const stage = status.stage || 'none';
 
-  // Skill picker screen — shown after user clicks through the graduation result
+  // Skill picker screen — shown after enrollment (level 0) or graduation (level 1)
   if (uiState.lastRoll?.type === 'precareer_skill_pick') {
     const remaining = status.skill_picks_remaining || 0;
     const pool = status.skill_pool || [];
+    const pickLevel = status.skill_pick_level ?? 1;
+    const pickStage = status.skill_pick_stage ?? 'graduation';
+    const stageLabel = pickStage === 'enrollment' ? 'Enrollment Skills' : 'Graduation Skills';
+    const levelLabel = pickLevel === 0 ? 'level 0 (your majors — you can raise them later)' : 'level 1';
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
     const picker = pool.map(s => {
       const sel = picked.includes(s);
@@ -1005,9 +1009,9 @@ function renderPreCareerPhase() {
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
-        <div class="phase-label">Graduation Skills</div>
+        <div class="phase-label">${escapeHTML(stageLabel)}</div>
         <h2 class="phase-title">Pick ${remaining} Skill${remaining === 1 ? '' : 's'}</h2>
-        <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at level 1.</p>
+        <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at <strong>${levelLabel}</strong>.</p>
         <div class="skill-picker">${picker}</div>
         <div class="phase-actions">
           <button class="btn primary" id="btn-confirm-pc-skills"
@@ -1319,7 +1323,7 @@ function renderPreCareerPhase() {
         </button>
         <button class="card" id="btn-pc-academy">
           <div class="card-title">Military Academy</div>
-          <div class="card-desc">3 years. Qualification varies by service. Graduate and you start that career commissioned (Rank 1) with DM+1 to next advancement.</div>
+          <div class="card-desc">3 years. Qualification varies by service. Pass graduation to roll Commission 8+ with DM+2 — success starts you at officer rank. Graduated with Honours means automatic Rank 1 commission.</div>
         </button>
         <button class="card" id="btn-pc-skip">
           <div class="card-title">Skip</div>
@@ -1415,12 +1419,21 @@ function wirePreCareerPhase() {
   const postQualify = document.getElementById('btn-post-precareer-qualify');
   if (postQualify) postQualify.addEventListener('click', () => {
     const passed = uiState.lastRoll?.passed;
-    uiState.lastRoll = null;
     if (passed) {
-      // Stay in pre_career, will show enrolled -> graduation button
-      renderStage();
+      // University enrollment: player picks 2 skills at level 0 before events
+      const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+      if (hasPicks) {
+        uiState.selectedPreCareerSkills = new Set();
+        uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_skill_pick' };
+        renderStage();
+      } else {
+        // Military academy or no enrollment picks — go straight to enrolled view
+        uiState.lastRoll = null;
+        renderStage();
+      }
     } else {
       // Engine already set phase=career on failed qualification
+      uiState.lastRoll = null;
       renderAll();
     }
   });
@@ -1665,8 +1678,15 @@ function wirePreCareerPhase() {
         { chosen_skills: chosen });
       await applyResponse(response);
       uiState.selectedPreCareerSkills = new Set();
-      uiState.lastRoll = null;
-      renderAll();
+      // If enrollment picks done: stay in pre_career for events/graduation
+      // If graduation picks done: character.phase is already 'career'
+      if (response.skill_pick_stage === 'enrollment' && response.skill_picks_remaining === 0) {
+        uiState.lastRoll = null;
+        renderStage(); // show the enrolled view (events/graduation buttons)
+      } else {
+        uiState.lastRoll = null;
+        renderAll();
+      }
     } catch (e) { alert(e.message); }
   });
 
@@ -2414,6 +2434,7 @@ function wireCareerPhase() {
         injuryPending: response.injury_pending || false,
         injuryTitle: response.injury_data?.title || null,
         injuryText: response.injury_data?.text || null,
+        injuryRoll: response.injury_data?.roll?.total ?? null,
       };
       renderAll();
     });
@@ -2445,6 +2466,7 @@ function wireCareerPhase() {
       if (response.injury_data) {
         uiState.lastRoll.injuryTitle = response.injury_data.title;
         uiState.lastRoll.injuryText = response.injury_data.text;
+        uiState.lastRoll.injuryRoll = response.injury_data?.roll?.total ?? null;
       }
       if (response.skill_check) {
         uiState.lastRoll.skillCheckResult = response.skill_check;
@@ -3942,9 +3964,10 @@ function renderMishapStep() {
     // Injury data box (from auto-resolved injury effect)
     let injDataHtml = '';
     if (lr.injuryTitle) {
+      const injRollLabel = lr.injuryRoll != null ? ` [Injury Table 1D=${lr.injuryRoll}]` : '';
       injDataHtml = `
         <div class="event-box" style="margin-top:12px">
-          <span class="event-label">Injury — ${escapeHTML(lr.injuryTitle)}</span>
+          <span class="event-label">Injury Table${injRollLabel} — ${escapeHTML(lr.injuryTitle)}</span>
           ${escapeHTML(lr.injuryText || '')}
         </div>`;
     }
@@ -4064,15 +4087,16 @@ function renderMishapStep() {
     if (injPending) {
       const inj = injPending;
       const choices = inj.choices || ['STR', 'DEX', 'END'];
+      const injTableRoll = lr.injuryRoll != null ? ` (Injury Table 1D=${lr.injuryRoll})` : '';
       const cards = choices.map(stat => `
         <button class="card" id="btn-career-injury-stat-${stat}">
           <div class="card-title">${stat} — ${statDescs[stat] || stat}</div>
           <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
-          <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()}.</div>
+          <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Gross debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()} (career may cover a portion).</div>
         </button>`).join('');
       injPickerHtml = `
-        <p class="phase-body" style="margin-top:14px"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}</strong></p>
-        <p style="font-size:11px;color:var(--amber-dim)">Medical care: Cr 5,000 per point lost — added to debt.</p>
+        <p class="phase-body" style="margin-top:14px"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}${injTableRoll}</strong></p>
+        <p style="font-size:11px;color:var(--amber-dim)">Cr 5,000 per point lost — a 2D+Rank roll determines how much your career covers.</p>
         <div class="card-grid">${cards}</div>`;
     }
 

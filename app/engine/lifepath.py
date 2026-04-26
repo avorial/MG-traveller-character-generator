@@ -743,19 +743,30 @@ def pre_career_qualify(
         # Age ticks on successful enrollment (student has committed).
         character.age += track_data["age_cost"]
 
+        # University: 2 enrollment skill picks at level 0 (your "majors").
+        # Military Academy: no enrollment picks — service skills auto-applied above.
+        enrollment_picks = 0
+        enrollment_skill_pool: list[str] = []
+        if track == "university":
+            enrollment_picks = 2
+            enrollment_skill_pool = list(track_data.get("skill_list", []))
+
         character.pre_career_status = {
             "track": track,
             "service": service,
             "stage": "enrolled",
             "outcome": None,
-            "skill_picks_remaining": 0,
-            "skill_pool": [],
+            "skill_picks_remaining": enrollment_picks,
+            "skill_pick_level": 0,          # enrollment picks are at level 0
+            "skill_pick_stage": "enrollment",  # after picks, stay in pre_career
+            "skill_pool": enrollment_skill_pool,
         }
         character.log(
             f"Qualified for {display_name} ({char_key} {target}+): "
             f"2D{dm:+d} = {r.total} [PASS]. "
             + (f"Enrollment bonus: {', '.join(enrollment_applied)}"
                if enrollment_applied else "")
+            + (f" — {enrollment_picks} enrollment skill picks pending" if enrollment_picks else "")
         )
     else:
         # Failed qualification — no age cost, fall through to careers.
@@ -1114,6 +1125,8 @@ def pre_career_graduate(
         "stage": "graduated" if outcome != "fail" else "failed_grad",
         "outcome": outcome,
         "skill_picks_remaining": picks_remaining,
+        "skill_pick_level": 1,          # graduation picks are at level 1
+        "skill_pick_stage": "graduation",  # when done, advance to career
         "skill_pool": skill_pool,
         "events_remaining": 0,
         "events_rolled": [ev.total],
@@ -1156,11 +1169,18 @@ def pre_career_graduate(
 def pre_career_choose_skills(
     character: Character, chosen_skills: list[str]
 ) -> dict:
-    """Apply pending graduation skill picks (used when the UI resolves picks
-    separately from the graduation roll)."""
+    """Apply pending skill picks (enrollment at level 0, or graduation at level 1).
+
+    skill_pick_level in pre_career_status controls the level applied.
+    skill_pick_stage controls what happens when picks are exhausted:
+      - "enrollment": stay in pre_career for events/graduation
+      - "graduation": advance phase to "career"
+    """
     status = character.pre_career_status or {}
     remaining = int(status.get("skill_picks_remaining", 0))
     pool = list(status.get("skill_pool", []))
+    skill_level = int(status.get("skill_pick_level", 1))
+    skill_pick_stage = status.get("skill_pick_stage", "graduation")
 
     if remaining <= 0:
         raise ValueError("No pending skill picks.")
@@ -1176,22 +1196,34 @@ def pre_career_choose_skills(
         if "(" in s and s.endswith(")"):
             name = s[: s.index("(")].strip()
             speciality = s[s.index("(") + 1 : -1].strip()
-        character.add_skill(name, level=1, speciality=speciality)
+        character.add_skill(name, level=skill_level, speciality=speciality)
 
     remaining -= len(chosen_skills)
-    character.pre_career_status = {
-        **status,
-        "skill_picks_remaining": remaining,
-    }
+    stage_label = "enrollment" if skill_pick_stage == "enrollment" else "graduation"
     character.log(
-        f"Picked {len(chosen_skills)} pre-career graduation skill(s): "
+        f"Picked {len(chosen_skills)} pre-career {stage_label} skill(s) at level {skill_level}: "
         + ", ".join(chosen_skills)
     )
+
     if remaining == 0:
-        character.phase = "career"
+        if skill_pick_stage == "graduation":
+            character.phase = "career"
+        # For enrollment: clear picks but stay in pre_career (events/graduation next)
+        character.pre_career_status = {
+            **status,
+            "skill_picks_remaining": 0,
+            "skill_pool": [],
+        }
+    else:
+        character.pre_career_status = {
+            **status,
+            "skill_picks_remaining": remaining,
+        }
+
     return {
         "chosen": chosen_skills,
         "skill_picks_remaining": remaining,
+        "skill_pick_stage": skill_pick_stage,
         "character": character.model_dump(),
     }
 
