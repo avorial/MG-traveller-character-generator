@@ -2801,14 +2801,26 @@ def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
             applied.append(f"{stat} {old_v}→{new_v} (-{loss})")
 
     # Medical debt: Cr 5,000 per point lost.
-    debt = total_loss * 5000
-    if debt > 0:
-        character.medical_debt += debt
-        applied.append(f"Medical debt: Cr{debt:,} (Cr5,000 × {total_loss} pts)")
-        character.log(
-            f"Medical bills: Cr{debt:,} added "
-            f"(Cr{character.medical_debt:,} total owed)."
+    gross_debt = total_loss * 5000
+    medical_bills_info: dict | None = None
+    if gross_debt > 0:
+        # Roll 2D + Rank to see how much the career covers.
+        medical_bills_info = _medical_bills_roll(character, gross_debt)
+        net_debt = medical_bills_info["remaining"]
+        covered = medical_bills_info["covered"]
+        character.medical_debt += net_debt
+        applied.append(
+            f"Medical bills: Cr{gross_debt:,} gross "
+            f"(career covers {medical_bills_info['coverage_pct']}% = Cr{covered:,}; "
+            f"Cr{net_debt:,} owed)"
         )
+        character.log(
+            f"Medical bills: Cr{gross_debt:,} gross — {medical_bills_info['category']} career "
+            f"covers {medical_bills_info['coverage_pct']}% (roll {medical_bills_info['total']}). "
+            f"Cr{net_debt:,} added (Cr{character.medical_debt:,} total owed)."
+        )
+    else:
+        net_debt = 0
 
     character.log(
         f"Injury resolved ({pending['title']}): {chosen_stat} chosen. "
@@ -2820,8 +2832,10 @@ def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
         "chosen_stat": chosen_stat,
         "applied": applied,
         "total_loss": total_loss,
-        "medical_debt_added": debt,
+        "gross_debt": gross_debt,
+        "medical_debt_added": net_debt,
         "medical_debt_total": character.medical_debt,
+        "medical_bills_roll": medical_bills_info,
         "character": character.model_dump(),
     }
 
@@ -3208,6 +3222,72 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
     applied_msg = character.add_skill(name, level=level, speciality=speciality)
     disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     return f"Rank bonus applied: {disp} ({applied_msg})"
+
+
+def _medical_bills_roll(character: "Character", gross_debt: int) -> dict:
+    """Roll 2D + Rank to see how much of medical debt the character's career pays.
+
+    MgT 2e p.47 medical bills table:
+      Military (army/marine/navy):
+        Roll <4: 0%  | 4–7: 75% | 8+: 100%
+      Civilian (agent/noble/scholar/entertainer/merchant/citizen):
+        Roll <4: 0%  | 4–7: 50% | 8–11: 75% | 12+: 100%
+      Fringe (scout/rogue/drifter/prisoner/others):
+        Roll <4: 0%  | 4–7: 0%  | 8–11: 50% | 12+: 75%
+
+    Returns a dict with roll info and how much debt was cancelled.
+    """
+    _MILITARY = {"army", "marine", "navy"}
+    _CIVILIAN = {"agent", "noble", "scholar", "entertainer", "merchant", "citizen"}
+
+    career_id = ""
+    rank = 0
+    if character.current_term:
+        career_id = character.current_term.career_id
+        rank = character.current_term.rank
+
+    r = dice.roll("2D")
+    total = r.total + rank
+
+    if career_id in _MILITARY:
+        if total >= 8:
+            pct = 100
+        elif total >= 4:
+            pct = 75
+        else:
+            pct = 0
+        category = "Military"
+    elif career_id in _CIVILIAN:
+        if total >= 12:
+            pct = 100
+        elif total >= 8:
+            pct = 75
+        elif total >= 4:
+            pct = 50
+        else:
+            pct = 0
+        category = "Civilian"
+    else:
+        # Fringe: scout, rogue, drifter, prisoner, pre-career, etc.
+        if total >= 12:
+            pct = 75
+        elif total >= 8:
+            pct = 50
+        else:
+            pct = 0
+        category = "Fringe"
+
+    covered = int(gross_debt * pct / 100)
+    remaining = gross_debt - covered
+    return {
+        "roll": r.to_dict(),
+        "rank_dm": rank,
+        "total": total,
+        "category": category,
+        "coverage_pct": pct,
+        "covered": covered,
+        "remaining": remaining,
+    }
 
 
 def _benefit_rolls_from_rank(rank: int) -> int:

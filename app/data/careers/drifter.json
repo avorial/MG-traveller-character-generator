@@ -114,7 +114,7 @@
     "5": "You fall in with a band of fellow drifters. Gain an Ally and increase one of Streetwise, Deception or Persuade by 1.",
     "6": "You are hired for a brief but dangerous job. Roll END 8+; on success, gain DM+2 to a Benefit roll this term. On failure, roll on the Mishap Table (not ejected).",
     "7": "Life Event. Roll on the Life Events Table.",
-    "8": "You wander to a remote region and must survive on your wits. Roll Survival 8+ to gain Survival 1 and a Contact; on failure, lose one point of END.",
+    "8": "You are attacked by enemies. Gain an Enemy if you do not have one already, and roll either Melee 8+, Gun Combat 8+ or Stealth 8+ to avoid a roll on the Injury Table.",
     "9": "You discover something of value — a derelict, an artifact, salvage. Gain DM+2 to one Benefit roll.",
     "10": "You help out a local in trouble. Gain an Ally and DM+2 to your next Advancement check.",
     "11": "You pick up useful knowledge from your wanderings. Gain one level in any skill of your choice, or transfer to any other career (without a Qualification roll).",

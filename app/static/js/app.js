@@ -437,6 +437,38 @@ function escapeHTML(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/**
+ * Build a human-readable medical bills alert string from an injury-choice response.
+ * Returns an empty string if no debt was incurred.
+ */
+function formatMedicalBillsMsg(response) {
+  const gross = response.gross_debt || 0;
+  if (gross <= 0) return '';
+  const applied = response.applied || [];
+  const bills = response.medical_bills_roll;
+  const net = response.medical_debt_added || 0;
+  const total = response.medical_debt_total || 0;
+
+  let msg = `Injury applied: ${applied.join(', ') || 'resolved'}.`;
+  msg += `\n\nMedical Bills (MgT2e p.47):`;
+  msg += `\n  Gross debt: Cr${gross.toLocaleString()} (Cr5,000 × ${gross / 5000} pts)`;
+
+  if (bills) {
+    const rollStr = `2D(${bills.roll?.total ?? '?'}) + Rank ${bills.rank_dm} = ${bills.total}`;
+    msg += `\n  Career category: ${bills.category}`;
+    msg += `\n  Medical roll: ${rollStr}`;
+    msg += `\n  Coverage: ${bills.coverage_pct}% — Cr${bills.covered.toLocaleString()} paid by career`;
+    msg += `\n  You owe: Cr${net.toLocaleString()}`;
+  } else {
+    msg += `\n  You owe: Cr${net.toLocaleString()}`;
+  }
+
+  if (total > 0) {
+    msg += `\n  Total medical debt: Cr${total.toLocaleString()} (deducted from mustering-out cash)`;
+  }
+  return msg;
+}
+
 // ------------------------------------------------------------
 // Rendering: Stage (center panel — phase-specific UI)
 // ------------------------------------------------------------
@@ -1444,11 +1476,8 @@ function wirePreCareerPhase() {
       try {
         const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
         await applyResponse(response);
-        const debtAdded = response.medical_debt_added || 0;
-        const totalDebt = response.medical_debt_total || 0;
-        if (debtAdded > 0) {
-          alert(`Injury applied: ${response.applied?.join(', ') || stat}.\nMedical debt: Cr${debtAdded.toLocaleString()} added (Cr${totalDebt.toLocaleString()} total owed — deducted from mustering-out cash).`);
-        }
+        const billsMsg = formatMedicalBillsMsg(response);
+        if (billsMsg) alert(billsMsg);
         // After injury, check if life event choice is still pending
         const lr = uiState.lastRoll;
         if (character.pending_life_event_choice) {
@@ -2599,11 +2628,8 @@ function wireCareerPhase() {
       try {
         const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
         await applyResponse(response);
-        const debtAdded = response.medical_debt_added || 0;
-        const totalDebt = response.medical_debt_total || 0;
-        if (debtAdded > 0) {
-          alert(`Injury applied: ${response.applied?.join(', ') || stat}.\nMedical debt: Cr${debtAdded.toLocaleString()} added (Cr${totalDebt.toLocaleString()} total owed).`);
-        }
+        const billsMsg = formatMedicalBillsMsg(response);
+        if (billsMsg) alert(billsMsg);
         uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false };
         renderAll();
       } catch (e) { alert(e.message); }

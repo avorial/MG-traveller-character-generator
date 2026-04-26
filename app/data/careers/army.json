@@ -140,8 +140,8 @@
     "6": "You are thrown into a brutal ground war. Roll EDU 8+ to avoid injury; if you succeed, you gain one level in Gun Combat or Leadership.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
-    "9": "You are tasked with defending against a guerrilla insurgency. Gain one of Gun Combat 1, Recon 1 or Stealth 1.",
-    "10": "Your heroism in battle is noted by your superiors. Gain DM+2 to any one Advancement roll, or transfer to the Marines (without a Qualification roll) in your next term.",
+    "9": "Surrounded and outnumbered by the enemy, you hold out until relief arrives. Gain DM+2 to your next Advancement check.",
+    "10": "You are assigned to a peacekeeping role. Gain one of Admin 1, Investigate 1, Deception 1 or Recon 1.",
     "11": "You are given training in a specialist field. Either gain one level of Heavy Weapons, Electronics or Engineer, or DM+4 to your next Advancement roll.",
     "12": "Your unit is involved in a notable engagement that brings you honour. You are automatically promoted."
   },

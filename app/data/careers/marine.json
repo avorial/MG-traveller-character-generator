@@ -120,7 +120,7 @@
   },
   "mishaps": {
     "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
-    "2": "A boarding action or deployment goes horribly wrong. Gain an Enemy and Gun Combat 1; you are discharged.",
+    "2": "A mission goes wrong and you are stranded behind enemy lines. Gain an Enemy and one level of any skill you choose.",
     "3": "You witness atrocity — whether committed by your own unit or an enemy. Reduce INT or SOC by 1 and muster out.",
     "4": "You are captured by the enemy and spend years as a prisoner. Gain a Contact (fellow prisoner) and an Enemy; you are unable to re-enlist this term.",
     "5": "Your commanding officer is killed, disgraced or promoted past you, and you are forced out. Gain a Rival.",
