@@ -1974,12 +1974,19 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
     }
 
 
-def apply_life_event(character: Character) -> dict:
+def apply_life_event(character: Character, career_id: Optional[str] = None) -> dict:
     """Roll 2D on the Life Events table and auto-apply everything possible.
+
+    Pass career_id to route to the appropriate table (e.g. Solomani careers
+    use the Solomani Life Events table instead of the standard one).
 
     Returns a dict describing what happened. Interactive outcomes set
     character.pending_life_event_choice so the caller can prompt the player.
     """
+    if career_id is None and character.current_term is not None:
+        career_id = character.current_term.career_id
+    use_solomani = career_id in rules.SOLOMANI_CAREER_IDS
+
     r = dice.roll("2D")
     total = r.total
     auto_applied: list[str] = []
@@ -2000,19 +2007,35 @@ def apply_life_event(character: Character) -> dict:
         auto_applied.append("Noted Dead — Friend/Family in associates")
 
     elif total == 4:
-        # Ending of Relationship — player picks Rival or Enemy.
+        # Standard: Ending of Relationship — player picks Rival or Enemy.
+        # Solomani: Racial Incident — also Rival or Enemy.
         pending_choice = {"kind": "romantic_split"}
-        auto_applied.append("PENDING: choose Rival [Romantic] or Enemy [Romantic]")
+        if use_solomani:
+            auto_applied.append("PENDING: choose Rival or Enemy [Racial Incident]")
+        else:
+            auto_applied.append("PENDING: choose Rival [Romantic] or Enemy [Romantic]")
 
     elif total == 5:
-        # Improved Relationship — gain Ally [Romantic].
-        character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
-        auto_applied.append("Gained Ally [Romantic]")
+        if use_solomani:
+            # SolSec Scrutiny — DM-1 to next advancement roll.
+            character.dm_next_advancement -= 1
+            auto_applied.append("SolSec Scrutiny: DM-1 to next advancement roll")
+        else:
+            # Improved Relationship — gain Ally [Romantic].
+            character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
+            auto_applied.append("Gained Ally [Romantic]")
 
     elif total == 6:
-        # New Relationship — gain Ally [Romantic].
-        character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
-        auto_applied.append("Gained Ally [Romantic]")
+        if use_solomani:
+            # Party Connections — gain Contact [Solomani Party].
+            character.associates.append(
+                Associate(kind="contact", description="Contact [Solomani Party/Confederation]")
+            )
+            auto_applied.append("Gained Contact [Solomani Party/Confederation]")
+        else:
+            # New Relationship — gain Ally [Romantic].
+            character.associates.append(Associate(kind="ally", description="Ally [Romantic]"))
+            auto_applied.append("Gained Ally [Romantic]")
 
     elif total == 7:
         # New Contact — gain Contact [Generic].
@@ -2043,7 +2066,7 @@ def apply_life_event(character: Character) -> dict:
             auto_applied.append("PENDING: no existing Contact/Ally — choose Rival or Enemy [Betrayer]")
 
     elif total == 9:
-        # Travel — DM+2 to next Qualification roll.
+        # Travel / Relocation — DM+2 to next Qualification roll.
         character.dm_next_qualification += 2
         auto_applied.append("DM+2 to next Qualification roll")
 
@@ -2053,12 +2076,18 @@ def apply_life_event(character: Character) -> dict:
         auto_applied.append("Good Fortune: DM+2 token available for one mustering-out benefit roll")
 
     elif total == 11:
-        # Crime — player picks: lose a benefit roll OR take Prisoner career.
-        pending_choice = {
-            "kind": "crime_choice",
-            "has_benefit_rolls": character.pending_benefit_rolls > 0,
-        }
-        auto_applied.append("PENDING: choose crime consequence (lose benefit roll or Prisoner career)")
+        if use_solomani:
+            # Solomani Pride — SOC+1.
+            soc = character.characteristics.get("SOC", 7)
+            character.characteristics["SOC"] = min(soc + 1, character.characteristic_max("SOC"))
+            auto_applied.append("Solomani Pride: SOC+1")
+        else:
+            # Crime — player picks: lose a benefit roll OR take Prisoner career.
+            pending_choice = {
+                "kind": "crime_choice",
+                "has_benefit_rolls": character.pending_benefit_rolls > 0,
+            }
+            auto_applied.append("PENDING: choose crime consequence (lose benefit roll or Prisoner career)")
 
     elif total == 12:
         # Unusual Event — roll 1D sub-event.
@@ -2076,9 +2105,10 @@ def apply_life_event(character: Character) -> dict:
             character.associates.append(Associate(kind="contact", description="Contact [Alien]"))
             auto_applied.append("Gained Science (Alien Races) 1 and Contact [Alien]")
         elif sub == 3:
-            # Alien Artefact — add to equipment.
-            character.equipment.append(Equipment(name="Alien Artefact", notes="Unusual Event 12-3"))
-            auto_applied.append("Alien Artefact added to equipment")
+            # Alien Artefact / Terran Artefact — add to equipment.
+            item_name = "Terran Artefact (Historical)" if use_solomani else "Alien Artefact"
+            character.equipment.append(Equipment(name=item_name, notes="Unusual Event 12-3"))
+            auto_applied.append(f"{item_name} added to equipment")
         elif sub == 4:
             # Amnesia.
             character.associates.append(
@@ -2086,20 +2116,28 @@ def apply_life_event(character: Character) -> dict:
             )
             auto_applied.append("Noted Unknown [Amnesia] in associates")
         elif sub == 5:
-            # Contact with Government.
+            # Contact with Government / Confederation Elite.
+            gov_label = "Met [Confederation Elite]" if use_solomani else "Met [Government Official] — Imperial contact"
             character.associates.append(
-                Associate(kind="contact", description="Met [Government Official] — Imperial contact")
+                Associate(kind="contact", description=gov_label)
             )
-            auto_applied.append("Noted Met [Government Official] in associates")
+            auto_applied.append(f"Noted {gov_label} in associates")
         elif sub == 6:
-            # Ancient Technology — add to equipment.
+            # Ancient Technology.
             character.equipment.append(Equipment(name="Ancient Technology", notes="Unusual Event 12-6"))
             auto_applied.append("Ancient Technology added to equipment")
         auto_applied.insert(0, f"Unusual Event sub-roll: D6={sub}")
 
-    edu = rules.education()
-    life_table: dict = edu.get("life_events", {})
-    event_text = life_table.get(str(total), "Something happens in your life.")
+    # Fetch descriptive text from the appropriate life-events table.
+    life_table_data = rules.life_events_for_career(career_id or "")
+    event_text = life_table_data["entries"].get(str(total), {})
+    if isinstance(event_text, dict):
+        event_text = f"{event_text.get('title', '')}: {event_text.get('text', 'Something happens in your life.')}"
+    elif not event_text:
+        # Fallback: try the legacy education.life_events path.
+        edu = rules.education()
+        legacy_table: dict = edu.get("life_events", {})
+        event_text = legacy_table.get(str(total), "Something happens in your life.")
 
     character.log(
         f"Life Event [{total}]: {event_text}"
@@ -2586,10 +2624,12 @@ def event_roll(character: Character) -> dict:
     key = str(r.total)
     event_text = events.get(key, "(No event encoded for this roll — see rulebook or the career JSON file.)")
 
-    # Life Event sub-table handling
+    # Life Event sub-table handling — route to career-appropriate table.
     if event_text.lower().startswith("life event"):
         life_r = dice.roll("2D")
-        life_data = rules.life_events()["entries"].get(str(life_r.total))
+        career_id_for_evt = term.career_id if term else ""
+        life_table_data = rules.life_events_for_career(career_id_for_evt)
+        life_data = life_table_data["entries"].get(str(life_r.total))
         if life_data:
             event_text = f"Life Event — {life_data['title']}: {life_data['text']}"
             if life_data.get("sub_table"):
@@ -4403,10 +4443,11 @@ def generate_npc() -> dict:
             _apply_event_dms(char, ev_text)
             _apply_event_stat_bonuses(char, ev_text)
             _apply_event_auto_promotion(char, ev_text)
-            # Life event sub-roll
+            # Life event sub-roll — route to career-appropriate table.
             if ev_text.lower().startswith("life event"):
                 life_r = dice.roll("2D")
-                life_data = rules.life_events()["entries"].get(str(life_r.total))
+                life_table_data = rules.life_events_for_career(term.career_id)
+                life_data = life_table_data["entries"].get(str(life_r.total))
                 if life_data:
                     term.events[-1] += f" — {life_data['title']}: {life_data['text']}"
 

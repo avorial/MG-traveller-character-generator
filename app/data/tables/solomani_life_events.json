@@ -1,0 +1,58 @@
+{
+  "description": "Rolled when a Solomani career Event roll results in 'Life Event. Roll on the Solomani Life Events table.' Roll 2D.",
+  "dice": "2D",
+  "entries": {
+    "2": {
+      "title": "Sickness or Injury",
+      "text": "You are injured or become sick. Roll on the Injury Table."
+    },
+    "3": {
+      "title": "Political Upheaval",
+      "text": "A political crisis rocks your world — a Party purge, a SolSec crackdown, or violent factional struggle. Gain a Rival from a competing Party faction or government body."
+    },
+    "4": {
+      "title": "Racial Incident",
+      "text": "You are caught up in an act of racial discrimination or inter-species violence, whether as witness, victim, or unwilling participant. A relationship in your life suffers as a result. Gain a Rival or an Enemy."
+    },
+    "5": {
+      "title": "SolSec Scrutiny",
+      "text": "A SolSec monitor files a report questioning your loyalty or political reliability. The cloud over your record costs you. Suffer DM-1 on your next advancement roll."
+    },
+    "6": {
+      "title": "Party Connections",
+      "text": "Your involvement with the Solomani Movement opens an unexpected door. Gain a Contact in the Solomani Party, the Confederation government, or a Party-affiliated corporation."
+    },
+    "7": {
+      "title": "New Contact",
+      "text": "You gain a new Contact."
+    },
+    "8": {
+      "title": "Betrayal",
+      "text": "You are betrayed in some fashion by a friend or colleague. If you have any Contacts or Allies, convert one into a Rival or Enemy. Otherwise, gain a Rival or Enemy."
+    },
+    "9": {
+      "title": "Relocation",
+      "text": "You relocate to another world within the Confederation — willingly, for opportunity, or under orders. You gain DM+2 to your next Qualification roll."
+    },
+    "10": {
+      "title": "Good Fortune",
+      "text": "Something breaks your way — unexpected credits, a Party favour, or a private opportunity pays off. Gain DM+2 to any one Benefit roll."
+    },
+    "11": {
+      "title": "Solomani Pride",
+      "text": "Your demonstrated commitment to the Solomani Cause earns you respect and recognition within the Confederation. Gain SOC+1."
+    },
+    "12": {
+      "title": "Unusual Event",
+      "text": "Something out of the ordinary occurs. Roll 1D on the Unusual Event sub-table.",
+      "sub_table": {
+        "1": "Psionic Discovery: You encounter evidence of psionic potential — your own or someone else's. You may immediately test your Psionic Strength and, if you qualify, take the Psion career next term.",
+        "2": "Alien Encounter: You have a significant encounter with non-human sophonts. Gain Science 1 and a Contact among an alien species.",
+        "3": "Terran Artefact: You acquire a genuine relic from Old Earth — pre-spaceflight or early interstellar era — of immense historical value to Solomani scholars.",
+        "4": "Amnesia: Something happened to you during this period, but you have no memory of it.",
+        "5": "Confederation Elite: You briefly came into contact with the highest levels of the Confederation — a Grand Admiral, a Secretary General, or Solomani Security leadership.",
+        "6": "Ancient Terran Technology: You come into possession of something dating to before the Imperium — or even before the Long Night."
+      }
+    }
+  }
+}

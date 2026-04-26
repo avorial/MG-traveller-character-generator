@@ -90,6 +90,22 @@ def life_events() -> dict:
 
 
 @lru_cache(maxsize=1)
+def solomani_life_events() -> dict:
+    return _load_file("tables/solomani_life_events.json")
+
+
+# Careers that use the Solomani Life Events table instead of the standard one.
+SOLOMANI_CAREER_IDS: frozenset[str] = frozenset({"party", "confederation_navy", "solsec"})
+
+
+def life_events_for_career(career_id: str) -> dict:
+    """Return the appropriate life-events table for a given career id."""
+    if career_id in SOLOMANI_CAREER_IDS:
+        return solomani_life_events()
+    return life_events()
+
+
+@lru_cache(maxsize=1)
 def injury_table() -> dict:
     return _load_file("tables/injury.json")
 
@@ -181,7 +197,7 @@ def list_careers() -> list[dict]:
 
 def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
-    for fn in (species, careers, background_skills, life_events,
+    for fn in (species, careers, background_skills, life_events, solomani_life_events,
                injury_table, aging_table, mustering_benefits, education,
                psionics, societies):
         fn.cache_clear()
