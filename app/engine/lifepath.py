@@ -215,12 +215,16 @@ def _apply_event_auto_promotion(character: "Character", event_text: str) -> dict
     # Treat this term as already advanced so the player doesn't roll again.
     term.advanced = True
 
+    rank_bonus_log = None
     if rank_data and rank_data.get("bonus"):
         bonus = rank_data["bonus"]
+        rank_bonus_log = _apply_rank_bonus(character, bonus)
         term.skills_gained.append(f"Rank bonus (auto-promotion): {bonus}")
 
     title_part = f" — {term.rank_title}" if term.rank_title else ""
     character.log(f"  - Event grants AUTOMATIC PROMOTION: rank {old_rank} -> {term.rank}{title_part}.")
+    if rank_bonus_log:
+        character.log(f"  - {rank_bonus_log}")
     return {
         "skipped": False,
         "from_rank": old_rank,
@@ -1823,7 +1827,12 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
             f"= {r_comm.total} ({'commissioned' if commissioned_start else 'not commissioned'})"
         )
 
-    starting_rank = 1 if commissioned_start else 0
+    if commissioned_start:
+        starting_rank = 1
+    elif not is_new_career and character.current_term is not None:
+        starting_rank = character.current_term.rank
+    else:
+        starting_rank = 0
 
     term = CareerTerm(
         career_id=career_id,
@@ -1849,9 +1858,47 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
            f"{' (' + term.rank_title + ')' if term.rank_title else ''}"
            if commissioned_start else "")
     )
+
+    # Apply rank-0 bonus (e.g. Army Private gets Gun Combat 1).
+    rank0_data = _rank_data(career, assignment_id, 0)
+    if rank0_data and rank0_data.get("bonus") and first_term_in_this_career and not commissioned_start:
+        bonus0 = rank0_data["bonus"]
+        rank0_log = _apply_rank_bonus(character, bonus0)
+        term.skills_gained.append(f"Rank 0 bonus: {bonus0}")
+        character.log(f"  Rank 0 bonus: {rank0_log}")
+
+    # Basic training: auto-apply all 6 service_skills entries at level 0.
+    basic_training_skills: list[str] = []
+    if first_term_in_this_career and not commissioned_start:
+        service_table = career.get("skill_tables", {}).get("service_skills", {})
+        for i in range(1, 7):
+            entry = service_table.get(str(i), "")
+            if not entry:
+                continue
+            # "X or Y" — take X
+            skill_name = entry.split(" or ")[0].strip()
+            # Skip pure stat boosts like "STR +1"
+            if re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$", skill_name):
+                continue
+            # Parse optional speciality
+            if "(" in skill_name and skill_name.endswith(")"):
+                sname = skill_name[: skill_name.index("(")].strip()
+                spec = skill_name[skill_name.index("(") + 1: -1].strip()
+                character.add_skill(sname, level=0, speciality=spec)
+                disp = f"{sname} ({spec}) 0"
+            else:
+                character.add_skill(skill_name, level=0)
+                disp = f"{skill_name} 0"
+            basic_training_skills.append(disp)
+        if basic_training_skills:
+            term.skills_gained.extend([f"Basic training: {s}" for s in basic_training_skills])
+            character.log(f"  Basic training applied: {', '.join(basic_training_skills)}")
+
     result: dict = {"term": term.model_dump(), "character": character.model_dump()}
     if academy_commission_roll is not None:
         result["academy_commission_roll"] = academy_commission_roll
+    if basic_training_skills:
+        result["basic_training_skills"] = basic_training_skills
     return result
 
 
@@ -2383,7 +2430,9 @@ def advancement_roll(character: Character) -> dict:
         rank_data = _rank_data(career, term.assignment_id, term.rank)
         if rank_data and rank_data.get("bonus"):
             bonus = rank_data["bonus"]
+            rank_bonus_log = _apply_rank_bonus(character, bonus)
             term.skills_gained.append(f"Rank bonus: {bonus}")
+            character.log(f"  Rank bonus: {rank_bonus_log}")
 
     msg = (
         f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}): "
@@ -3096,6 +3145,71 @@ def _rank_data(career: dict, assignment_id: str, rank: int) -> Optional[dict]:
     return rank_table.get(str(rank))
 
 
+_STAT_KEYS_RANK = {"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"}
+
+
+def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
+    """Parse and apply a rank-bonus string to the character.
+
+    Handles:
+      - "STAT +N"            e.g. "SOC +2"
+      - "SkillName N"        e.g. "Gun Combat 1"
+      - "Skill (spec) N"     e.g. "Tactics (military) 1"
+      - "SOC 10 or SOC +1, whichever is higher"
+      - Plain skill name     e.g. "Jack-of-All-Trades" (treated as level 1)
+
+    Returns a human-readable log string.
+    """
+    if not bonus_str:
+        return "no bonus"
+    text = bonus_str.strip()
+
+    # Complex SOC-style: "SOC 10 or SOC +1, whichever is higher"
+    m_complex = re.match(
+        r"^(SOC|STR|DEX|END|INT|EDU|PSI)\s+(\d+)\s+or\s+\1\s*\+(\d+)",
+        text, re.IGNORECASE
+    )
+    if m_complex:
+        stat = m_complex.group(1).upper()
+        floor_val = int(m_complex.group(2))
+        bonus_n = int(m_complex.group(3))
+        current = character.characteristics.get(stat)
+        new_val = max(floor_val, current + bonus_n)
+        character.characteristics.set(stat, new_val)
+        return f"{stat} {current}→{new_val} (rank bonus)"
+
+    # "STAT +N" or "STAT+N"
+    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s*\+(\d+)$", text, re.IGNORECASE)
+    if m_stat:
+        stat = m_stat.group(1).upper()
+        n = int(m_stat.group(2))
+        species_data = rules.species().get(character.species_id, {})
+        max_stat = species_data.get("characteristic_maximum", 15)
+        current = character.characteristics.get(stat)
+        new_val = min(max_stat, current + n)
+        character.characteristics.set(stat, new_val)
+        return f"{stat} {current}→{new_val} (rank bonus)"
+
+    # "Skill (spec) N" or "Skill N" or plain "Skill"
+    # Try to strip a trailing digit as the level
+    level = 1
+    m_level = re.search(r"\s+(\d+)\s*$", text)
+    if m_level:
+        level = int(m_level.group(1))
+        text = text[: m_level.start()].strip()
+
+    speciality: str | None = None
+    if "(" in text and text.endswith(")"):
+        name = text[: text.index("(")].strip()
+        speciality = text[text.index("(") + 1: -1].strip()
+    else:
+        name = text
+
+    applied_msg = character.add_skill(name, level=level, speciality=speciality)
+    disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
+    return f"Rank bonus applied: {disp} ({applied_msg})"
+
+
 def _benefit_rolls_from_rank(rank: int) -> int:
     if rank >= 5:
         return 3
@@ -3126,19 +3240,19 @@ def _apply_skill_result(character: Character, result: str) -> str:
     # "X or Y" — just record both options; first one is granted for simplicity
     if " or " in stripped:
         first = stripped.split(" or ")[0]
-        character.add_skill(first)
-        return f"Gained {first} (from choice: {stripped})"
+        character.add_skill(first, level=1)
+        return f"Gained {first} 1 (from choice: {stripped})"
 
     # Skill with speciality: "Melee (blade)", "Pilot (small craft)"
     if "(" in stripped and ")" in stripped:
         name = stripped.split("(")[0].strip()
         spec = stripped.split("(")[1].rstrip(")")
-        character.add_skill(name, speciality=spec)
-        return f"Gained {name} ({spec}) 0"
+        character.add_skill(name, level=1, speciality=spec)
+        return f"Gained {name} ({spec}) 1"
 
     # Plain skill name
-    character.add_skill(stripped)
-    return f"Gained {stripped} 0"
+    character.add_skill(stripped, level=1)
+    return f"Gained {stripped} 1"
 
 
 def grant_event_skill(character: Character, skill_text: str) -> dict:
@@ -3579,3 +3693,43 @@ def generate_npc() -> dict:
     char.phase = "complete"
     char.log(f"NPC generation complete. Age {char.age}, {char.total_terms} terms.")
     return {"character": char.model_dump()}
+
+
+# ============================================================
+# Skill Packages (MgT2e p.42)
+# ============================================================
+
+def apply_skill_package(character: Character, package_id: str) -> dict:
+    """Apply a skill package to the character after character creation.
+
+    Each entry in the package is a string like "Pilot 1" or "Tactics (naval) 1".
+    The character.add_skill call increases an existing skill by level, or
+    creates it at that level if new.
+    """
+    packages_data = rules.skill_packages()
+    package = packages_data.get("packages", {}).get(package_id)
+    if package is None:
+        raise ValueError(f"Unknown skill package: {package_id}")
+
+    applied: list[str] = []
+    for skill_str in package.get("skills", []):
+        text = skill_str.strip()
+        # Extract trailing level number
+        level = 1
+        m = re.search(r"\s+(\d+)\s*$", text)
+        if m:
+            level = int(m.group(1))
+            text = text[: m.start()].strip()
+        # Extract optional speciality
+        speciality: str | None = None
+        if "(" in text and text.endswith(")"):
+            name = text[: text.index("(")].strip()
+            speciality = text[text.index("(") + 1: -1].strip()
+        else:
+            name = text
+        msg = character.add_skill(name, level=level, speciality=speciality)
+        disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
+        applied.append(disp)
+        character.log(f"Skill package '{package_id}': {disp} — {msg}")
+
+    return {"applied": applied, "character": character.model_dump()}

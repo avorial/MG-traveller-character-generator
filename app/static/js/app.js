@@ -22,6 +22,8 @@ const ALL_SKILLS_NO_JOT = ALL_SKILLS.filter(s => s !== 'Jack-of-All-Trades');
 
 const STORAGE_KEY = 'traveller-character-v1';
 
+let SKILL_PACKAGES = {};
+
 let character = null;
 let uiState = {
   // Transient selections that aren't part of the character yet
@@ -44,6 +46,10 @@ let uiState = {
   // Connections step (between muster-out and done).
   connectionsDone: false,
   connections: [],
+  // Basic training skills auto-applied at start of first career term.
+  basicTrainingSkills: null,
+  // Skill package selection (post mustering-out).
+  skillPackageApplied: false,
 };
 
 // ------------------------------------------------------------
@@ -76,7 +82,9 @@ async function freshCharacter() {
               swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false,
               gmMode: uiState.gmMode,
-              connectionsDone: false, connections: [] };
+              connectionsDone: false, connections: [],
+              basicTrainingSkills: null,
+              skillPackageApplied: false };
   saveCharacter();
 }
 
@@ -466,6 +474,10 @@ function renderStage() {
     case 'mustering':
       stage.innerHTML = renderMusterPhase();
       wireMusterPhase();
+      break;
+    case 'skill_package':
+      stage.innerHTML = renderSkillPackagePhase();
+      wireSkillPackagePhase();
       break;
     case 'done':
       stage.innerHTML = renderDonePhase();
@@ -1820,6 +1832,9 @@ function wireCareerPhase() {
       if (response.academy_commission_roll) {
         uiState.academyCommissionRoll = response.academy_commission_roll;
       }
+      if (response.basic_training_skills) {
+        uiState.basicTrainingSkills = response.basic_training_skills;
+      }
       uiState.subPhase = 'train';
       renderAll();
     });
@@ -1863,6 +1878,15 @@ function wireCareerPhase() {
     });
   }
 
+  const btnBasicTrainingContinue = document.getElementById('btn-basic-training-continue');
+  if (btnBasicTrainingContinue) {
+    btnBasicTrainingContinue.addEventListener('click', () => {
+      uiState.basicTrainingSkills = null;
+      uiState.subPhase = 'survive';
+      renderStage();
+    });
+  }
+
   const btnSurvive = document.getElementById('btn-survive');
   if (btnSurvive) {
     btnSurvive.addEventListener('click', async () => {
@@ -1900,7 +1924,30 @@ function wireCareerPhase() {
         dmGrants: response.dm_grants || [],
         statBonuses: response.stat_bonuses || [],
         autoPromotion: response.auto_promotion || null,
+        associateOpsDone: [],
       };
+
+      // Auto-add unambiguous single Ally grants without requiring the picker.
+      // "Allies should always be added to the associates" — only skip if
+      // quantity ops are present (D3 Allies etc.) since those need a die roll
+      // to determine count.
+      const rawAssocOpsForEvent = parseEventAssociateOps(response.event || '');
+      const hasQuantityOps = rawAssocOpsForEvent.some(op => op.type === 'quantity');
+      if (!hasQuantityOps) {
+        for (let rawIdx = 0; rawIdx < rawAssocOpsForEvent.length; rawIdx++) {
+          const op = rawAssocOpsForEvent[rawIdx];
+          if (op.type === 'add' && op.kinds.length === 1 && op.kinds[0] === 'ally') {
+            try {
+              const allyResp = await apiCall('/api/character/associate', { op: 'add', kind: 'ally', description: '' });
+              await applyResponse(allyResp);
+              const done = uiState.lastRoll.associateOpsDone;
+              while (done.length <= rawIdx) done.push(null);
+              done[rawIdx] = 'Ally auto-added to Associates';
+            } catch (_e) { /* silently ignore — ally was at least flagged */ }
+          }
+        }
+      }
+
       // Stay on 'event' so the dice + event text render together
       renderAll();
     });
@@ -2734,6 +2781,25 @@ function renderSkillChoice() {
     `;
   }
 
+  // Basic training: auto-applied by the backend — show a summary view.
+  if (term.basic_training) {
+    const btSkills = uiState.basicTrainingSkills || [];
+    const skillItems = btSkills.length
+      ? btSkills.map(s => `<li style="font-family:var(--font-mono);font-size:12px;color:var(--amber)">${escapeHTML(s)}</li>`).join('')
+      : '<li style="color:var(--muted)">Skills applied — see character sheet.</li>';
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Basic Training — Auto-Applied</div>
+        <h2 class="phase-title">Basic Training</h2>
+        <p class="phase-subtitle">First term in this career — all Service Skills granted at level 0 automatically.</p>
+        <ul style="list-style:none;padding:0;margin:12px 0">${skillItems}</ul>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-basic-training-continue">CONTINUE TO SURVIVAL →</button>
+        </div>
+      </div>
+    `;
+  }
+
   // Which tables can this character roll on?
   const available = Object.entries(tables).filter(([key, t]) => {
     if (t.assignment_only && t.assignment_only !== term.assignment_id) return false;
@@ -2780,10 +2846,8 @@ function renderSkillChoice() {
   return `
     <div class="stage-content">
       <div class="phase-label">Skill Training · 1D Roll</div>
-      <h2 class="phase-title">${term.basic_training ? 'Basic Training' : 'Skills and Training'}</h2>
-      <p class="phase-subtitle">${term.basic_training
-        ? 'First term in this career — pick any table to roll 1D.'
-        : 'Pick one skill table and roll 1D on it.'}</p>
+      <h2 class="phase-title">Skills and Training</h2>
+      <p class="phase-subtitle">Pick one skill table and roll 1D on it.</p>
       ${commRollHTML}
       <div class="phase-actions" style="flex-direction:column;align-items:stretch;gap:8px">
         ${buttons}
@@ -3541,7 +3605,7 @@ function renderEventStep() {
           <span class="event-label">Choose your reward</span>
           ${wLabel ? `<p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>Pick ${escapeHTML(wLabel)}:</em></p>` : ''}
           <div class="skill-picker">
-            ${opts.map(opt => `<button class="skill-chip" data-contested-skill="${escapeHTML(opt)}">+ ${escapeHTML(opt)} 1</button>`).join('')}
+            ${opts.map(opt => { const dispOpt = opt.replace(/\s+\d+\s*$/, ''); return `<button class="skill-chip" data-contested-skill="${escapeHTML(opt)}">+ ${escapeHTML(dispOpt)} 1</button>`; }).join('')}
           </div>
           <p class="picker-status">Pick one to continue.</p>
         </div>
@@ -4289,6 +4353,69 @@ function wireMusterPhase() {
   const btnFinalize = document.getElementById('btn-finalize');
   if (btnFinalize) {
     btnFinalize.addEventListener('click', () => {
+      if (!uiState.skillPackageApplied) {
+        character.phase = 'skill_package';
+      } else {
+        character.phase = 'done';
+      }
+      saveCharacter();
+      renderAll();
+    });
+  }
+}
+
+// ============================================================
+// PHASE 5b: Skill Package Selection
+// ============================================================
+
+function renderSkillPackagePhase() {
+  const packages = Object.entries(SKILL_PACKAGES);
+  const cards = packages.map(([id, pkg]) => {
+    const skillList = (pkg.skills || []).join(', ');
+    return `
+      <button class="card" data-package-id="${escapeHTML(id)}">
+        <div class="card-title">${escapeHTML(pkg.name || id)}</div>
+        <div class="card-desc" style="margin-bottom:6px">${escapeHTML(pkg.description || '')}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--amber-dim)">${escapeHTML(skillList)}</div>
+      </button>
+    `;
+  }).join('');
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>SKILL PACKAGE</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Optional · MgT2e p.42</div>
+      <h2 class="phase-title">Choose a Skill Package</h2>
+      <p class="phase-subtitle">Before your Traveller takes to the stars, select one skill package that reflects the kind of campaign you'll be playing. Each skill is granted at level 1 (or +1 if you already have it).</p>
+      <div class="card-grid">${cards}</div>
+      <div class="phase-actions" style="margin-top:16px">
+        <button class="btn ghost" id="btn-skip-skill-package">SKIP — NO PACKAGE →</button>
+      </div>
+    </div>
+  `;
+}
+
+function wireSkillPackagePhase() {
+  document.querySelectorAll('[data-package-id]').forEach(card => {
+    card.addEventListener('click', async () => {
+      const packageId = card.dataset.packageId;
+      try {
+        const response = await apiCall('/api/character/apply-skill-package', { package_id: packageId });
+        await applyResponse(response);
+        uiState.skillPackageApplied = true;
+        character.phase = 'done';
+        saveCharacter();
+        renderAll();
+      } catch (e) {
+        alert(e.message || 'Could not apply skill package.');
+      }
+    });
+  });
+
+  const btnSkip = document.getElementById('btn-skip-skill-package');
+  if (btnSkip) {
+    btnSkip.addEventListener('click', () => {
+      uiState.skillPackageApplied = true;
       character.phase = 'done';
       saveCharacter();
       renderAll();
@@ -4586,6 +4713,14 @@ async function bootstrap() {
       window.__careerData = data.careers || {};
     }
   } catch (e) { /* network error — picker will degrade gracefully */ }
+
+  try {
+    const pkgRes = await fetch('/api/skill-packages');
+    if (pkgRes.ok) {
+      const pkgData = await pkgRes.json();
+      SKILL_PACKAGES = pkgData.packages || {};
+    }
+  } catch (e) { /* non-fatal */ }
 
   renderAll();
 

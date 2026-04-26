@@ -80,6 +80,11 @@ def background_skills() -> dict:
 
 
 @lru_cache(maxsize=1)
+def skill_packages() -> dict:
+    return _load_file("tables/skill_packages.json")
+
+
+@lru_cache(maxsize=1)
 def life_events() -> dict:
     return _load_file("tables/life_events.json")
 

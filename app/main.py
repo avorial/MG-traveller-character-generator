@@ -185,6 +185,10 @@ class BanCareerAction(CharacterAction):
     career_id: str
 
 
+class SkillPackageAction(CharacterAction):
+    package_id: str
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -225,6 +229,11 @@ async def api_careers_full():
 @app.get("/api/background-skills")
 async def api_background_skills():
     return rules.background_skills()
+
+
+@app.get("/api/skill-packages")
+async def api_skill_packages():
+    return rules.skill_packages()
 
 
 @app.get("/api/tables/aging")
@@ -291,6 +300,15 @@ async def api_background_skills_set(action: BackgroundSkillsAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.set_background_skills(character, action.chosen)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/apply-skill-package")
+async def api_apply_skill_package(action: SkillPackageAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.apply_skill_package(character, action.package_id)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

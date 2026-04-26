@@ -1,0 +1,45 @@
+{
+  "description": "Skill packages — chosen at end of character creation (MgT2e p.42).",
+  "packages": {
+    "traveller": {
+      "name": "Traveller",
+      "description": "An all-round skill package, good for a campaign where the Travellers are trading one week and blowing things up the next.",
+      "skills": ["Pilot 1", "Deception 1", "Electronics 1", "Gunner 1", "Gun Combat 1", "Persuade 1", "Stealth 1", "Medic 1"]
+    },
+    "explorer": {
+      "name": "Explorer",
+      "description": "For campaigns where the Travellers are operating on the fringe of Charted Space, dealing with new worlds and ancient relics.",
+      "skills": ["Pilot 1", "Astrogation 1", "Electronics 1", "Survival 1", "Recon 1", "Gun Combat 1", "Stealth 1", "Medic 1"]
+    },
+    "mercenary": {
+      "name": "Mercenary",
+      "description": "This skills package focuses on ground combat and is aimed at combat-heavy games.",
+      "skills": ["Electronics 1", "Medic 1", "Leadership 1", "Heavy Weapons 1", "Gun Combat 1", "Gun Combat 1", "Stealth 1", "Recon 1"]
+    },
+    "diplomat": {
+      "name": "Diplomat",
+      "description": "For campaigns where the Travellers are government operatives and ambassadors.",
+      "skills": ["Advocate 1", "Diplomat 1", "Persuade 1", "Stealth 1", "Streetwise 1", "Deception 1", "Electronics 1", "Admin 1"]
+    },
+    "trader": {
+      "name": "Trader",
+      "description": "This skills package is for campaigns where trading and commerce are the primary activities of the Travellers.",
+      "skills": ["Pilot 1", "Electronics 1", "Medic 1", "Streetwise 1", "Broker 1", "Advocate 1", "Diplomat 1", "Astrogation 1"]
+    },
+    "investigator": {
+      "name": "Investigator",
+      "description": "For campaigns centering on solving crimes and investigating mysteries.",
+      "skills": ["Advocate 1", "Admin 1", "Investigate 1", "Persuade 1", "Stealth 1", "Streetwise 1", "Electronics 1", "Deception 1", "Gun Combat 1"]
+    },
+    "starship": {
+      "name": "Starship",
+      "description": "This is for campaigns where the Travellers will spend almost all their time on spacecraft.",
+      "skills": ["Pilot 1", "Gunner 1", "Engineer 1", "Mechanic 1", "Electronics 1", "Medic 1", "Tactics (naval) 1", "Astrogation 1"]
+    },
+    "criminal": {
+      "name": "Criminal",
+      "description": "For campaigns involving crime and elaborate heists.",
+      "skills": ["Pilot 1", "Electronics 1", "Stealth 1", "Deception 1", "Persuade 1", "Streetwise 1", "Broker 1", "Medic 1"]
+    }
+  }
+}
