@@ -2614,7 +2614,7 @@ def start_term(
         overall_term_number=character.total_terms + 1,
         rank=starting_rank,
         rank_title=_rank_title(career, assignment_id, starting_rank),
-        basic_training=first_term_in_this_career and not commissioned_start,
+        basic_training=is_first_career and not commissioned_start,
         commissioned=commissioned_start,
         cover_career_id=cover_career_id or None,
     )

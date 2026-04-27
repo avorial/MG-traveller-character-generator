@@ -4319,7 +4319,16 @@ function renderEventStep() {
     // resolved ops render as a "Gained ..." chip instead.
     // Quantity ops (D3/1D/etc.) are pre-rolled once and cached on lr so re-
     // renders don't re-roll. Each quantity op then expands into N add ops.
-    const rawAssociateOps = parseEventAssociateOps(lr.eventText || '');
+    // When a contested roll (skill check) has been resolved, only parse
+    // associates from the relevant branch text. Parsing the full event text
+    // would pick up associates from BOTH the success and failure branches,
+    // awarding e.g. both a Contact (success) and an Enemy (failure) regardless
+    // of the actual outcome. If no contested roll exists, parse the full text.
+    const _csr = lr.eventContestedResolved;
+    const _assocSourceText = (_csr && _csr.success !== null && _csr.success !== undefined)
+      ? (_csr.branchText || '')
+      : (lr.eventText || '');
+    const rawAssociateOps = parseEventAssociateOps(_assocSourceText);
     if (!Array.isArray(lr.assocQtyRolls)) lr.assocQtyRolls = [];
     const associateOps = [];
     rawAssociateOps.forEach((op, rawIdx) => {
@@ -4421,7 +4430,13 @@ function renderEventStep() {
     // are not ejected from this career.") route the player into the mishap
     // table inline. If the text says "not ejected", they continue the career
     // after the mishap resolves; otherwise the normal end-career flow applies.
-    const forcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
+    // forcesMishap: the event involves a mishap-table roll, BUT only when there
+    // is no contested roll that already succeeded. If the player passed the
+    // Electronics check (or similar), the "If you fail, roll on the Mishap Table"
+    // clause does NOT apply.
+    const rawForcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
+    const contestedSucceededForMishap = lr.eventContestedResolved && lr.eventContestedResolved.success === true;
+    const forcesMishap = rawForcesMishap && !contestedSucceededForMishap;
     const stayInCareer = /not\s+ejected/i.test(lr.eventText || '');
     const pendingMishapRoll = forcesMishap && !lr.mishapFromEvent;
     const mishapRolledHTML = (forcesMishap && lr.mishapFromEvent) ? `
