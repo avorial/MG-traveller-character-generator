@@ -3012,6 +3012,30 @@ function wireCareerPhase() {
     btnArmyCooperate.addEventListener('click', () => resolveMishapChoice({ option_id: 'cooperate' }));
   }
 
+  // SolSec blame choice
+  const btnBlamePin = document.getElementById('btn-mishap-blame-pin');
+  if (btnBlamePin) btnBlamePin.addEventListener('click', () => resolveMishapChoice({ option_id: 'pin' }));
+  const btnBlameFall = document.getElementById('btn-mishap-blame-fall');
+  if (btnBlameFall) btnBlameFall.addEventListener('click', () => resolveMishapChoice({ option_id: 'fall' }));
+
+  // SolSec expose choice
+  const btnExposeYes = document.getElementById('btn-mishap-expose-yes');
+  if (btnExposeYes) btnExposeYes.addEventListener('click', () => resolveMishapChoice({ option_id: 'expose' }));
+  const btnExposeNo = document.getElementById('btn-mishap-expose-no');
+  if (btnExposeNo) btnExposeNo.addEventListener('click', () => resolveMishapChoice({ option_id: 'quiet' }));
+
+  // Party denounce choice
+  const btnDenounceYes = document.getElementById('btn-mishap-denounce-yes');
+  if (btnDenounceYes) btnDenounceYes.addEventListener('click', () => resolveMishapChoice({ option_id: 'denounce' }));
+  const btnDenounceNo = document.getElementById('btn-mishap-denounce-no');
+  if (btnDenounceNo) btnDenounceNo.addEventListener('click', () => resolveMishapChoice({ option_id: 'silent' }));
+
+  // SolSec interrogation choice
+  const btnIntSubmit = document.getElementById('btn-mishap-interrogation-submit');
+  if (btnIntSubmit) btnIntSubmit.addEventListener('click', () => resolveMishapChoice({ option_id: 'submit' }));
+  const btnIntRefuse = document.getElementById('btn-mishap-interrogation-refuse');
+  if (btnIntRefuse) btnIntRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
+
   // Mishap victim buttons
   document.querySelectorAll('[id^="btn-mishap-victim-"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -4689,6 +4713,42 @@ function renderMishapStep() {
               <div class="phase-actions" style="margin-top:8px">
                 <button class="btn" id="btn-mishap-armyjoin-join">JOIN THEIR RING</button>
                 <button class="btn" id="btn-mishap-armyjoin-cooperate">CO-OPERATE WITH POLICE</button>
+              </div>
+            </div>`;
+        } else if (pid === 'solsec_blame') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-blame-pin">PIN BLAME ON A COLLEAGUE</button>
+                <button class="btn danger" id="btn-mishap-blame-fall">TAKE THE FALL</button>
+              </div>
+            </div>`;
+        } else if (pid === 'solsec_expose') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-expose-yes">EXPOSE THE TRAITOR</button>
+                <button class="btn danger" id="btn-mishap-expose-no">STAY QUIET</button>
+              </div>
+            </div>`;
+        } else if (pid === 'party_denounce') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-denounce-yes">DENOUNCE PATRON</button>
+                <button class="btn danger" id="btn-mishap-denounce-no">STAY SILENT</button>
+              </div>
+            </div>`;
+        } else if (pid === 'solsec_interrogation') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn danger" id="btn-mishap-interrogation-submit">SUBMIT TO INTERROGATION</button>
+                <button class="btn" id="btn-mishap-interrogation-refuse">REFUSE — ROLL END 8+</button>
               </div>
             </div>`;
         } else if (pid === 'mishap_victim') {

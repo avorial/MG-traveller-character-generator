@@ -2985,6 +2985,27 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             }
             set_pending = True
 
+    elif etype == "rank_loss":
+        amount = effect.get("amount", 1)
+        if term is not None:
+            old_rank = term.rank
+            term.rank = max(0, term.rank - amount)
+            msgs.append(f"Rank {old_rank}→{term.rank} (−{amount})")
+            character.log(f"Mishap: rank reduced {old_rank}→{term.rank}")
+
+    elif etype == "forfeit_benefit_unless_solsec_agent":
+        # Navy/Army purge: SolSec Secret Agents gain Enemy instead; all others forfeit benefit
+        if term is not None and term.career_id == "solsec":
+            desc = "Enemy [Political Purge — cover blown]"
+            character.associates.append(Associate(kind="enemy", description=desc))
+            msgs.append(f"Gained Enemy: {desc}")
+            character.log(f"Mishap: gained {desc} (SolSec Secret Agent exception)")
+        else:
+            if term is not None:
+                term.benefit_forfeited = True
+            msgs.append("This term's benefit roll forfeited")
+            character.log("Mishap: benefit roll forfeited (political purge)")
+
     return msgs, set_pending
 
 
@@ -3154,6 +3175,69 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 auto_applied.append(f"{old_kind.capitalize()} → Rival (injured): {assoc.description}")
                 character.log(f"Mishap victim: associate {idx} converted to rival")
                 character.pending_career_mishap_choice = None
+
+        elif choice_id == "solsec_blame":
+            if selected == "pin":
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Blamed Colleague]")
+                )
+                auto_applied.append("Pinned blame on colleague — Rival [Blamed Colleague] gained. Benefit roll kept.")
+                character.log("Mishap: pinned blame on colleague, gained rival, kept benefit")
+            else:  # fall
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Took the fall — benefit roll forfeited")
+                character.log("Mishap: took the fall, benefit forfeited")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "solsec_expose":
+            if selected == "expose":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Exposed Traitor]")
+                )
+                auto_applied.append("Exposed the traitor — Enemy [Exposed Traitor] gained. Benefit roll kept.")
+                character.log("Mishap: exposed traitor, gained enemy, kept benefit")
+            else:  # quiet
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Stayed quiet — benefit roll forfeited")
+                character.log("Mishap: stayed quiet, benefit forfeited")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "party_denounce":
+            if selected == "denounce":
+                msg = character.add_skill("Advocate", level=1)
+                auto_applied.append(msg)
+                soc_old = character.characteristics.SOC
+                character.characteristics.set("SOC", max(0, soc_old - 1))
+                auto_applied.append(f"SOC {soc_old}→{max(0, soc_old - 1)} (−1)")
+                auto_applied.append("Denounced patron — Advocate+1, SOC−1. Benefit roll kept.")
+                character.log("Mishap: denounced patron, Advocate+1, SOC-1, kept benefit")
+            else:  # silent
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Stayed silent — benefit roll forfeited")
+                character.log("Mishap: stayed silent, benefit forfeited")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "solsec_interrogation":
+            if selected == "submit":
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Submitted to SolSec interrogation — benefit roll forfeited")
+                character.log("Mishap: submitted to interrogation, benefit forfeited")
+                character.pending_career_mishap_choice = None
+            else:  # refuse — chain into END 8+ skill check
+                auto_applied.append("Refused interrogation — must now roll END 8+")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "END", "is_stat": True}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [],
+                    "on_fail": [{"type": "forfeit_benefit"}],
+                    "prompt": "Refused SolSec interrogation — roll END 8+ to keep your Benefit roll",
+                }
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -3743,34 +3827,60 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         1: [{"type": "injury"}],
         2: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
         3: [{"type": "enemy", "desc": "Enemy [SolSec Officer]"}],
-        4: [],  # narrative — rank loss + conditional blame/rival (see mishap text)
-        5: [],  # narrative — conditional benefit/enemy for exposing traitor
+        4: [{"type": "rank_loss", "amount": 1},
+            {"type": "pending_choice", "id": "solsec_blame",
+             "prompt": "SolSec disavows you — you've lost one rank. You can pin the blame on a colleague (keep Benefit roll, gain Rival) or take the fall (forfeit Benefit roll).",
+             "options": [
+                 {"id": "pin", "label": "Pin blame on a colleague — keep Benefit roll, gain Rival"},
+                 {"id": "fall", "label": "Take the fall — forfeit Benefit roll"},
+             ]}],
+        5: [{"type": "pending_choice", "id": "solsec_expose",
+             "prompt": "You may expose the traitor who burned your network (keep Benefit roll, gain Enemy) or stay quiet (forfeit Benefit roll).",
+             "options": [
+                 {"id": "expose", "label": "Expose the traitor — keep Benefit roll, gain Enemy"},
+                 {"id": "quiet", "label": "Stay quiet — forfeit Benefit roll"},
+             ]}],
         6: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
              "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
     },
     "party": {
         1: [{"type": "injury"}],
-        2: [],  # narrative — denounced by monitor
-        3: [],  # narrative — disillusioned, walk away
-        4: [],  # narrative — patron purge; conditional Advocate+1/SOC-1 and benefit
-        5: [{"type": "stat", "stat": "SOC", "amount": -1}],  # tainted by association; Ally is optional
+        2: [],  # Denounced — career ends; no additional mechanical effect beyond narrative
+        3: [],  # Disillusioned — no mechanical effect in the Party context; Drifter clause applies if next career is Drifter
+        4: [{"type": "pending_choice", "id": "party_denounce",
+             "prompt": "Your patron has fallen from favour and taken you with them. Denounce them (Advocate+1, SOC−1, keep Benefit roll) or stay silent (forfeit Benefit roll)?",
+             "options": [
+                 {"id": "denounce", "label": "Denounce patron — Advocate+1, SOC−1, keep Benefit roll"},
+                 {"id": "silent", "label": "Stay silent — forfeit Benefit roll"},
+             ]}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -1}],  # tainted by association (Ally gain is optional/narrative)
         6: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
     },
     "confederation_navy": {
         1: [{"type": "injury_severity_choice"}],
-        2: [],  # Frozen Watch — narrative, no mechanical loss
-        3: [],  # political investigation — complex conditional (see mishap text)
+        2: [],  # Frozen Watch — character stays in career; handle skill/advancement skip narratively
+        3: [{"type": "pending_choice", "id": "solsec_interrogation",
+             "prompt": "You are forced out after criticising a political officer. Submit to SolSec interrogation (forfeit Benefit roll) or refuse and roll END 8+ to keep your Benefit roll?",
+             "options": [
+                 {"id": "submit", "label": "Submit to interrogation — forfeit Benefit roll"},
+                 {"id": "refuse", "label": "Refuse — roll END 8+ to keep Benefit roll"},
+             ]}],
         4: [{"type": "skill_check",
              "skills": [{"name": "Electronics"}, {"name": "Gunner"},
                         {"name": "Pilot"}, {"name": "Tactics"}],
              "target": 8, "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
-        5: [],  # political purge — narrative
+        5: [{"type": "forfeit_benefit_unless_solsec_agent"}],
         6: [{"type": "injury"}],
     },
     "confederation_army": {
         1: [{"type": "injury_severity_choice"}],
         2: [{"type": "enemy", "desc": "Enemy [Political Officer]"}],
-        3: [],  # political court-martial — conditional (see mishap text)
+        3: [{"type": "pending_choice", "id": "solsec_interrogation",
+             "prompt": "You are court-martialled on political grounds. Submit to SolSec interrogation (forfeit Benefit roll) or refuse and roll END 8+ to keep your Benefit roll?",
+             "options": [
+                 {"id": "submit", "label": "Submit to interrogation — forfeit Benefit roll"},
+                 {"id": "refuse", "label": "Refuse — roll END 8+ to keep Benefit roll"},
+             ]}],
         4: [{"type": "pending_choice", "id": "army_join_cooperate",
              "prompt": "Your CO is engaged in illegal activities. What do you do?",
              "options": [
