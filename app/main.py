@@ -635,6 +635,41 @@ async def api_anagathics(action: CharacterAction):
         raise HTTPException(400, str(e))
 
 
+class HomeForceAction(BaseModel):
+    character: Character
+    action: str  # "enroll" | "leave"
+
+
+@app.post("/api/character/home-forces")
+async def api_home_forces(action: HomeForceAction):
+    """Enroll in or resign from Home Forces Reserves."""
+    character = action.character.model_copy(deep=True)
+    try:
+        if action.action == "enroll":
+            return lifepath.enroll_home_forces(character)
+        elif action.action == "leave":
+            return lifepath.leave_home_forces(character)
+        else:
+            raise HTTPException(400, f"Unknown action: {action.action!r}")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+class MonitorAction(BaseModel):
+    character: Character
+    active: bool
+
+
+@app.post("/api/character/solsec-monitor")
+async def api_solsec_monitor(action: MonitorAction):
+    """Toggle SolSec Monitor status on or off."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.toggle_solsec_monitor(character, action.active)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/injury")
 async def api_character_injury(action: CharacterAction):
     """Roll on the injury table (1D). Applies stat damage + medical debt."""

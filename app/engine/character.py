@@ -166,6 +166,20 @@ class Character(BaseModel):
     anagathics_purchased_terms: int = 0
     anagathics_addicted: bool = False
 
+    # Home Forces Reserves (Solomani parallel service)
+    # Eligible non-military Solomani may enlist alongside their main career.
+    # component: "groundside" | "naval"
+    home_forces_enrolled: bool = False
+    home_forces_component: Optional[str] = None
+    home_forces_rank: int = 0
+    home_forces_trained: bool = False  # initial training roll done
+
+    # SolSec Monitor (Solomani informer role, parallel to any non-SolSec career)
+    # DM+1 to advancement; nat-2 survival → SolSec mishap instead of career mishap;
+    # nat-12 survival → SolSec event + SolSec Contact.
+    solsec_monitor: bool = False
+    solsec_monitor_rank: int = 0
+
     # Free-form player notes (rendered on the sheet)
     user_notes: str = ""
 

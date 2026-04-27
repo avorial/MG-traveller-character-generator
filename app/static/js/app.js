@@ -407,6 +407,25 @@ function renderSheet() {
         </ul>
       </div>` : ''}
 
+      ${character.home_forces_enrolled ? `
+      <div class="sheet-section">
+        <h3>Home Forces Reserves</h3>
+        <ul class="skill-list">
+          <li><span>Component</span><span class="skill-level">${(character.home_forces_component || 'groundside').replace('_',' ')}</span></li>
+          <li><span>Reserve Rank</span><span class="skill-level">${character.home_forces_rank}</span></li>
+        </ul>
+        <p class="empty">Nat-2 survival → extra Reserve Mishap roll.</p>
+      </div>` : ''}
+
+      ${character.solsec_monitor ? `
+      <div class="sheet-section">
+        <h3>SolSec Monitor</h3>
+        <ul class="skill-list">
+          <li><span>Monitor Rank</span><span class="skill-level">${character.solsec_monitor_rank}</span></li>
+        </ul>
+        <p class="empty">DM+1 advancement · nat-2 → SolSec Mishap · nat-12 → SolSec Event${character.solsec_monitor_rank >= 3 ? ' · +1 Benefit roll' : ''}.</p>
+      </div>` : ''}
+
       <div class="sheet-section">
         <h3>Notes</h3>
         <textarea id="char-notes" class="sheet-notes" placeholder="Personality, quirks, contacts, anything you want on the sheet…" rows="5">${(character.user_notes || '').replace(/</g, '&lt;')}</textarea>
@@ -2287,6 +2306,75 @@ function wireCareerPhase() {
     });
   });
 
+  // Home Forces Reserves: enroll / leave
+  const btnHfEnroll = document.getElementById('btn-hf-enroll');
+  if (btnHfEnroll) {
+    btnHfEnroll.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/home-forces', { action: 'enroll' });
+        await applyResponse(response);
+        uiState.lastRoll = {
+          type: 'home_forces_training',
+          roll: response.training_roll,
+          result: response.training_result,
+          component: response.component,
+          auto_skill: response.auto_skill,
+          rank_transferred: response.rank_transferred,
+        };
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+  const btnHfLeave = document.getElementById('btn-hf-leave');
+  if (btnHfLeave) {
+    btnHfLeave.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/home-forces', { action: 'leave' });
+        await applyResponse(response);
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+
+  // Home Forces training banner dismiss
+  const btnHfDismiss = document.getElementById('btn-hf-training-dismiss');
+  if (btnHfDismiss) {
+    btnHfDismiss.addEventListener('click', () => {
+      uiState.lastRoll = null;
+      renderStage();
+    });
+  }
+
+  // SolSec Monitor: join / leave
+  const btnMonitorJoin = document.getElementById('btn-monitor-join');
+  if (btnMonitorJoin) {
+    btnMonitorJoin.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/solsec-monitor', { active: true });
+        await applyResponse(response);
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+  const btnMonitorLeave = document.getElementById('btn-monitor-leave');
+  if (btnMonitorLeave) {
+    btnMonitorLeave.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/solsec-monitor', { active: false });
+        await applyResponse(response);
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+
   document.querySelectorAll('[data-skill-table]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const tableKey = btn.dataset.skillTable;
@@ -2336,6 +2424,7 @@ function wireCareerPhase() {
         type: 'survive',
         data: response.roll,
         outcome: response.survived ? 'pass' : 'fail',
+        parallel_event: response.parallel_event || null,
       };
       // Stay on 'survive' subPhase so dice readout renders before advancing
       renderAll();
@@ -3177,6 +3266,27 @@ function renderDraftResult() {
 }
 
 function renderAssignmentPicker(career) {
+  // Home Forces training result banner (shown once after enrolling)
+  let hfTrainingBanner = '';
+  if (uiState.lastRoll?.type === 'home_forces_training') {
+    const lr = uiState.lastRoll;
+    hfTrainingBanner = `
+      <div style="margin-bottom:14px;padding:12px 14px;border:1px solid var(--accent);border-radius:6px;background:rgba(0,255,170,0.04)">
+        <div style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">HOME FORCES RESERVES — ENROLLED (${lr.component?.toUpperCase()})</div>
+        <div style="margin-top:6px;font-size:13px;color:var(--text)">
+          Training roll [1D=${lr.roll?.raw_total ?? '?'}]: <strong>${escapeHTML(lr.result || '')}</strong>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:3px">
+          Auto-skill: ${escapeHTML(lr.auto_skill || '')} 0
+          ${lr.rank_transferred ? ` · Military rank ${lr.rank_transferred} transferred.` : ''}
+        </div>
+        <div class="phase-actions" style="margin-top:8px">
+          <button class="btn ghost" id="btn-hf-training-dismiss" style="font-size:11px;padding:6px 12px">DISMISS →</button>
+        </div>
+      </div>
+    `;
+  }
+
   const isSecretAgentSelected = career.id === 'solsec' && uiState.selectedAssignment === 'secret_agent';
   const soc = character.society_id || 'third_imperium';
 
@@ -3223,11 +3333,80 @@ function renderAssignmentPicker(career) {
     </button>
   `).join('');
 
+  // ---- Solomani parallel service panels ----
+  const isSolomani = (character.society_id === 'solomani_confederation');
+  const isBarredFromHF = (career.id === 'drifter')
+    || (career.id === 'rogue' && uiState.selectedAssignment === 'pirate')
+    || (career.id === 'solsec');
+  const showHomeForces = isSolomani && !isBarredFromHF;
+  const showMonitor = isSolomani && career.id !== 'solsec';
+
+  // Determine which HF component this character would join
+  const isNavalMerchant = career.id === 'merchant'
+    && (uiState.selectedAssignment === 'merchant_marine' || uiState.selectedAssignment === 'free_trader');
+  const hasExNavy = character.completed_careers && character.completed_careers.some(
+    c => c.career_id === 'navy' || c.career_id === 'confederation_navy');
+  const hfComponent = (isNavalMerchant || hasExNavy) ? 'naval' : 'groundside';
+  const hfComponentLabel = hfComponent === 'naval' ? 'Naval' : 'Groundside';
+
+  const homeForcesHTML = showHomeForces ? `
+    <div style="margin-top:16px;padding:12px 14px;border:1px solid var(--border);border-radius:6px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">HOME FORCES RESERVES (${hfComponentLabel})</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:3px">
+            ${character.home_forces_enrolled
+              ? `Enrolled · Rank ${character.home_forces_rank}`
+              : 'Part-time planetary defence. Automatic enlistment — gains training skill + ' + (hfComponent === 'naval' ? 'Vacc Suit 0' : 'Gun Combat 0') + '.'}
+          </div>
+        </div>
+        ${character.home_forces_enrolled
+          ? `<button class="btn ghost" id="btn-hf-leave" style="font-size:11px;padding:6px 12px">RESIGN</button>`
+          : `<button class="btn ghost" id="btn-hf-enroll" style="font-size:11px;padding:6px 12px">ENLIST (Roll Training)</button>`
+        }
+      </div>
+      ${character.home_forces_enrolled ? `
+        <p style="font-size:11px;color:var(--text-dim);margin:6px 0 0">
+          Nat-2 on survival → also rolls ${hfComponent === 'naval' ? 'Confederation Navy' : 'Confederation Army'} Mishap table.
+          ${character.home_forces_rank >= 3 ? 'Rank 3+ may use ' + hfComponentLabel + ' advancement.' : ''}
+        </p>` : ''}
+    </div>
+  ` : '';
+
+  const monitorStatusColor = character.solsec_monitor ? 'var(--amber)' : 'var(--text-dim)';
+  const solsecMonitorHTML = showMonitor ? `
+    <div style="margin-top:10px;padding:12px 14px;border:1px solid var(--border);border-radius:6px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">
+            SOLSEC MONITOR${character.solsec_monitor ? ` · RANK ${character.solsec_monitor_rank}` : ''}
+          </div>
+          <div style="font-size:12px;color:${monitorStatusColor};margin-top:3px">
+            ${character.solsec_monitor
+              ? 'Active informer — DM+1 advancement, nat-2→SolSec Mishap, nat-12→SolSec Event + Contact.'
+              : 'Volunteer SolSec informer. DM+1 to all advancement rolls (not Drifter).'}
+          </div>
+        </div>
+        ${character.solsec_monitor
+          ? `<button class="btn ghost" id="btn-monitor-leave" style="font-size:11px;padding:6px 12px">CEASE MONITORING</button>`
+          : `<button class="btn ghost" id="btn-monitor-join" style="font-size:11px;padding:6px 12px">BECOME MONITOR</button>`
+        }
+      </div>
+      ${character.solsec_monitor && character.solsec_monitor_rank >= 3 ? `
+        <p style="font-size:11px;color:var(--accent);margin:6px 0 0">
+          Rank ${character.solsec_monitor_rank}: earns one extra Benefit roll at muster-out (own table or SolSec Benefits).
+        </p>` : ''}
+    </div>
+  ` : '';
+
   return `
-    <h3 style="margin-top:28px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Choose an Assignment</h3>
+    ${hfTrainingBanner}
+    <h3 style="margin-top:${hfTrainingBanner ? '0' : '28'}px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Choose an Assignment</h3>
     <div class="card-grid">${cards}</div>
     ${coverPickerHTML}
-    <div class="phase-actions">
+    ${homeForcesHTML}
+    ${solsecMonitorHTML}
+    <div class="phase-actions" style="margin-top:16px">
       <button class="btn primary" id="btn-start-term" ${readyToStart ? '' : 'disabled'}>
         BEGIN TERM →
       </button>
@@ -3345,11 +3524,42 @@ function renderSurviveStep() {
   if (uiState.lastRoll?.type === 'survive') {
     const lr = uiState.lastRoll;
     const survived = lr.outcome === 'pass';
+
+    // Build parallel service event notices
+    const buildParallelNotice = (pe) => {
+      if (!pe) return '';
+      const items = Array.isArray(pe) ? pe : [pe];
+      return items.map(p => {
+        if (p.type === 'monitor_mishap') {
+          return `<div class="event-box" style="border-color:var(--danger);margin-top:10px">
+            <span class="event-label" style="color:var(--danger)">SolSec Monitor — Mishap [1D=${p.roll?.raw_total}]</span>
+            ${escapeHTML(p.text)}
+          </div>`;
+        }
+        if (p.type === 'monitor_event') {
+          return `<div class="event-box" style="border-color:var(--accent);margin-top:10px">
+            <span class="event-label" style="color:var(--accent)">SolSec Monitor — Event [2D=${p.roll?.raw_total}] + SolSec Contact gained</span>
+            ${escapeHTML(p.text)}
+          </div>`;
+        }
+        if (p.type === 'home_forces_mishap') {
+          return `<div class="event-box" style="border-color:var(--amber);margin-top:10px">
+            <span class="event-label" style="color:var(--amber)">Home Forces Reserves (${p.component}) — Mishap [1D=${p.roll?.raw_total}]</span>
+            ${escapeHTML(p.text)}
+          </div>`;
+        }
+        return '';
+      }).join('');
+    };
+
+    const parallelNotice = buildParallelNotice(lr.parallel_event);
+
     return `
       <div class="stage-content">
         <div class="phase-label">Survival — ${survived ? 'Pass' : 'Fail'}</div>
         <h2 class="phase-title">${survived ? 'You Survived' : 'Career Mishap'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${s.characteristic} ${s.target}+` })}
+        ${parallelNotice}
         <p class="phase-body">${survived
           ? 'Your term continues. Roll the Event table to see what the last four years brought.'
           : 'Your career is over. Roll on the Mishap table to see how it ended.'}</p>

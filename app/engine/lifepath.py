@@ -2718,7 +2718,85 @@ def survival_roll(character: Character) -> dict:
         f"[{'SURVIVED' if r.succeeded else 'MISHAP'}]"
     )
     character.log(msg)
-    return {"roll": r.to_dict(), "survived": r.succeeded, "character": character.model_dump()}
+
+    parallel_event = None
+
+    # ---- SolSec Monitor parallel events ----
+    if character.solsec_monitor:
+        if r.raw_total == 2:
+            # Natural 2: SolSec Mishap table replaces career mishap for the roll
+            solsec_career = rules.careers().get("solsec", {})
+            solsec_mishaps = solsec_career.get("mishaps", {})
+            mishap_r = dice.roll("1D")
+            mishap_key = str(max(1, min(6, mishap_r.total)))
+            mishap_text = solsec_mishaps.get(mishap_key, "(SolSec mishap — see rulebook)")
+            character.log(
+                f"SolSec Monitor: natural 2 — SolSec Mishap [{mishap_r.total}]: {mishap_text}"
+            )
+            parallel_event = {
+                "type": "monitor_mishap",
+                "roll": mishap_r.to_dict(),
+                "text": mishap_text,
+            }
+        elif r.raw_total == 12:
+            # Natural 12: SolSec Event + gain SolSec Contact
+            solsec_career = rules.careers().get("solsec", {})
+            solsec_events = solsec_career.get("events", {})
+            evt_r = dice.roll("2D")
+            evt_key = str(evt_r.total)
+            evt_text = solsec_events.get(evt_key, "(SolSec event — see rulebook)")
+            character.associates.append(
+                Associate(kind="contact", description="SolSec Agent [Monitor Contact]")
+            )
+            character.log(
+                f"SolSec Monitor: natural 12 — SolSec Event [{evt_r.total}]: {evt_text}. "
+                f"Gained SolSec Agent as Contact."
+            )
+            parallel_event = {
+                "type": "monitor_event",
+                "roll": evt_r.to_dict(),
+                "text": evt_text,
+                "contact_gained": "SolSec Agent",
+            }
+
+    # ---- Home Forces Reserves parallel nat-2 check ----
+    if character.home_forces_enrolled and r.raw_total == 2:
+        # Natural 2 on regular survival → ALSO roll Army/Navy Mishap table
+        reserve_mishap_career_id = (
+            "confederation_navy" if character.home_forces_component == "naval" else "confederation_army"
+        )
+        # Fallback to imperial equivalents if confederation versions not loaded
+        reserve_career = (
+            rules.careers().get(reserve_mishap_career_id)
+            or rules.careers().get("navy" if character.home_forces_component == "naval" else "army", {})
+        )
+        reserve_mishaps = reserve_career.get("mishaps", {})
+        mishap_r = dice.roll("1D")
+        mishap_key = str(max(1, min(6, mishap_r.total)))
+        mishap_text = reserve_mishaps.get(mishap_key, "(Home Forces mishap — see rulebook)")
+        component_label = "Naval" if character.home_forces_component == "naval" else "Groundside"
+        character.log(
+            f"Home Forces Reserves ({component_label}): natural 2 — "
+            f"Reserve Mishap [{mishap_r.total}]: {mishap_text}"
+        )
+        hf_parallel = {
+            "type": "home_forces_mishap",
+            "component": character.home_forces_component,
+            "roll": mishap_r.to_dict(),
+            "text": mishap_text,
+        }
+        # Return both if monitor also triggered one
+        if parallel_event:
+            parallel_event = [parallel_event, hf_parallel]
+        else:
+            parallel_event = hf_parallel
+
+    return {
+        "roll": r.to_dict(),
+        "survived": r.succeeded,
+        "parallel_event": parallel_event,
+        "character": character.model_dump(),
+    }
 
 
 def event_roll(character: Character) -> dict:
@@ -3250,9 +3328,16 @@ def advancement_roll(character: Character) -> dict:
     pending = character.dm_next_advancement
     character.dm_next_advancement = 0
 
+    # SolSec Monitor: DM+1 to advancement in any career except Drifter
+    monitor_dm = 0
+    if character.solsec_monitor and term.career_id != "drifter":
+        monitor_dm = 1
+        dm += monitor_dm
+
     r = dice.roll("2D", modifier=dm, target=target)
     term.advanced = bool(r.succeeded)
 
+    monitor_rank_up = False
     if r.succeeded:
         term.rank += 1
         term.rank_title = _rank_title(career, term.assignment_id, term.rank)
@@ -3262,15 +3347,36 @@ def advancement_roll(character: Character) -> dict:
             rank_bonus_log = _apply_rank_bonus(character, bonus)
             term.skills_gained.append(f"Rank bonus: {bonus}")
             character.log(f"  Rank bonus: {rank_bonus_log}")
+        # Monitor rank goes up by 1 whenever promoted in career (max 6)
+        if character.solsec_monitor and character.solsec_monitor_rank < 6:
+            character.solsec_monitor_rank += 1
+            monitor_rank_up = True
+            character.log(
+                f"SolSec Monitor rank increased to {character.solsec_monitor_rank}."
+                + (
+                    " (Rank 3+: earns one extra Benefit roll at muster-out.)"
+                    if character.solsec_monitor_rank == 3
+                    else ""
+                )
+            )
 
+    monitor_note = f" [Monitor DM+{monitor_dm}]" if monitor_dm else ""
     msg = (
-        f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}){cover_note}: "
+        f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}){cover_note}{monitor_note}: "
         f"2D{dm:+d} = {r.total} "
         f"[{'PROMOTED to rank ' + str(term.rank) + (' — ' + term.rank_title if term.rank_title else '') if r.succeeded else 'no promotion'}]"
     )
     character.log(msg)
-    return {"roll": r.to_dict(), "advanced": r.succeeded, "new_rank": term.rank,
-            "new_rank_title": term.rank_title, "character": character.model_dump()}
+    return {
+        "roll": r.to_dict(),
+        "advanced": r.succeeded,
+        "new_rank": term.rank,
+        "new_rank_title": term.rank_title,
+        "monitor_dm": monitor_dm,
+        "monitor_rank_up": monitor_rank_up,
+        "monitor_rank": character.solsec_monitor_rank,
+        "character": character.model_dump(),
+    }
 
 
 def roll_on_skill_table(character: Character, table_key: str) -> dict:
@@ -3354,6 +3460,154 @@ def purchase_anagathics(character: "Character") -> dict:
         "credits_remaining": character.credits,
         "medical_debt": character.medical_debt,
         "anagathics_purchased_terms": character.anagathics_purchased_terms,
+        "character": character.model_dump(),
+    }
+
+
+# ============================================================
+# Home Forces Reserves (Solomani parallel service)
+# ============================================================
+
+# Careers that bar Home Forces enrollment
+_HOME_FORCES_BARRED_CAREERS = frozenset({"drifter"})
+# Rogue pirate assignment is also barred (checked separately)
+# Naval component: Merchant marine / free trader assignments, or ex-Navy
+_NAVAL_MERCHANT_ASSIGNMENTS = frozenset({"merchant_marine", "free_trader"})
+
+# Reserves Training table (1D)
+_HOME_FORCES_TRAINING: dict[str, dict[int, str]] = {
+    "groundside": {
+        1: "Gun Combat (any) 1 or Heavy Weapons (any) 1",
+        2: "Mechanic 1",
+        3: "Drive (any) 1 or Flyer (any) 1 or Seafarer (any) 1",
+        4: "Electronics (any) 1",
+        5: "Recon 1 or Survival 1",
+        6: "Leadership 1 or Tactics (military) 1",
+    },
+    "naval": {
+        1: "Gunner (any) 1",
+        2: "Engineer (any) 1",
+        3: "Pilot (any) 1",
+        4: "Electronics (any) 1",
+        5: "Vacc Suit 1",
+        6: "Leadership 1 or Tactics (naval) 1",
+    },
+}
+
+
+def _home_forces_component_for(character: "Character") -> str:
+    """Return 'naval' or 'groundside' based on current career/assignment and history."""
+    term = character.current_term
+    if term and term.career_id == "merchant" and term.assignment_id in _NAVAL_MERCHANT_ASSIGNMENTS:
+        return "naval"
+    # Ex-Navy (any previous Navy career) may join naval component
+    navy_career_ids = {"navy", "confederation_navy"}
+    has_navy = any(c.career_id in navy_career_ids for c in character.completed_careers)
+    if has_navy:
+        return "naval"
+    return "groundside"
+
+
+def _home_forces_eligible(character: "Character") -> bool:
+    """Return True if the character may (re-)enroll in Home Forces Reserves."""
+    if character.society_id != "solomani_confederation":
+        return False
+    term = character.current_term
+    if term is None:
+        return False
+    if term.career_id in _HOME_FORCES_BARRED_CAREERS:
+        return False
+    if term.career_id == "rogue" and term.assignment_id == "pirate":
+        return False
+    # SolSec field_agent and secret_agent cannot join (they're military/intelligence)
+    if term.career_id == "solsec":
+        return False
+    return True
+
+
+def enroll_home_forces(character: "Character") -> dict:
+    """Enroll the character in Home Forces Reserves and roll on the training table.
+
+    Eligibility is checked here; raises ValueError if ineligible.
+    The training roll is made once at initial enlistment only.
+    """
+    if character.phase != "career":
+        raise ValueError("Home Forces enrollment is only available during the career phase.")
+    if not _home_forces_eligible(character):
+        raise ValueError("This character is not eligible for Home Forces Reserves.")
+
+    component = _home_forces_component_for(character)
+    character.home_forces_enrolled = True
+    character.home_forces_component = component
+    character.home_forces_trained = True
+
+    # Auto-skill: Gun Combat 0 (groundside) or Vacc Suit 0 (naval)
+    auto_skill = "Gun Combat" if component == "groundside" else "Vacc Suit"
+    auto_log = character.add_skill(auto_skill, level=0)
+
+    # Transfer military rank from a previous Army/Marine/Navy career
+    rank_transferred = 0
+    military_careers = {"army", "marine", "navy", "confederation_army", "solomani_marine", "confederation_navy"}
+    for cc in reversed(character.completed_careers):
+        if cc.career_id in military_careers:
+            rank_transferred = cc.final_rank
+            break
+    if rank_transferred:
+        character.home_forces_rank = rank_transferred
+        character.log(
+            f"Home Forces Reserves ({component}): transferred military rank {rank_transferred}."
+        )
+
+    # Training roll
+    r = dice.roll("1D")
+    training_table = _HOME_FORCES_TRAINING[component]
+    training_result = training_table[r.total]
+    character.log(
+        f"Home Forces Reserves ({component}) enrolled. "
+        f"Training roll [1D={r.total}]: {training_result}. "
+        f"Auto-skill: {auto_log}."
+    )
+
+    return {
+        "component": component,
+        "auto_skill": auto_skill,
+        "training_roll": r.to_dict(),
+        "training_result": training_result,
+        "rank_transferred": rank_transferred,
+        "character": character.model_dump(),
+    }
+
+
+def leave_home_forces(character: "Character") -> dict:
+    """Resign from Home Forces Reserves (effective next term)."""
+    character.home_forces_enrolled = False
+    character.log("Resigned from Home Forces Reserves.")
+    return {"character": character.model_dump()}
+
+
+# ============================================================
+# SolSec Monitor (Solomani informer, parallel to any non-SolSec career)
+# ============================================================
+
+def _solsec_monitor_eligible(character: "Character") -> bool:
+    if character.society_id != "solomani_confederation":
+        return False
+    term = character.current_term
+    if term and term.career_id == "solsec":
+        return False
+    return True
+
+
+def toggle_solsec_monitor(character: "Character", active: bool) -> dict:
+    """Opt in or out of the SolSec Monitor role."""
+    if active and not _solsec_monitor_eligible(character):
+        raise ValueError("Not eligible to become a SolSec Monitor (must be non-SolSec, Solomani society).")
+    character.solsec_monitor = active
+    action = "Enrolled as" if active else "Resigned from"
+    character.log(f"{action} SolSec Monitor.")
+    return {
+        "solsec_monitor": character.solsec_monitor,
+        "solsec_monitor_rank": character.solsec_monitor_rank,
         "character": character.model_dump(),
     }
 
@@ -3760,10 +4014,16 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                 f" Pension updated: Cr{character.pension_per_year:,}/year."
             )
 
+        # SolSec Monitor rank 3+: one extra benefit roll at final muster-out
+        monitor_bonus_note = ""
+        if character.solsec_monitor and character.solsec_monitor_rank >= 3:
+            character.pending_benefit_rolls += 1
+            monitor_bonus_note = " SolSec Monitor (rank 3+): +1 extra Benefit roll."
+
         character.log(
             f"Left {rules.careers()[term.career_id]['name']} "
             f"({reason}). {terms_in_career} terms served. "
-            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note}).{pension_note}"
+            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note}).{pension_note}{monitor_bonus_note}"
         )
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
