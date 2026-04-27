@@ -3738,6 +3738,57 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         5: [],  # narrative only
         6: [{"type": "injury"}],
     },
+    # ---- Solomani Confederation careers ----
+    "solsec": {
+        1: [{"type": "injury"}],
+        2: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
+        3: [{"type": "enemy", "desc": "Enemy [SolSec Officer]"}],
+        4: [],  # narrative — rank loss + conditional blame/rival (see mishap text)
+        5: [],  # narrative — conditional benefit/enemy for exposing traitor
+        6: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
+    },
+    "party": {
+        1: [{"type": "injury"}],
+        2: [],  # narrative — denounced by monitor
+        3: [],  # narrative — disillusioned, walk away
+        4: [],  # narrative — patron purge; conditional Advocate+1/SOC-1 and benefit
+        5: [{"type": "stat", "stat": "SOC", "amount": -1}],  # tainted by association; Ally is optional
+        6: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
+    },
+    "confederation_navy": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [],  # Frozen Watch — narrative, no mechanical loss
+        3: [],  # political investigation — complex conditional (see mishap text)
+        4: [{"type": "skill_check",
+             "skills": [{"name": "Electronics"}, {"name": "Gunner"},
+                        {"name": "Pilot"}, {"name": "Tactics"}],
+             "target": 8, "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
+        5: [],  # political purge — narrative
+        6: [{"type": "injury"}],
+    },
+    "confederation_army": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Political Officer]"}],
+        3: [],  # political court-martial — conditional (see mishap text)
+        4: [{"type": "pending_choice", "id": "army_join_cooperate",
+             "prompt": "Your CO is engaged in illegal activities. What do you do?",
+             "options": [
+                 {"id": "join", "label": "Join their ring — gain them as an Ally (still discharged)"},
+                 {"id": "cooperate", "label": "Co-operate with authorities — keep your Benefit roll (still discharged)"},
+             ]}],
+        5: [{"type": "rival", "desc": "Rival [Political Officer]"}],
+        6: [{"type": "injury"}],
+    },
+    "solomani_marine": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "enemy", "desc": "Enemy [Enemy Forces]"},
+            {"type": "free_skill_choice", "prompt": "Stranded behind enemy lines — gain any skill at level 1."}],
+        3: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
+        4: [{"type": "contact", "desc": "Contact [Fellow Prisoner]"}, {"type": "enemy", "desc": "Enemy [Captors]"}],
+        5: [{"type": "rival", "desc": "Rival [Commander]"}],
+        6: [{"type": "injury"}],
+    },
 }
 
 
