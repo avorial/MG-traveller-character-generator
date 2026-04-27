@@ -369,6 +369,13 @@ function renderSheet() {
         <div class="credits-line">${character.ship_shares} × MCr1</div>
       </div>` : ''}
 
+      ${character.pension_per_year > 0 ? `
+      <div class="sheet-section">
+        <h3>Retirement Pension</h3>
+        <div class="credits-line">Cr${character.pension_per_year.toLocaleString()}/year</div>
+        <p class="empty">Based on ${character.total_terms} terms served.</p>
+      </div>` : ''}
+
       ${(character.dm_next_qualification || character.dm_next_advancement || character.dm_next_benefit) ? `
       <div class="sheet-section">
         <h3>Pending DMs</h3>
@@ -4656,9 +4663,13 @@ function renderDecideStep() {
             Banked treatments: <strong>${character.anagathics_purchased_terms}</strong>
             ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
           </div>
+          ${character.credits < 200000 ? `
+            <p style="font-size:11px;color:var(--text-dim);margin:4px 0">
+              Insufficient credits (Cr${character.credits.toLocaleString()} available) — shortfall added to medical debt.
+            </p>` : ''}
           <div class="phase-actions" style="margin-top:6px">
-            <button class="btn ghost" id="btn-buy-anagathics" ${character.credits < 200000 ? 'disabled' : ''}>
-              PURCHASE (Cr200,000)${character.credits < 200000 ? ' — NEED MORE CREDITS' : ''}
+            <button class="btn ghost" id="btn-buy-anagathics">
+              PURCHASE (Cr200,000)
             </button>
           </div>
         </div>
@@ -4697,12 +4708,23 @@ function renderMusterPhase() {
   }
 
   if (rolls === 0) {
+    const pensionNote = character.pension_per_year > 0
+      ? `<div style="margin-top:14px;padding:10px 14px;border:1px solid var(--amber-dim);border-radius:6px">
+           <span style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">RETIREMENT PENSION</span>
+           <div style="font-size:18px;font-family:var(--font-mono);color:var(--accent);margin-top:4px">
+             Cr${character.pension_per_year.toLocaleString()}/year
+           </div>
+           <p style="font-size:11px;color:var(--text-dim);margin:4px 0 0">
+             Earned after ${character.total_terms} terms of service.
+           </p>
+         </div>` : '';
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
       <div class="stage-content">
         <h2 class="phase-title">All Benefits Claimed</h2>
         <p class="phase-body">You've rolled all your mustering-out benefits. Your Traveller is ready.</p>
-        <div class="phase-actions">
+        ${pensionNote}
+        <div class="phase-actions" style="margin-top:16px">
           <button class="btn primary" id="btn-finalize">FINALIZE CHARACTER →</button>
         </div>
       </div>

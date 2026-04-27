@@ -3316,7 +3316,9 @@ ANAGATHICS_COST_PER_TERM = 200000
 def purchase_anagathics(character: "Character") -> dict:
     """Buy one term's worth of anagathics treatment.
 
-    The character must be in the career phase with the credits in hand.
+    The treatment costs Cr200,000 per term. If the character cannot afford
+    it they go into medical debt — everyone who wants anagathics can have
+    them; the bill gets paid off during mustering out.
     Each purchase banks one suppressed aging roll — consumed automatically
     the next time end_term would trigger aging.
     """
@@ -3325,22 +3327,32 @@ def purchase_anagathics(character: "Character") -> dict:
             f"Anagathics can only be bought during the career phase "
             f"(currently: {character.phase})"
         )
-    if character.credits < ANAGATHICS_COST_PER_TERM:
-        raise ValueError(
-            f"Insufficient credits: need Cr{ANAGATHICS_COST_PER_TERM:,}, "
-            f"have Cr{character.credits:,}"
-        )
 
-    character.credits -= ANAGATHICS_COST_PER_TERM
+    cost = ANAGATHICS_COST_PER_TERM
+    debt_incurred = 0
+    if character.credits >= cost:
+        character.credits -= cost
+        log_cost = f"Cr{cost:,} paid"
+    else:
+        # Pay what we can, rest goes to medical debt
+        paid = character.credits
+        shortfall = cost - paid
+        character.credits = 0
+        character.medical_debt += shortfall
+        debt_incurred = shortfall
+        log_cost = f"Cr{paid:,} paid, Cr{shortfall:,} added to medical debt"
+
     character.anagathics_purchased_terms += 1
     character.log(
-        f"Purchased anagathics (Cr{ANAGATHICS_COST_PER_TERM:,}). "
+        f"Purchased anagathics ({log_cost}). "
         f"Next aging roll will be suppressed. "
         f"Treatments banked: {character.anagathics_purchased_terms}."
     )
     return {
-        "cost": ANAGATHICS_COST_PER_TERM,
+        "cost": cost,
+        "debt_incurred": debt_incurred,
         "credits_remaining": character.credits,
+        "medical_debt": character.medical_debt,
         "anagathics_purchased_terms": character.anagathics_purchased_terms,
         "character": character.model_dump(),
     }
@@ -3728,10 +3740,30 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
             forfeit_note = " (−1 forfeited by mishap)"
         character.pending_benefit_rolls += earned
         character.current_term = None
+
+        # Retirement pension (MgT 2e p.53) — recalculate each time a career
+        # ends so the final value reflects total terms served so far.
+        # Pension is paid annually (Cr/yr) after the character retires.
+        _PENSION_TABLE = {5: 10_000, 6: 12_000, 7: 14_000}
+        old_pension = character.pension_per_year
+        if character.total_terms >= 8:
+            character.pension_per_year = 16_000
+        elif character.total_terms in _PENSION_TABLE:
+            character.pension_per_year = _PENSION_TABLE[character.total_terms]
+        elif character.total_terms >= 5:
+            character.pension_per_year = 10_000
+        else:
+            character.pension_per_year = 0
+        pension_note = ""
+        if character.pension_per_year > 0 and character.pension_per_year != old_pension:
+            pension_note = (
+                f" Pension updated: Cr{character.pension_per_year:,}/year."
+            )
+
         character.log(
             f"Left {rules.careers()[term.career_id]['name']} "
             f"({reason}). {terms_in_career} terms served. "
-            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note})."
+            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note}).{pension_note}"
         )
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
