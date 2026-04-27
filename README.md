@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-6.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-6.7-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -101,6 +101,8 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 - **Career transfers** from events (e.g. Army 10 → Marines without qualification roll) are tracked and honoured.
 - **Skill check events** (e.g. Scout event 2) resolve the pass/fail branch correctly — success suppresses any "roll on the Mishap Table" clause in the failure branch.
 - **Text-only mishaps** (no mechanical effect) are flagged so the player knows nothing further needs resolving.
+- **Solomani career mishaps** are fully mechanically resolved, including rank loss (SolSec 4), conditional benefit/Enemy choices (SolSec 4/5), Advocate+SOC tradeoff (Party 4), SolSec interrogation chains (ConfNav 3, ConfArmy 3), and the conditional purge outcome for Secret Agents (ConfNav 5).
+- **Frozen Watch** (Confederation Navy mishap 2) — the character stays in service rather than mustering out. The term is logged as cryo, no advancement roll is made, and a "CONTINUE IN SERVICE →" button re-starts the next term of the same career automatically.
 
 ### Solomani Confederation mechanics
 
@@ -355,7 +357,7 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `species_id` | Resolved species (after Heritage Roll for Solomani) |
 | `pre_career_status` | Transient state during pre-career enrollment |
 | `pre_career_permanent_dms` | Permanent DMs granted by pre-career education |
-| `current_term` | The in-progress career term (includes `cover_career_id` for SolSec Secret Agent) |
+| `current_term` | The in-progress career term (includes `cover_career_id` for SolSec Secret Agent; `frozen_watch: true` during a cryo term) |
 | `term_history` | Every completed term with skills gained, events, survival, advancement |
 | `completed_careers` | Summary record per career |
 | `pending_benefit_rolls` | Rolls remaining in the muster-out phase |
