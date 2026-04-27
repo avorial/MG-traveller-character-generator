@@ -2521,13 +2521,31 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     return {"succeeded": r.succeeded, "roll": result, "character": character.model_dump()}
 
 
-def start_term(character: Character, career_id: str, assignment_id: str) -> dict:
-    """Begin a new career term in the given career + assignment."""
+def start_term(
+    character: Character,
+    career_id: str,
+    assignment_id: str,
+    cover_career_id: Optional[str] = None,
+) -> dict:
+    """Begin a new career term in the given career + assignment.
+
+    cover_career_id is only valid for SolSec Secret Agent; it stores which
+    career the agent is publicly operating under so survival/advancement rolls
+    can use that career's stats (with DM-1 / DM+1 respectively).
+    """
     career = rules.careers().get(career_id)
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
     if assignment_id not in career["assignments"]:
         raise ValueError(f"Unknown assignment '{assignment_id}' for {career['name']}")
+
+    # Validate cover career for Secret Agent
+    if cover_career_id and career_id == "solsec" and assignment_id == "secret_agent":
+        cover = rules.careers().get(cover_career_id)
+        if cover is None:
+            raise ValueError(f"Unknown cover career: {cover_career_id}")
+    elif cover_career_id:
+        cover_career_id = None  # Silently ignore for non-Secret Agent terms
 
     # Figure out if this is basic training (first term in this career, ever)
     is_new_career = (
@@ -2598,6 +2616,7 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
         rank_title=_rank_title(career, assignment_id, starting_rank),
         basic_training=first_term_in_this_career and not commissioned_start,
         commissioned=commissioned_start,
+        cover_career_id=cover_career_id or None,
     )
     character.current_term = term
 
@@ -2605,9 +2624,14 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
     if character.starts_commissioned_career_id == career_id:
         character.starts_commissioned_career_id = None
 
+    cover_note = ""
+    if cover_career_id:
+        cover_career = rules.careers().get(cover_career_id, {})
+        cover_note = f" [Cover: {cover_career.get('name', cover_career_id)}]"
+
     character.log(
         f"Begin Term {term.overall_term_number}: {career['name']} — "
-        f"{career['assignments'][assignment_id]['name']}"
+        f"{career['assignments'][assignment_id]['name']}{cover_note}"
         + (" (Basic Training)" if term.basic_training else "")
         + (f" — commissioned at Rank {starting_rank}"
            f"{' (' + term.rank_title + ')' if term.rank_title else ''}"
@@ -2658,23 +2682,39 @@ def start_term(character: Character, career_id: str, assignment_id: str) -> dict
 
 
 def survival_roll(character: Character) -> dict:
-    """Roll survival for the current term's assignment."""
+    """Roll survival for the current term's assignment.
+
+    For SolSec Secret Agents the roll uses the cover career's survival
+    characteristic and target with DM-1 (operating undercover is riskier).
+    """
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
-    career = rules.careers()[term.career_id]
-    assignment = career["assignments"][term.assignment_id]
-    survival = assignment["survival"]
+
+    cover_note = ""
+    if term.cover_career_id:
+        # Secret Agent: use cover career survival DM-1
+        cover_career = rules.careers().get(term.cover_career_id, {})
+        cover_assignment_id = list(cover_career.get("assignments", {}).keys())[0]
+        cover_asgn = cover_career["assignments"][cover_assignment_id]
+        survival = cover_asgn["survival"]
+        cover_dm = -1
+        cover_note = f" [Cover: {cover_career.get('name', term.cover_career_id)}, DM-1]"
+    else:
+        career = rules.careers()[term.career_id]
+        assignment = career["assignments"][term.assignment_id]
+        survival = assignment["survival"]
+        cover_dm = 0
 
     char_key = survival["characteristic"]
     target = survival["target"]
-    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+    dm = dice.characteristic_dm(character.characteristics.get(char_key)) + cover_dm
     r = dice.roll("2D", modifier=dm, target=target)
     term.survived = bool(r.succeeded)
     term.survival_roll_total = r.total
 
     msg = (
-        f"Survival ({char_key} {target}+): 2D{dm:+d} = {r.total} "
+        f"Survival ({char_key} {target}+){cover_note}: 2D{dm:+d} = {r.total} "
         f"[{'SURVIVED' if r.succeeded else 'MISHAP'}]"
     )
     character.log(msg)
@@ -3162,17 +3202,35 @@ def ban_career(character: "Character", career_id: str) -> dict:
 
 
 def advancement_roll(character: Character) -> dict:
-    """Roll advancement. On success, rank increases."""
+    """Roll advancement. On success, rank increases.
+
+    For SolSec Secret Agents the roll uses the cover career's advancement
+    characteristic and target with DM+1 (the cover identity opens doors).
+    SolSec rank advancement always follows SolSec's own rank table regardless.
+    """
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
+
     career = rules.careers()[term.career_id]
-    assignment = career["assignments"][term.assignment_id]
-    adv = assignment["advancement"]
+
+    cover_note = ""
+    if term.cover_career_id:
+        # Secret Agent: use cover career advancement DM+1
+        cover_career = rules.careers().get(term.cover_career_id, {})
+        cover_assignment_id = list(cover_career.get("assignments", {}).keys())[0]
+        cover_asgn = cover_career["assignments"][cover_assignment_id]
+        adv = cover_asgn["advancement"]
+        cover_dm = 1
+        cover_note = f" [Cover: {cover_career.get('name', term.cover_career_id)}, DM+1]"
+    else:
+        assignment = career["assignments"][term.assignment_id]
+        adv = assignment["advancement"]
+        cover_dm = 0
 
     char_key = adv["characteristic"]
     target = adv["target"]
-    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+    dm = dice.characteristic_dm(character.characteristics.get(char_key)) + cover_dm
 
     # Apply permanent pre-career advancement DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -3206,7 +3264,7 @@ def advancement_roll(character: Character) -> dict:
             character.log(f"  Rank bonus: {rank_bonus_log}")
 
     msg = (
-        f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}): "
+        f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}){cover_note}: "
         f"2D{dm:+d} = {r.total} "
         f"[{'PROMOTED to rank ' + str(term.rank) + (' — ' + term.rank_title if term.rank_title else '') if r.succeeded else 'no promotion'}]"
     )

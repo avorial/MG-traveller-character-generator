@@ -33,6 +33,7 @@ let uiState = {
   selectedPreCareerSkills: new Set(),
   selectedCareer: null,
   selectedAssignment: null,
+  selectedCoverCareer: null,   // SolSec Secret Agent cover career
   // After-roll dialog state
   lastRoll: null,
   // Stat-swap UI state (characteristics phase)
@@ -79,7 +80,7 @@ async function freshCharacter() {
   const data = await res.json();
   character = data.character;
   uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
-              selectedCareer: null, selectedAssignment: null, lastRoll: null,
+              selectedCareer: null, selectedAssignment: null, selectedCoverCareer: null, lastRoll: null,
               swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false,
               gmMode: uiState.gmMode,
@@ -2238,10 +2239,15 @@ function wireCareerPhase() {
   if (btnAssign) {
     btnAssign.addEventListener('click', async () => {
       if (!uiState.selectedAssignment) return;
-      const response = await apiCall('/api/character/start-term', {
+      const body = {
         career_id: uiState.selectedCareer,
         assignment_id: uiState.selectedAssignment,
-      });
+      };
+      // SolSec Secret Agent: pass the chosen cover career
+      if (uiState.selectedCoverCareer) {
+        body.cover_career_id = uiState.selectedCoverCareer;
+      }
+      const response = await apiCall('/api/character/start-term', body);
       await applyResponse(response);
       if (response.academy_commission_roll) {
         uiState.academyCommissionRoll = response.academy_commission_roll;
@@ -2249,6 +2255,7 @@ function wireCareerPhase() {
       if (response.basic_training_skills) {
         uiState.basicTrainingSkills = response.basic_training_skills;
       }
+      uiState.selectedCoverCareer = null;  // consumed
       uiState.subPhase = 'train';
       renderAll();
     });
@@ -2257,6 +2264,18 @@ function wireCareerPhase() {
   document.querySelectorAll('[data-assignment]').forEach(card => {
     card.addEventListener('click', () => {
       uiState.selectedAssignment = card.dataset.assignment;
+      // Reset cover career when switching assignments
+      if (!(uiState.selectedCareer === 'solsec' && uiState.selectedAssignment === 'secret_agent')) {
+        uiState.selectedCoverCareer = null;
+      }
+      renderStage();
+    });
+  });
+
+  // SolSec Secret Agent: cover career picker
+  document.querySelectorAll('[data-cover-career]').forEach(card => {
+    card.addEventListener('click', () => {
+      uiState.selectedCoverCareer = card.dataset.coverCareer;
       renderStage();
     });
   });
@@ -3151,6 +3170,44 @@ function renderDraftResult() {
 }
 
 function renderAssignmentPicker(career) {
+  const isSecretAgentSelected = career.id === 'solsec' && uiState.selectedAssignment === 'secret_agent';
+  const soc = character.society_id || 'third_imperium';
+
+  // Cover career picker — only relevant for SolSec Secret Agent
+  const COVER_CAREER_EXCLUDE = new Set(['solsec', 'party', 'drifter', 'prisoner']);
+  const coverCareers = CAREERS.filter(c => {
+    if (COVER_CAREER_EXCLUDE.has(c.id)) return false;
+    if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
+    if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
+    return true;
+  });
+
+  const coverPickerHTML = isSecretAgentSelected ? `
+    <div style="margin-top:20px;padding:14px;border:1px solid var(--amber-dim);border-radius:6px">
+      <div style="font-size:11px;letter-spacing:0.2em;color:var(--amber-dim);margin-bottom:10px">
+        SELECT COVER CAREER — Your public identity. Survival uses cover career stats DM-1; advancement uses cover career stats DM+1.
+      </div>
+      <div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${coverCareers.map(c => `
+          <button class="card${uiState.selectedCoverCareer === c.id ? ' selected' : ''}" data-cover-career="${c.id}"
+            style="padding:10px 12px">
+            <div class="card-title" style="font-size:12px">${c.name}</div>
+          </button>
+        `).join('')}
+      </div>
+      ${uiState.selectedCoverCareer ? `
+        <p style="font-size:11px;color:var(--accent);margin-top:8px">
+          ✓ Cover: <strong>${CAREERS.find(c=>c.id===uiState.selectedCoverCareer)?.name}</strong>
+          — survival and advancement use this career's stats (DM-1 / DM+1).
+        </p>` : `
+        <p style="font-size:11px;color:var(--text-dim);margin-top:8px">Select a cover career above to continue.</p>
+      `}
+    </div>
+  ` : '';
+
+  const readyToStart = uiState.selectedAssignment &&
+    (!isSecretAgentSelected || uiState.selectedCoverCareer);
+
   const cards = Object.entries(career.assignments).map(([id, a]) => `
     <button class="card ${uiState.selectedAssignment === id ? 'selected' : ''}" data-assignment="${id}">
       <div class="card-title">${a.name}</div>
@@ -3162,8 +3219,9 @@ function renderAssignmentPicker(career) {
   return `
     <h3 style="margin-top:28px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Choose an Assignment</h3>
     <div class="card-grid">${cards}</div>
+    ${coverPickerHTML}
     <div class="phase-actions">
-      <button class="btn primary" id="btn-start-term" ${uiState.selectedAssignment ? '' : 'disabled'}>
+      <button class="btn primary" id="btn-start-term" ${readyToStart ? '' : 'disabled'}>
         BEGIN TERM →
       </button>
     </div>

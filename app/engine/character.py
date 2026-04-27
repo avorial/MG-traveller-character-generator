@@ -55,6 +55,8 @@ class CareerTerm(BaseModel):
     basic_training: bool = False
     benefit_forfeited: bool = False
     survival_roll_total: Optional[int] = None
+    # SolSec Secret Agent: the cover career used for survival/advancement rolls
+    cover_career_id: Optional[str] = None
 
 
 class CareerRecord(BaseModel):

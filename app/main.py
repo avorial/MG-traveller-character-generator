@@ -93,6 +93,7 @@ class PsionicTalentAction(CharacterAction):
 class CareerAction(CharacterAction):
     career_id: str
     assignment_id: str | None = None
+    cover_career_id: str | None = None  # SolSec Secret Agent
 
 
 class SkillTableAction(CharacterAction):
@@ -464,7 +465,10 @@ async def api_start_term(action: CareerAction):
         raise HTTPException(400, "assignment_id is required")
     character = action.character.model_copy(deep=True)
     try:
-        return lifepath.start_term(character, action.career_id, action.assignment_id)
+        return lifepath.start_term(
+            character, action.career_id, action.assignment_id,
+            cover_career_id=action.cover_career_id,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 
