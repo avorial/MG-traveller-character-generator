@@ -123,7 +123,15 @@ def solomani_life_events() -> dict:
 
 
 # Careers that use the Solomani Life Events table instead of the standard one.
-SOLOMANI_CAREER_IDS: frozenset[str] = frozenset({"party", "confederation_navy", "solsec"})
+# (The five unique Confederation careers — any career that events reference
+# "Roll on the Solomani Life Events table".)
+SOLOMANI_CAREER_IDS: frozenset[str] = frozenset(
+    {"party", "confederation_navy", "solsec", "confederation_army", "solomani_marine"}
+)
+
+# Careers that have no qualification roll — Party Patronage and Mixed Heritage
+# penalties are irrelevant for these.
+CAREERS_WITHOUT_QUALIFICATION: frozenset[str] = frozenset({"drifter", "prisoner"})
 
 
 def life_events_for_career(career_id: str) -> dict:

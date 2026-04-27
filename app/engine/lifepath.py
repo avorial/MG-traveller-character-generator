@@ -2480,18 +2480,22 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     elif qual_dm_perm:
         dm += qual_dm_perm
 
-    # Party Patronage: Racial Solomani characters add their SOC DM to
-    # qualification rolls for Confederation-specific careers.
+    # Solomani species traits apply to all careers a Confederation character
+    # can take — any career with a qualification roll except Drifter/Prisoner.
+    _is_solomani_confederation = character.society_id == "solomani_confederation"
+    _has_qualification = career_id not in rules.CAREERS_WITHOUT_QUALIFICATION
+
+    # Party Patronage: Racial Solomani add their SOC DM to every qualification roll.
     party_patronage_dm = 0
-    if character.species_id == "solomani_racial" and career_id in rules.SOLOMANI_CAREER_IDS:
+    if _is_solomani_confederation and character.species_id == "solomani_racial" and _has_qualification:
         soc_val = character.characteristics.get("SOC", 7)
         party_patronage_dm = dice.characteristic_dm(soc_val)
         if party_patronage_dm != 0:
             dm += party_patronage_dm
 
-    # Mixed Heritage penalty: DM-1 to qualification for Confederation careers.
+    # Mixed Heritage: DM-1 to every qualification roll in Confederation careers.
     mixed_heritage_dm = 0
-    if character.species_id == "solomani_mixed" and career_id in rules.SOLOMANI_CAREER_IDS:
+    if _is_solomani_confederation and character.species_id == "solomani_mixed" and _has_qualification:
         mixed_heritage_dm = -1
         dm += mixed_heritage_dm
 
