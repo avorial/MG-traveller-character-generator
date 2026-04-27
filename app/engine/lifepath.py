@@ -2458,7 +2458,7 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     for mod in qual.get("modifiers", []):
         if mod["type"] == "per_previous_career":
             dm += mod["dm"] * len(character.completed_careers)
-        elif mod["type"] == "age" and character.age >= mod["threshold"]:
+        elif mod["type"] == "age" and character.age >= mod.get("threshold", mod.get("age_threshold", 99)):
             dm += mod["dm"]
 
     # Apply permanent pre-career education DMs
@@ -2488,7 +2488,7 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     # Party Patronage: Racial Solomani add their SOC DM to every qualification roll.
     party_patronage_dm = 0
     if _is_solomani_confederation and character.species_id == "solomani_racial" and _has_qualification:
-        soc_val = character.characteristics.get("SOC", 7)
+        soc_val = character.characteristics.SOC
         party_patronage_dm = dice.characteristic_dm(soc_val)
         if party_patronage_dm != 0:
             dm += party_patronage_dm

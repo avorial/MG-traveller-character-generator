@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-5.1-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-6.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -32,15 +32,15 @@ uvicorn app.main:app --reload
 ### Full lifepath phases
 
 1. **Characteristics** — Roll 2D×6 for all six stats, with optional stat swaps.
-2. **Society of Origin** — Choose the polity where your character was raised (Third Imperium, Solomani Confederation, Aslan Hierate, Hiver Federation, Zhodani Consulate, Two Thousand Worlds, Vargr Extents, or Other/Frontier). This filters the species picker to only show species relevant to that society.
-3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles are granted to high-SOC Third Imperium characters.
-3. **Background skills** — Skill picks gated by EDU DM.
-4. **Pre-career education** — Optional phase before the career loop (see below).
-5. **Career loop** — Qualify → assignment → basic training → skill training → survival → event → mishap (if failed survival) → advancement → end term (aging at term 4+). Repeats for as many careers and terms as the player chooses.
-6. **Mustering out** — Cash and benefit rolls from each career's table, with pension calculation for long service.
-7. **Skill packages** — Optional package pick at the end of mustering out.
-8. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
-9. **Finalize** — Capsule description generated, character sheet rendered, PDF/JSON export.
+2. **Society of Origin** — Choose the polity where your character was raised (Third Imperium, Solomani Confederation, Aslan Hierate, Hiver Federation, Zhodani Consulate, Two Thousand Worlds, Vargr Extents, or Other/Frontier). Filters the species picker and career list to only show options relevant to that society.
+3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles granted to high-SOC Third Imperium characters. Solomani characters roll a Heritage Roll (2D) to determine sub-type.
+4. **Background skills** — Skill picks gated by EDU DM.
+5. **Pre-career education** — Optional phase before the career loop (see below).
+6. **Career loop** — Qualify → assignment → basic training → skill training → survival → event → mishap (if failed survival) → advancement → end term (aging at term 4+). Repeats for as many careers and terms as the player chooses.
+7. **Mustering out** — Cash and benefit rolls from each career's table. Retirement pension calculated automatically for 5+ terms served.
+8. **Skill packages** — Optional package pick at the end of mustering out.
+9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
+10. **Finalize** — Capsule description generated, character sheet rendered, PDF/JSON export.
 
 ### Pre-career education (7 tracks)
 
@@ -54,11 +54,13 @@ uvicorn app.main:app --reload
 | **Spacer Community** | Homeworld size 0, INT 4+ (automatic) | 3 years | Vacc Suit 1 + 2 picks; graduate for DEX+1, Pilot 0, and permanent DM+1 to Merchant (Free Trader) advancement |
 | **Psionic Community** | PSI 8+ after test | 3 years | Tests PSI on enrolment; psionic talent training; graduate for PSI+1 and permanent Psion career auto-entry |
 
-Ineligible tracks are always visible in the picker as greyed-out cards explaining the requirement.
+Ineligible tracks are visible in the picker as greyed-out cards explaining the requirement.
 
-### Careers (all 13 fully encoded)
+### Careers (18 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
+
+#### Third Imperium (13)
 
 | Career | Assignments |
 |---|---|
@@ -76,49 +78,84 @@ Every career has qualification, all assignments, full skill tables, events (2–
 | **Scholar** | Field Researcher, Scientist, Physician |
 | **Scout** | Courier, Surveyor, Explorer |
 
+#### Solomani Confederation (5)
+
+| Career | Assignments | Notes |
+|---|---|---|
+| **Confederation Navy** | Line/Crew, Engineer/Gunner, Flight | Solomani-only; blocked for Imperial characters |
+| **Confederation Army** | Support, Infantry, Cavalry | Solomani-only |
+| **Star Marines** | Support, Star Marine, Battledress | Solomani-only |
+| **Party** | Apparatchik, Functionary, Director | Solomani Party political career |
+| **SolSec** | Field Agent, Administration, Secret Agent | Secret Agent uses a cover career for survival/advancement rolls |
+
+Careers with `societies` set are only shown for characters from that polity. Careers with `blocked_societies` are hidden for those characters (e.g. Imperial Navy/Army/Marine/Noble/Scout are hidden for Solomani characters).
+
 ### Events and mishaps — fully auto-applied
 
 All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 - Skill gains, characteristic changes, DM bonuses, and associates (allies/contacts/rivals/enemies) are applied directly to the character.
 - **Dual-choice events** present a pick-one UI before continuing.
-- **Life Event sub-table** (event 7 in most careers) rolls a second D6 and applies: travel, crime, illegal goods, good fortune, new contact, injury, psionic test, etc.
-- **Injury Table** — interactive: when a mishap calls for an injury, the player chooses which characteristic absorbs the damage (where the rules allow a choice). Medical debt is tracked.
+- **Life Event sub-table** (event 7 in most careers) rolls a second D6 and applies: travel, crime, illegal goods, good fortune, new contact, injury, psionic test, etc. Solomani characters use a separate Solomani Life Events table.
+- **Injury Table** — interactive: when a mishap calls for an injury, the player chooses which characteristic absorbs the damage. Medical debt is tracked.
 - **Career transfers** from events (e.g. Army 10 → Marines without qualification roll) are tracked and honoured.
-- **Skill check events** (e.g. Scout event 2) apply the pass or fail branch automatically.
+- **Skill check events** (e.g. Scout event 2) resolve the pass/fail branch correctly — success suppresses any "roll on the Mishap Table" clause in the failure branch.
 - **Text-only mishaps** (no mechanical effect) are flagged so the player knows nothing further needs resolving.
+
+### Solomani Confederation mechanics
+
+Characters raised in the Solomani Confederation have additional systems:
+
+- **Heritage Roll** — Picking *Human (Solomani Confederation)* as species triggers a 2D roll that determines sub-type: Non-Solomani (2), Mixed Heritage (3–5), or Racial Solomani (6–12). Each sub-type has different characteristic modifiers and traits.
+- **Party Patronage** — Racial Solomani add their SOC DM to all qualification rolls (except Drifter/Prisoner). Mixed Heritage characters take DM−1 to qualification.
+- **SolSec Secret Agent cover career** — Secret Agents choose a cover career at term start. Survival uses the cover career's stats at DM−1; advancement uses cover career stats at DM+1. SolSec's own rank table governs promotions.
+- **Solomani Draft table** — Confederation Navy, Confederation Army, Star Marines, Merchant, SolSec, Agent (differs from the Imperial table).
+- **Home Forces Reserves** — Any eligible Solomani not in a military career may enlist as a part-time planetary defender. Grants a 1D training roll and an auto-0 skill (Gun Combat or Vacc Suit). A natural 2 on survival also triggers a Reserve Mishap roll. Run alongside the character's main career.
+- **SolSec Monitor** — Any non-SolSec Solomani may volunteer as a SolSec informer. Grants DM+1 to all advancement rolls (not Drifter). A natural 2 on survival triggers a SolSec Mishap; a natural 12 triggers a SolSec Event and adds a SolSec Contact. Monitor rank rises with career promotions; rank 3+ earns one extra benefit roll at muster-out.
 
 ### Additional rules
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll; officers start at rank 1 and use a separate rank track.
 - **Draft** — Failed qualification offers a draft roll (D6 → career assignment).
-- **Aging** — From term 4 onward, END/STR/DEX each roll 2D vs. their value; failures apply −1. Anagathics can be purchased to delay aging (addiction risk modelled).
+- **Aging** — From term 4 onward, END/STR/DEX each roll 2D vs. their value; failures apply −1. Anagathics can be purchased each term to suppress the aging roll; shortfall credit goes to medical debt (addiction risk modelled).
+- **Retirement pension** — Characters leaving with 5+ total terms earn a pension: 5 terms Cr10,000/yr, 6 → Cr12,000, 7 → Cr14,000, 8+ → Cr16,000/yr.
+- **Medical debt** — Injuries and anagathics shortfall add to a running debt; cash benefit rolls pay it off automatically.
 - **Boon rolls** — GM-configurable pool of re-rolls; tracked per character.
 - **Noble titles** — SOC 10–15 grants an Imperial title that appears on the character sheet.
-- **Anagathics** — Purchase each term to slow aging; tracks addicted status.
-- **Connections Rule** — Basic support: a "Connection" button lets the GM note a link to another character (skill grant from the connection is handled manually).
+- **Connections Rule** — A "Connection" button lets the GM note a link to another character.
 - **GM Mode** — Toggle to manually set every dice roll result, for testing or scripted sessions.
 - **NPC generator** — `/api/character/generate-npc` produces a quick stat block without running the full lifepath.
 
-### Species
+### Species (27 files)
 
-Species are listed in picker order (set by `sort_order` in each JSON).
+Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society.
 
-| File ID | Name | Key Modifiers | Notes |
+| File ID | Name | Society | Key Modifiers |
 |---|---|---|---|
-| `imperial_human` | Imperial Human | — | Default; no modifiers |
-| `imperial_vargr` | Vargr (Imperial Raised) | STR−1 DEX+1 END−1 | Bite, Heightened Senses |
-| `imperial_aslan` | Aslan (Imperial Raised) | STR+2 DEX−2 | Dewclaw, Heightened Senses |
-| `imperial_bwap` | Bwap (Imperial Raised) | STR−4 END−4 | Boon on Admin/Science; Bane on psionic test |
-| `jonkeereen` | Jonkeereen | END+2 | Desert Survival DM+3; breathe tainted atmo; shorter lifespan |
-| `luriani` | Luriani | DEX+1 END+1 SOC−2 | Aquatic Adaptation; Histrionics |
-| `sydite` | Sydite | STR+2 END+2 DEX−2 INT−3 EDU−3 | Four-Armed; Resilient (Protection+1); Plodding Along |
-| `akeed` | Akeed | STR−2 END−2 INT+1 | Akeed Debate DM+2; Akeed Friendship bond; non-humanoid physiology |
-| `capry_female` | Capry — Female | STR−3 DEX+2 END−2 INT+1 | Liberating Fatalism; Third Hand |
-| `capry_big_male` | Capry — Big Male | STR−1 END+1 | Liberating Fatalism; Third Hand |
-| `capry_small_male` | Capry — Small Male | STR−4 DEX+3 END−3 EDU+2 | Liberating Fatalism; Third Hand |
-| `droashav` | Droashav | STR+2 DEX−1 END+3 INT−1 | Six-limbed; Natural Defences (Protection+1, claw 1D+2) |
-| `faar` | Faar | INT+1 | Closed Book (DM−2 to read); Homesickness |
+| `imperial_human` | Imperial Human | Third Imperium | — |
+| `imperial_vargr` | Vargr (Imperial Raised) | Third Imperium | STR−1 DEX+1 END−1 |
+| `imperial_aslan` | Aslan (Imperial Raised) | Third Imperium | STR+2 DEX−2 |
+| `imperial_bwap` | Bwap | Third Imperium | STR−4 END−4 |
+| `jonkeereen` | Jonkeereen | Third Imperium | END+2 |
+| `luriani` | Luriani | Third Imperium | DEX+1 END+1 SOC−2 |
+| `sydite` | Sydite | Third Imperium | STR+2 END+2 DEX−2 INT−3 EDU−3 |
+| `akeed` | Akeed | Third Imperium | STR−2 END−2 INT+1 |
+| `capry_female` | Capry — Female | Third Imperium | STR−3 DEX+2 END−2 INT+1 |
+| `capry_big_male` | Capry — Big Male | Third Imperium | STR−1 END+1 |
+| `capry_small_male` | Capry — Small Male | Third Imperium | STR−4 DEX+3 END−3 EDU+2 |
+| `droashav` | Droashav | Third Imperium | STR+2 DEX−1 END+3 INT−1 |
+| `faar` | Faar | Third Imperium | INT+1 |
+| `solomani_human` | Human (Solomani Confederation) | Solomani Confederation | Triggers Heritage Roll (2D) |
+| `solomani_racial` | Racial Solomani | Solomani Confederation | SOC+1 (resolved by Heritage Roll) |
+| `solomani_mixed` | Mixed Heritage Solomani | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
+| `confederation_human` | Non-Solomani Human | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
+| `zhodani_human` | Zhodani Human | Zhodani Consulate | — |
+| `hierate_aslan` | Aslan (Hierate) | Aslan Hierate | STR+2 DEX−2 |
+| `extents_vargr` | Vargr (Extents) | Vargr Extents | STR−1 DEX+1 END−1 |
+| `hiver_federation_human` | Hiver Federation Human | Hiver Federation | — |
+| `two_thousand_worlds_human` | Two Thousand Worlds Human | Two Thousand Worlds | — |
+| `sword_worlds_human` | Sword Worlds Human | Other/Frontier | — |
+| `frontier_human` | Frontier Human | Other/Frontier | — |
 
 ---
 
@@ -127,25 +164,27 @@ Species are listed in picker order (set by `sort_order` in each JSON).
 ```
 traveller-creator/
 ├── app/
-│   ├── main.py                     # FastAPI routes (~70 endpoints)
+│   ├── main.py                     # FastAPI routes (~80 endpoints)
 │   ├── engine/
-│   │   ├── dice.py                 # 2D/1D/D3 rolling, characteristic DMs
+│   │   ├── dice.py                 # 2D/1D/D3 rolling, characteristic DMs, bane rolls
 │   │   ├── character.py            # Pydantic Character model (JSON-serializable)
-│   │   ├── rules.py                # JSON data loader with lru_cache
+│   │   ├── rules.py                # JSON data loader with lru_cache, society helpers
 │   │   └── lifepath.py             # Rules engine (all phases)
 │   ├── data/
-│   │   ├── species/                # 8 species JSON files
-│   │   ├── careers/                # 13 career JSON files (all complete)
+│   │   ├── species/                # 27 species JSON files
+│   │   ├── careers/                # 18 career JSON files (all complete)
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_skills.json
 │   │       ├── education.json      # Pre-career track definitions
 │   │       ├── injury.json
 │   │       ├── life_events.json
+│   │       ├── solomani_life_events.json
 │   │       ├── mustering_benefits.json
 │   │       ├── psionics.json
 │   │       ├── skill_packages.json
-│   │       └── skills.json         # Canonical skill list
+│   │       ├── skills.json         # Canonical skill list
+│   │       └── societies.json      # Society definitions and species whitelists
 │   ├── templates/
 │   │   └── index.html              # Single Jinja2 template
 │   └── static/
@@ -187,9 +226,11 @@ Drop a file into `app/data/species/<id>.json`:
 
 Refresh the browser — it appears in the species picker immediately.
 
+To restrict a species to a specific society, add `"societies": ["solomani_confederation"]` (whitelist) or reference the `societies.json` table.
+
 ### Adding or editing a career
 
-All 13 careers are complete; use `app/data/careers/scout.json` as the reference schema. Key fields:
+Use `app/data/careers/scout.json` as the reference schema. Key fields:
 
 - `skill_tables` — `personal_development`, `service_skills`, `advanced_education`, plus one per assignment, each keyed `"1"` through `"6"`
 - `ranks` — either `"default"` (one track) or per-assignment, each entry `{"title": "...", "bonus": "..."}`
@@ -197,6 +238,8 @@ All 13 careers are complete; use `app/data/careers/scout.json` as the reference 
 - `events` — keyed `"2"` through `"12"`, with type and effect fields for auto-application
 - `mustering_out` — keyed `"1"` through `"7"`, each `{"cash": <credits>, "benefit": "<name>"}`
 - `"complete": true` — marks the career as fully playable
+- `"societies": ["solomani_confederation"]` — restricts career to characters from that polity
+- `"blocked_societies": ["solomani_confederation"]` — hides career for characters from that polity
 
 ### Adding a new pre-career track
 
@@ -234,6 +277,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/roll-characteristics` | Roll 2D × 6 |
 | `/api/character/swap-stats` | Swap two characteristic values |
 | `/api/character/apply-species` | Apply species modifiers and traits |
+| `/api/character/racial-background-roll` | Roll Heritage (2D) for Solomani human sub-type |
 | `/api/character/background-skills` | Grant background skills at level 0 |
 | `/api/character/apply-skill-package` | Apply a skill package at finalization |
 
@@ -256,12 +300,12 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 |---|---|
 | `/api/character/qualify` | Career qualification roll |
 | `/api/character/draft` | Draft roll (after failed qualification) |
-| `/api/character/start-term` | Begin a new term (basic training, rank bonuses) |
-| `/api/character/survive` | Survival roll |
+| `/api/character/start-term` | Begin a new term; accepts `cover_career_id` for SolSec Secret Agent |
+| `/api/character/survive` | Survival roll; triggers parallel Reserve/Monitor events if applicable |
 | `/api/character/event` | Event table roll and resolution |
 | `/api/character/mishap` | Mishap table roll and resolution |
 | `/api/character/career-mishap-choice` | Resolve an interactive mishap choice |
-| `/api/character/advance` | Advancement roll |
+| `/api/character/advance` | Advancement roll; applies Monitor DM+1 if active |
 | `/api/character/skill-roll` | Roll on a specific skill table |
 | `/api/character/event-skill-grant` | Apply a skill granted by an event |
 | `/api/character/event-dm-grant` | Apply a DM bonus granted by an event |
@@ -270,11 +314,13 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/cross-career-roll` | Roll on another career's skill table (event reward) |
 | `/api/character/ban-career` | Permanently ban a career (e.g. Scout event 2 failure) |
 | `/api/character/associate` | Add an ally, contact, rival, or enemy |
-| `/api/character/end-term` | Close term; trigger aging if term 4+ |
+| `/api/character/end-term` | Close term; trigger aging if term 4+; update pension |
 | `/api/character/muster-out` | Cash or benefit roll from mustering-out table |
-| `/api/character/anagathics` | Purchase anagathics for the current term |
+| `/api/character/anagathics` | Purchase anagathics; shortfall added to medical debt |
 | `/api/character/injury` | Roll on the injury table |
 | `/api/character/injury-choice` | Player chooses which stat absorbs injury damage |
+| `/api/character/home-forces` | Enrol in or resign from Home Forces Reserves (`action: "enroll"\|"leave"`) |
+| `/api/character/solsec-monitor` | Toggle SolSec Monitor status (`active: true\|false`) |
 
 ### Life events & psionics (POST)
 
@@ -300,26 +346,36 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 
 ## Character state
 
-The `Character` object is the single source of truth. It lives in `localStorage`, travels with every API call, and is returned updated. Key fields of note:
+The `Character` object is the single source of truth. It lives in `localStorage`, travels with every API call, and is returned updated. Key fields:
 
 | Field | Purpose |
 |---|---|
 | `phase` | Current creation phase (`characteristics` → `species` → `background` → `pre_career` → `career` → `mustering` → `finalize` → `done`) |
-| `pre_career_status` | Transient state during pre-career enrollment (track, stage, skill pool, event roll, etc.) |
-| `pre_career_permanent_dms` | Permanent DMs granted by pre-career education (qualification, commission, advancement, auto-rank, etc.) |
-| `current_term` | The in-progress career term |
+| `society_id` | Chosen polity; gates career lists, draft table, parallel service options |
+| `species_id` | Resolved species (after Heritage Roll for Solomani) |
+| `pre_career_status` | Transient state during pre-career enrollment |
+| `pre_career_permanent_dms` | Permanent DMs granted by pre-career education |
+| `current_term` | The in-progress career term (includes `cover_career_id` for SolSec Secret Agent) |
 | `term_history` | Every completed term with skills gained, events, survival, advancement |
 | `completed_careers` | Summary record per career |
-| `pending_life_event_choice` | Populated when a life event needs player input; cleared by `/life-event-choice` |
+| `pending_benefit_rolls` | Rolls remaining in the muster-out phase |
+| `pension_per_year` | Annual pension in Credits (set when 5+ terms served) |
+| `medical_debt` | Outstanding injury/anagathics debt; auto-deducted from cash rolls |
+| `home_forces_enrolled` | Whether the character is in the Home Forces Reserves |
+| `home_forces_component` | `"groundside"` or `"naval"` |
+| `home_forces_rank` | Current reserve rank |
+| `solsec_monitor` | Whether the character is an active SolSec Monitor |
+| `solsec_monitor_rank` | Monitor rank (rises with career promotions; rank 3+ = extra benefit roll) |
+| `pending_life_event_choice` | Populated when a life event needs player input |
 | `pending_injury_choice` | Populated when the player must choose which stat absorbs injury damage |
 | `pending_career_mishap_choice` | Populated when a mishap requires player input |
 | `forced_next_career_id` | Set by events/education that mandate a specific next career |
 | `pending_transfer_career_id` | Career transfer offer from an event; consumed on next qualification |
-| `banned_career_ids` | Careers permanently closed (e.g. Scout event 2 fail) |
+| `banned_career_ids` | Careers permanently closed |
 | `good_fortune_benefit_dm` | DM+2 tokens from Life Event 10, usable on benefit rolls |
 
 ---
 
 ## Legal
 
-*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. The rules reproduced here are from the Mongoose Traveller 2e Core Rulebook; this project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebook.
+*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. The rules reproduced here are from the Mongoose Traveller 2e Core Rulebook and the Solomani Rim sourcebook; this project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebook.
