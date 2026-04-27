@@ -2915,6 +2915,7 @@ function wireCareerPhase() {
         injuryTitle: response.injury_data?.title || null,
         injuryText: response.injury_data?.text || null,
         injuryRoll: response.injury_data?.roll?.total ?? null,
+        frozenWatch: response.frozen_watch || false,
       };
       renderAll();
     });
@@ -3124,6 +3125,27 @@ function wireCareerPhase() {
       uiState.selectedCareer = null;
       uiState.selectedAssignment = null;
       renderAll();
+    });
+  }
+
+  // Frozen Watch — stay in service, start next term of same career/assignment
+  const btnFrozenWatch = document.getElementById('btn-frozen-watch-continue');
+  if (btnFrozenWatch) {
+    btnFrozenWatch.addEventListener('click', async () => {
+      try {
+        const careerId = character.current_term.career_id;
+        const assignmentId = character.current_term.assignment_id;
+        const endResp = await apiCall('/api/character/end-term', { leaving: false });
+        await applyResponse(endResp);
+        const startResp = await apiCall('/api/character/start-term', {
+          career_id: careerId,
+          assignment_id: assignmentId,
+        });
+        await applyResponse(startResp);
+        uiState.lastRoll = null;
+        uiState.subPhase = 'train';
+        renderAll();
+      } catch (e) { alert(e.message); }
     });
   }
 
@@ -4629,6 +4651,30 @@ function renderEventStep() {
 function renderMishapStep() {
   if (uiState.lastRoll?.type === 'mishap') {
     const lr = uiState.lastRoll;
+
+    // ---- Frozen Watch: character stays in service, continue to next term ----
+    if (lr.frozenWatch) {
+      return `
+        <div class="stage-content">
+          <div class="phase-label">Mishap [1D=${lr.data?.total ?? '?'}] — FROZEN WATCH</div>
+          <h2 class="phase-title">Frozen Watch</h2>
+          ${rollReadoutHTML(lr.data, { label: '1D', showTarget: false })}
+          <div class="mishap-box">
+            <span class="event-label">Mishap [1D=2] — Frozen Watch</span>
+            ${escapeHTML(lr.mishapText || '')}
+          </div>
+          <div class="event-box" style="margin-top:12px;border-color:var(--accent)">
+            <span class="event-label" style="color:var(--accent)">STAYING IN SERVICE</span>
+            You are not ejected from the Confederation Navy. No skill or advancement roll
+            this term. You may automatically re-enlist next term.
+          </div>
+          <div class="phase-actions" style="margin-top:16px">
+            <button class="btn primary" id="btn-frozen-watch-continue">CONTINUE IN SERVICE →</button>
+          </div>
+        </div>
+      `;
+    }
+
     const pending = character.pending_career_mishap_choice;
     const injPending = character.pending_injury_choice;
     const statDescs = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance', INT: 'Intellect', EDU: 'Education', SOC: 'Social' };

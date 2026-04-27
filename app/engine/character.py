@@ -57,6 +57,8 @@ class CareerTerm(BaseModel):
     survival_roll_total: Optional[int] = None
     # SolSec Secret Agent: the cover career used for survival/advancement rolls
     cover_career_id: Optional[str] = None
+    # Confederation Navy mishap 2: term spent in cryo, character stays in service
+    frozen_watch: bool = False
 
 
 class CareerRecord(BaseModel):

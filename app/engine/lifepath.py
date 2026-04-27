@@ -2985,6 +2985,15 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             }
             set_pending = True
 
+    elif etype == "frozen_watch":
+        # ConfNav mishap 2 — character stays in service, no skill/advancement this term.
+        if term is not None:
+            term.frozen_watch = True
+            term.survived = True  # override the failed survival: they're not leaving
+            term.mishap = None    # clear the mishap marker — this isn't a career-ending event
+        msgs.append("Frozen Watch — term spent in cryo. Character stays in service.")
+        character.log("Mishap: Frozen Watch — term spent in cryoberth, character remains in service")
+
     elif etype == "rank_loss":
         amount = effect.get("amount", 1)
         if term is not None:
@@ -3062,6 +3071,7 @@ def mishap_roll(character: Character) -> dict:
         "pending_choice": pending_choice,
         "injury_pending": bool(character.pending_injury_choice),
         "injury_data": injury_data,
+        "frozen_watch": bool(term and term.frozen_watch),
         "character": character.model_dump(),
     }
 
@@ -3858,7 +3868,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "confederation_navy": {
         1: [{"type": "injury_severity_choice"}],
-        2: [],  # Frozen Watch — character stays in career; handle skill/advancement skip narratively
+        2: [{"type": "frozen_watch"}],
         3: [{"type": "pending_choice", "id": "solsec_interrogation",
              "prompt": "You are forced out after criticising a political officer. Submit to SolSec interrogation (forfeit Benefit roll) or refuse and roll END 8+ to keep your Benefit roll?",
              "options": [
