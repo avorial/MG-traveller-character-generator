@@ -342,20 +342,27 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
     pcs = (character.pre_career_status or {}) if hasattr(character, "pre_career_status") else {}
     if pcs.get("pending_psionic_training"):
         cost = 0
-    if character.credits < cost:
-        raise ValueError(
-            f"Insufficient credits: need Cr{cost:,}, have Cr{character.credits:,}."
-        )
+
+    # Allow purchase even without sufficient credits — shortfall goes to medical debt.
+    debt_incurred = 0
+    if cost > 0:
+        if character.credits >= cost:
+            character.credits -= cost
+        else:
+            shortfall = cost - character.credits
+            character.medical_debt += shortfall
+            character.credits = 0
+            debt_incurred = shortfall
 
     # DM = character.psi - talent target (Psi serves as the characteristic)
     target = talent.get("test_target", 8)
     dm = dice.characteristic_dm(character.psi)
     r = dice.roll("2D", modifier=dm, target=target)
 
-    character.credits -= cost
+    cost_note = f"Cr{cost:,}" if debt_incurred == 0 else f"Cr{cost - debt_incurred:,} paid + Cr{debt_incurred:,} medical debt"
     log_msg = (
         f"Psi training — {talent['name']} "
-        f"[2D{dm:+d}={r.total} vs {target}+, cost Cr{cost:,}]"
+        f"[2D{dm:+d}={r.total} vs {target}+, cost {cost_note}]"
     )
 
     if r.succeeded:
@@ -372,7 +379,9 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
         "roll": r.to_dict(),
         "succeeded": r.succeeded,
         "cost": cost,
+        "debt_incurred": debt_incurred,
         "credits_remaining": character.credits,
+        "medical_debt": character.medical_debt,
         "character": character.model_dump(),
     }
 
@@ -3813,7 +3822,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "rogue": {
         1: [{"type": "injury_severity_choice"}],
-        2: [{"type": "forfeit_benefit"}],
+        2: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
         3: [{"type": "enemy", "desc": "Enemy [Crime Job]"}, {"type": "forfeit_benefit"}],
         4: [{"type": "enemy", "desc": "Enemy [Partner in Crime]"}],
         5: [],  # forced to flee — narrative
@@ -4220,7 +4229,12 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
 
 def _apply_aging(character: Character) -> dict:
-    """Roll on the aging table: 2D - total terms."""
+    """Roll on the aging table: 2D - total terms.
+
+    Physical stat reductions are returned as ``pending_reductions`` for the
+    player to choose which characteristics to reduce.  Mental reductions are
+    applied automatically (random, per RAW).
+    """
     dm = -character.total_terms  # "the older you are, the heavier the effects"
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
@@ -4237,48 +4251,50 @@ def _apply_aging(character: Character) -> dict:
 
     if entry is None:
         character.log(f"Aging roll {r.total}: no matching entry")
-        return {"roll": r.to_dict(), "effects_applied": []}
+        return {"roll": r.to_dict(), "title": "No Effect", "effects_applied": [], "pending_reductions": []}
 
-    effects_applied = []
+    effects_applied = []   # auto-applied (mental)
+    pending_reductions = []  # player must choose which physical stats
+
     for effect in entry.get("effects", []):
-        applied = _apply_aging_effect(character, effect)
-        effects_applied.extend(applied)
+        if effect["type"] == "reduce_physical":
+            # Player chooses which physical stats to reduce
+            pending_reductions.append({
+                "type": "choose_physical",
+                "count": effect["count"],
+                "amount": effect["amount"],
+                "options": ["STR", "DEX", "END"],
+            })
+        else:
+            applied = _apply_aging_effect_auto(character, effect)
+            effects_applied.extend(applied)
 
-    # Check for aging crisis (any stat at 0)
-    crisis = [s for s in ("STR", "DEX", "END", "INT", "EDU", "SOC")
-              if character.characteristics.get(s) <= 0]
-    if crisis:
-        character.log(
-            f"AGING CRISIS: {', '.join(crisis)} reduced to 0. "
-            "Character dies unless 1D × Cr10,000 is paid for medical care."
-        )
-        # For the creator we'll mark but not auto-kill — let the player decide
-        character.dead = True
-        character.death_reason = f"Aging crisis ({', '.join(crisis)} = 0)"
-
+    pending_note = (
+        f" + Choose {sum(p['count'] for p in pending_reductions)} physical stat reduction(s)"
+        if pending_reductions else ""
+    )
     character.log(
         f"Aging [2D{dm:+d}={r.total}] {entry['title']}: "
-        + (", ".join(effects_applied) if effects_applied else "no effect")
+        + (", ".join(effects_applied) if effects_applied else "no auto effect")
+        + pending_note
     )
-    return {"roll": r.to_dict(), "title": entry["title"], "effects_applied": effects_applied}
+    return {
+        "roll": r.to_dict(),
+        "title": entry["title"],
+        "effects_applied": effects_applied,
+        "pending_reductions": pending_reductions,
+    }
 
 
-def _apply_aging_effect(character: Character, effect: dict) -> list[str]:
-    """Apply a single aging effect. Returns log strings."""
-    physical = ["STR", "DEX", "END"]
+def _apply_aging_effect_auto(character: Character, effect: dict) -> list[str]:
+    """Apply an aging effect that does not require player choice (mental stats).
+
+    Returns log strings.
+    """
     mental = ["INT", "EDU", "SOC"]
     logs = []
 
-    if effect["type"] == "reduce_physical":
-        # Pick characteristics at random — player choice in rulebook but simpler to auto
-        count = effect["count"]
-        amount = effect["amount"]
-        targets = random.sample(physical, min(count, len(physical)))
-        for stat in targets:
-            old = character.characteristics.get(stat)
-            character.characteristics.set(stat, old - amount)
-            logs.append(f"{stat} {old}→{character.characteristics.get(stat)}")
-    elif effect["type"] == "reduce_mental":
+    if effect["type"] == "reduce_mental":
         count = effect["count"]
         amount = effect["amount"]
         targets = random.sample(mental, min(count, len(mental)))
@@ -4286,7 +4302,49 @@ def _apply_aging_effect(character: Character, effect: dict) -> list[str]:
             old = character.characteristics.get(stat)
             character.characteristics.set(stat, old - amount)
             logs.append(f"{stat} {old}→{character.characteristics.get(stat)}")
+    # Note: reduce_physical is handled via pending_reductions / resolve_aging_choice
     return logs
+
+
+# Keep old name as an alias so nothing else breaks if referenced elsewhere
+def _apply_aging_effect(character: Character, effect: dict) -> list[str]:
+    """Deprecated shim — routes to _apply_aging_effect_auto."""
+    return _apply_aging_effect_auto(character, effect)
+
+
+def resolve_aging_choice(character: Character, reductions: list[dict]) -> dict:
+    """Apply player-chosen physical aging stat reductions.
+
+    ``reductions`` is a list of ``{"stat": "STR", "amount": 1}`` objects.
+    Only STR / DEX / END are accepted.
+    """
+    applied = []
+    for item in reductions:
+        stat = item.get("stat", "")
+        amount = int(item.get("amount", 1))
+        if stat not in ("STR", "DEX", "END"):
+            raise ValueError(f"Invalid stat for aging choice: {stat!r}")
+        old = character.characteristics.get(stat)
+        character.characteristics.set(stat, old - amount)
+        character.log(f"Aging (player choice): {stat} {old}→{character.characteristics.get(stat)}")
+        applied.append(f"{stat} {old}→{character.characteristics.get(stat)}")
+
+    # Check for aging crisis (any stat at 0 after reductions)
+    crisis = [s for s in ("STR", "DEX", "END", "INT", "EDU", "SOC")
+              if character.characteristics.get(s) <= 0]
+    if crisis and not character.dead:
+        character.log(
+            f"AGING CRISIS: {', '.join(crisis)} reduced to 0. "
+            "Character dies unless 1D × Cr10,000 is paid for medical care."
+        )
+        character.dead = True
+        character.death_reason = f"Aging crisis ({', '.join(crisis)} = 0)"
+
+    return {
+        "applied": applied,
+        "crisis": crisis,
+        "character": character.model_dump(),
+    }
 
 
 # ============================================================

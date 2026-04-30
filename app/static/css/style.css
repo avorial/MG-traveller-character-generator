@@ -2008,6 +2008,24 @@ body.gm-mode #btn-gm-mode {
   letter-spacing: 0.05em;
 }
 
+/* ── Aging stat-choice buttons ────────────────────────────────────────── */
+.aging-stat-btn {
+  min-width: 100px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.aging-stat-btn.chosen {
+  border-color: var(--amber);
+  background: rgba(255, 176, 64, 0.12);
+}
+.aging-stat-btn.chosen .card-title {
+  color: var(--amber);
+}
+.aging-stat-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── PSI characteristic cell ──────────────────────────────────────────── */
 .stat-cell-psi {
   grid-column: 1 / -1;           /* span full width of the 3-col grid */

@@ -44,8 +44,9 @@ let uiState = {
   subPhase: null,
   pendingAge: false,
   // Aging intercept — set after end-term, cleared once the player clicks CONTINUE
-  agingResult: null,     // the aging dict returned by /api/character/end-term
-  agingNextAction: null, // {type:'next_term',careerId,assignmentId} | {type:'muster_out'} | {type:'muster_out_mishap'}
+  agingResult: null,          // the aging dict returned by /api/character/end-term
+  agingNextAction: null,      // {type:'next_term',careerId,assignmentId} | {type:'muster_out'} | {type:'muster_out_mishap'}
+  agingSelectedStats: [],     // player-chosen stats for pending physical reductions [[stat, amount], ...]
   // GM / cheat mode — unlocks direct stat editing, boon rolls, phase skipping.
   gmMode: (localStorage.getItem('traveller_gm_mode') === '1'),
   // Connections step (between muster-out and done).
@@ -86,6 +87,7 @@ async function freshCharacter() {
               selectedCareer: null, selectedAssignment: null, selectedCoverCareer: null, lastRoll: null,
               swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false,
+              agingResult: null, agingNextAction: null, agingSelectedStats: [],
               gmMode: uiState.gmMode,
               connectionsDone: false, connections: [],
               basicTrainingSkills: null,
@@ -196,6 +198,30 @@ function luckClass(pct) {
   if (pct >= 60) return 'good';
   if (pct >= 30) return 'meh';
   return 'bad';
+}
+
+// Shared anagathics purchase box — shown on advance/mishap/decide screens before end-term.
+// btnId should be unique per screen (btn-buy-anagathics, btn-mishap-buy-anagathics, etc.)
+function anagathicsBoxHTML(btnId = 'btn-buy-anagathics') {
+  if (character.total_terms + 1 < 4) return '';  // aging doesn't start until term 4
+  return `
+    <div class="anagathics-box" style="margin-top:14px">
+      <div class="anagathics-header">
+        <strong>Anagathics available</strong>
+        <span class="empty">Cr200,000 per 4-year term — skips the aging roll</span>
+      </div>
+      <div class="anagathics-status">
+        Banked treatments: <strong>${character.anagathics_purchased_terms}</strong>
+        ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
+      </div>
+      ${character.credits < 200000 ? `
+        <p style="font-size:11px;color:var(--text-dim);margin:4px 0">
+          Insufficient credits (Cr${character.credits.toLocaleString()} available) — shortfall added to medical debt.
+        </p>` : ''}
+      <div class="phase-actions" style="margin-top:6px">
+        <button class="btn ghost" id="${btnId}">PURCHASE (Cr200,000)</button>
+      </div>
+    </div>`;
 }
 
 function rollReadoutHTML(r, opts = {}) {
@@ -2444,9 +2470,11 @@ function wireCareerPhase() {
   const btnPostSurvive = document.getElementById('btn-post-survive');
   if (btnPostSurvive) {
     btnPostSurvive.addEventListener('click', () => {
-      const outcome = uiState.lastRoll?.outcome;
+      // Use lastRoll outcome if available; fall back to server-side survived flag.
+      const survived = uiState.lastRoll?.outcome === 'pass'
+                    || (uiState.lastRoll?.outcome == null && character.current_term?.survived === true);
       uiState.lastRoll = null;
-      uiState.subPhase = outcome === 'pass' ? 'event' : 'mishap';
+      uiState.subPhase = survived ? 'event' : 'mishap';
       renderStage();
     });
   }
@@ -3116,6 +3144,7 @@ function wireCareerPhase() {
       // Aging happened — show the roll before proceeding
       uiState.agingResult = endResp.aging;
       uiState.agingNextAction = nextAction;
+      uiState.agingSelectedStats = [];   // reset any prior selections
       uiState.subPhase = 'aging_result';
       renderAll();
     } else {
@@ -3123,11 +3152,65 @@ function wireCareerPhase() {
     }
   }
 
+  // Aging stat-choice buttons (wired when aging_result sub-phase has pending_reductions)
+  document.querySelectorAll('.aging-stat-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stat = btn.dataset.stat;
+      const amount = parseInt(btn.dataset.amount, 10) || 1;
+      const pending = uiState.agingResult?.pending_reductions || [];
+      const totalRequired = pending.reduce((s, p) => s + p.count, 0);
+      if (!uiState.agingSelectedStats) uiState.agingSelectedStats = [];
+      if (uiState.agingSelectedStats.length < totalRequired) {
+        uiState.agingSelectedStats.push({ stat, amount });
+        renderStage();
+      }
+    });
+  });
+
+  // Clear aging selection
+  const btnAgingClearSel = document.getElementById('btn-aging-clear-selection');
+  if (btnAgingClearSel) {
+    btnAgingClearSel.addEventListener('click', () => {
+      uiState.agingSelectedStats = [];
+      renderStage();
+    });
+  }
+
+  // Buy anagathics — shared handler used by decide / advance / mishap / aging screens
+  async function buyAnagathics() {
+    try {
+      const resp = await apiCall('/api/character/anagathics', {});
+      await applyResponse(resp);
+      renderStage();
+    } catch (e) { alert(e.message); }
+  }
+  ['btn-buy-anagathics', 'btn-aging-buy-anagathics', 'btn-mishap-buy-anagathics', 'btn-advance-buy-anagathics'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', buyAnagathics);
+  });
+
   // Aging CONTINUE button (wired when aging_result sub-phase is active)
   const btnAgingContinue = document.getElementById('btn-aging-continue');
   if (btnAgingContinue) {
     btnAgingContinue.addEventListener('click', async () => {
       const nextAction = uiState.agingNextAction;
+      const pending = uiState.agingResult?.pending_reductions || [];
+      const selected = uiState.agingSelectedStats || [];
+
+      // If there are pending physical reductions the player has chosen, resolve them first
+      if (pending.length > 0 && selected.length > 0) {
+        try {
+          const resolveResp = await apiCall('/api/character/resolve-aging', {
+            reductions: selected,
+          });
+          await applyResponse(resolveResp);
+        } catch (e) {
+          alert(e.message);
+          return;
+        }
+      }
+
+      uiState.agingSelectedStats = [];
       await executeNextAction(nextAction);
     });
   }
@@ -3253,8 +3336,9 @@ function renderAgingResult() {
 
   const roll = aging.roll;
   const title = aging.title || 'Unknown';
-  const effects = aging.effects_applied || [];
-  const noEffect = effects.length === 0;
+  const autoEffects = aging.effects_applied || [];
+  const pending = aging.pending_reductions || [];  // [{type, count, amount, options}]
+  const noEffect = autoEffects.length === 0 && pending.length === 0;
   const nextAction = uiState.agingNextAction || {};
 
   // Color coding by severity
@@ -3264,15 +3348,89 @@ function renderAgingResult() {
       ? 'var(--warning, #ffcc44)'
       : 'var(--danger, #ff5233)';
 
-  const effectsHTML = effects.length
-    ? `<div class="aging-effects">
-        ${effects.map(e => `<div class="aging-effect-chip">${escapeHTML(e)}</div>`).join('')}
-       </div>`
-    : `<p class="phase-body" style="color:${severityColor}">No characteristics were reduced.</p>`;
+  // Auto-applied effects (mental stats)
+  const autoHtml = autoEffects.length
+    ? `<div class="aging-effects">${autoEffects.map(e => `<div class="aging-effect-chip">${escapeHTML(e)}</div>`).join('')}</div>`
+    : '';
 
-  const continueLabel = nextAction.type === 'next_term'
-    ? 'BEGIN NEXT TERM →'
-    : 'CONTINUE →';
+  // Build pending physical stat choice UI
+  // selected = flat list of {stat, amount} the player has chosen
+  const selected = uiState.agingSelectedStats || [];
+
+  let pendingHtml = '';
+  let totalRequired = 0;
+  if (pending.length > 0) {
+    totalRequired = pending.reduce((sum, p) => sum + p.count, 0);
+    const selectedCount = selected.length;
+    const remaining = totalRequired - selectedCount;
+
+    // Figure out which stats are still selectable
+    // (can't pick the same stat twice across groups unless count > 1)
+    const selectedStats = selected.map(s => s.stat);
+    const availableOptions = ['STR', 'DEX', 'END'].filter(s => !selectedStats.includes(s));
+
+    // Build amount map: if multiple groups, later selections use later group's amount
+    // For simplicity, use first pending group's amount for all (usually only 1 group)
+    const currentGroupAmount = (() => {
+      let filled = 0;
+      for (const p of pending) {
+        if (selectedCount < filled + p.count) return p.amount;
+        filled += p.count;
+      }
+      return pending[pending.length - 1]?.amount || 1;
+    })();
+
+    const statsHtml = ['STR', 'DEX', 'END'].map(stat => {
+      const alreadyChosen = selectedStats.includes(stat);
+      const currentVal = character.characteristics?.[stat] ?? '?';
+      const reducedVal = alreadyChosen ? (currentVal - (selected.find(s => s.stat === stat)?.amount ?? 1)) : null;
+      const disabled = (alreadyChosen || remaining === 0) ? ' disabled' : '';
+      const chosenClass = alreadyChosen ? ' chosen' : '';
+      return `
+        <button class="card aging-stat-btn${chosenClass}" data-stat="${stat}" data-amount="${currentGroupAmount}"${disabled}>
+          <div class="card-title">${stat}</div>
+          <div class="card-meta">${alreadyChosen ? `${currentVal} → ${reducedVal}` : `Current: ${currentVal}`}</div>
+          <div class="card-desc">${alreadyChosen ? '✓ Selected' : `Reduce by ${currentGroupAmount}`}</div>
+        </button>`;
+    }).join('');
+
+    pendingHtml = `
+      <div class="event-box" style="border-color:var(--amber);margin-top:12px">
+        <span class="event-label" style="color:var(--amber)">CHOOSE PHYSICAL STAT REDUCTIONS</span>
+        <p class="phase-body">Select ${totalRequired} characteristic${totalRequired !== 1 ? 's' : ''} to reduce. (${selectedCount}/${totalRequired} chosen)</p>
+        <div class="card-grid" style="max-width:360px">${statsHtml}</div>
+        ${selected.length > 0 ? `
+          <div style="margin-top:8px">
+            <span class="empty">Selected: </span>
+            ${selected.map(s => `<span class="skill-chip">${s.stat} −${s.amount}</span>`).join(' ')}
+            <button class="btn ghost" id="btn-aging-clear-selection" style="margin-left:8px;font-size:11px">CLEAR</button>
+          </div>` : ''}
+      </div>`;
+  }
+
+  // All choices made (or no choices needed)
+  const allChosen = pending.length === 0 || selected.length >= totalRequired;
+  const continueLabel = nextAction.type === 'next_term' ? 'BEGIN NEXT TERM →' : 'CONTINUE →';
+  const noEffectHtml = noEffect
+    ? `<p class="phase-body" style="color:${severityColor}">No characteristics were reduced.</p>`
+    : '';
+
+  // Anagathics for NEXT term (shown as a future option)
+  const showAnagathics = character.total_terms >= 3;
+  const anagathicsHtml = showAnagathics ? `
+    <div class="anagathics-box" style="margin-top:16px">
+      <div class="anagathics-header">
+        <strong>Anagathics — Next Term</strong>
+        <span class="empty">Cr200,000 per term — skips next aging roll</span>
+      </div>
+      <div class="anagathics-status">
+        Treatments banked: <strong>${character.anagathics_purchased_terms}</strong>
+        ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
+      </div>
+      <div class="phase-actions" style="margin-top:6px">
+        <button class="btn ghost" id="btn-aging-buy-anagathics">PURCHASE (Cr200,000)</button>
+      </div>
+    </div>` : '';
 
   return `
     <div class="stage-content">
@@ -3281,10 +3439,13 @@ function renderAgingResult() {
       ${roll ? rollReadoutHTML(roll, { label: `2D${roll.modifier >= 0 ? '+' : ''}${roll.modifier ?? ''}`, showTarget: false }) : ''}
       <div class="event-box" style="border-color:${severityColor}">
         <span class="event-label" style="color:${severityColor}">AGING — Term ${character.total_terms}, Age ${character.age}</span>
-        ${effectsHTML}
+        ${noEffectHtml}
+        ${autoHtml}
       </div>
-      <div class="phase-actions">
-        <button class="btn primary" id="btn-aging-continue">${continueLabel}</button>
+      ${pendingHtml}
+      ${anagathicsHtml}
+      <div class="phase-actions" style="margin-top:16px">
+        <button class="btn primary" id="btn-aging-continue" ${allChosen ? '' : 'disabled'}>${continueLabel}</button>
       </div>
     </div>
   `;
@@ -4968,6 +5129,7 @@ function renderMishapStep() {
         ${pendingHtml}
         ${skillCheckHtml}
         ${injPickerHtml}
+        ${canEnd ? anagathicsBoxHTML('btn-mishap-buy-anagathics') : ''}
         <div class="phase-actions" style="margin-top:16px">
           ${canEnd ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}
         </div>
@@ -5015,6 +5177,7 @@ function renderAdvanceStep() {
           <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
           <button class="btn" id="btn-leave-career">MUSTER OUT</button>
         </div>
+        ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
       </div>
     `;
   }
@@ -5071,28 +5234,7 @@ function renderDecideStep() {
         <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${career.name.toUpperCase()}</button>
         <button class="btn" id="btn-leave-career">MUSTER OUT OF ${career.name.toUpperCase()}</button>
       </div>
-
-      ${character.total_terms + 1 >= 4 ? `
-        <div class="anagathics-box">
-          <div class="anagathics-header">
-            <strong>Anagathics available</strong>
-            <span class="empty">Cr200,000 per 4-year term — skips the aging roll</span>
-          </div>
-          <div class="anagathics-status">
-            Banked treatments: <strong>${character.anagathics_purchased_terms}</strong>
-            ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
-          </div>
-          ${character.credits < 200000 ? `
-            <p style="font-size:11px;color:var(--text-dim);margin:4px 0">
-              Insufficient credits (Cr${character.credits.toLocaleString()} available) — shortfall added to medical debt.
-            </p>` : ''}
-          <div class="phase-actions" style="margin-top:6px">
-            <button class="btn ghost" id="btn-buy-anagathics">
-              PURCHASE (Cr200,000)
-            </button>
-          </div>
-        </div>
-      ` : ''}
+      ${anagathicsBoxHTML('btn-buy-anagathics')}
     </div>
   `;
 }

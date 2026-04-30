@@ -87,6 +87,11 @@ class PsionicTalentAction(CharacterAction):
     talent_id: str
 
 
+class ResolveAgingAction(CharacterAction):
+    """Player's chosen physical stat reductions for aging."""
+    reductions: list[dict]  # [{"stat": "STR", "amount": 1}, ...]
+
+
 
 
 
@@ -746,6 +751,16 @@ async def api_psionics_train(action: PsionicTalentAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.train_psionic_talent(character, action.talent_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/resolve-aging")
+async def api_resolve_aging(action: ResolveAgingAction):
+    """Apply player-chosen physical stat reductions from an aging roll."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_aging_choice(character, action.reductions)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
