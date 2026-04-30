@@ -327,7 +327,7 @@ function renderSheet() {
 
   const traits = (character.traits || []);
   const traitsHTML = traits.length
-    ? `<ul class="traits-list">${traits.map(t => `<li><strong>${t.name}</strong>${t.description}</li>`).join('')}</ul>`
+    ? `<ul class="traits-list">${traits.map(t => `<li><strong>${t.name}:</strong> ${t.description}</li>`).join('')}</ul>`
     : '<p class="empty">No species traits</p>';
 
   const careersHTML = character.completed_careers.length
