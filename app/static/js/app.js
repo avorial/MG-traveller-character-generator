@@ -40,9 +40,12 @@ let uiState = {
   swapPick: null,   // which tile the user clicked first (for 2-click swap)
   swapA: 'EDU',     // dropdown A default
   swapB: 'STR',     // dropdown B default
-  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster'
+  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster' | 'aging_result'
   subPhase: null,
   pendingAge: false,
+  // Aging intercept — set after end-term, cleared once the player clicks CONTINUE
+  agingResult: null,     // the aging dict returned by /api/character/end-term
+  agingNextAction: null, // {type:'next_term',careerId,assignmentId} | {type:'muster_out'} | {type:'muster_out_mishap'}
   // GM / cheat mode — unlocks direct stat editing, boon rolls, phase skipping.
   gmMode: (localStorage.getItem('traveller_gm_mode') === '1'),
   // Connections step (between muster-out and done).
@@ -2502,13 +2505,7 @@ function wireCareerPhase() {
   const btnParole = document.getElementById('btn-prisoner-parole');
   if (btnParole) {
     btnParole.addEventListener('click', async () => {
-      const endResp = await apiCall('/api/character/end-term', { leaving: true, reason: 'parole' });
-      await applyResponse(endResp);
-      uiState.lastRoll = null;
-      uiState.subPhase = null;
-      uiState.selectedCareer = null;
-      uiState.selectedAssignment = null;
-      renderAll();
+      await endTermWithAgingIntercept(true, 'parole', { type: 'muster_out' });
     });
   }
 
@@ -2931,13 +2928,7 @@ function wireCareerPhase() {
   const btnPostMishap = document.getElementById('btn-post-mishap');
   if (btnPostMishap) {
     btnPostMishap.addEventListener('click', async () => {
-      const endResp = await apiCall('/api/character/end-term', { leaving: true, reason: 'mishap' });
-      await applyResponse(endResp);
-      uiState.lastRoll = null;
-      uiState.subPhase = null;
-      uiState.selectedCareer = null;
-      uiState.selectedAssignment = null;
-      renderAll();
+      await endTermWithAgingIntercept(true, 'mishap', { type: 'muster_out_mishap' });
     });
   }
 
@@ -3091,18 +3082,63 @@ function wireCareerPhase() {
     });
   }
 
+  // ── Aging intercept helpers ───────────────────────────────────────────
+  // After every end-term call, if aging occurred (term 4+) we pause to show
+  // the player the roll result before continuing to the next phase.
+  async function executeNextAction(nextAction) {
+    if (nextAction.type === 'next_term') {
+      const startResp = await apiCall('/api/character/start-term', {
+        career_id: nextAction.careerId,
+        assignment_id: nextAction.assignmentId,
+      });
+      await applyResponse(startResp);
+      uiState.lastRoll = null;
+      uiState.subPhase = 'train';
+    } else if (nextAction.type === 'muster_out') {
+      uiState.subPhase = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
+    } else if (nextAction.type === 'muster_out_mishap') {
+      uiState.lastRoll = null;
+      uiState.subPhase = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
+    }
+    uiState.agingResult = null;
+    uiState.agingNextAction = null;
+    renderAll();
+  }
+
+  async function endTermWithAgingIntercept(leaving, reason, nextAction) {
+    const endResp = await apiCall('/api/character/end-term', { leaving, reason });
+    await applyResponse(endResp);
+    if (endResp.aging !== null) {
+      // Aging happened — show the roll before proceeding
+      uiState.agingResult = endResp.aging;
+      uiState.agingNextAction = nextAction;
+      uiState.subPhase = 'aging_result';
+      renderAll();
+    } else {
+      await executeNextAction(nextAction);
+    }
+  }
+
+  // Aging CONTINUE button (wired when aging_result sub-phase is active)
+  const btnAgingContinue = document.getElementById('btn-aging-continue');
+  if (btnAgingContinue) {
+    btnAgingContinue.addEventListener('click', async () => {
+      const nextAction = uiState.agingNextAction;
+      await executeNextAction(nextAction);
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   const btnContinue = document.getElementById('btn-continue-career');
   if (btnContinue) {
     btnContinue.addEventListener('click', async () => {
-      const endResp = await apiCall('/api/character/end-term', { leaving: false });
-      await applyResponse(endResp);
-      // Start next term of same career+assignment
-      const startResp = await apiCall('/api/character/start-term', {
-        career_id: character.current_term?.career_id || uiState.selectedCareer,
-        assignment_id: character.current_term?.assignment_id || uiState.selectedAssignment,
-      });
-      // ... but current_term is already null after end_term. We need the last one.
-      // Simpler: remember values before clearing.
+      const careerId = character.current_term?.career_id || uiState.selectedCareer;
+      const assignmentId = character.current_term?.assignment_id || uiState.selectedAssignment;
+      await endTermWithAgingIntercept(false, 'voluntary', { type: 'next_term', careerId, assignmentId });
     });
   }
 
@@ -3111,27 +3147,14 @@ function wireCareerPhase() {
     btnNextTerm.addEventListener('click', async () => {
       const careerId = character.current_term.career_id;
       const assignmentId = character.current_term.assignment_id;
-      const endResp = await apiCall('/api/character/end-term', { leaving: false });
-      await applyResponse(endResp);
-      const startResp = await apiCall('/api/character/start-term', {
-        career_id: careerId,
-        assignment_id: assignmentId,
-      });
-      await applyResponse(startResp);
-      uiState.subPhase = 'train';
-      renderAll();
+      await endTermWithAgingIntercept(false, 'voluntary', { type: 'next_term', careerId, assignmentId });
     });
   }
 
   const btnLeaveCareer = document.getElementById('btn-leave-career');
   if (btnLeaveCareer) {
     btnLeaveCareer.addEventListener('click', async () => {
-      const response = await apiCall('/api/character/end-term', { leaving: true, reason: 'voluntary' });
-      await applyResponse(response);
-      uiState.subPhase = null;
-      uiState.selectedCareer = null;
-      uiState.selectedAssignment = null;
-      renderAll();
+      await endTermWithAgingIntercept(true, 'voluntary', { type: 'muster_out' });
     });
   }
 
@@ -3142,16 +3165,7 @@ function wireCareerPhase() {
       try {
         const careerId = character.current_term.career_id;
         const assignmentId = character.current_term.assignment_id;
-        const endResp = await apiCall('/api/character/end-term', { leaving: false });
-        await applyResponse(endResp);
-        const startResp = await apiCall('/api/character/start-term', {
-          career_id: careerId,
-          assignment_id: assignmentId,
-        });
-        await applyResponse(startResp);
-        uiState.lastRoll = null;
-        uiState.subPhase = 'train';
-        renderAll();
+        await endTermWithAgingIntercept(false, 'voluntary', { type: 'next_term', careerId, assignmentId });
       } catch (e) { alert(e.message); }
     });
   }
@@ -3227,7 +3241,53 @@ function renderActiveTerm() {
   if (uiState.subPhase === 'decide') {
     return banner + renderDecideStep();
   }
+  if (uiState.subPhase === 'aging_result') {
+    return banner + renderAgingResult();
+  }
   return banner + '<div class="stage-content"><p>Unknown sub-phase</p></div>';
+}
+
+function renderAgingResult() {
+  const aging = uiState.agingResult;
+  if (!aging) return '';
+
+  const roll = aging.roll;
+  const title = aging.title || 'Unknown';
+  const effects = aging.effects_applied || [];
+  const noEffect = effects.length === 0;
+  const nextAction = uiState.agingNextAction || {};
+
+  // Color coding by severity
+  const severityColor = noEffect
+    ? 'var(--success, #7fd87f)'
+    : (roll?.total ?? 0) >= -1
+      ? 'var(--warning, #ffcc44)'
+      : 'var(--danger, #ff5233)';
+
+  const effectsHTML = effects.length
+    ? `<div class="aging-effects">
+        ${effects.map(e => `<div class="aging-effect-chip">${escapeHTML(e)}</div>`).join('')}
+       </div>`
+    : `<p class="phase-body" style="color:${severityColor}">No characteristics were reduced.</p>`;
+
+  const continueLabel = nextAction.type === 'next_term'
+    ? 'BEGIN NEXT TERM →'
+    : 'CONTINUE →';
+
+  return `
+    <div class="stage-content">
+      <div class="phase-label">Aging Roll</div>
+      <h2 class="phase-title" style="color:${severityColor}">${escapeHTML(title)}</h2>
+      ${roll ? rollReadoutHTML(roll, { label: `2D${roll.modifier >= 0 ? '+' : ''}${roll.modifier ?? ''}`, showTarget: false }) : ''}
+      <div class="event-box" style="border-color:${severityColor}">
+        <span class="event-label" style="color:${severityColor}">AGING — Term ${character.total_terms}, Age ${character.age}</span>
+        ${effectsHTML}
+      </div>
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-aging-continue">${continueLabel}</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderQualifyResult() {

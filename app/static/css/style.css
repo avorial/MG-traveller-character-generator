@@ -1991,6 +1991,23 @@ body.gm-mode #btn-gm-mode {
   .rq-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* ── Aging result screen ─────────────────────────────────────────────── */
+.aging-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.aging-effect-chip {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--danger, #ff5233);
+  color: var(--danger, #ff5233);
+  background: rgba(255, 82, 51, 0.08);
+  letter-spacing: 0.05em;
+}
+
 /* ── PSI characteristic cell ──────────────────────────────────────────── */
 .stat-cell-psi {
   grid-column: 1 / -1;           /* span full width of the 3-col grid */
