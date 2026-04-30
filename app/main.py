@@ -630,12 +630,33 @@ async def api_muster_out(action: MusterOutAction):
         raise HTTPException(400, str(e))
 
 
-@app.post("/api/character/anagathics")
-async def api_anagathics(action: CharacterAction):
-    """Purchase one term of anagathics treatment."""
+@app.post("/api/character/anagathics/attempt")
+async def api_anagathics_attempt(action: CharacterAction):
+    """Roll SOC 10+ to attempt to obtain anagathics at the start of a term."""
     character = action.character.model_copy(deep=True)
     try:
-        return lifepath.purchase_anagathics(character)
+        return lifepath.attempt_anagathics(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/anagathics/stop")
+async def api_anagathics_stop(action: CharacterAction):
+    """Stop taking anagathics — triggers an immediate aging roll."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.stop_anagathics(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# Legacy alias kept so any cached page POSTing to the old endpoint doesn't 404.
+@app.post("/api/character/anagathics")
+async def api_anagathics_legacy(action: CharacterAction):
+    """Deprecated — redirects to /anagathics/attempt."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.attempt_anagathics(character)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

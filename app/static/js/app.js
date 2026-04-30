@@ -40,7 +40,7 @@ let uiState = {
   swapPick: null,   // which tile the user clicked first (for 2-click swap)
   swapA: 'EDU',     // dropdown A default
   swapB: 'STR',     // dropdown B default
-  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster' | 'aging_result'
+  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'anagathics_prompt' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster' | 'aging_result'
   subPhase: null,
   pendingAge: false,
   // Aging intercept — set after end-term, cleared once the player clicks CONTINUE
@@ -200,26 +200,33 @@ function luckClass(pct) {
   return 'bad';
 }
 
-// Shared anagathics purchase box — shown on advance/mishap/decide screens before end-term.
-// btnId should be unique per screen (btn-buy-anagathics, btn-mishap-buy-anagathics, etc.)
-function anagathicsBoxHTML(btnId = 'btn-buy-anagathics') {
-  if (character.total_terms + 1 < 4) return '';  // aging doesn't start until term 4
+// Anagathics status info box (shown on advance/decide/mishap screens for awareness).
+// Actual access roll happens at the START of the next term via anagathics_prompt.
+function anagathicsBoxHTML() {
+  if (character.total_terms + 1 < 4) return '';  // aging doesn't start until term 4+
+  const active = character.anagathics_active;
+  const terms = character.anagathics_terms_used ?? 0;
+  if (active) {
+    return `
+      <div class="anagathics-box" style="margin-top:14px">
+        <div class="anagathics-header">
+          <strong>Anagathics active</strong>
+          <span class="empty">+${terms} DM on aging · Double survival required</span>
+        </div>
+        <div class="anagathics-status">
+          Terms on treatment: <strong>${terms}</strong>
+          · Cost next term: 1D × Cr25,000 (at end of term)
+        </div>
+      </div>`;
+  }
   return `
     <div class="anagathics-box" style="margin-top:14px">
       <div class="anagathics-header">
         <strong>Anagathics available</strong>
-        <span class="empty">Cr200,000 per 4-year term — skips the aging roll</span>
+        <span class="empty">Roll SOC 10+ at the start of next term to access</span>
       </div>
-      <div class="anagathics-status">
-        Banked treatments: <strong>${character.anagathics_purchased_terms}</strong>
-        ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
-      </div>
-      ${character.credits < 200000 ? `
-        <p style="font-size:11px;color:var(--text-dim);margin:4px 0">
-          Insufficient credits (Cr${character.credits.toLocaleString()} available) — shortfall added to medical debt.
-        </p>` : ''}
-      <div class="phase-actions" style="margin-top:6px">
-        <button class="btn ghost" id="${btnId}">PURCHASE (Cr200,000)</button>
+      <div class="anagathics-status" style="color:var(--text-dim)">
+        Not currently active · Aging roll will apply this term
       </div>
     </div>`;
 }
@@ -434,12 +441,13 @@ function renderSheet() {
         <p class="empty">Deducted automatically from mustering-out cash rolls.</p>
       </div>` : ''}
 
-      ${(character.anagathics_purchased_terms > 0 || character.anagathics_addicted) ? `
+      ${character.anagathics_active ? `
       <div class="sheet-section">
         <h3>Anagathics</h3>
         <ul class="skill-list">
-          ${character.anagathics_purchased_terms > 0 ? `<li><span>Treatments banked</span><span class="skill-level">${character.anagathics_purchased_terms}</span></li>` : ''}
-          ${character.anagathics_addicted ? `<li><span style="color:var(--danger)">Addicted</span><span class="skill-level" style="color:var(--danger)">!</span></li>` : ''}
+          <li><span>Status</span><span class="skill-level" style="color:var(--success,#7fd87f)">ACTIVE</span></li>
+          <li><span>Terms on treatment</span><span class="skill-level">${character.anagathics_terms_used ?? 0}</span></li>
+          <li><span>Aging DM bonus</span><span class="skill-level">+${character.anagathics_terms_used ?? 0}</span></li>
         </ul>
       </div>` : ''}
 
@@ -2433,11 +2441,18 @@ function wireCareerPhase() {
     });
   });
 
+  // Helper: determine next sub-phase after training ends.
+  // Show the anagathics prompt when the character is old enough to age
+  // (total_terms >= 3 means this term, when done, would be term 4+).
+  function postTrainingSubPhase() {
+    return character.total_terms >= 3 ? 'anagathics_prompt' : 'survive';
+  }
+
   const btnPostSkill = document.getElementById('btn-post-skill');
   if (btnPostSkill) {
     btnPostSkill.addEventListener('click', () => {
       uiState.lastRoll = null;
-      uiState.subPhase = 'survive';
+      uiState.subPhase = postTrainingSubPhase();
       renderStage();
     });
   }
@@ -2446,7 +2461,7 @@ function wireCareerPhase() {
   if (btnBasicTrainingContinue) {
     btnBasicTrainingContinue.addEventListener('click', () => {
       uiState.basicTrainingSkills = null;
-      uiState.subPhase = 'survive';
+      uiState.subPhase = postTrainingSubPhase();
       renderStage();
     });
   }
@@ -2461,6 +2476,7 @@ function wireCareerPhase() {
         data: response.roll,
         outcome: response.survived ? 'pass' : 'fail',
         parallel_event: response.parallel_event || null,
+        anagathics_second_roll: response.anagathics_second_roll || null,
       };
       // Stay on 'survive' subPhase so dice readout renders before advancing
       renderAll();
@@ -3176,18 +3192,54 @@ function wireCareerPhase() {
     });
   }
 
-  // Buy anagathics — shared handler used by decide / advance / mishap / aging screens
-  async function buyAnagathics() {
-    try {
-      const resp = await apiCall('/api/character/anagathics', {});
-      await applyResponse(resp);
-      renderStage();
-    } catch (e) { alert(e.message); }
+  // ── Anagathics prompt (start-of-term, RAW) ───────────────────────────
+  const btnAnagathicsAttempt = document.getElementById('btn-anagathics-attempt');
+  if (btnAnagathicsAttempt) {
+    btnAnagathicsAttempt.addEventListener('click', async () => {
+      try {
+        const resp = await apiCall('/api/character/anagathics/attempt', {});
+        await applyResponse(resp);
+        uiState.lastRoll = {
+          type: 'anagathics_roll',
+          data: resp.roll,
+          succeeded: resp.succeeded,
+          nat2Prison: resp.nat2_prison,
+          costThisTerm: resp.cost_this_term,
+        };
+        renderStage();
+      } catch (e) { alert(e.message); }
+    });
   }
-  ['btn-buy-anagathics', 'btn-aging-buy-anagathics', 'btn-mishap-buy-anagathics', 'btn-advance-buy-anagathics'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.addEventListener('click', buyAnagathics);
-  });
+
+  const btnAnagathicsSkip = document.getElementById('btn-anagathics-skip');
+  if (btnAnagathicsSkip) {
+    btnAnagathicsSkip.addEventListener('click', () => {
+      uiState.subPhase = 'survive';
+      renderStage();
+    });
+  }
+
+  const btnAnagathicsStop = document.getElementById('btn-anagathics-stop');
+  if (btnAnagathicsStop) {
+    btnAnagathicsStop.addEventListener('click', async () => {
+      try {
+        const resp = await apiCall('/api/character/anagathics/stop', {});
+        await applyResponse(resp);
+        uiState.lastRoll = { type: 'anagathics_stop', aging: resp.aging };
+        renderStage();
+      } catch (e) { alert(e.message); }
+    });
+  }
+
+  const btnAnagathicsContinueSurvive = document.getElementById('btn-anagathics-continue-survive');
+  if (btnAnagathicsContinueSurvive) {
+    btnAnagathicsContinueSurvive.addEventListener('click', () => {
+      uiState.lastRoll = null;
+      uiState.subPhase = 'survive';
+      renderStage();
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────
 
   // Aging CONTINUE button (wired when aging_result sub-phase is active)
   const btnAgingContinue = document.getElementById('btn-aging-continue');
@@ -3309,6 +3361,9 @@ function renderActiveTerm() {
   if (uiState.subPhase === 'train' || uiState.subPhase === null) {
     return banner + renderSkillChoice();
   }
+  if (uiState.subPhase === 'anagathics_prompt') {
+    return banner + renderAnagathicsPrompt();
+  }
   if (uiState.subPhase === 'survive') {
     return banner + renderSurviveStep();
   }
@@ -3415,22 +3470,8 @@ function renderAgingResult() {
     ? `<p class="phase-body" style="color:${severityColor}">No characteristics were reduced.</p>`
     : '';
 
-  // Anagathics for NEXT term (shown as a future option)
-  const showAnagathics = character.total_terms >= 3;
-  const anagathicsHtml = showAnagathics ? `
-    <div class="anagathics-box" style="margin-top:16px">
-      <div class="anagathics-header">
-        <strong>Anagathics — Next Term</strong>
-        <span class="empty">Cr200,000 per term — skips next aging roll</span>
-      </div>
-      <div class="anagathics-status">
-        Treatments banked: <strong>${character.anagathics_purchased_terms}</strong>
-        ${character.anagathics_addicted ? ' · <span style="color:var(--danger)">ADDICTED</span>' : ''}
-      </div>
-      <div class="phase-actions" style="margin-top:6px">
-        <button class="btn ghost" id="btn-aging-buy-anagathics">PURCHASE (Cr200,000)</button>
-      </div>
-    </div>` : '';
+  // Anagathics info for next term (reminder — actual roll is at START of next term)
+  const anagathicsHtml = anagathicsBoxHTML();
 
   return `
     <div class="stage-content">
@@ -3799,6 +3840,112 @@ function renderSkillChoice() {
   `;
 }
 
+function renderAnagathicsPrompt() {
+  const lr = uiState.lastRoll;
+  const soc = character.characteristics?.SOC ?? 0;
+  const dm = charDM(soc);
+  const already = character.anagathics_active;
+  const termsUsed = character.anagathics_terms_used ?? 0;
+
+  // Post-roll view — show result of the SOC attempt
+  if (lr?.type === 'anagathics_roll') {
+    const nat2 = lr.nat2Prison;
+    const pass = lr.succeeded;
+    const cost = lr.costThisTerm;
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Anagathics — SOC 10+ Roll</div>
+        <h2 class="phase-title" style="color:${nat2 ? 'var(--danger)' : pass ? 'var(--success,#7fd87f)' : 'var(--text-dim)'}">
+          ${nat2 ? 'NATURAL 2 — PRISONER' : pass ? 'Supply Secured' : 'Unable to Obtain'}
+        </h2>
+        ${rollReadoutHTML(lr.data, { label: `SOC 10+ (your DM ${formatDM(dm)})` })}
+        ${nat2 ? `
+          <div class="event-box" style="border-color:var(--danger);margin-top:12px">
+            <span class="event-label" style="color:var(--danger)">FORCED INTO PRISONER CAREER</span>
+            A natural 2 on the access roll means you must take the Prisoner career this term.
+          </div>` : pass ? `
+          <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+            <span class="event-label" style="color:var(--success,#7fd87f)">ANAGATHICS ACTIVE</span>
+            Treatment secured. You will need to make two survival checks this term.
+            Cost: Cr${cost.toLocaleString()} (1D×Cr25,000 = ${cost/25000}×Cr25,000). Paid at end of term.
+            ${termsUsed + 1 > 0 ? `<br>Aging roll bonus: +${termsUsed + 1} DM (terms on anagathics).` : ''}
+          </div>` : `
+          <div class="event-box" style="margin-top:12px">
+            <span class="event-label">SUPPLY UNAVAILABLE</span>
+            You failed to secure a supply of anagathics this term. Aging applies normally.
+          </div>`}
+        <div class="phase-actions" style="margin-top:16px">
+          <button class="btn primary" id="btn-anagathics-continue-survive">
+            ${nat2 ? 'PROCEED TO PRISONER CAREER →' : 'PROCEED TO SURVIVAL →'}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Post-stop view — show aging result from stopping
+  if (lr?.type === 'anagathics_stop') {
+    const aging = lr.aging;
+    const roll = aging?.roll;
+    const title = aging?.title || 'No Effect';
+    const effects = aging?.effects_applied || [];
+    const pending = aging?.pending_reductions || [];
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Anagathics Stopped</div>
+        <h2 class="phase-title" style="color:var(--danger)">Withdrawal Aging</h2>
+        <p class="phase-body">Stopping anagathics immediately triggers an aging roll as the body begins to age again.</p>
+        ${roll ? rollReadoutHTML(roll, { label: `2D${roll.modifier >= 0 ? '+' : ''}${roll.modifier ?? ''}`, showTarget: false }) : ''}
+        <div class="event-box" style="border-color:var(--danger);margin-top:12px">
+          <span class="event-label" style="color:var(--danger)">AGING — ${escapeHTML(title)}</span>
+          ${effects.length ? effects.map(e => `<div class="aging-effect-chip">${escapeHTML(e)}</div>`).join('') : ''}
+          ${pending.length ? `<p style="color:var(--amber)">Additional physical stat reductions required — proceed to survival then apply them.</p>` : ''}
+        </div>
+        <div class="phase-actions" style="margin-top:16px">
+          <button class="btn primary" id="btn-anagathics-continue-survive">PROCEED TO SURVIVAL →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Default view — offer anagathics or continue
+  return `
+    <div class="stage-content">
+      <div class="phase-label">Anagathics — Start of Term</div>
+      <h2 class="phase-title">${already ? 'Continue Anagathics?' : 'Obtain Anagathics?'}</h2>
+
+      ${already ? `
+        <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+          <span class="event-label" style="color:var(--success,#7fd87f)">CURRENTLY ON ANAGATHICS</span>
+          You have been on anagathics for ${termsUsed} term${termsUsed !== 1 ? 's' : ''}.
+          Aging roll bonus: +${termsUsed} DM. Cost this term: 1D × Cr25,000 (rolled at end of term).
+          <br><strong>Penalty:</strong> Two survival checks required — either failing = Mishap.
+        </div>
+        <p class="phase-body" style="margin-top:12px">You can continue or voluntarily stop. Stopping triggers an immediate aging roll.</p>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn primary" id="btn-anagathics-attempt">CONTINUE ANAGATHICS (roll SOC 10+)</button>
+          <button class="btn danger" id="btn-anagathics-stop">STOP ANAGATHICS (aging roll now)</button>
+          <button class="btn ghost" id="btn-anagathics-skip">SKIP THIS DECISION</button>
+        </div>
+      ` : `
+        <p class="phase-body">Roll SOC 10+ to obtain a supply of anagathic drugs for this term.</p>
+        <ul class="phase-body" style="margin:8px 0 12px 1.2em;color:var(--text-dim);font-size:13px">
+          <li>✓ <strong>Success:</strong> Aging roll gets +terms DM (effectively halts aging).</li>
+          <li>✗ <strong>Fail:</strong> No supply — normal aging applies this term.</li>
+          <li>⚠ <strong>Natural 2:</strong> Must take Prisoner career immediately.</li>
+          <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either failing = Mishap.</li>
+          <li>💰 <strong>Cost:</strong> 1D × Cr25,000 (paid at end of term; goes to medical debt if broke).</li>
+        </ul>
+        <p class="phase-body">Your SOC: <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-anagathics-attempt">ROLL SOC 10+ FOR ANAGATHICS</button>
+          <button class="btn ghost" id="btn-anagathics-skip">DECLINE — PROCEED TO SURVIVAL</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+
 function renderSurviveStep() {
   const term = character.current_term;
   const career = CAREERS.find(c => c.id === term.career_id);
@@ -3840,11 +3987,22 @@ function renderSurviveStep() {
 
     const parallelNotice = buildParallelNotice(lr.parallel_event);
 
+    // Anagathics second roll notice (if active)
+    const ana2 = lr.anagathics_second_roll;
+    const ana2HTML = ana2 ? `
+      <div class="event-box" style="border-color:${ana2.succeeded ? 'var(--success,#7fd87f)' : 'var(--danger)'};margin-top:10px">
+        <span class="event-label" style="color:${ana2.succeeded ? 'var(--success,#7fd87f)' : 'var(--danger)'}">
+          ANAGATHICS — Second Survival Check [2D${ana2.modifier >= 0 ? '+' : ''}${ana2.modifier}=${ana2.total}]
+        </span>
+        ${ana2.succeeded ? 'Passed — anagathics treatment stable.' : 'FAILED — the drugs disrupted your survival. Career mishap.'}
+      </div>` : '';
+
     return `
       <div class="stage-content">
         <div class="phase-label">Survival — ${survived ? 'Pass' : 'Fail'}</div>
         <h2 class="phase-title">${survived ? 'You Survived' : 'Career Mishap'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${s.characteristic} ${s.target}+` })}
+        ${ana2HTML}
         ${parallelNotice}
         <p class="phase-body">${survived
           ? 'Your term continues. Roll the Event table to see what the last four years brought.'

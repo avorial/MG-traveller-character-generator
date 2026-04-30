@@ -2803,9 +2803,28 @@ def survival_roll(character: Character) -> dict:
         else:
             parallel_event = hf_parallel
 
+    # ── Anagathics: second survival check required (RAW p.155) ──────────
+    anagathics_second_roll = None
+    if character.anagathics_active and r.succeeded:
+        # Must pass a SECOND survival check; if this fails → mishap despite first pass.
+        r2 = dice.roll("2D", modifier=dm, target=target)
+        anagathics_second_roll = r2.to_dict()
+        if not r2.succeeded:
+            # Second check failed → overall mishap
+            term.survived = False
+            character.log(
+                f"Anagathics second survival check [2D{dm:+d}={r2.total}]: FAILED "
+                f"(need {target}+) — Mishap despite passing first check."
+            )
+        else:
+            character.log(
+                f"Anagathics second survival check [2D{dm:+d}={r2.total}]: PASSED."
+            )
+
     return {
         "roll": r.to_dict(),
-        "survived": r.succeeded,
+        "survived": term.survived,    # reflects both checks
+        "anagathics_second_roll": anagathics_second_roll,
         "parallel_event": parallel_event,
         "character": character.model_dump(),
     }
@@ -3520,52 +3539,106 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
 # ============================================================
 # Anagathics — life extension (Core Rulebook p.155)
 # ============================================================
+#
+# RAW rules (MG2e p.47):
+#   • At the START of any career term: roll SOC 10+ to obtain supply.
+#     Natural 2 on the SOC roll → must take Prisoner career this term.
+#   • While active: add anagathics_terms_used as a POSITIVE DM to aging rolls.
+#   • Two survival checks required each term; if either fails → Mishap.
+#   • Cost: 1D × Cr25,000 per term, paid from cash benefits (else medical debt).
+#   • Stopping: immediately roll on the Aging table.
 
-# Cost per 4-year term of anagathic treatment (Cr50,000/yr × 4).
-ANAGATHICS_COST_PER_TERM = 200000
 
+def attempt_anagathics(character: "Character") -> dict:
+    """Roll SOC 10+ to access anagathics at the start of a career term.
 
-def purchase_anagathics(character: "Character") -> dict:
-    """Buy one term's worth of anagathics treatment.
+    May be called when character.total_terms >= 3 (i.e. this term would be
+    the 4th or later, when aging kicks in).
 
-    The treatment costs Cr200,000 per term. If the character cannot afford
-    it they go into medical debt — everyone who wants anagathics can have
-    them; the bill gets paid off during mustering out.
-    Each purchase banks one suppressed aging roll — consumed automatically
-    the next time end_term would trigger aging.
+    Returns:
+        roll          – the SOC roll result
+        succeeded     – True if SOC 10+ passed
+        nat2_prison   – True if natural 2 was rolled (forced into Prisoner)
+        already_active– True if anagathics were already active (auto-continue)
+        cost_this_term– Cr cost rolled for this term (0 if failed/nat2)
+        character     – updated character dict
     """
     if character.phase != "career":
-        raise ValueError(
-            f"Anagathics can only be bought during the career phase "
-            f"(currently: {character.phase})"
+        raise ValueError("Anagathics can only be attempted during the career phase.")
+
+    # If already active this term can be continued automatically — this call
+    # handles the START-of-term check for both new and continuing users.
+    already_active = character.anagathics_active
+
+    soc = character.characteristics.get("SOC", 0)
+    dm = dice.characteristic_dm(soc)
+    r = dice.roll("2D", modifier=dm, target=10)
+
+    nat2_prison = r.raw_total == 2
+    succeeded = r.succeeded and not nat2_prison
+
+    cost_this_term = 0
+    if nat2_prison:
+        # Natural 2 → immediately forced into Prisoner career this term.
+        character.forced_next_career_id = "prisoner"
+        character.anagathics_active = False
+        character.log(
+            f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: "
+            "NATURAL 2 — must take Prisoner career this term!"
+        )
+    elif succeeded:
+        # Roll cost: 1D × Cr25,000; paid at end of term (medical debt if broke).
+        cost_die = dice.roll("1D")
+        cost_this_term = cost_die.total * 25000
+        character.anagathics_active = True
+        character.anagathics_pending_cost += cost_this_term
+        character.log(
+            f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: SUCCESS. "
+            f"Treatment secured. Cost this term: Cr{cost_this_term:,} "
+            f"(1D={cost_die.total} × Cr25,000). Paid at end of term."
+        )
+    else:
+        # Failed roll — cannot obtain supply this term.
+        character.anagathics_active = False
+        character.log(
+            f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: FAILED "
+            f"(need 10+). Unable to obtain a supply this term."
         )
 
-    cost = ANAGATHICS_COST_PER_TERM
-    debt_incurred = 0
-    if character.credits >= cost:
-        character.credits -= cost
-        log_cost = f"Cr{cost:,} paid"
-    else:
-        # Pay what we can, rest goes to medical debt
-        paid = character.credits
-        shortfall = cost - paid
-        character.credits = 0
-        character.medical_debt += shortfall
-        debt_incurred = shortfall
-        log_cost = f"Cr{paid:,} paid, Cr{shortfall:,} added to medical debt"
-
-    character.anagathics_purchased_terms += 1
-    character.log(
-        f"Purchased anagathics ({log_cost}). "
-        f"Next aging roll will be suppressed. "
-        f"Treatments banked: {character.anagathics_purchased_terms}."
-    )
     return {
-        "cost": cost,
-        "debt_incurred": debt_incurred,
-        "credits_remaining": character.credits,
-        "medical_debt": character.medical_debt,
-        "anagathics_purchased_terms": character.anagathics_purchased_terms,
+        "roll": r.to_dict(),
+        "succeeded": succeeded,
+        "nat2_prison": nat2_prison,
+        "already_active": already_active,
+        "cost_this_term": cost_this_term,
+        "character": character.model_dump(),
+    }
+
+
+def stop_anagathics(character: "Character") -> dict:
+    """Stop taking anagathics voluntarily.
+
+    Per RAW, stopping triggers an IMMEDIATE aging roll as the body
+    begins to age again (shock to the system).
+    """
+    if not character.anagathics_active:
+        raise ValueError("Character is not currently using anagathics.")
+
+    character.anagathics_active = False
+    character.log(
+        "Anagathics stopped. Rolling immediately on Aging table — "
+        "the body begins to age again."
+    )
+
+    # Apply aging roll immediately (no anagathics DM — they just stopped).
+    # We temporarily zero out anagathics_terms_used so the positive DM isn't applied.
+    saved_terms = character.anagathics_terms_used
+    character.anagathics_terms_used = 0
+    aging_result = _apply_aging(character)
+    character.anagathics_terms_used = saved_terms  # restore for record-keeping
+
+    return {
+        "aging": aging_result,
         "character": character.model_dump(),
     }
 
@@ -4130,26 +4203,37 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     character.term_history.append(term)
 
     aging_log = None
-    anagathics_suppressed = False
+    anagathics_cost_paid = 0
+    anagathics_debt = 0
     if character.total_terms >= 4:
-        if character.anagathics_purchased_terms > 0:
-            character.anagathics_purchased_terms -= 1
-            anagathics_suppressed = True
-            character.log(
-                f"Anagathics active — aging roll suppressed "
-                f"({character.anagathics_purchased_terms} treatments left)."
-            )
-            # Long-term anagathics use: small chance of addiction after several terms.
-            if (not character.anagathics_addicted
-                    and character.total_terms >= 6
-                    and dice.roll("2D").total <= 3):
-                character.anagathics_addicted = True
+        # ── Anagathics cost settlement (RAW: 1D×Cr25,000 per term) ────────
+        if character.anagathics_active and character.anagathics_pending_cost > 0:
+            cost = character.anagathics_pending_cost
+            character.anagathics_pending_cost = 0
+            if character.credits >= cost:
+                character.credits -= cost
+                anagathics_cost_paid = cost
+                character.log(f"Anagathics cost: Cr{cost:,} paid from credits.")
+            else:
+                paid = character.credits
+                shortfall = cost - paid
+                character.credits = 0
+                character.medical_debt += shortfall
+                anagathics_cost_paid = paid
+                anagathics_debt = shortfall
                 character.log(
-                    "ANAGATHICS ADDICTION: character is now dependent on "
-                    "treatment. Stopping will cause accelerated aging."
+                    f"Anagathics cost: Cr{paid:,} paid, "
+                    f"Cr{shortfall:,} added to medical debt."
                 )
-        else:
-            aging_log = _apply_aging(character)
+
+        # ── Aging roll (with anagathics positive DM if active) ────────────
+        if character.anagathics_active:
+            character.anagathics_terms_used += 1
+            character.log(
+                f"Anagathics active (term {character.anagathics_terms_used}): "
+                f"+{character.anagathics_terms_used} DM on aging roll."
+            )
+        aging_log = _apply_aging(character)
 
     if leaving:
         # Record career completion
@@ -4213,9 +4297,10 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
     return {
         "aging": aging_log,
-        "anagathics_suppressed": anagathics_suppressed,
-        "anagathics_purchased_terms": character.anagathics_purchased_terms,
-        "anagathics_addicted": character.anagathics_addicted,
+        "anagathics_active": character.anagathics_active,
+        "anagathics_terms_used": character.anagathics_terms_used,
+        "anagathics_cost_paid": anagathics_cost_paid,
+        "anagathics_debt": anagathics_debt,
         "age": character.age,
         "total_terms": character.total_terms,
         "pending_benefit_rolls": character.pending_benefit_rolls,
@@ -4229,13 +4314,17 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
 
 def _apply_aging(character: Character) -> dict:
-    """Roll on the aging table: 2D - total terms.
+    """Roll on the aging table: 2D - total_terms + anagathics_bonus.
 
     Physical stat reductions are returned as ``pending_reductions`` for the
     player to choose which characteristics to reduce.  Mental reductions are
     applied automatically (random, per RAW).
+
+    Anagathics positive DM: +anagathics_terms_used (RAW p.155).
     """
     dm = -character.total_terms  # "the older you are, the heavier the effects"
+    ana_dm = character.anagathics_terms_used if character.anagathics_terms_used > 0 else 0
+    dm += ana_dm
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
 
