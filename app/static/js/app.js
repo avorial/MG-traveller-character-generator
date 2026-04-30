@@ -269,7 +269,14 @@ function renderSheet() {
           <span class="stat-dm">DM ${formatDM(dm)}</span>
         </div>
       `;
-    }).join('');
+    }).join('')
+    + (character.psi > 0 ? `
+        <div class="stat-cell stat-cell-psi">
+          <span class="stat-label">PSI</span>
+          <span class="stat-value">${character.psi}</span>
+          <span class="stat-dm">DM ${formatDM(charDM(character.psi))}</span>
+        </div>
+      ` : '');
 
   const skillsList = character.skills.length
     ? character.skills.map((s) => {
@@ -3527,9 +3534,21 @@ function renderSkillChoice() {
   const eduGate = character.characteristics.EDU;
   const buttons = available.map(([key, t]) => {
     const gated = t.requires_edu && eduGate < t.requires_edu;
+    // Build the 1–6 preview row for this table
+    const previewItems = [1,2,3,4,5,6].map(n => {
+      const entry = t[String(n)];
+      if (!entry) return '';
+      // Highlight stat bumps (e.g. "DEX +1", "END+1") in a lighter colour
+      const isStatBump = /^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$/i.test(String(entry).trim());
+      return `<span class="stable-preview-cell ${isStatBump ? 'is-stat' : ''}">`
+           + `<span class="stable-preview-n">${n}</span>`
+           + `<span class="stable-preview-v">${escapeHTML(String(entry))}</span>`
+           + `</span>`;
+    }).join('');
     return `
-      <button class="btn ${gated ? 'ghost' : ''}" data-skill-table="${key}" ${gated ? 'disabled' : ''}>
-        ${t.name || key}${t.requires_edu ? ` (REQ EDU ${t.requires_edu}+)` : ''}
+      <button class="btn skill-table-btn ${gated ? 'ghost' : ''}" data-skill-table="${key}" ${gated ? 'disabled' : ''}>
+        <span class="stable-name">${t.name || key}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>
+        ${previewItems ? `<span class="stable-preview">${previewItems}</span>` : ''}
       </button>
     `;
   }).join('');

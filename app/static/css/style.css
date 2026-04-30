@@ -1990,3 +1990,74 @@ body.gm-mode #btn-gm-mode {
 @media (max-width: 700px) {
   .rq-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── PSI characteristic cell ──────────────────────────────────────────── */
+.stat-cell-psi {
+  grid-column: 1 / -1;           /* span full width of the 3-col grid */
+  border-color: var(--cyan, #5bd);
+  background: rgba(85, 187, 221, 0.06);
+}
+.stat-cell-psi .stat-label {
+  color: var(--cyan, #5bd);
+}
+.stat-cell-psi .stat-value {
+  color: var(--cyan, #5bd);
+  text-shadow: 0 0 6px rgba(85, 187, 221, 0.45);
+}
+.stat-cell-psi .stat-dm {
+  color: rgba(85, 187, 221, 0.65);
+}
+
+/* ── Skill-table picker with preview ─────────────────────────────────── */
+.skill-table-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  padding: 10px 14px;
+  gap: 6px;
+}
+.stable-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.stable-req {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+.stable-preview {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+}
+.stable-preview-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 2px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(var(--tint-rgb), 0.12);
+}
+.stable-preview-n {
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+.stable-preview-v {
+  font-size: 9px;
+  color: var(--cream);
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.stable-preview-cell.is-stat .stable-preview-v {
+  color: var(--amber);
+  font-weight: bold;
+}
