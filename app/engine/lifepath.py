@@ -58,6 +58,7 @@ _CONDITIONAL_MARKERS = (
 #   - Actual skill-check prefixes: "Roll Stealth 8+" / "Roll INT 8+".
 #   - Choice constructions where DM is one of the alternatives:
 #       "or DM+N", "or a DM+N", "or a +N DM", "or +N DM".
+#       "or take DM+N"  (Solomani career wording).
 #       Also "DM+N ... or ..." forms via the second alt.
 _CONDITIONAL_RE = re.compile(
     # Actual skill-check prefix: "Roll Stealth 8+" / "Roll INT 8+".
@@ -65,6 +66,8 @@ _CONDITIONAL_RE = re.compile(
     # DM is the second alternative: ", or DM+N" / ", or a DM+N" / ", or +N DM".
     r"|,\s*or\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)"
     r"|\bor\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)\s+to\s+(?:a|any|your|one)"
+    # "or take DM+N" — Solomani career variant (solsec, conf_navy, conf_army, party, sol_marine)
+    r"|,?\s*or\s+take\s+(?:a\s+)?(?:dm\s*[+-]\d+|[+-]\d+\s*dm)"
     # DM is the first alternative: "DM+N ... , or pick up / gain / take / increase <skill>"
     r"|\bdm\s*[+-]\d+[^.]{0,80}?,\s*or\s+(?:pick\s+up|gain|take|increase|learn|get|choose)\b"
     # DM is one option, career transfer is the other: ", or transfer to ..."

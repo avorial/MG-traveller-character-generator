@@ -3747,6 +3747,14 @@ function parseEventSkillOptions(text) {
     if (parts.length >= 2) return parts;
   }
 
+  // Pattern 5b: "Gain X N or take DM+N..." — single named skill followed by
+  // "or take DM" (Solomani career wording, e.g. confederation_navy event 11).
+  m = text.match(/Gain\s+([A-Z][A-Za-z0-9 ()\-/]+?\s+\d)\s+or\s+take\s+DM/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 1) return parts;
+  }
+
   return null;
 }
 
@@ -4020,10 +4028,11 @@ function resolveWildcardSkillOptions(wildcard, careerKey) {
 }
 
 function parseEventDmAlternative(text) {
-  // Detect "or DM+N to your next/an Advancement roll" as an alternative reward.
+  // Detect "or DM+N to/on your next/an Advancement roll" as an alternative reward.
+  // Also handles "or take DM+N ..." (Solomani career wording).
   // Returns { dm: 4, target: 'advancement' } or null.
   if (!text) return null;
-  const m = text.match(/or\s+DM\s*([+-]?\d+)\s+to\s+(?:(?:your\s+)?next\s+|an?\s+)(Advancement|Qualification|Survival|Promotion)\s+roll/i);
+  const m = text.match(/or\s+(?:take\s+)?DM\s*([+-]?\d+)\s+(?:to|on)\s+(?:(?:your\s+)?next\s+|an?\s+)(Advancement|Qualification|Survival|Promotion)\s+roll/i);
   if (!m) return null;
   return { dm: parseInt(m[1], 10), target: m[2].toLowerCase() };
 }
