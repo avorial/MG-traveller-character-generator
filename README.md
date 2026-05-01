@@ -33,10 +33,10 @@ uvicorn app.main:app --reload
 
 1. **Characteristics** — Roll 2D×6 for all six stats, with optional stat swaps.
 2. **Society of Origin** — Choose the polity where your character was raised (Third Imperium, Solomani Confederation, Aslan Hierate, Hiver Federation, Zhodani Consulate, Two Thousand Worlds, Vargr Extents, or Other/Frontier). Filters the species picker and career list to only show options relevant to that society.
-3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles granted to high-SOC Third Imperium characters. Solomani characters roll a Heritage Roll (2D) to determine sub-type.
+3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles granted to high-SOC Third Imperium characters. Solomani characters roll a Heritage Roll (2D) to determine sub-type. Cetacean species (Dolphin, Orca) set a species-specific starting age.
 4. **Background skills** — Skill picks gated by EDU DM.
 5. **Pre-career education** — Optional phase before the career loop (see below).
-6. **Career loop** — Qualify → assignment → basic training → skill training → survival → event → mishap (if failed survival) → advancement → end term (aging at term 4+). Repeats for as many careers and terms as the player chooses.
+6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics prompt (term 4+) → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses.
 7. **Mustering out** — Cash and benefit rolls from each career's table. Retirement pension calculated automatically for 5+ terms served.
 8. **Skill packages** — Optional package pick at the end of mustering out.
 9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
@@ -56,7 +56,7 @@ uvicorn app.main:app --reload
 
 Ineligible tracks are visible in the picker as greyed-out cards explaining the requirement.
 
-### Careers (18 fully encoded)
+### Careers (22 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -87,6 +87,17 @@ Every career has qualification, all assignments, full skill tables, events (2–
 | **Star Marines** | Support, Star Marine, Battledress | Solomani-only |
 | **Party** | Apparatchik, Functionary, Director | Solomani Party political career |
 | **SolSec** | Field Agent, Administration, Secret Agent | Secret Agent uses a cover career for survival/advancement rolls |
+
+#### Cetacean (4)
+
+| Career | Assignments | Species |
+|---|---|---|
+| **Dolphin Civilian** | Liaison, Nomad, Historian-Poet | Dolphin + Orca |
+| **Dolphin Military** | Sea Patrol, Underwater Commando, Guardian | Dolphin + Orca |
+| **Philosopher-Elder** | Philosopher-Elder | Orca only |
+| **Spirit Singer** | Spirit Singer | Orca only |
+
+Cetacean careers are only shown for Dolphin and Orca characters. Dolphins and Orca cannot become Merchants, Nobles, or Drifters, and cannot access core careers until they have the Vacc Suit skill.
 
 Careers with `societies` set are only shown for characters from that polity. Careers with `blocked_societies` are hidden for those characters (e.g. Imperial Navy/Army/Marine/Noble/Scout are hidden for Solomani characters).
 
@@ -119,7 +130,7 @@ Characters raised in the Solomani Confederation have additional systems:
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll; officers start at rank 1 and use a separate rank track.
 - **Draft** — Failed qualification offers a draft roll (D6 → career assignment).
-- **Aging** — From term 4 onward, END/STR/DEX each roll 2D vs. their value; failures apply −1. Anagathics can be purchased each term to suppress the aging roll; shortfall credit goes to medical debt (addiction risk modelled).
+- **Aging** — Triggered at a species-specific term (default term 4; Dolphins term 2; Orca term 4). Physical stat reductions (STR/DEX/END) are player-chosen; mental reductions (INT/EDU/SOC) are auto-applied. Anagathics follow MG2e RAW: roll SOC 10+ at the start of each eligible term; success activates anagathics and rolls 1D×Cr25,000 cost (paid at end of term or added to medical debt); active anagathics provide a positive DM to the aging roll equal to terms used (they do not suppress the roll); stopping anagathics triggers an immediate aging roll; a natural 2 on the SOC roll forces the Prisoner career next term.
 - **Retirement pension** — Characters leaving with 5+ total terms earn a pension: 5 terms Cr10,000/yr, 6 → Cr12,000, 7 → Cr14,000, 8+ → Cr16,000/yr.
 - **Medical debt** — Injuries and anagathics shortfall add to a running debt; cash benefit rolls pay it off automatically.
 - **Boon rolls** — GM-configurable pool of re-rolls; tracked per character.
@@ -128,9 +139,9 @@ Characters raised in the Solomani Confederation have additional systems:
 - **GM Mode** — Toggle to manually set every dice roll result, for testing or scripted sessions.
 - **NPC generator** — `/api/character/generate-npc` produces a quick stat block without running the full lifepath.
 
-### Species (27 files)
+### Species (29 files)
 
-Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society.
+Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society. Cetacean species (Dolphin, Orca) have additional fields: `starting_age`, `aging_starts_term`, `blocked_careers`, `allowed_species_careers`, `forbidden_skills`, `career_qualify_dms`, `university_dm`, `military_academy_dm`.
 
 | File ID | Name | Society | Key Modifiers |
 |---|---|---|---|
@@ -147,6 +158,8 @@ Species are listed in picker order (set by `sort_order` in each JSON) and filter
 | `capry_small_male` | Capry — Small Male | Third Imperium | STR−4 DEX+3 END−3 EDU+2 |
 | `droashav` | Droashav | Third Imperium | STR+2 DEX−1 END+3 INT−1 |
 | `faar` | Faar | Third Imperium | INT+1 |
+| `dolphin` | Uplifted Dolphin | Any | STR+4 END+2 SOC−4; start age 12; aging from term 2 |
+| `uplifted_orca` | Uplifted Orca | Any | STR+8 END+4 SOC−4; start age 18; aging from term 4 |
 | `solomani_human` | Human (Solomani Confederation) | Solomani Confederation | Triggers Heritage Roll (2D) |
 | `solomani_racial` | Racial Solomani | Solomani Confederation | SOC+1 (resolved by Heritage Roll) |
 | `solomani_mixed` | Mixed Heritage Solomani | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
@@ -173,8 +186,8 @@ traveller-creator/
 │   │   ├── rules.py                # JSON data loader with lru_cache, society helpers
 │   │   └── lifepath.py             # Rules engine (all phases)
 │   ├── data/
-│   │   ├── species/                # 27 species JSON files
-│   │   ├── careers/                # 18 career JSON files (all complete)
+│   │   ├── species/                # 29 species JSON files
+│   │   ├── careers/                # 22 career JSON files (all complete)
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_skills.json
@@ -228,7 +241,15 @@ Drop a file into `app/data/species/<id>.json`:
 
 Refresh the browser — it appears in the species picker immediately.
 
-To restrict a species to a specific society, add `"societies": ["solomani_confederation"]` (whitelist) or reference the `societies.json` table.
+Optional fields:
+- `"societies": ["solomani_confederation"]` — restrict to specific polities
+- `"starting_age": 12` — override starting age (default 18)
+- `"aging_starts_term": 2` — override when aging begins (default 4)
+- `"blocked_careers": ["merchant", "noble"]` — careers always hidden for this species
+- `"allowed_species_careers": ["my_career"]` — career IDs exclusive to this species
+- `"university_dm": -1` — DM applied to university qualification
+- `"military_academy_dm": 1` — DM applied to military academy qualification
+- `"career_qualify_dms": {"scout": 1}` — per-career qualification bonuses
 
 ### Adding or editing a career
 
@@ -242,6 +263,8 @@ Use `app/data/careers/scout.json` as the reference schema. Key fields:
 - `"complete": true` — marks the career as fully playable
 - `"societies": ["solomani_confederation"]` — restricts career to characters from that polity
 - `"blocked_societies": ["solomani_confederation"]` — hides career for characters from that polity
+- `"allowed_species": ["dolphin", "uplifted_orca"]` — restricts career to listed species only
+- `"blocked_species": ["dolphin", "uplifted_orca"]` — hides career for listed species
 
 ### Adding a new pre-career track
 
@@ -316,9 +339,11 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/cross-career-roll` | Roll on another career's skill table (event reward) |
 | `/api/character/ban-career` | Permanently ban a career (e.g. Scout event 2 failure) |
 | `/api/character/associate` | Add an ally, contact, rival, or enemy |
-| `/api/character/end-term` | Close term; trigger aging if term 4+; update pension |
+| `/api/character/end-term` | Close term; trigger aging at species-appropriate term; update pension |
+| `/api/character/resolve-aging` | Apply player-chosen physical stat reductions from aging |
 | `/api/character/muster-out` | Cash or benefit roll from mustering-out table |
-| `/api/character/anagathics` | Purchase anagathics; shortfall added to medical debt |
+| `/api/character/anagathics/attempt` | Roll SOC 10+ to start or continue anagathics; natural 2 → Prisoner next term |
+| `/api/character/anagathics/stop` | Stop anagathics and trigger an immediate aging roll |
 | `/api/character/injury` | Roll on the injury table |
 | `/api/character/injury-choice` | Player chooses which stat absorbs injury damage |
 | `/api/character/home-forces` | Enrol in or resign from Home Forces Reserves (`action: "enroll"\|"leave"`) |
@@ -363,6 +388,8 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `pending_benefit_rolls` | Rolls remaining in the muster-out phase |
 | `pension_per_year` | Annual pension in Credits (set when 5+ terms served) |
 | `medical_debt` | Outstanding injury/anagathics debt; auto-deducted from cash rolls |
+| `anagathics_active` | Whether the character is currently using anagathics |
+| `anagathics_terms_used` | Terms on anagathics; used as the positive aging DM |
 | `home_forces_enrolled` | Whether the character is in the Home Forces Reserves |
 | `home_forces_component` | `"groundside"` or `"naval"` |
 | `home_forces_rank` | Current reserve rank |
@@ -380,4 +407,4 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 
 ## Legal
 
-*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. The rules reproduced here are from the Mongoose Traveller 2e Core Rulebook and the Solomani Rim sourcebook; this project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebook.
+*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. The rules reproduced here are from the Mongoose Traveller 2e Core Rulebook, the Solomani Rim sourcebook, and Aliens of Charted Space Volumes 1 and 5; this project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebooks.
