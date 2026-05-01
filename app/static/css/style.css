@@ -603,6 +603,12 @@ body {
   text-align: left;
   font-family: inherit;
   color: inherit;
+  /* Force block layout so text always anchors to the top of the card */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  vertical-align: top;
 }
 
 .card:hover:not(:disabled) {

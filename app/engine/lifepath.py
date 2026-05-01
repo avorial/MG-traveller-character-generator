@@ -5328,3 +5328,50 @@ def apply_skill_package(character: Character, package_id: str) -> dict:
         character.log(f"Skill package '{package_id}': {disp} — {msg}")
 
     return {"applied": applied, "character": character.model_dump()}
+
+
+# ============================================================
+# Death survival (RAW p.48: spend 1D×Cr10,000 medical loan)
+# ============================================================
+
+def cheat_death(character: "Character") -> dict:
+    """Survive death by incurring a medical loan (RAW MgT 2e p.48).
+
+    - Roll 1D × Cr10,000 as medical debt.
+    - Permanently reduce one physical characteristic (STR, DEX or END)
+      by 1 — pick whichever is currently highest (auto-resolve to avoid
+      an extra UI round-trip; player can adjust notes if desired).
+    - Revive the character: dead = False, phase = 'career', current_term
+      cleared so they return to career selection.
+    """
+    if not character.dead:
+        raise ValueError("Character is not dead.")
+
+    cost_roll = dice.roll("1D")
+    cost = cost_roll.total * 10_000
+    character.medical_debt += cost
+
+    # Reduce the highest physical stat by 1 (auto-pick)
+    physical = ["STR", "DEX", "END"]
+    stat_reduced = max(physical, key=lambda s: character.characteristics.get(s))
+    old_val = character.characteristics.get(stat_reduced)
+    character.characteristics.set(stat_reduced, max(0, old_val - 1))
+
+    character.log(
+        f"Cheated death: medical loan Cr{cost:,} (1D={cost_roll.total}×Cr10,000). "
+        f"{stat_reduced} reduced {old_val}→{max(0, old_val - 1)}."
+    )
+
+    character.dead = False
+    character.death_reason = None
+    character.current_term = None
+    character.phase = "career"
+
+    return {
+        "cost": cost,
+        "cost_roll": cost_roll.to_dict(),
+        "stat_reduced": stat_reduced,
+        "old_val": old_val,
+        "new_val": max(0, old_val - 1),
+        "character": character.model_dump(),
+    }

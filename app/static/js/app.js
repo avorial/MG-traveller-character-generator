@@ -5919,9 +5919,10 @@ function renderDeadStage() {
         <h2>TRAVELLER EXPIRED</h2>
         <p>${character.death_reason || 'Unknown cause.'}</p>
       </div>
-      <p class="phase-body">Welcome to Traveller. Your character died during creation — it happens. You can revive them via medical care (not yet modeled in this creator — edit the JSON manually if you want to cheat death), or start over.</p>
+      <p class="phase-body">Welcome to Traveller. Your character died during creation — it happens. RAW allows survival via medical care (spend 1D × Cr10,000 as a medical loan, permanently reduce one physical characteristic by 1). Use the <strong>CHEAT DEATH</strong> button below, or start over.</p>
       <div class="phase-actions">
-        <button class="btn primary" id="btn-new-char">NEW CHARACTER</button>
+        <button class="btn danger" id="btn-cheat-death">CHEAT DEATH (1D × Cr10,000 loan)</button>
+        <button class="btn" id="btn-new-char">NEW CHARACTER</button>
       </div>
     </div>
   `;
@@ -5932,6 +5933,21 @@ function wireDeadStage() {
     await freshCharacter();
     renderAll();
   });
+
+  const btnCheatDeath = document.getElementById('btn-cheat-death');
+  if (btnCheatDeath) {
+    btnCheatDeath.addEventListener('click', async () => {
+      try {
+        const resp = await apiCall('/api/character/cheat-death', {});
+        await applyResponse(resp);
+        // Show which stat was reduced and cost incurred
+        alert(`Survived! Medical loan: Cr${resp.cost.toLocaleString()}. ${resp.stat_reduced} reduced by 1. Character revived and returning to career phase.`);
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
 }
 
 // ============================================================

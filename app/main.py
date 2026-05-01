@@ -736,6 +736,16 @@ async def api_capsule(action: CharacterAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/cheat-death")
+async def api_cheat_death(action: CharacterAction):
+    """Survive death via medical loan (RAW: 1D×Cr10,000, -1 to highest physical stat)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.cheat_death(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/connection")
 async def api_connection(action: ConnectionAction):
     """Add a Connection (a link to another PC) to the character."""
