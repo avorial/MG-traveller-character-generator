@@ -3711,10 +3711,12 @@ _HOME_FORCES_TRAINING: dict[str, dict[int, str]] = {
 }
 
 
-def _home_forces_component_for(character: "Character") -> str:
+def _home_forces_component_for(character: "Character", career_id: Optional[str] = None) -> str:
     """Return 'naval' or 'groundside' based on current career/assignment and history."""
     term = character.current_term
-    if term and term.career_id == "merchant" and term.assignment_id in _NAVAL_MERCHANT_ASSIGNMENTS:
+    effective_career = term.career_id if term else career_id
+    effective_assignment = term.assignment_id if term else None
+    if effective_career == "merchant" and effective_assignment in _NAVAL_MERCHANT_ASSIGNMENTS:
         return "naval"
     # Ex-Navy (any previous Navy career) may join naval component
     navy_career_ids = {"navy", "confederation_navy"}
@@ -3724,35 +3726,52 @@ def _home_forces_component_for(character: "Character") -> str:
     return "groundside"
 
 
-def _home_forces_eligible(character: "Character") -> bool:
-    """Return True if the character may (re-)enroll in Home Forces Reserves."""
+def _home_forces_eligible(character: "Character", career_id: Optional[str] = None) -> bool:
+    """Return True if the character may (re-)enroll in Home Forces Reserves.
+
+    career_id may be supplied when current_term is not yet set (i.e. the player
+    has just qualified for a career but hasn't called start_term yet).
+    """
     if character.society_id != "solomani_confederation":
         return False
-    term = character.current_term
-    if term is None:
+    # Use current_term if active; fall back to supplied career_id
+    effective_career = None
+    effective_assignment = None
+    if character.current_term is not None:
+        effective_career = character.current_term.career_id
+        effective_assignment = character.current_term.assignment_id
+    elif career_id is not None:
+        effective_career = career_id
+    else:
         return False
-    if term.career_id in _HOME_FORCES_BARRED_CAREERS:
+    if effective_career in _HOME_FORCES_BARRED_CAREERS:
         return False
-    if term.career_id == "rogue" and term.assignment_id == "pirate":
+    if effective_career == "rogue" and (effective_assignment or "") == "pirate":
         return False
-    # SolSec field_agent and secret_agent cannot join (they're military/intelligence)
-    if term.career_id == "solsec":
+    if effective_career == "solsec":
         return False
     return True
 
 
-def enroll_home_forces(character: "Character") -> dict:
+def enroll_home_forces(character: "Character", career_id: Optional[str] = None) -> dict:
     """Enroll the character in Home Forces Reserves and roll on the training table.
+
+    career_id may be supplied when the character has qualified for a career but
+    hasn't yet called start_term (so current_term is still None).
 
     Eligibility is checked here; raises ValueError if ineligible.
     The training roll is made once at initial enlistment only.
     """
     if character.phase != "career":
         raise ValueError("Home Forces enrollment is only available during the career phase.")
-    if not _home_forces_eligible(character):
-        raise ValueError("This character is not eligible for Home Forces Reserves.")
+    if not _home_forces_eligible(character, career_id=career_id):
+        eligible_reason = (
+            "Not a Solomani Confederation character." if character.society_id != "solomani_confederation"
+            else "Career is barred from Home Forces (Drifter, Rogue/Pirate, or SolSec)."
+        )
+        raise ValueError(f"Not eligible for Home Forces Reserves — {eligible_reason}")
 
-    component = _home_forces_component_for(character)
+    component = _home_forces_component_for(character, career_id=career_id)
     character.home_forces_enrolled = True
     character.home_forces_component = component
     character.home_forces_trained = True

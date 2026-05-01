@@ -2160,13 +2160,16 @@ function renderCareerPhase() {
     return renderDraftResult();
   }
 
-  // Otherwise: no term means choose-a-career; term means active term loop.
+  // Anagathics intercept (term 4+): fires BEFORE career selection AND before same-career continuation.
+  // When continuing the same career, end_term (leaving=false) does NOT clear current_term, so term is
+  // still non-null. pendingNextTermAction being set is the signal we're in that intercept state.
+  if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone &&
+      (!term || uiState.pendingNextTermAction)) {
+    return renderAnagathicsPrompt();
+  }
+
+  // No active term → career picker; active term → term loop.
   if (!term) {
-    // Offer anagathics BEFORE career selection for term 4+ (RAW: start-of-term action).
-    // anagathicsPhaseDone resets when a term ends, so this fires once per career-selection cycle.
-    if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone) {
-      return renderAnagathicsPrompt();
-    }
     return renderChooseCareer();
   }
   return renderActiveTerm();
@@ -2392,7 +2395,10 @@ function wireCareerPhase() {
   if (btnHfEnroll) {
     btnHfEnroll.addEventListener('click', async () => {
       try {
-        const response = await apiCall('/api/character/home-forces', { action: 'enroll' });
+        const response = await apiCall('/api/character/home-forces', {
+          action: 'enroll',
+          career_id: uiState.selectedCareer || character.current_term?.career_id || null,
+        });
         await applyResponse(response);
         uiState.lastRoll = {
           type: 'home_forces_training',
@@ -5483,18 +5489,31 @@ function renderMusterPhase() {
   if (uiState.lastRoll?.type === 'muster') {
     const lr = uiState.lastRoll;
     const colLabel = lr.column === 'cash' ? 'Cash Roll' : 'Benefit Roll';
+    // Weapon choice: when the benefit is an unspecified "Weapon", let the player pick Melee or Firearm.
+    const isWeaponChoice = lr.column !== 'cash' && (
+      lr.result === 'Weapon' ||
+      (typeof lr.result === 'string' && lr.result.startsWith('Weapon and'))
+    );
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
       <div class="stage-content">
         <div class="phase-label">${colLabel} — ${lr.careerName || lr.careerId}</div>
         <h2 class="phase-title">${lr.column === 'cash' ? `Gained ${lr.result}` : `Benefit: ${lr.result}`}</h2>
         ${rollReadoutHTML(lr.data, { label: `${colLabel} (1D)`, showTarget: false })}
-        <p class="phase-body">${lr.remaining_rolls > 0
-          ? `${lr.remaining_rolls} benefit roll${lr.remaining_rolls === 1 ? '' : 's'} remaining.`
-          : `All benefits claimed.`}</p>
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-post-muster">CONTINUE →</button>
-        </div>
+        ${isWeaponChoice ? `
+          <p class="phase-body" style="margin-top:12px">Choose your weapon type:</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-weapon-melee">MELEE WEAPON →</button>
+            <button class="btn primary" id="btn-weapon-firearm">FIREARM →</button>
+          </div>
+        ` : `
+          <p class="phase-body">${lr.remaining_rolls > 0
+            ? `${lr.remaining_rolls} benefit roll${lr.remaining_rolls === 1 ? '' : 's'} remaining.`
+            : `All benefits claimed.`}</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-post-muster">CONTINUE →</button>
+          </div>
+        `}
       </div>
     `;
   }
@@ -5635,6 +5654,29 @@ function wireMusterPhase() {
     btnPostMuster.addEventListener('click', () => {
       uiState.lastRoll = null;
       renderStage();
+    });
+  }
+
+  // Weapon type choice — shown when a plain "Weapon" benefit is rolled
+  const btnWeaponMelee = document.getElementById('btn-weapon-melee');
+  if (btnWeaponMelee) {
+    btnWeaponMelee.addEventListener('click', () => {
+      // Find and rename the generic "Weapon" equipment entry the backend just added
+      const eq = character.equipment.find(e => e.name === 'Weapon' && e.notes === 'From mustering out');
+      if (eq) { eq.name = 'Melee Weapon (of choice)'; eq.notes = 'From mustering out — player picks specific blade/bludgeon'; }
+      saveCharacter();
+      uiState.lastRoll = null;
+      renderAll();
+    });
+  }
+  const btnWeaponFirearm = document.getElementById('btn-weapon-firearm');
+  if (btnWeaponFirearm) {
+    btnWeaponFirearm.addEventListener('click', () => {
+      const eq = character.equipment.find(e => e.name === 'Weapon' && e.notes === 'From mustering out');
+      if (eq) { eq.name = 'Firearm (of choice)'; eq.notes = 'From mustering out — player picks specific firearm'; }
+      saveCharacter();
+      uiState.lastRoll = null;
+      renderAll();
     });
   }
   const btnFinalize = document.getElementById('btn-finalize');

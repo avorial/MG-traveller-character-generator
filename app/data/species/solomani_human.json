@@ -12,7 +12,7 @@
     "SOC": 0
   },
   "characteristic_maximum": 15,
-  "sort_order": 200,
+  "sort_order": 1,
   "traits": [
     {
       "name": "Heritage Roll Required",

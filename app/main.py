@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from typing import Optional
 from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
@@ -664,6 +665,7 @@ async def api_anagathics_legacy(action: CharacterAction):
 class HomeForceAction(BaseModel):
     character: Character
     action: str  # "enroll" | "leave"
+    career_id: Optional[str] = None  # passed when enrolling before start_term
 
 
 @app.post("/api/character/home-forces")
@@ -672,7 +674,7 @@ async def api_home_forces(action: HomeForceAction):
     character = action.character.model_copy(deep=True)
     try:
         if action.action == "enroll":
-            return lifepath.enroll_home_forces(character)
+            return lifepath.enroll_home_forces(character, career_id=action.career_id)
         elif action.action == "leave":
             return lifepath.leave_home_forces(character)
         else:
