@@ -1042,8 +1042,7 @@ function renderSpeciesPhase() {
           Species modifiers apply once, now, to the characteristics you just rolled.
         </p>
         <p class="species-intro-hint">
-          <em>Pick whichever fits the character concept. The numbers balance out across a full career arc — flavor is
-          usually the deciding factor.</em>
+          <em>Single-click to preview traits · Double-click to apply immediately.</em>
         </p>
       </div>
 
@@ -1124,22 +1123,11 @@ function wireSpeciesPhase() {
     return;
   }
 
-  document.querySelectorAll('[data-species]').forEach(card => {
-    card.addEventListener('click', () => {
-      uiState.selectedSpecies = card.dataset.species;
-      renderStage();
-    });
-  });
-  document.getElementById('btn-back-stats').addEventListener('click', () => {
-    character.phase = 'society';
-    saveCharacter();
-    renderAll();
-  });
-  document.getElementById('btn-apply-species').addEventListener('click', async () => {
+  // Shared apply logic — used by both double-click on card and the confirm button.
+  async function applySelectedSpecies() {
     if (!uiState.selectedSpecies) return;
     const sp = SPECIES.find(s => s.id === uiState.selectedSpecies);
     if (sp?.racial_background_roll) {
-      // Solomani heritage: roll 2D to determine subtype
       const response = await apiCall('/api/character/racial-background-roll', {});
       await applyResponse(response);
       uiState.racialBackgroundResult = response;
@@ -1151,7 +1139,26 @@ function wireSpeciesPhase() {
     character.phase = 'background';
     saveCharacter();
     renderAll();
+  }
+
+  document.querySelectorAll('[data-species]').forEach(card => {
+    // Single click → highlight + preview traits panel
+    card.addEventListener('click', () => {
+      uiState.selectedSpecies = card.dataset.species;
+      renderStage();
+    });
+    // Double click → select and immediately apply (skip the confirm button)
+    card.addEventListener('dblclick', async () => {
+      uiState.selectedSpecies = card.dataset.species;
+      await applySelectedSpecies();
+    });
   });
+  document.getElementById('btn-back-stats').addEventListener('click', () => {
+    character.phase = 'society';
+    saveCharacter();
+    renderAll();
+  });
+  document.getElementById('btn-apply-species').addEventListener('click', applySelectedSpecies);
 }
 
 // ============================================================
