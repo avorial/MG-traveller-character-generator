@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-7.6-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-8.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -36,7 +36,7 @@ uvicorn app.main:app --reload
 3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles granted to high-SOC Third Imperium characters. Solomani characters roll a Heritage Roll (2D) to determine sub-type. Cetacean species (Dolphin, Orca) set a species-specific starting age.
 4. **Background skills** — Skill picks gated by EDU DM.
 5. **Pre-career education** — Optional phase before the career loop (see below).
-6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics prompt (term 4+) → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses.
+6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics offer (before every career selection; one-time setup on first entry) → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses.
 7. **Mustering out** — Cash and benefit rolls from each career's table. Retirement pension calculated automatically for 5+ terms served.
 8. **Skill packages** — Optional package pick at the end of mustering out.
 9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
@@ -130,7 +130,7 @@ Characters raised in the Solomani Confederation have additional systems:
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll; officers start at rank 1 and use a separate rank track.
 - **Draft** — Failed qualification offers a draft roll (D6 → career assignment).
-- **Aging** — Triggered at a species-specific term (default term 4; Dolphins term 2; Orca term 4). Physical stat reductions (STR/DEX/END) are player-chosen; mental reductions (INT/EDU/SOC) are auto-applied. Anagathics follow MG2e RAW: roll SOC 10+ at the start of each eligible term; success activates anagathics and rolls 1D×Cr25,000 cost (paid at end of term or added to medical debt); active anagathics provide a positive DM to the aging roll equal to terms used (they do not suppress the roll); stopping anagathics triggers an immediate aging roll; a natural 2 on the SOC roll forces the Prisoner career next term.
+- **Aging** — Triggered at a species-specific term (default term 4; Dolphins term 2; Orca term 4). Physical stat reductions (STR/DEX/END) are player-chosen; mental reductions (INT/EDU/SOC) are auto-applied. Anagathics follow MG2e RAW: a one-time setup screen on first career entry explains the rules and lets the player opt in (prompted every term) or opt out (never asked again). Each term: roll SOC 10+ to secure a supply; success activates treatment and costs 1D×Cr25,000 (paid at end of term or added to medical debt); active anagathics provide a positive aging DM equal to terms used (they do not suppress the roll, they improve it); stopping triggers an immediate aging roll; a natural 2 on the SOC roll forces the Prisoner career next term. Starting early locks in your age at a lower value, growing the bonus each subsequent term.
 - **Retirement pension** — Characters leaving with 5+ total terms earn a pension: 5 terms Cr10,000/yr, 6 → Cr12,000, 7 → Cr14,000, 8+ → Cr16,000/yr.
 - **Medical debt** — Injuries and anagathics shortfall add to a running debt; cash benefit rolls pay it off automatically.
 - **Boon rolls** — GM-configurable pool of re-rolls; tracked per character.
@@ -139,9 +139,9 @@ Characters raised in the Solomani Confederation have additional systems:
 - **GM Mode** — Toggle to manually set every dice roll result, for testing or scripted sessions.
 - **NPC generator** — `/api/character/generate-npc` produces a quick stat block without running the full lifepath.
 
-### Species (29 files)
+### Species (28)
 
-Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society. Cetacean species (Dolphin, Orca) have additional fields: `starting_age`, `aging_starts_term`, `blocked_careers`, `allowed_species_careers`, `forbidden_skills`, `career_qualify_dms`, `university_dm`, `military_academy_dm`.
+Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society. Single-click a card to preview traits; double-click (or click Confirm after single-click) to apply. Cetacean species (Dolphin, Orca) have additional fields: `starting_age`, `aging_starts_term`, `blocked_careers`, `allowed_species_careers`, `forbidden_skills`, `career_qualify_dms`, `university_dm`, `military_academy_dm`.
 
 | File ID | Name | Society | Key Modifiers |
 |---|---|---|---|
@@ -160,6 +160,8 @@ Species are listed in picker order (set by `sort_order` in each JSON) and filter
 | `faar` | Faar | Third Imperium | INT+1 |
 | `dolphin` | Uplifted Dolphin | Any | STR+4 END+2 SOC−4; start age 12; aging from term 2 |
 | `uplifted_orca` | Uplifted Orca | Any | STR+8 END+4 SOC−4; start age 18; aging from term 4 |
+| `alpine_caprisap` | Caprisap — Alpine | Third Imperium | STR−2 DEX+2; nimble mountainous variant; Headbutt, Heightened Taste, Improved Digestion, Natural Starfarers |
+| `boar_caprisap` | Caprisap — Boar | Third Imperium | STR−1 DEX+1; heavier robust variant; same traits as Alpine |
 | `solomani_human` | Human (Solomani Confederation) | Solomani Confederation | Triggers Heritage Roll (2D) |
 | `solomani_racial` | Racial Solomani | Solomani Confederation | SOC+1 (resolved by Heritage Roll) |
 | `solomani_mixed` | Mixed Heritage Solomani | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
@@ -342,6 +344,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/end-term` | Close term; trigger aging at species-appropriate term; update pension |
 | `/api/character/resolve-aging` | Apply player-chosen physical stat reductions from aging |
 | `/api/character/muster-out` | Cash or benefit roll from mustering-out table |
+| `/api/character/anagathics/interest` | Set one-time anagathics preference: `interest: "yes"` (prompt each term) or `"no"` (never again) |
 | `/api/character/anagathics/attempt` | Roll SOC 10+ to start or continue anagathics; natural 2 → Prisoner next term |
 | `/api/character/anagathics/stop` | Stop anagathics and trigger an immediate aging roll |
 | `/api/character/injury` | Roll on the injury table |
@@ -377,7 +380,7 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 
 | Field | Purpose |
 |---|---|
-| `phase` | Current creation phase (`characteristics` → `species` → `background` → `pre_career` → `career` → `mustering` → `finalize` → `done`) |
+| `phase` | Current creation phase (`characteristics` → `society` → `species` → `background` → `pre_career` → `career` → `mustering` → `skill_package` → `done`) |
 | `society_id` | Chosen polity; gates career lists, draft table, parallel service options |
 | `species_id` | Resolved species (after Heritage Roll for Solomani) |
 | `pre_career_status` | Transient state during pre-career enrollment |
@@ -388,6 +391,7 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `pending_benefit_rolls` | Rolls remaining in the muster-out phase |
 | `pension_per_year` | Annual pension in Credits (set when 5+ terms served) |
 | `medical_debt` | Outstanding injury/anagathics debt; auto-deducted from cash rolls |
+| `anagathics_interest` | One-time preference: `null` = not yet asked, `"yes"` = prompt each term, `"no"` = never prompt |
 | `anagathics_active` | Whether the character is currently using anagathics |
 | `anagathics_terms_used` | Terms on anagathics; used as the positive aging DM |
 | `home_forces_enrolled` | Whether the character is in the Home Forces Reserves |
