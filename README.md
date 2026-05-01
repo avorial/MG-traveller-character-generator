@@ -143,36 +143,125 @@ Characters raised in the Solomani Confederation have additional systems:
 
 Species are listed in picker order (set by `sort_order` in each JSON) and filtered by the chosen society. Single-click a card to preview traits; double-click (or click Confirm after single-click) to apply. Cetacean species (Dolphin, Orca) have additional fields: `starting_age`, `aging_starts_term`, `blocked_careers`, `allowed_species_careers`, `forbidden_skills`, `career_qualify_dms`, `university_dm`, `military_academy_dm`.
 
-| File ID | Name | Society | Key Modifiers |
-|---|---|---|---|
-| `imperial_human` | Imperial Human | Third Imperium | — |
-| `imperial_vargr` | Vargr (Imperial Raised) | Third Imperium | STR−1 DEX+1 END−1 |
-| `imperial_aslan` | Aslan (Imperial Raised) | Third Imperium | STR+2 DEX−2 |
-| `imperial_bwap` | Bwap | Third Imperium | STR−4 END−4 |
-| `jonkeereen` | Jonkeereen | Third Imperium | END+2 |
-| `luriani` | Luriani | Third Imperium | DEX+1 END+1 SOC−2 |
-| `sydite` | Sydite | Third Imperium | STR+2 END+2 DEX−2 INT−3 EDU−3 |
-| `akeed` | Akeed | Third Imperium | STR−2 END−2 INT+1 |
-| `capry_female` | Capry — Female | Third Imperium | STR−3 DEX+2 END−2 INT+1 |
-| `capry_big_male` | Capry — Big Male | Third Imperium | STR−1 END+1 |
-| `capry_small_male` | Capry — Small Male | Third Imperium | STR−4 DEX+3 END−3 EDU+2 |
-| `droashav` | Droashav | Third Imperium | STR+2 DEX−1 END+3 INT−1 |
-| `faar` | Faar | Third Imperium | INT+1 |
-| `dolphin` | Uplifted Dolphin | Any | STR+4 END+2 SOC−4; start age 12; aging from term 2 |
-| `uplifted_orca` | Uplifted Orca | Any | STR+8 END+4 SOC−4; start age 18; aging from term 4 |
-| `alpine_caprisap` | Caprisap — Alpine | Third Imperium | STR−2 DEX+2; nimble mountainous variant; Headbutt, Heightened Taste, Improved Digestion, Natural Starfarers |
-| `boar_caprisap` | Caprisap — Boar | Third Imperium | STR−1 DEX+1; heavier robust variant; same traits as Alpine |
-| `solomani_human` | Human (Solomani Confederation) | Solomani Confederation | Triggers Heritage Roll (2D) |
-| `solomani_racial` | Racial Solomani | Solomani Confederation | SOC+1 (resolved by Heritage Roll) |
-| `solomani_mixed` | Mixed Heritage Solomani | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
-| `confederation_human` | Non-Solomani Human | Solomani Confederation | No modifiers (resolved by Heritage Roll) |
-| `zhodani_human` | Zhodani Human | Zhodani Consulate | — |
-| `hierate_aslan` | Aslan (Hierate) | Aslan Hierate | STR+2 DEX−2 |
-| `extents_vargr` | Vargr (Extents) | Vargr Extents | STR−1 DEX+1 END−1 |
-| `hiver_federation_human` | Hiver Federation Human | Hiver Federation | — |
-| `two_thousand_worlds_human` | Two Thousand Worlds Human | Two Thousand Worlds | — |
-| `sword_worlds_human` | Sword Worlds Human | Other/Frontier | — |
-| `frontier_human` | Frontier Human | Other/Frontier | — |
+#### Third Imperium
+
+**Imperial Human**
+Mods: None
+What they are: Standard human from the Imperium. No special biology, just adaptable and everywhere. Background defines them.
+
+**Vargr (Imperial Raised)**
+Mods: DEX +1, END −1, STR −1
+What they are: Wolf-like humanoids. Social, driven by charisma and reputation. Imperial-raised ones channel pack instincts into careers and networks.
+
+**Aslan (Imperial Raised)**
+Mods: STR +2, DEX −2
+What they are: Large, lion-like humanoids. Honor and status matter deeply. In the Imperium, that drive shows up as ambition, contracts, and controlled aggression.
+
+**Bwap**
+Mods: STR −4, END −4
+What they are: Small, semi-aquatic reptilians. Physically weak but obsessive about order. The Imperium's best bureaucrats.
+
+**Jonkeereen**
+Mods: END +2
+What they are: Genetically engineered humans built for deserts. Need little water, survive harsh environments, tend toward independence.
+
+**Luriani**
+Mods: DEX +1, END +1, SOC −2
+What they are: Aquatic-adapted humans. Strong swimmers, emotionally expressive, very physical in how they communicate.
+
+**Sydite**
+Mods: STR +2, END +2, DEX −2, INT −3, EDU −3
+What they are: Large, four-armed humanoids built for labor and war. Slow thinkers, but extremely loyal and relentless once committed.
+
+**Akeed**
+Mods: INT +1, STR −2, END −2
+What they are: Small, soft-bodied aliens with tentacles. Physically weak but clever, social, and excellent negotiators.
+
+**Capry (Female)**
+Mods: DEX +2, INT +1, STR −3, END −2
+What they are: Small, feathered humanoids with prehensile tails. Skilled with tools. Their species is dying, so many live freely and without long-term ties.
+
+**Capry (Big Male)**
+Mods: END +1, STR −1
+What they are: Stronger, sturdier version of the Capry. Same culture, just built for physical work.
+
+**Capry (Small Male)**
+Mods: DEX +3, EDU +2, STR −4, END −3
+What they are: Smaller, fragile Capry with high intelligence. Thinkers, scientists, problem-solvers.
+
+**Droashav**
+Mods: STR +2, END +3, DEX −1, INT −1
+What they are: Six-limbed reptilian humanoids. Tough, practical survivors with possible lost spacefaring origins.
+
+**Faar**
+Mods: INT +1
+What they are: Short, dense humanoids from high-gravity worlds. Highly advanced, pleasure-loving at home, serious when off-world.
+
+**Caprisap (Alpine)**
+Mods: DEX +2, STR −2
+What they are: Agile, goat-like humanoids built for mountains. Sure-footed, curious, natural travelers. Can digest almost anything.
+
+**Caprisap (Boar)**
+Mods: DEX +1, STR −1
+What they are: Heavier, tougher goat-like humanoids. Same species as Alpine, more durable and common in settled space.
+
+#### Cetacean (any society)
+
+**Uplifted Dolphin**
+Mods: STR +4, END +2, SOC −4 · Start age 12 · Aging from term 2
+What they are: Fully intelligent dolphins. Live in water, think communally, explore for curiosity. Need gear to function on land. Cetacean-exclusive careers available; standard careers require Vacc Suit first.
+
+**Uplifted Orca**
+Mods: STR +8, END +4, SOC −4 · Start age 18 · Aging from term 4
+What they are: Massive, intelligent killer whales. Structured, hierarchical, and physically dominant. More comfortable with authority than dolphins.
+
+#### Solomani Confederation
+
+**Human (Solomani Confederation)**
+Mods: Determined by Heritage Roll (2D)
+What they are: Picking this triggers a 2D Heritage Roll that locks in your sub-type — Racial Solomani (6–12), Mixed Heritage (3–5), or Non-Solomani Human (2). Each sub-type has different social standing in the Confederation.
+
+**Racial Solomani**
+Mods: SOC +1 (applied at Heritage Roll resolution)
+What they are: Pure Solomani ancestry. Politically privileged. Party career is open; SOC DM applies as a bonus to all Confederation career qualifications.
+
+**Mixed Heritage Solomani**
+Mods: None
+What they are: Part Solomani, part something else. Not excluded, but carries DM−1 to advancement in Confederation careers and DM−3 to Party qualification.
+
+**Non-Solomani Human**
+Mods: None
+What they are: A human living under Solomani rule with no recognized ancestry. The underclass. Party career is closed entirely.
+
+#### Other Societies
+
+**Zhodani Human**
+Mods: INT +1, SOC +1
+What they are: Psychic humans from the Zhodani Consulate. PSI is a social tool, not a taboo. High social order built on honesty — enforced telepathically.
+
+**Aslan (Hierate)**
+Mods: STR +2, DEX −2
+What they are: Same biology as Imperial Aslan, different upbringing. Hierate Aslan follow clan law, honor duels, and territorial acquisition more rigidly.
+
+**Vargr (Extents)**
+Mods: STR −1, DEX +1, END −1
+What they are: Same biology as Imperial Vargr, pack politics even more extreme. Charisma is literally political power. Loyalty shifts fast.
+
+**Hiver Federation Human**
+Mods: INT +1, EDU +1
+What they are: Humans shaped by long contact with the Hivers. Indirect, diplomatic, comfortable with consensus-driven decisions and being nudged toward outcomes.
+
+**Two Thousand Worlds Human**
+Mods: END +1, SOC −1
+What they are: Humans living in or near K'kree space. Tough and resilient; the K'kree relationship is complicated — herbivores find carnivore humans deeply unsettling.
+
+**Sword Worlds Human**
+Mods: STR +1, END +1, SOC −1
+What they are: Frontier humans from a cluster of independent worlds, descended from Norse-influenced settlers. Proud, martial, suspicious of the Imperium.
+
+**Frontier Human**
+Mods: END +1, SOC −1
+What they are: Humans on the edge of known space or in independent systems. Self-reliant, varied, defined by where they came from rather than who rules them.
 
 ---
 
