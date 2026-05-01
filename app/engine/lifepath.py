@@ -4251,8 +4251,8 @@ def apply_injury(character: "Character") -> dict:
     set character.pending_injury_choice and return without modifying stats.
     Call resolve_injury_choice() once the player has decided.
 
-    Medical debt (Cr 5,000 per point lost) is calculated and added when
-    resolve_injury_choice() runs.
+    After resolve_injury_choice() the player must call resolve_injury_payment()
+    to either accept stat loss (pay=False) or pay medical debt (pay=True).
     """
     r = dice.roll("1D")
     result = _apply_injury_for_result(character, r.total)
@@ -5369,6 +5369,9 @@ def generate_npc() -> dict:
                 inj = _apply_injury_for_result(char, 5)  # result 5 = lose 1 physical
                 if char.pending_injury_choice:
                     resolve_injury_choice(char, char.pending_injury_choice["choices"][0])
+                # NPC always takes the stat loss (no medical debt negotiation)
+                if char.pending_injury_treatment_choice:
+                    resolve_injury_payment(char, pay=False)
             # End career via mishap
             char.age += 4
             char.total_terms += 1
