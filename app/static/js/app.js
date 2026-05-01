@@ -1132,9 +1132,13 @@ function renderBackgroundPhase() {
   const selected = uiState.selectedBgSkills;
 
   // Load skill list from bootstrap (we'll fetch lazily)
-  const bgSkills = ['Admin', 'Animals', 'Art', 'Athletics', 'Carouse', 'Drive', 'Electronics',
+  const baseBgSkills = ['Admin', 'Animals', 'Art', 'Athletics', 'Carouse', 'Drive', 'Electronics',
     'Flyer', 'Language', 'Mechanic', 'Medic', 'Profession', 'Science', 'Seafarer',
     'Streetwise', 'Survival', 'Vacc Suit'];
+  // Merge in any species-specific extra background skills (e.g. Caprisap → Astrogation)
+  const speciesDef = SPECIES.find(s => s.id === character.species_id);
+  const extraBgSkills = (speciesDef && speciesDef.extra_background_skills) || [];
+  const bgSkills = [...new Set([...baseBgSkills, ...extraBgSkills])].sort();
 
   const chips = bgSkills.map(skill => {
     const isSelected = selected.has(skill);
@@ -1155,6 +1159,7 @@ function renderBackgroundPhase() {
 
       <div class="phase-body">
         <p>Your <strong>Education DM</strong> is <strong>${formatDM(eduDm)}</strong>, so you get <strong>${allowed}</strong> background skill${allowed === 1 ? '' : 's'} at level 0. Think about where your Traveller grew up — an agri-world? An asteroid belt? A starport slum? Pick skills that tell that story.</p>
+        ${extraBgSkills.length ? `<p style="font-size:12px;color:var(--amber);margin-top:6px">★ <strong>${speciesDef.name}</strong> trait: ${extraBgSkills.join(', ')} added to the available list (Natural Starfarers).</p>` : ''}
       </div>
 
       <div class="skill-picker">${chips}</div>

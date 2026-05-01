@@ -1,0 +1,36 @@
+{
+  "id": "alpine_caprisap",
+  "name": "Caprisap — Alpine",
+  "description": "The Caprisap are a bipedal species of goat-like sophonts, stocky and sure-footed, with pronounced curved horns and a remarkable digestive system capable of breaking down almost any organic or metallic material. Alpine Caprisap are the lighter-framed, nimbler variant — typically found in mountainous or rugged terrain environments. All Caprisap share a deep cultural affinity for travel and the stars, making them natural spacers. Alpine Caprisap are more dextrous and fast-moving than their Boar cousins.",
+  "characteristic_modifiers": {
+    "STR": -2,
+    "DEX": 2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "traits": [
+    {
+      "name": "Headbutt",
+      "description": "Most Caprisap possess pronounced horns usable as bludgeoning weapons. These horns use the Melee (natural) skill and inflict 1D damage."
+    },
+    {
+      "name": "Heightened Taste",
+      "description": "Caprisap have an enhanced sense of taste. They receive DM+1 to any Survival checks they make."
+    },
+    {
+      "name": "Improved Digestion",
+      "description": "Caprisap can eat a wide range of substances, including most metals, with no ill effects, although this does not necessarily provide nutrition. They gain DM+4 for checks made to resist poison."
+    },
+    {
+      "name": "Natural Starfarers",
+      "description": "Caprisap have a cultural affinity for travelling the stars and may choose Astrogation 0 as one of their background skills."
+    }
+  ],
+  "extra_background_skills": ["Astrogation"],
+  "sort_order": 50,
+  "aliases": [],
+  "source": "Traveller supplement (Caprisap species)"
+}
