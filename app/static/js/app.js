@@ -74,6 +74,15 @@ function loadCharacter() {
   if (raw) {
     try {
       character = JSON.parse(raw);
+      // Restore species traits for saves that predate the traits field
+      // (or that lost them due to a serialisation round-trip edge case).
+      if ((!character.traits || !character.traits.length) && character.species_id) {
+        const sp = SPECIES.find(s => s.id === character.species_id);
+        if (sp && sp.traits && sp.traits.length) {
+          character.traits = sp.traits;
+          saveCharacter();  // persist the fix immediately
+        }
+      }
       return true;
     } catch (e) {
       console.warn('Corrupt saved character, starting fresh');
@@ -143,7 +152,26 @@ async function apiCall(endpoint, extraData = {}) {
 
 async function applyResponse(response) {
   if (response.character) {
-    character = response.character;
+    const incoming = response.character;
+    // Guard: traits can go missing when an old save (pre-traits field) is
+    // round-tripped through the API — the JSON omits the key, Pydantic uses
+    // the default [], and it propagates.  If the incoming character has no
+    // traits but we can look them up from the bootstrap SPECIES data, restore
+    // them now.  This never fires when apply_species deliberately sets new
+    // traits (those responses always carry non-empty traits).
+    if (!incoming.traits || !incoming.traits.length) {
+      const spId = incoming.species_id || (character && character.species_id);
+      if (spId) {
+        const sp = SPECIES.find(s => s.id === spId);
+        if (sp && sp.traits && sp.traits.length) {
+          incoming.traits = sp.traits;
+        } else if (character && character.traits && character.traits.length) {
+          // Fall back: keep whatever traits the current character already has.
+          incoming.traits = character.traits;
+        }
+      }
+    }
+    character = incoming;
     saveCharacter();
   }
   return response;
