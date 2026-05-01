@@ -1,27 +1,32 @@
-{
-  "id": "imperial_human",
-  "name": "Imperial Human",
-  "description": "The default sophont of Charted Space. Over 300,000 years ago the Ancients scattered Earth-stock humans across thousands of worlds; their descendants diverged into the Solomani (Earth-born), the Vilani (older, ritualized, once rulers of the First Imperium), the Zhodani (telepathic, raised in a psionic meritocracy), and dozens of smaller branches. The 'Imperial Human' you play is almost certainly a cosmopolitan blend — raised on an Imperial world, schooled in Galanglic, shaped by trade, bureaucracy, and the sprawling, messy plurality of the Third Imperium. You carry no inherent modifiers and no exotic traits; you are the baseline against which every other species is measured. That's a feature, not a weakness: humans fit in anywhere, train for anything, and turn up in every career. Your flavor comes from your homeworld UWP, your background skills, and the careers you rolled.",
-  "characteristic_modifiers": {
-    "STR": 0,
-    "DEX": 0,
-    "END": 0,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": 0
-  },
-  "characteristic_maximum": 15,
-  "traits": [
-    {
-      "name": "Adaptable Baseline",
-      "description": "No exotic physiology, no biological specialisations. Humans can qualify for every career, wear every suit of armor off the rack, and eat most things that aren't actively trying to eat them back. Flavor only — no mechanical effect."
-    },
-    {
-      "name": "Cultural Variety",
-      "description": "Your specific human culture (Solomani, Vilani, Mixed-Imperial, Frontier, etc.) is set by your homeworld UWP and background. Feel free to flavor your character's manners, name, and accent accordingly — but by Core rules it grants no additional DMs."
-    }
-  ],
-  "sort_order": 10,
-  "aliases": ["human", "solomani", "vilani", "mixed_human"],
-  "source": "Traveller Core Rulebook, Mongoose Publishing"
+﻿{
+    "id":  "imperial_human",
+    "name":  "Imperial Human",
+    "description":  "Standard human from the Imperium. No special biology, just adaptable and everywhere. Background defines them.",
+    "characteristic_modifiers":  {
+                                     "STR":  0,
+                                     "DEX":  0,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "traits":  [
+                   {
+                       "name":  "Adaptable Baseline",
+                       "description":  "No exotic physiology, no biological specialisations. Humans can qualify for every career, wear every suit of armor off the rack, and eat most things that aren\u0027t actively trying to eat them back. Flavor only — no mechanical effect."
+                   },
+                   {
+                       "name":  "Cultural Variety",
+                       "description":  "Your specific human culture (Solomani, Vilani, Mixed-Imperial, Frontier, etc.) is set by your homeworld UWP and background. Feel free to flavor your character\u0027s manners, name, and accent accordingly — but by Core rules it grants no additional DMs."
+                   }
+               ],
+    "sort_order":  10,
+    "aliases":  [
+                    "human",
+                    "solomani",
+                    "vilani",
+                    "mixed_human"
+                ],
+    "source":  "Traveller Core Rulebook, Mongoose Publishing"
 }

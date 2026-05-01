@@ -1,36 +1,40 @@
-{
-  "id": "boar_caprisap",
-  "name": "Caprisap — Boar",
-  "description": "The Caprisap are a bipedal species of goat-like sophonts, stocky and sure-footed, with pronounced curved horns and a remarkable digestive system capable of breaking down almost any organic or metallic material. Boar Caprisap are the heavier, more robust variant — broader in build and more physically resilient than their Alpine cousins. They share the same cultural love of deep space travel and the same uncanny ability to ingest almost anything. The Boar variant is the more common of the two in settled Imperial space.",
-  "characteristic_modifiers": {
-    "STR": -1,
-    "DEX": 1,
-    "END": 0,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": 0
-  },
-  "characteristic_maximum": 15,
-  "traits": [
-    {
-      "name": "Headbutt",
-      "description": "Most Caprisap possess pronounced horns usable as bludgeoning weapons. These horns use the Melee (natural) skill and inflict 1D damage."
-    },
-    {
-      "name": "Heightened Taste",
-      "description": "Caprisap have an enhanced sense of taste. They receive DM+1 to any Survival checks they make."
-    },
-    {
-      "name": "Improved Digestion",
-      "description": "Caprisap can eat a wide range of substances, including most metals, with no ill effects, although this does not necessarily provide nutrition. They gain DM+4 for checks made to resist poison."
-    },
-    {
-      "name": "Natural Starfarers",
-      "description": "Caprisap have a cultural affinity for travelling the stars and may choose Astrogation 0 as one of their background skills."
-    }
-  ],
-  "extra_background_skills": ["Astrogation"],
-  "sort_order": 51,
-  "aliases": [],
-  "source": "Traveller supplement (Caprisap species)"
+﻿{
+    "id":  "boar_caprisap",
+    "name":  "Caprisap — Boar",
+    "description":  "Heavier, tougher goat-like humanoids. Same species as Alpine, more durable and common in settled space.",
+    "characteristic_modifiers":  {
+                                     "STR":  -1,
+                                     "DEX":  1,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "traits":  [
+                   {
+                       "name":  "Headbutt",
+                       "description":  "Most Caprisap possess pronounced horns usable as bludgeoning weapons. These horns use the Melee (natural) skill and inflict 1D damage."
+                   },
+                   {
+                       "name":  "Heightened Taste",
+                       "description":  "Caprisap have an enhanced sense of taste. They receive DM+1 to any Survival checks they make."
+                   },
+                   {
+                       "name":  "Improved Digestion",
+                       "description":  "Caprisap can eat a wide range of substances, including most metals, with no ill effects, although this does not necessarily provide nutrition. They gain DM+4 for checks made to resist poison."
+                   },
+                   {
+                       "name":  "Natural Starfarers",
+                       "description":  "Caprisap have a cultural affinity for travelling the stars and may choose Astrogation 0 as one of their background skills."
+                   }
+               ],
+    "extra_background_skills":  [
+                                    "Astrogation"
+                                ],
+    "sort_order":  51,
+    "aliases":  [
+
+                ],
+    "source":  "Traveller supplement (Caprisap species)"
 }

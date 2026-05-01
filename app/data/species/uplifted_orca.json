@@ -1,52 +1,68 @@
-{
-  "id": "uplifted_orca",
-  "name": "Uplifted Orca",
-  "description": "Orca are the largest of the uplifted cetaceans, massive apex predators whose intelligence rivals humanity. They organise into matriarchal pods and clans with a strict social hierarchy and a complex spiritual tradition known as 'the Way', guided by Spirit Singers. Orca understand and use titles and respect authority, making them more comfortable in hierarchical structures than Dolphins. They require a travel suit and waldo to operate in dry or space environments. Orca mature at roughly the same pace as humans (starting age 18) but their great physical resilience means aging does not begin until after their fourth term (age 32). DM-2 when qualifying for university; DM+1 for Military Academy.",
-  "characteristic_modifiers": {
-    "STR": 8,
-    "DEX": 0,
-    "END": 4,
-    "INT": 0,
-    "EDU": 0,
-    "SOC": -4
-  },
-  "characteristic_maximum": 15,
-  "traits": [
-    {
-      "name": "Big and Tough",
-      "description": "Orca are much larger than humans and can soak up a lot more damage. Whenever an Orca is subject to an effect that reduces END, whether through physical damage or exertion, END reduction is halved (dropping fractions). END is also treated as doubled for the purposes of determining the duration (but not effectiveness) of physical activity. Due to their size, Orca take up 12 times as much room on spacecraft as humans."
-    },
-    {
-      "name": "Cold Resistance",
-      "description": "Orca possess a thick covering of blubber that keeps them warm, providing DM+4 to all checks made to resist the effects of low temperatures."
-    },
-    {
-      "name": "Deep Diver (260m)",
-      "description": "Orca can dive deep underwater to a depth of 260 metres without risk and can hold their breath for up to 15 minutes."
-    },
-    {
-      "name": "Echolocation (100m)",
-      "description": "Orca use a highly sensitive echolocation sense to navigate their environment, effectively allowing them to 'see' underwater or in complete darkness to a range of 100 metres."
-    },
-    {
-      "name": "Succour Syndrome",
-      "description": "When Orca hear the distress calls of other Orca they risk suffering from succour syndrome. If they fail a Very Difficult (12+) Gun Combat or Melee check (1D seconds, INT) both their INT and EDU temporarily drop to zero and they must immediately swim as fast as possible to the side of the distressed cetacean."
-    },
-    {
-      "name": "Swimmer (16m)",
-      "description": "Orca are superb swimmers and can move through water at a speed of 16 metres."
-    }
-  ],
-  "starting_age": 18,
-  "aging_starts_term": 4,
-  "blocked_careers": ["merchant", "noble", "drifter"],
-  "allowed_species_careers": ["dolphin_civilian", "dolphin_military", "philosopher_elder", "spirit_singer"],
-  "forbidden_skills": ["Broker", "Gambler"],
-  "career_qualify_dms": {},
-  "university_dm": -2,
-  "military_academy_dm": 1,
-  "vacc_suit_required_for_core_careers": true,
-  "sort_order": 41,
-  "aliases": [],
-  "source": "Traveller Aliens of Charted Space Volume 5, Mongoose Publishing"
+﻿{
+    "id":  "uplifted_orca",
+    "name":  "Uplifted Orca",
+    "description":  "Massive, intelligent killer whales. Structured, hierarchical, and physically dominant. More comfortable with authority than dolphins.",
+    "characteristic_modifiers":  {
+                                     "STR":  8,
+                                     "DEX":  0,
+                                     "END":  4,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  -4
+                                 },
+    "characteristic_maximum":  15,
+    "traits":  [
+                   {
+                       "name":  "Big and Tough",
+                       "description":  "Orca are much larger than humans and can soak up a lot more damage. Whenever an Orca is subject to an effect that reduces END, whether through physical damage or exertion, END reduction is halved (dropping fractions). END is also treated as doubled for the purposes of determining the duration (but not effectiveness) of physical activity. Due to their size, Orca take up 12 times as much room on spacecraft as humans."
+                   },
+                   {
+                       "name":  "Cold Resistance",
+                       "description":  "Orca possess a thick covering of blubber that keeps them warm, providing DM+4 to all checks made to resist the effects of low temperatures."
+                   },
+                   {
+                       "name":  "Deep Diver (260m)",
+                       "description":  "Orca can dive deep underwater to a depth of 260 metres without risk and can hold their breath for up to 15 minutes."
+                   },
+                   {
+                       "name":  "Echolocation (100m)",
+                       "description":  "Orca use a highly sensitive echolocation sense to navigate their environment, effectively allowing them to \u0027see\u0027 underwater or in complete darkness to a range of 100 metres."
+                   },
+                   {
+                       "name":  "Succour Syndrome",
+                       "description":  "When Orca hear the distress calls of other Orca they risk suffering from succour syndrome. If they fail a Very Difficult (12+) Gun Combat or Melee check (1D seconds, INT) both their INT and EDU temporarily drop to zero and they must immediately swim as fast as possible to the side of the distressed cetacean."
+                   },
+                   {
+                       "name":  "Swimmer (16m)",
+                       "description":  "Orca are superb swimmers and can move through water at a speed of 16 metres."
+                   }
+               ],
+    "starting_age":  18,
+    "aging_starts_term":  4,
+    "blocked_careers":  [
+                            "merchant",
+                            "noble",
+                            "drifter"
+                        ],
+    "allowed_species_careers":  [
+                                    "dolphin_civilian",
+                                    "dolphin_military",
+                                    "philosopher_elder",
+                                    "spirit_singer"
+                                ],
+    "forbidden_skills":  [
+                             "Broker",
+                             "Gambler"
+                         ],
+    "career_qualify_dms":  {
+
+                           },
+    "university_dm":  -2,
+    "military_academy_dm":  1,
+    "vacc_suit_required_for_core_careers":  true,
+    "sort_order":  41,
+    "aliases":  [
+
+                ],
+    "source":  "Traveller Aliens of Charted Space Volume 5, Mongoose Publishing"
 }
