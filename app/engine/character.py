@@ -170,6 +170,8 @@ class Character(BaseModel):
     auto_entry_career_id: Optional[str] = None
 
     # Anagathics (MG2e RAW: SOC 10+ at start of each term ≥ 4)
+    # Player's one-time interest setting: None=not yet asked, "yes"=show per-term prompt, "no"=never prompt
+    anagathics_interest: Optional[str] = None
     anagathics_active: bool = False          # currently using anagathics
     anagathics_terms_used: int = 0           # terms already on anagathics (for positive aging DM)
     anagathics_pending_cost: int = 0         # Cr cost for this term (1D×25000), paid at end

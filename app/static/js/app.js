@@ -2185,10 +2185,19 @@ function renderCareerPhase() {
     return renderDraftResult();
   }
 
+  // Anagathics interest: one-time setup screen shown before the very first career selection.
+  // Old saved characters (total_terms > 0) get 'yes' silently so they keep the per-term prompt.
+  const anaInterest = character.anagathics_interest;
+  const firstCareerEntry = !term && !uiState.pendingNextTermAction;
+  if (firstCareerEntry && (anaInterest === null || anaInterest === undefined) && character.total_terms === 0) {
+    return renderAnagathicsIntroScreen();
+  }
+
   // Anagathics intercept: fires BEFORE every career selection — first career (after pre-career)
   // and every term thereafter. When continuing the same career, end_term (leaving=false) does NOT
   // clear current_term, so pendingNextTermAction being set is the signal we're in that state.
-  if (!uiState.anagathicsPhaseDone && (!term || uiState.pendingNextTermAction)) {
+  // Skip the per-term prompt if player opted out.
+  if (anaInterest !== 'no' && !uiState.anagathicsPhaseDone && (!term || uiState.pendingNextTermAction)) {
     return renderAnagathicsPrompt();
   }
 
@@ -3294,6 +3303,30 @@ function wireCareerPhase() {
     });
   }
 
+  // ── Anagathics one-time intro screen ─────────────────────────────────
+  const btnAnaIntroYes = document.getElementById('btn-ana-intro-yes');
+  if (btnAnaIntroYes) {
+    btnAnaIntroYes.addEventListener('click', async () => {
+      try {
+        const resp = await apiCall('/api/character/anagathics/interest', { interest: 'yes' });
+        await applyResponse(resp);
+        renderAll();  // will now show the per-term anagathics prompt
+      } catch (e) { alert(e.message); }
+    });
+  }
+
+  const btnAnaIntroNo = document.getElementById('btn-ana-intro-no');
+  if (btnAnaIntroNo) {
+    btnAnaIntroNo.addEventListener('click', async () => {
+      try {
+        const resp = await apiCall('/api/character/anagathics/interest', { interest: 'no' });
+        await applyResponse(resp);
+        uiState.anagathicsPhaseDone = true;
+        renderAll();  // will skip anagathics and show career picker
+      } catch (e) { alert(e.message); }
+    });
+  }
+
   // ── Anagathics prompt (start-of-term, RAW) ───────────────────────────
   const btnAnagathicsAttempt = document.getElementById('btn-anagathics-attempt');
   if (btnAnagathicsAttempt) {
@@ -3959,6 +3992,41 @@ function renderSkillChoice() {
       ${commRollHTML}
       <div class="phase-actions" style="flex-direction:column;align-items:stretch;gap:8px">
         ${buttons}
+      </div>
+    </div>
+  `;
+}
+
+function renderAnagathicsIntroScreen() {
+  const soc = character.characteristics?.SOC ?? 0;
+  const dm = charDM(soc);
+  return `
+    <div class="stage-content">
+      <div class="phase-label">Anagathics · One-Time Setup</div>
+      <h2 class="phase-title">Interested in Anagathics?</h2>
+      <p class="phase-body">
+        Anagathic drugs halt aging — but they're expensive, risky, and hard to obtain.
+        Each term you can roll <strong>SOC 10+</strong> to secure a supply.
+      </p>
+      <ul class="phase-body" style="margin:8px 0 12px 1.2em;color:var(--text-dim);font-size:13px">
+        <li>✓ <strong>Success:</strong> Aging roll gets +terms DM (effectively halts aging).</li>
+        <li>✗ <strong>Fail:</strong> No supply — normal aging applies this term.</li>
+        <li>⚠ <strong>Natural 2:</strong> Must take Prisoner career immediately.</li>
+        <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either = Mishap.</li>
+        <li>💰 <strong>Cost:</strong> 1D × Cr25,000 per term (medical debt if broke).</li>
+        <li>🔒 <strong>Aging lock:</strong> Your effective age locks the moment you start — the earlier you begin, the bigger the eventual bonus.</li>
+      </ul>
+      <p class="phase-body">Your SOC is <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
+      <p class="phase-body" style="color:var(--text-dim);font-size:12px">
+        This choice is saved but can be changed by restarting your character.
+      </p>
+      <div class="phase-actions" style="flex-direction:column;align-items:stretch;gap:10px;margin-top:16px">
+        <button class="btn primary" id="btn-ana-intro-yes">
+          SHOW ANAGATHICS PROMPT EACH TERM →
+        </button>
+        <button class="btn ghost" id="btn-ana-intro-no">
+          NOT INTERESTED — SKIP FOREVER
+        </button>
       </div>
     </div>
   `;

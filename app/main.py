@@ -641,6 +641,20 @@ async def api_muster_out(action: MusterOutAction):
         raise HTTPException(400, str(e))
 
 
+class AnagathicsInterestAction(CharacterAction):
+    interest: str  # "yes" | "no"
+
+
+@app.post("/api/character/anagathics/interest")
+async def api_anagathics_interest(action: AnagathicsInterestAction):
+    """Set the player's one-time anagathics preference: 'yes' (prompt each term) or 'no' (never prompt)."""
+    character = action.character.model_copy(deep=True)
+    if action.interest not in ("yes", "no"):
+        raise HTTPException(400, "interest must be 'yes' or 'no'")
+    character.anagathics_interest = action.interest
+    return {"character": character.model_dump()}
+
+
 @app.post("/api/character/anagathics/attempt")
 async def api_anagathics_attempt(action: CharacterAction):
     """Roll SOC 10+ to attempt to obtain anagathics at the start of a term."""
