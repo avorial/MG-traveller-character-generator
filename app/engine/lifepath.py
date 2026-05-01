@@ -4262,11 +4262,13 @@ def apply_injury(character: "Character") -> dict:
 
 
 def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
-    """Apply the player's injury stat choice.
+    """Player has picked which stat absorbs the hit.
 
-    Reduces chosen_stat by damage_to_chosen, then reduces the other
-    physical stats by auto_reduce_others each (for result 1).
-    Adds Cr 5,000 per point lost as medical debt.
+    Does NOT apply damage yet. Instead calculates what the stat loss would be
+    and what medical treatment would cost (after career coverage), then stores
+    the result in pending_injury_treatment_choice so the player can pick:
+      • Accept the injury  — stat goes down, no debt.
+      • Pay for treatment  — medical debt (career-reduced), stat stays intact.
     """
     pending = character.pending_injury_choice
     if not pending:
@@ -4279,66 +4281,120 @@ def resolve_injury_choice(character: "Character", chosen_stat: str) -> dict:
         )
 
     physical = ["STR", "DEX", "END"]
-    total_loss = 0
-    applied: list[str] = []
-
-    # Primary stat damage.
     amount = pending["damage_to_chosen"]
-    old = character.characteristics.get(chosen_stat)
-    new_val = max(0, old - amount)
-    character.characteristics.set(chosen_stat, new_val)
-    actual_loss = old - new_val
-    total_loss += actual_loss
-    applied.append(f"{chosen_stat} {old}→{new_val} (-{actual_loss})")
-
-    # Secondary auto-reduce (result 1 only: other two stats each lose 2).
     auto = pending.get("auto_reduce_others", 0)
+    others = [s for s in physical if s != chosen_stat]
+
+    # Calculate how many points would be lost (primary + secondaries).
+    primary_old = character.characteristics.get(chosen_stat)
+    primary_new = max(0, primary_old - amount)
+    primary_loss = primary_old - primary_new
+    total_loss = primary_loss
+
+    secondary_losses: list[dict] = []
     if auto > 0:
-        others = [s for s in physical if s != chosen_stat]
         for stat in others:
             old_v = character.characteristics.get(stat)
             new_v = max(0, old_v - auto)
-            character.characteristics.set(stat, new_v)
             loss = old_v - new_v
             total_loss += loss
-            applied.append(f"{stat} {old_v}→{new_v} (-{loss})")
+            secondary_losses.append({"stat": stat, "old": old_v, "new": new_v, "loss": loss})
 
-    # Medical debt: Cr 5,000 per point lost.
+    # Calculate treatment cost (Cr 5,000/point) with career coverage.
     gross_debt = total_loss * 5000
     medical_bills_info: dict | None = None
+    net_debt = 0
+    covered = 0
+    coverage_pct = 0
     if gross_debt > 0:
-        # Roll 2D + Rank to see how much the career covers.
         medical_bills_info = _medical_bills_roll(character, gross_debt)
         net_debt = medical_bills_info["remaining"]
         covered = medical_bills_info["covered"]
-        character.medical_debt += net_debt
-        applied.append(
-            f"Medical bills: Cr{gross_debt:,} gross "
-            f"(career covers {medical_bills_info['coverage_pct']}% = Cr{covered:,}; "
-            f"Cr{net_debt:,} owed)"
-        )
-        character.log(
-            f"Medical bills: Cr{gross_debt:,} gross — {medical_bills_info['category']} career "
-            f"covers {medical_bills_info['coverage_pct']}% (roll {medical_bills_info['total']}). "
-            f"Cr{net_debt:,} added (Cr{character.medical_debt:,} total owed)."
-        )
-    else:
-        net_debt = 0
+        coverage_pct = medical_bills_info["coverage_pct"]
 
-    character.log(
-        f"Injury resolved ({pending['title']}): {chosen_stat} chosen. "
-        + ", ".join(applied)
-    )
+    character.pending_injury_treatment_choice = {
+        "chosen_stat": chosen_stat,
+        "damage_to_chosen": amount,
+        "primary_old": primary_old,
+        "primary_new": primary_new,
+        "primary_loss": primary_loss,
+        "auto_reduce_others": auto,
+        "secondary_losses": secondary_losses,
+        "total_loss": total_loss,
+        "gross_debt": gross_debt,
+        "net_debt": net_debt,
+        "covered": covered,
+        "coverage_pct": coverage_pct,
+        "medical_bills_roll": medical_bills_info,
+        "title": pending.get("title", "Injury"),
+    }
     character.pending_injury_choice = None
 
     return {
+        "treatment_choice_pending": True,
         "chosen_stat": chosen_stat,
-        "applied": applied,
+        "primary_loss": primary_loss,
+        "secondary_losses": secondary_losses,
         "total_loss": total_loss,
         "gross_debt": gross_debt,
-        "medical_debt_added": net_debt,
-        "medical_debt_total": character.medical_debt,
+        "net_debt": net_debt,
+        "covered": covered,
+        "coverage_pct": coverage_pct,
         "medical_bills_roll": medical_bills_info,
+        "character": character.model_dump(),
+    }
+
+
+def resolve_injury_payment(character: "Character", pay: bool) -> dict:
+    """Apply the treatment choice.
+
+    pay=True  → add medical debt (net after career coverage); stats stay intact.
+    pay=False → reduce stats as calculated; no debt added.
+    """
+    pending = character.pending_injury_treatment_choice
+    if not pending:
+        raise ValueError("No pending injury treatment choice to resolve.")
+
+    chosen_stat = pending["chosen_stat"]
+    applied: list[str] = []
+
+    if pay:
+        net_debt = pending["net_debt"]
+        covered = pending["covered"]
+        gross_debt = pending["gross_debt"]
+        coverage_pct = pending["coverage_pct"]
+        character.medical_debt += net_debt
+        applied.append(
+            f"Treatment paid: Cr{gross_debt:,} gross; career covers "
+            f"{coverage_pct}% (Cr{covered:,}); Cr{net_debt:,} added to debt."
+        )
+        character.log(
+            f"Injury ({pending['title']}): paid for treatment — "
+            f"Cr{gross_debt:,} gross, Cr{covered:,} covered ({coverage_pct}%), "
+            f"Cr{net_debt:,} owed. {chosen_stat} unchanged."
+        )
+    else:
+        # Apply stat loss.
+        old = character.characteristics.get(chosen_stat)
+        new_val = max(0, old - pending["damage_to_chosen"])
+        character.characteristics.set(chosen_stat, new_val)
+        applied.append(f"{chosen_stat} {old}→{new_val} (-{old - new_val})")
+        for sec in pending.get("secondary_losses", []):
+            old_v = character.characteristics.get(sec["stat"])
+            new_v = max(0, old_v - pending["auto_reduce_others"])
+            character.characteristics.set(sec["stat"], new_v)
+            applied.append(f"{sec['stat']} {old_v}→{new_v} (-{old_v - new_v})")
+        character.log(
+            f"Injury ({pending['title']}): accepted stat loss — "
+            + ", ".join(applied) + ". No medical debt."
+        )
+
+    character.pending_injury_treatment_choice = None
+
+    return {
+        "pay": pay,
+        "applied": applied,
+        "medical_debt_total": character.medical_debt,
         "character": character.model_dump(),
     }
 

@@ -547,6 +547,78 @@ function escapeHTML(s) {
 }
 
 /**
+ * Render the treatment-choice screen (accept stat loss OR pay debt).
+ * Used in pre-career and career/mishap injury flows.
+ * btnPrefix distinguishes the button IDs so multiple phases can coexist.
+ */
+function renderInjuryTreatmentChoiceHTML(tc, btnPrefix) {
+  const gross = tc.gross_debt || 0;
+  const net = tc.net_debt || 0;
+  const covered = tc.covered || 0;
+  const pct = tc.coverage_pct || 0;
+  const stat = tc.chosen_stat;
+  const primaryLoss = tc.primary_loss || 0;
+  const secs = tc.secondary_losses || [];
+  const autoAmt = tc.auto_reduce_others || 0;
+
+  const lossLines = [`${stat}: ${tc.primary_old} → ${tc.primary_new} (−${primaryLoss})`];
+  secs.forEach(s => lossLines.push(`${s.stat}: ${s.old} → ${s.new} (−${s.loss})`));
+
+  const freeCover = gross > 0 && net === 0;
+
+  return `
+    <div class="event-box" style="margin-top:14px;border-color:var(--amber)">
+      <span class="event-label" style="color:var(--amber)">TREATMENT CHOICE — ${escapeHTML(tc.title || 'Injury')}</span>
+      <p style="margin:8px 0 4px">You took a hit. Choose one option:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="border:1px solid var(--border);border-radius:4px;padding:10px">
+          <strong>Accept Injury</strong>
+          <p style="font-size:12px;color:var(--text-dim);margin:4px 0">No cost. Permanent stat reduction:</p>
+          ${lossLines.map(l => `<div class="dm-chip" style="margin:2px 0">${escapeHTML(l)}</div>`).join('')}
+          <button class="btn ghost" style="width:100%;margin-top:8px" id="${btnPrefix}-take">TAKE THE INJURY</button>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:4px;padding:10px">
+          <strong>Pay for Treatment</strong>
+          <p style="font-size:12px;color:var(--text-dim);margin:4px 0">Stats stay intact.</p>
+          ${gross > 0 ? `
+            <div class="dm-chip" style="margin:2px 0">Gross: Cr${gross.toLocaleString()}</div>
+            <div class="dm-chip applied" style="margin:2px 0">Career covers ${pct}%: −Cr${covered.toLocaleString()}</div>
+            <div class="dm-chip ${net > 0 ? 'danger' : 'applied'}" style="margin:2px 0;${net > 0 ? 'border-color:var(--danger)' : ''}">
+              You owe: Cr${net.toLocaleString()}${freeCover ? ' (FREE — fully covered!)' : ''}
+            </div>` : '<div class="dm-chip applied">No cost</div>'}
+          <button class="btn primary" style="width:100%;margin-top:8px" id="${btnPrefix}-pay">
+            ${freeCover ? 'ACCEPT TREATMENT (FREE) →' : `PAY Cr${net.toLocaleString()} →`}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Wire injury treatment choice buttons. After clicking, calls /api/character/injury-payment
+ * and invokes onDone(response) to let the caller continue the phase.
+ */
+async function wireInjuryTreatmentButtons(btnPrefix, onDone) {
+  const takeBtn = document.getElementById(`${btnPrefix}-take`);
+  const payBtn  = document.getElementById(`${btnPrefix}-pay`);
+  if (takeBtn) takeBtn.addEventListener('click', async () => {
+    try {
+      const resp = await apiCall('/api/character/injury-payment', { pay: false });
+      await applyResponse(resp);
+      onDone(resp, false);
+    } catch (e) { alert(e.message); }
+  });
+  if (payBtn) payBtn.addEventListener('click', async () => {
+    try {
+      const resp = await apiCall('/api/character/injury-payment', { pay: true });
+      await applyResponse(resp);
+      onDone(resp, true);
+    } catch (e) { alert(e.message); }
+  });
+}
+
+/**
  * Build a human-readable medical bills alert string from an injury-choice response.
  * Returns an empty string if no debt was incurred.
  */
@@ -1142,13 +1214,18 @@ function wireSpeciesPhase() {
   }
 
   document.querySelectorAll('[data-species]').forEach(card => {
-    // Single click → highlight + preview traits panel
+    // Single click → highlight + preview traits panel.
+    // We debounce the re-render (150ms) so that a double-click can cancel it
+    // before it strips the old event listeners from the DOM.
+    let clickTimer = null;
     card.addEventListener('click', () => {
       uiState.selectedSpecies = card.dataset.species;
-      renderStage();
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => renderStage(), 180);
     });
-    // Double click → select and immediately apply (skip the confirm button)
+    // Double click → cancel pending single-click render, apply immediately
     card.addEventListener('dblclick', async () => {
+      clearTimeout(clickTimer);
       uiState.selectedSpecies = card.dataset.species;
       await applySelectedSpecies();
     });
@@ -1399,7 +1476,7 @@ function renderPreCareerPhase() {
       <button class="card" id="btn-injury-stat-${stat}">
         <div class="card-title">${stat} — ${statDescriptions[stat] || stat}</div>
         <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
-        <div class="card-desc">Reduce by ${dmgAmount}${autoOthers ? ` (other two: each -${autoOthers})` : ''}. Medical debt: Cr${(dmgAmount * 5000).toLocaleString()} + ${autoOthers ? `Cr${(autoOthers * 2 * 5000).toLocaleString()} others` : 'none'}.</div>
+        <div class="card-desc">Damage: −${dmgAmount}${autoOthers ? ` to ${stat}, −${autoOthers} to other two` : ''}. Next you choose: accept stat loss (free) OR pay medical debt to keep your stats intact.</div>
       </button>
     `).join('');
 
@@ -1409,8 +1486,27 @@ function renderPreCareerPhase() {
         <div class="phase-label">Injury — ${title}</div>
         <h2 class="phase-title">${title}</h2>
         <p class="phase-body">${prompt}</p>
-        <p class="phase-body" style="color:var(--amber-dim);font-size:11px">Medical care costs Cr 5,000 per point lost. This will be recorded as debt and deducted from mustering-out cash.</p>
+        <p class="phase-body" style="color:var(--amber-dim);font-size:11px">Pick which stat absorbs the hit. You'll then choose: accept permanent stat loss (no cost) OR pay medical debt to keep stats intact.</p>
         <div class="card-grid">${cards}</div>
+      </div>
+    `;
+  }
+
+  // Treatment choice — shown after the player picks which stat is hit, before damage is applied
+  if (uiState.lastRoll?.type === 'precareer_injury_treatment') {
+    const tc = character.pending_injury_treatment_choice;
+    if (!tc) {
+      // Treatment already resolved or stale state — skip ahead
+      uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_graduate' };
+      renderStage();
+      return '';
+    }
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Injury — Treatment Decision</div>
+        <h2 class="phase-title">How Will You Handle This?</h2>
+        ${renderInjuryTreatmentChoiceHTML(tc, 'precareer-treatment')}
       </div>
     `;
   }
@@ -1940,15 +2036,19 @@ function wirePreCareerPhase() {
     renderStage();
   });
 
-  // Injury stat buttons
+  // Injury stat buttons (pre-career)
   ['STR', 'DEX', 'END'].forEach(stat => {
     const btn = document.getElementById(`btn-injury-stat-${stat}`);
     if (btn) btn.addEventListener('click', async () => {
       try {
         const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
         await applyResponse(response);
-        const billsMsg = formatMedicalBillsMsg(response);
-        if (billsMsg) alert(billsMsg);
+        if (response.treatment_choice_pending) {
+          // Show treatment choice screen before finalizing
+          uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_injury_treatment' };
+          renderStage();
+          return;
+        }
         // After injury, check if life event choice is still pending
         const lr = uiState.lastRoll;
         if (character.pending_life_event_choice) {
@@ -1962,6 +2062,20 @@ function wirePreCareerPhase() {
         renderStage();
       } catch (e) { alert(e.message); }
     });
+  });
+
+  // Pre-career injury treatment buttons (accept loss OR pay debt)
+  wireInjuryTreatmentButtons('precareer-treatment', (resp, paid) => {
+    const lr = uiState.lastRoll;
+    if (character.pending_life_event_choice) {
+      uiState.lastRoll = { ...lr, type: 'precareer_graduate', pending_injury: false };
+    } else {
+      const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+      uiState.lastRoll = hasPicks
+        ? { ...lr, type: 'precareer_skill_pick' }
+        : { ...lr, type: 'precareer_graduate', pending_injury: false };
+    }
+    renderStage();
   });
 
   // Life event choice: navigate to choice screen
@@ -2185,11 +2299,11 @@ function renderCareerPhase() {
     return renderDraftResult();
   }
 
-  // Anagathics interest: one-time setup screen shown before the very first career selection.
-  // Old saved characters (total_terms > 0) get 'yes' silently so they keep the per-term prompt.
+  // Anagathics interest: one-time setup screen. Shown whenever the player reaches career selection
+  // without having set a preference yet (null/undefined). Guard is anagathicsPhaseDone only — we
+  // intentionally show this regardless of whether it's first career entry or a mid-career selection.
   const anaInterest = character.anagathics_interest;
-  const firstCareerEntry = !term && !uiState.pendingNextTermAction;
-  if (firstCareerEntry && (anaInterest === null || anaInterest === undefined) && character.total_terms === 0) {
+  if ((anaInterest === null || anaInterest === undefined) && !uiState.anagathicsPhaseDone) {
     return renderAnagathicsIntroScreen();
   }
 
@@ -3479,19 +3593,29 @@ function wireCareerPhase() {
     });
   }
 
-  // Injury stat choice buttons (career phase)
+  // Injury stat choice buttons (career/mishap phase)
   ['STR', 'DEX', 'END'].forEach(stat => {
     const btn = document.getElementById(`btn-career-injury-stat-${stat}`);
     if (btn) btn.addEventListener('click', async () => {
       try {
         const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
         await applyResponse(response);
-        const billsMsg = formatMedicalBillsMsg(response);
-        if (billsMsg) alert(billsMsg);
+        if (response.treatment_choice_pending) {
+          // Show treatment choice screen before finalizing
+          uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false, treatmentPending: true };
+          renderAll();
+          return;
+        }
         uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false };
         renderAll();
       } catch (e) { alert(e.message); }
     });
+  });
+
+  // Career/mishap injury treatment buttons (accept loss OR pay debt)
+  wireInjuryTreatmentButtons('career-treatment', (_resp, _paid) => {
+    uiState.lastRoll = { ...uiState.lastRoll, treatmentPending: false };
+    renderAll();
   });
 }
 
@@ -5452,15 +5576,22 @@ function renderMishapStep() {
         <button class="card" id="btn-career-injury-stat-${stat}">
           <div class="card-title">${stat} — ${statDescs[stat] || stat}</div>
           <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
-          <div class="card-desc">Reduce by ${inj.damage_to_chosen}${inj.auto_reduce_others ? ` (others: -${inj.auto_reduce_others} each)` : ''}. Gross debt: Cr${((inj.damage_to_chosen || 0) * 5000).toLocaleString()} (career may cover a portion).</div>
+          <div class="card-desc">Damage: −${inj.damage_to_chosen}${inj.auto_reduce_others ? ` to ${stat}, −${inj.auto_reduce_others} to other two` : ''}. Then choose: accept stat loss (free) OR pay medical debt to keep stats.</div>
         </button>`).join('');
       injPickerHtml = `
         <p class="phase-body" style="margin-top:14px"><strong>${escapeHTML(inj.prompt || 'Choose which stat takes the damage.')}${injTableRoll}</strong></p>
-        <p style="font-size:11px;color:var(--amber-dim)">Cr 5,000 per point lost — a 2D+Rank roll determines how much your career covers.</p>
+        <p style="font-size:11px;color:var(--amber-dim)">Pick which stat absorbs the hit. You'll then choose: accept permanent stat loss (free) OR pay medical debt to keep stats intact.</p>
         <div class="card-grid">${cards}</div>`;
     }
 
-    const canEnd = !pending && !injPending;
+    // Treatment choice (after stat was chosen, before damage applied)
+    const injTreatmentPending = lr.treatmentPending || !!character.pending_injury_treatment_choice;
+    let injTreatmentHtml = '';
+    if (injTreatmentPending && character.pending_injury_treatment_choice) {
+      injTreatmentHtml = renderInjuryTreatmentChoiceHTML(character.pending_injury_treatment_choice, 'career-treatment');
+    }
+
+    const canEnd = !pending && !injPending && !injTreatmentPending;
 
     return `
       <div class="stage-content">
@@ -5479,6 +5610,7 @@ function renderMishapStep() {
         ${pendingHtml}
         ${skillCheckHtml}
         ${injPickerHtml}
+        ${injTreatmentHtml}
         ${canEnd ? anagathicsBoxHTML('btn-mishap-buy-anagathics') : ''}
         <div class="phase-actions" style="margin-top:16px">
           ${canEnd ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}

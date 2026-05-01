@@ -143,6 +143,15 @@ class Character(BaseModel):
     #         "auto_reduce_others": int, "choices": [str], "prompt": str}
     pending_injury_choice: Optional[dict] = None
 
+    # Pending treatment choice. Set by resolve_injury_choice after the player
+    # picks which stat is hit but before the damage is actually applied.
+    # Player then chooses: accept the stat loss (no cost) OR pay for treatment
+    # (medical debt, stat stays intact). Shape:
+    # {"chosen_stat": str, "damage_to_chosen": int, "auto_reduce_others": int,
+    #  "others": [str], "gross_debt": int, "net_debt": int, "covered": int,
+    #  "coverage_pct": int, "medical_bills_roll": dict, "title": str}
+    pending_injury_treatment_choice: Optional[dict] = None
+
     # Pending interactive choice from a career mishap roll. Cleared once
     # the player resolves it via /api/character/career-mishap-choice.
     # Shape varies by type: "injury_severity_choice", "stat_choice",

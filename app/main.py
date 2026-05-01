@@ -423,10 +423,25 @@ async def api_life_event_choice(action: LifeEventChoiceAction):
 
 @app.post("/api/character/injury-choice")
 async def api_injury_choice(action: InjuryChoiceAction):
-    """Resolve a pending injury stat choice (which characteristic absorbs damage)."""
+    """Resolve a pending injury stat choice (which characteristic absorbs damage).
+    Returns treatment_choice_pending=True; player then calls /injury-payment."""
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.resolve_injury_choice(character, action.chosen_stat)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+class InjuryPaymentAction(CharacterAction):
+    pay: bool  # True = pay medical debt (stat stays); False = take stat loss (no debt)
+
+
+@app.post("/api/character/injury-payment")
+async def api_injury_payment(action: InjuryPaymentAction):
+    """Apply the treatment decision after injury-choice: pay=True keeps stats, pay=False takes loss."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_injury_payment(character, action.pay)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
