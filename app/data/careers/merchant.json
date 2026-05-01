@@ -128,5 +128,6 @@
     "6": {"cash": 40000, "benefit": "Free Trader"},
     "7": {"cash": 60000, "benefit": "SOC +2"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_species": ["dolphin", "uplifted_orca"]
 }

@@ -150,5 +150,6 @@
     "7": {"cash": 200000, "benefit": "SOC +1 and Yacht"}
   },
   "complete": true,
-  "blocked_societies": ["solomani_confederation"]
+  "blocked_societies": ["solomani_confederation"],
+  "blocked_species": ["dolphin", "uplifted_orca"]
 }

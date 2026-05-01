@@ -2162,6 +2162,13 @@ function renderChooseCareer() {
   const forcedId = character.forced_next_career_id || null;
   const banned = new Set(character.banned_career_ids || []);
   const soc = character.society_id || 'third_imperium';
+  const speciesId = character.species_id || null;
+  const speciesDef = SPECIES.find(s => s.id === speciesId) || null;
+  const isCetacean = speciesId === 'dolphin' || speciesId === 'uplifted_orca';
+  // Does this character have Vacc Suit skill at any level?
+  const hasVaccSuit = (character.skills || []).some(s => (s.name || '').toLowerCase() === 'vacc suit' && s.level >= 1);
+  const cetaceanBlockedCareers = new Set((speciesDef && speciesDef.blocked_careers) || []);
+
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
@@ -2170,6 +2177,16 @@ function renderChooseCareer() {
         if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
         if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
+        // "allowed_species" = species whitelist: only show for these species
+        if (c.allowed_species && c.allowed_species.length > 0) {
+          if (!speciesId || !c.allowed_species.includes(speciesId)) return false;
+        }
+        // "blocked_species" = species blacklist: hide for these species
+        if (c.blocked_species && c.blocked_species.includes(speciesId)) return false;
+        // Cetacean species: block careers flagged in their species JSON
+        if (isCetacean && cetaceanBlockedCareers.has(c.id)) return false;
+        // Cetacean species: non-cetacean-specific careers require Vacc Suit first
+        if (isCetacean && (!c.allowed_species || c.allowed_species.length === 0) && !hasVaccSuit) return false;
         return true;
       });
   const forcedBanner = forcedId ? `
@@ -2179,6 +2196,11 @@ function renderChooseCareer() {
   const bannedBanner = banned.size && !forcedId ? `
     <p class="phase-body" style="color:var(--amber-dim);font-size:11px">
       Banned from re-entry: ${[...banned].map(id => id.toUpperCase()).join(', ')}
+    </p>` : '';
+  const vaccLockBanner = isCetacean && !hasVaccSuit && !forcedId ? `
+    <p class="phase-body" style="color:var(--amber);font-size:11px">
+      🐬 Cetacean restriction: core careers are unavailable until you have the <strong>Vacc Suit</strong> skill.
+      Gain it through a cetacean career first, then core careers will unlock.
     </p>` : '';
 
   const cards = careerList.map(c => {
@@ -2210,6 +2232,7 @@ function renderChooseCareer() {
       <h2 class="phase-title">Choose a Career</h2>
       ${forcedBanner}
       ${bannedBanner}
+      ${vaccLockBanner}
       <p class="phase-subtitle">${character.total_terms === 0
         ? 'Your first career defines the first four years of your adult life.'
         : 'You survived. Another four years await — continue, or try something new.'}</p>
@@ -3607,10 +3630,13 @@ function renderAssignmentPicker(career) {
 
   // Cover career picker — only relevant for SolSec Secret Agent
   const COVER_CAREER_EXCLUDE = new Set(['solsec', 'party', 'drifter', 'prisoner']);
+  const _coverSpeciesId = character.species_id || null;
   const coverCareers = CAREERS.filter(c => {
     if (COVER_CAREER_EXCLUDE.has(c.id)) return false;
     if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
     if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
+    if (c.allowed_species && c.allowed_species.length > 0 && (!_coverSpeciesId || !c.allowed_species.includes(_coverSpeciesId))) return false;
+    if (c.blocked_species && c.blocked_species.includes(_coverSpeciesId)) return false;
     return true;
   });
 

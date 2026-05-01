@@ -616,6 +616,12 @@ def apply_species(character: Character, species_id: str) -> dict:
         applied[stat] = {"from": current, "to": new_val, "delta": delta}
 
     character.traits = species_data.get("traits", [])
+
+    # Apply species-specific starting age if defined (e.g. Dolphins start at 12)
+    starting_age = species_data.get("starting_age")
+    if starting_age is not None:
+        character.age = int(starting_age)
+
     if applied:
         mods_str = ", ".join(f"{k} {v['delta']:+d}" for k, v in applied.items())
         character.log(f"Applied species: {species_data['name']} ({mods_str})")
@@ -1157,6 +1163,17 @@ def pre_career_qualify(
             dm += mod["dm"] * character.total_terms
         elif mod.get("type") == "per_previous_career":
             dm += mod["dm"] * len(character.completed_careers)
+
+    # Apply species-specific pre-career DMs (e.g. Dolphins DM-1 university, Orca DM-2 university)
+    _sp_data = rules.species().get(character.species_id or "", {})
+    if track == "university":
+        _sp_uni_dm = int(_sp_data.get("university_dm", 0))
+        if _sp_uni_dm:
+            dm += _sp_uni_dm
+    elif track == "military_academy":
+        _sp_mil_dm = int(_sp_data.get("military_academy_dm", 0))
+        if _sp_mil_dm:
+            dm += _sp_mil_dm
 
     r = dice.roll("2D", modifier=dm, target=target)
     passed = bool(r.succeeded)
@@ -2470,6 +2487,8 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     for mod in qual.get("modifiers", []):
         if mod["type"] == "per_previous_career":
             dm += mod["dm"] * len(character.completed_careers)
+        elif mod["type"] == "per_previous_term":
+            dm += mod["dm"] * character.total_terms
         elif mod["type"] == "age" and character.age >= mod.get("threshold", mod.get("age_threshold", 99)):
             dm += mod["dm"]
 
@@ -2491,6 +2510,12 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         dm += bonus_dm
     elif qual_dm_perm:
         dm += qual_dm_perm
+
+    # Species-specific career qualify DMs (e.g. Dolphins gain DM+1 for Scholar and Scout)
+    species_data = rules.species().get(character.species_id or "", {})
+    species_career_dms = species_data.get("career_qualify_dms", {})
+    if career_id in species_career_dms:
+        dm += int(species_career_dms[career_id])
 
     # Solomani species traits apply to all careers a Confederation character
     # can take — any career with a qualification roll except Drifter/Prisoner.
@@ -4205,7 +4230,10 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     aging_log = None
     anagathics_cost_paid = 0
     anagathics_debt = 0
-    if character.total_terms >= 4:
+    # Species may have a different aging threshold (e.g. Dolphins age from term 2, Orca from term 4)
+    _sp_aging_data = rules.species().get(character.species_id or "", {})
+    _aging_starts_term = int(_sp_aging_data.get("aging_starts_term", 4))
+    if character.total_terms >= _aging_starts_term:
         # ── Anagathics cost settlement (RAW: 1D×Cr25,000 per term) ────────
         if character.anagathics_active and character.anagathics_pending_cost > 0:
             cost = character.anagathics_pending_cost

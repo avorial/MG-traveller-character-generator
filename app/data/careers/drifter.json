@@ -129,5 +129,6 @@
     "6": {"cash": 3000, "benefit": "Ally"},
     "7": {"cash": 5000, "benefit": "Ship Share"}
   },
-  "complete": true
+  "complete": true,
+  "blocked_species": ["dolphin", "uplifted_orca"]
 }

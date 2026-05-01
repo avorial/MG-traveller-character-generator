@@ -1,0 +1,103 @@
+{
+  "id": "philosopher_elder",
+  "name": "Philosopher-Elder",
+  "description": "Uplifted Orca who lead their communities. Philosopher-Elders are charged with the welfare of their people and the preservation of Orca history and culture. This career grows more accessible the longer an Orca has served — experienced Orca gain DM+1 for each previous career term served.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 12,
+    "modifiers": [
+      {"description": "DM+1 for every previous career term", "type": "per_previous_term", "dm": 1}
+    ]
+  },
+  "allowed_species": ["uplifted_orca"],
+  "assignments": {
+    "philosopher_elder": {
+      "name": "Philosopher-Elder",
+      "description": "You are a leader in Orca communities, charged with the welfare of your people and their history.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "STR +1",
+      "5": "EDU +2",
+      "6": "Survival"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Athletics",
+      "3": "Melee (natural)",
+      "4": "Survival",
+      "5": "Carouse",
+      "6": "Recon"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Art",
+      "3": "Vacc Suit",
+      "4": "Leadership",
+      "5": "Navigation",
+      "6": "Science (history)"
+    },
+    "philosopher_elder": {
+      "name": "Philosopher-Elder",
+      "assignment_only": "philosopher_elder",
+      "1": "Science (history)",
+      "2": "Art",
+      "3": "Leader",
+      "4": "Advocate",
+      "5": "Persuade",
+      "6": "Diplomat"
+    }
+  },
+  "ranks": {
+    "philosopher_elder": {
+      "0": {"title": "Matriarch", "bonus": "SOC 6 or SOC +1"},
+      "1": {"title": null, "bonus": null},
+      "2": {"title": "Pod Matriarch", "bonus": "Leadership 1 and SOC 8 or SOC +1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": "Clan Matriarch", "bonus": "Science (politics) and SOC 10 or SOC +1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Community Matriarch", "bonus": "SOC 12 or SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "One of your friends becomes involved with a revolutionary political faction advocating Orca rights. You are caught up in the investigation and lose your job.",
+    "3": "A war or insurgency erupts on your world. Roll Gun Combat or Melee 8+; if you succeed you are automatically drafted into the Dolphin Military. If you fail your home is destroyed, forcing you into exile.",
+    "4": "A purist political party comes to power on your world making trouble for uplifted Orca and costing you your job. Lose SOC -1 and gain a purist political militant as an Enemy.",
+    "5": "An accident leaves you caught on land without a Travel Suit. You suffer serious dehydration and require lengthy hospitalisation. Lose END -2.",
+    "6": "You are accidentally trapped or shot by fishermen. Roll on the Injury table. In addition, also roll SOC 8+ or Advocate 8+; if successful you sue and instead of losing a Benefit roll you gain an extra roll on the Cash table during the settlement."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Rivalries between another race and Orca on your world's ocean resources lead to conflict. Do you choose violence or diplomacy? If you choose diplomacy roll Advocate or Diplomat 8+. Success means your faction was vindicated and you gain DM+2 on your next advancement roll; failure means a loss of one Benefit roll. If you chose violence roll Explosives, Gun Combat or Tactics 8+. Failure results in DM-2 on your next advancement roll and you must roll on the Injury table. Whichever path you choose, raise your Leadership or the skill you rolled on by +1.",
+    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of Orca. Gain a Contact in the research field and roll EDU 7+ to gain Science (cybernetics) 1.",
+    "5": "You have a chance to travel offworld and spend a long period of time in space. Increase your choice of either Athletics (dexterity), Electronics (comms) or Electronics (sensors) by +1 or gain Pilot 1.",
+    "6": "You rescue a high-status swimmer who was lost at sea. Roll STR 7+; if successful gain a SOC 10+ sophont as an Ally.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "Spend an extensive period living out of water among humans. Raise Vacc Suit or Diplomat by +1.",
+    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (natural) or Gun Combat 7+ to rescue them; if successful, gain one of them as an Ally. If you fail roll on the Injury table.",
+    "10": "You are asked to volunteer for a dangerous mission to rescue people in a sinking vessel or underwater city. Roll Survival or END 8+. If successful gain DM+2 on your next advancement roll and gain an extra Benefit roll. If you fail, roll on the Injury table.",
+    "11": "You discover a sunken vessel that contains valuable salvage. Gain one Benefit roll.",
+    "12": "Rise to a position of responsibility. Your next advancement roll automatically succeeds."
+  },
+  "mustering_out": {
+    "1": {"cash": 0, "benefit": "Contact"},
+    "2": {"cash": 500, "benefit": "Ally"},
+    "3": {"cash": 1000, "benefit": "Ally"},
+    "4": {"cash": 1000, "benefit": "Waldo"},
+    "5": {"cash": 1500, "benefit": "EDU +1"},
+    "6": {"cash": 2000, "benefit": "SOC +1"},
+    "7": {"cash": 4000, "benefit": "Travel Suit"}
+  },
+  "complete": true
+}

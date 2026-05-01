@@ -1,0 +1,154 @@
+{
+  "id": "dolphin_civilian",
+  "name": "Dolphin Civilian",
+  "description": "Uplifted Dolphins who engage in aquatic non-military careers. Liaison and Nomad are always open; Historian-poet requires EDU 8+. Nomad assignment also serves as the Drifter replacement for cetaceans — any Dolphin or Orca may automatically enlist as a Nomad.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true,
+    "modifiers": [
+      {"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}
+    ]
+  },
+  "allowed_species": ["dolphin", "uplifted_orca"],
+  "assignments": {
+    "liaison": {
+      "name": "Liaison",
+      "description": "You are acting as an intermediary between human and Dolphin cultures or as a guide to humans working underwater.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "nomad": {
+      "name": "Nomad",
+      "description": "You are living the 'barbarian' life of an ancestral feral Dolphin, eschewing most technology and interaction with other races. This assignment replaces Drifter for all cetaceans.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "STR", "target": 7}
+    },
+    "historian_poet": {
+      "name": "Historian-Poet",
+      "description": "You are a keeper of Dolphin history and a student of Dolphin philosophy. Requires EDU 8+ to enter this assignment.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "STR +1",
+      "5": "EDU +2",
+      "6": "Survival"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Athletics",
+      "3": "Melee (natural)",
+      "4": "Melee (natural)",
+      "5": "Carouse",
+      "6": "Recon"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Art",
+      "3": "Vacc Suit",
+      "4": "Leadership",
+      "5": "Navigation",
+      "6": "Science (history)"
+    },
+    "liaison": {
+      "name": "Liaison",
+      "assignment_only": "liaison",
+      "1": "Vacc Suit",
+      "2": "Vacc Suit",
+      "3": "Carouse",
+      "4": "Electronics",
+      "5": "Diplomat",
+      "6": "Persuade"
+    },
+    "nomad": {
+      "name": "Nomad",
+      "assignment_only": "nomad",
+      "1": "Athletics",
+      "2": "Melee (natural)",
+      "3": "Leadership",
+      "4": "Recon",
+      "5": "Stealth",
+      "6": "Survival"
+    },
+    "historian_poet": {
+      "name": "Historian-Poet",
+      "assignment_only": "historian_poet",
+      "1": "Science (history)",
+      "2": "Art",
+      "3": "Art",
+      "4": "Advocate",
+      "5": "Persuade",
+      "6": "Diplomat"
+    }
+  },
+  "ranks": {
+    "liaison": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": null},
+      "2": {"title": "Representative", "bonus": "Diplomat 1"},
+      "3": {"title": null, "bonus": "SOC +1"},
+      "4": {"title": "Ambassador", "bonus": "Vacc Suit 1"},
+      "5": {"title": null, "bonus": "SOC +1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "nomad": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": null},
+      "2": {"title": "Pod Leader", "bonus": "Leadership 1"},
+      "3": {"title": null, "bonus": "SOC 6 or SOC +1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Superpod Leader", "bonus": "SOC 8 or SOC +1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "historian_poet": {
+      "0": {"title": "Candidate", "bonus": "Art (performer) 1"},
+      "1": {"title": "Apprentice", "bonus": "Science (history) 1"},
+      "2": {"title": null, "bonus": "SOC 6 or SOC +1"},
+      "3": {"title": "Journeyman", "bonus": null},
+      "4": {"title": null, "bonus": "SOC 8 or SOC +1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Master", "bonus": "SOC 10 or SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "One of your friends becomes involved with a revolutionary political faction advocating Dolphin rights. You are caught up in the investigation and lose your job.",
+    "3": "A war or insurgency erupts on your world. Roll Gun Combat or Melee 8+; if you succeed you are automatically drafted into the Dolphin Military in your next term. If you fail your business or home is destroyed, forcing you into exile.",
+    "4": "A purist political party comes to power on your world making trouble for uplifted Dolphins and costing you your job. Lose SOC -1 and gain a purist political militant as an Enemy.",
+    "5": "An accident leaves you caught on land without a travel suit. You suffer serious dehydration and require lengthy hospitalisation. Lose END -2.",
+    "6": "You are accidentally trapped or shot by fishermen. Roll on the Injury table. In addition, roll SOC 8+ or Advocate 8+; if successful you sue and instead of losing a Benefit roll you gain an extra roll on the Cash table as a settlement."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Rivalries between another race and Dolphins over your world's ocean resources lead to conflict. Do you choose violence or diplomacy? If you choose diplomacy roll Advocate or Diplomat 8+. Success means your faction was vindicated and you gain DM+2 on your next advancement roll; failure means a loss of one Benefit roll. If you chose violence roll Explosives, Gun Combat or Tactics 8+. Failure results in DM-2 on your next advancement roll and you must roll on the Injury Table. Whichever path you chose, raise Leadership or the skill you rolled on by one level.",
+    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of other Dolphins. Gain a Contact in the research field and roll EDU 7+ to gain Science (cybernetics) 1.",
+    "5": "You have a chance to travel offworld on business and spend a long time in space. Increase your choice of either Athletics (dexterity), Electronics (comms) or Electronics (sensors) by 1 or gain Pilot 1.",
+    "6": "You rescue a high-status swimmer who was lost at sea. Roll STR 7+; if successful gain a SOC 10+ sophont as an Ally.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "Spend an extensive period living out of water among humans. Increase Vacc Suit or Diplomat by 1.",
+    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (natural) or Gun Combat 7+ to rescue them; if successful, gain one as an Ally; if you fail roll on the Injury table.",
+    "10": "You are asked to volunteer for a dangerous mission to rescue people in a sinking vessel or underwater city. Roll Survival or END 8+. If successful you are granted DM+2 on your next advancement roll and gain an extra Benefit roll. If you fail, roll on the Injury table.",
+    "11": "You discover a sunken vessel that contains valuable salvage. Gain one extra Benefit roll.",
+    "12": "You rise to a position of responsibility. Your next advancement roll automatically succeeds."
+  },
+  "mustering_out": {
+    "1": {"cash": 0, "benefit": "Contact"},
+    "2": {"cash": 500, "benefit": "Waldo"},
+    "3": {"cash": 1000, "benefit": "Ally"},
+    "4": {"cash": 1000, "benefit": "Walker Suit"},
+    "5": {"cash": 1500, "benefit": "EDU +1"},
+    "6": {"cash": 2000, "benefit": "SOC +1"},
+    "7": {"cash": 4000, "benefit": "Travel Suit"}
+  },
+  "complete": true
+}

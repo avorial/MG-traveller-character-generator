@@ -1,0 +1,102 @@
+{
+  "id": "spirit_singer",
+  "name": "Spirit Singer",
+  "description": "Uplifted Orca who oversee the spiritual health of their communities. Spirit Singers are religious leaders who guide Orca clans in the spiritual tradition known as 'the Way'. This career is open to any Orca who chooses to follow it — there is no qualification roll.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true,
+    "modifiers": []
+  },
+  "allowed_species": ["uplifted_orca"],
+  "assignments": {
+    "spirit_singer": {
+      "name": "Spirit Singer",
+      "description": "You are a religious leader among Orca who look to you for spiritual direction and guidance.",
+      "survival": {"characteristic": "SOC", "target": 3},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "SOC +1",
+      "4": "Science (the Way)",
+      "5": "Profession (spirit singer)",
+      "6": "Persuade"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Profession (spirit singer)",
+      "2": "Science (the Way)",
+      "3": "Art",
+      "4": "Diplomat",
+      "5": "Persuade",
+      "6": "Science (history)"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Profession (spirit singer)",
+      "2": "Science (the Way)",
+      "3": "Medic",
+      "4": "Investigate",
+      "5": "Advocate",
+      "6": "Science (history)"
+    },
+    "spirit_singer": {
+      "name": "Spirit Singer",
+      "assignment_only": "spirit_singer",
+      "1": "Profession",
+      "2": "Profession (spirit singer)",
+      "3": "Science (the Way)",
+      "4": "Art",
+      "5": "Science (history)",
+      "6": "Persuade"
+    }
+  },
+  "ranks": {
+    "spirit_singer": {
+      "0": {"title": "Candidate", "bonus": "Art 1"},
+      "1": {"title": "Apprentice", "bonus": "Science (history) 1 and SOC 6 or SOC +1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Journeyman", "bonus": "SOC 8 or SOC +1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Master", "bonus": "SOC 10 or SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "You are injured by opponents of the Way. Roll on the Injury table.",
+    "2": "You provide guidance to someone but this angers a friend or relative of theirs. Gain an Enemy.",
+    "3": "You are caught on the periphery of a scandal. Lose one level of rank and one Benefit roll but you are not ejected from the career.",
+    "4": "You have been misguided in your interpretation of the Way! Lose 1 skill level from either Profession (spirit singer) or Science (the Way). You do not have to leave the career.",
+    "5": "Your faith is shaken. Lose all Benefit rolls gained thus far in this career but you do not have to leave the career.",
+    "6": "You come into conflict with a splinter group of your own religion which maintains your version is the wrong one. Gain D3 Rivals."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your guidance has proven to be a benefit to the community, gaining the respect of a large number of clans. Gain SOC +1 and an Ally.",
+    "4": "A notable Matriarch consults you on some spiritual matters. Gain her as a Contact.",
+    "5": "You are sent to a new community to guide them. Gain one level of Survival or Persuade.",
+    "6": "You retreat from the larger community to a pod of other spirit singers in the hope of a revelation, although this affects your work and relationships. Lose SOC -3 but gain D3 Benefit rolls and DM+1 on these and all future Benefit rolls.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You are chosen to present the Way in a vid show or other highly public forum. Gain one level of Carouse or Persuade.",
+    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (natural) to rescue them; if successful, gain one of them as an Ally. If you fail roll on the Injury table.",
+    "10": "You are secretly asked to consult the spirits for a dying matriarch, although she does not share your faith. If you agree, gain an Ally in her Pod but also gain a Rival in your own faith who does not agree with your choice.",
+    "11": "An Orca more charismatic but less devout than you becomes your superior. All future advancement rolls are subject to DM-2.",
+    "12": "You provide spiritual guidance that proves to be highly successful. You are immediately promoted one rank and gain DM+1 on all future advancement checks."
+  },
+  "mustering_out": {
+    "1": {"cash": 0, "benefit": "The knowledge that you have guided many spirits and SOC +1"},
+    "2": {"cash": 100, "benefit": "Contact"},
+    "3": {"cash": 250, "benefit": "INT +1"},
+    "4": {"cash": 500, "benefit": "Travel Suit"},
+    "5": {"cash": 1000, "benefit": "A prominent place in the history songs and SOC +1"},
+    "6": {"cash": 2500, "benefit": "Ally"},
+    "7": {"cash": 5000, "benefit": "3 Ship Shares"}
+  },
+  "complete": true
+}
