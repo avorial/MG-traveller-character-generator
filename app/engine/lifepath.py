@@ -2536,6 +2536,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         mixed_heritage_dm = -1
         dm += mixed_heritage_dm
 
+    # RAW: DM-1 for each career previously attempted (failed) this selection round.
+    failed_dm = -character.failed_qualifications_this_term
+    if failed_dm:
+        dm += failed_dm
+
     # Apply DM from prior events (e.g. Travel life event)
     dm += character.dm_next_qualification
     pending = character.dm_next_qualification
@@ -2550,11 +2555,18 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         qual_notes.append(f"Party Patronage DM{party_patronage_dm:+d}")
     if mixed_heritage_dm:
         qual_notes.append(f"Mixed Heritage DM{mixed_heritage_dm:+d}")
+    if failed_dm:
+        qual_notes.append(f"Failed attempts DM{failed_dm:+d}")
     note_str = f" [{', '.join(qual_notes)}]" if qual_notes else ""
     character.log(
         f"Qualification for {career['name']}: 2D{dm:+d} vs {target}+ "
         f"= {r.total} ({'pass' if r.succeeded else 'fail'}){note_str}"
     )
+
+    # Track failed attempts for subsequent rolls this round
+    if not r.succeeded:
+        character.failed_qualifications_this_term += 1
+
     return {"succeeded": r.succeeded, "roll": result, "character": character.model_dump()}
 
 
@@ -4226,6 +4238,7 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     character.age += 4
     character.total_terms += 1
     character.term_history.append(term)
+    character.failed_qualifications_this_term = 0  # reset for next career-selection round
 
     aging_log = None
     anagathics_cost_paid = 0

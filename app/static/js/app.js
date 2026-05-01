@@ -40,13 +40,16 @@ let uiState = {
   swapPick: null,   // which tile the user clicked first (for 2-click swap)
   swapA: 'EDU',     // dropdown A default
   swapB: 'STR',     // dropdown B default
-  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'anagathics_prompt' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster' | 'aging_result'
+  // Current phase sub-state: 'qualify' | 'assign' | 'train' | 'survive' | 'event' | 'advance' | 'decide' | 'mishap' | 'muster' | 'aging_result'
   subPhase: null,
   pendingAge: false,
   // Aging intercept — set after end-term, cleared once the player clicks CONTINUE
   agingResult: null,          // the aging dict returned by /api/character/end-term
   agingNextAction: null,      // {type:'next_term',careerId,assignmentId} | {type:'muster_out'} | {type:'muster_out_mishap'}
   agingSelectedStats: [],     // player-chosen stats for pending physical reductions [[stat, amount], ...]
+  // Anagathics intercept — offered before career selection each term (term 4+)
+  anagathicsPhaseDone: false, // true once the player has resolved the anagathics prompt this cycle
+  pendingNextTermAction: null, // stores {type:'next_term',...} when continuing same career, awaiting anagathics
   // GM / cheat mode — unlocks direct stat editing, boon rolls, phase skipping.
   gmMode: (localStorage.getItem('traveller_gm_mode') === '1'),
   // Connections step (between muster-out and done).
@@ -88,6 +91,7 @@ async function freshCharacter() {
               swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false,
               agingResult: null, agingNextAction: null, agingSelectedStats: [],
+              anagathicsPhaseDone: false, pendingNextTermAction: null,
               gmMode: uiState.gmMode,
               connectionsDone: false, connections: [],
               basicTrainingSkills: null,
@@ -2158,6 +2162,11 @@ function renderCareerPhase() {
 
   // Otherwise: no term means choose-a-career; term means active term loop.
   if (!term) {
+    // Offer anagathics BEFORE career selection for term 4+ (RAW: start-of-term action).
+    // anagathicsPhaseDone resets when a term ends, so this fires once per career-selection cycle.
+    if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone) {
+      return renderAnagathicsPrompt();
+    }
     return renderChooseCareer();
   }
   return renderActiveTerm();
@@ -2470,10 +2479,9 @@ function wireCareerPhase() {
   });
 
   // Helper: determine next sub-phase after training ends.
-  // Show the anagathics prompt when the character is old enough to age
-  // (total_terms >= 3 means this term, when done, would be term 4+).
+  // Anagathics is now offered BEFORE career selection, so training always leads straight to survival.
   function postTrainingSubPhase() {
-    return character.total_terms >= 3 ? 'anagathics_prompt' : 'survive';
+    return 'survive';
   }
 
   const btnPostSkill = document.getElementById('btn-post-skill');
@@ -3159,6 +3167,18 @@ function wireCareerPhase() {
   // the player the roll result before continuing to the next phase.
   async function executeNextAction(nextAction) {
     if (nextAction.type === 'next_term') {
+      // Intercept for anagathics before starting the next term (term 4+, RAW start-of-term action).
+      if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone) {
+        uiState.pendingNextTermAction = nextAction;
+        uiState.agingResult = null;
+        uiState.agingNextAction = null;
+        // Clear active term state so renderCareerPhase() sees !term → anagathics prompt
+        uiState.selectedCareer = null;
+        uiState.selectedAssignment = null;
+        uiState.subPhase = null;
+        renderAll();
+        return;
+      }
       const startResp = await apiCall('/api/character/start-term', {
         career_id: nextAction.careerId,
         assignment_id: nextAction.assignmentId,
@@ -3182,6 +3202,9 @@ function wireCareerPhase() {
   }
 
   async function endTermWithAgingIntercept(leaving, reason, nextAction) {
+    // Each term end resets the anagathics gate for the next career-selection cycle.
+    uiState.anagathicsPhaseDone = false;
+    uiState.pendingNextTermAction = null;
     const endResp = await apiCall('/api/character/end-term', { leaving, reason });
     await applyResponse(endResp);
     if (endResp.aging !== null) {
@@ -3241,9 +3264,16 @@ function wireCareerPhase() {
 
   const btnAnagathicsSkip = document.getElementById('btn-anagathics-skip');
   if (btnAnagathicsSkip) {
-    btnAnagathicsSkip.addEventListener('click', () => {
-      uiState.subPhase = 'survive';
-      renderStage();
+    btnAnagathicsSkip.addEventListener('click', async () => {
+      uiState.anagathicsPhaseDone = true;
+      uiState.lastRoll = null;
+      if (uiState.pendingNextTermAction) {
+        const action = uiState.pendingNextTermAction;
+        uiState.pendingNextTermAction = null;
+        await executeNextAction(action);
+      } else {
+        renderAll(); // will now show career picker
+      }
     });
   }
 
@@ -3261,10 +3291,22 @@ function wireCareerPhase() {
 
   const btnAnagathicsContinueSurvive = document.getElementById('btn-anagathics-continue-survive');
   if (btnAnagathicsContinueSurvive) {
-    btnAnagathicsContinueSurvive.addEventListener('click', () => {
+    btnAnagathicsContinueSurvive.addEventListener('click', async () => {
+      uiState.anagathicsPhaseDone = true;
       uiState.lastRoll = null;
-      uiState.subPhase = 'survive';
-      renderStage();
+      // Natural 2 forces a Prisoner career — always go to career picker regardless of pendingNextTermAction.
+      if (character.forced_next_career_id) {
+        uiState.pendingNextTermAction = null;
+        renderAll();
+        return;
+      }
+      if (uiState.pendingNextTermAction) {
+        const action = uiState.pendingNextTermAction;
+        uiState.pendingNextTermAction = null;
+        await executeNextAction(action);
+      } else {
+        renderAll(); // will show career picker
+      }
     });
   }
   // ─────────────────────────────────────────────────────────────────────
@@ -3574,7 +3616,7 @@ function renderQualifyResult() {
         <ul class="phase-body" style="padding-left:20px;line-height:1.7">
           <li><strong>Accept the Draft</strong> — 1D determines which service takes you (Navy, Army, Marines, Merchant Marine, Scouts, or Agent). No choice in assignment, but you start a term immediately.</li>
           <li><strong>Become a Drifter</strong> — auto-qualifies, rough life, cheap mustering benefits.</li>
-          <li><strong>Try Another Career</strong> — attempt a different qualification (each failed career should carry a DM-1 penalty; not yet modeled).</li>
+          <li><strong>Try Another Career</strong> — attempt a different qualification. Each previously failed career attempt applies DM−1 to this roll.</li>
         </ul>
         <div class="phase-actions">
           <button class="btn primary" id="btn-accept-draft">ACCEPT THE DRAFT</button>
@@ -3907,7 +3949,7 @@ function renderAnagathicsPrompt() {
           </div>`}
         <div class="phase-actions" style="margin-top:16px">
           <button class="btn primary" id="btn-anagathics-continue-survive">
-            ${nat2 ? 'PROCEED TO PRISONER CAREER →' : 'PROCEED TO SURVIVAL →'}
+            ${nat2 ? 'PROCEED TO PRISONER CAREER →' : 'CONTINUE →'}
           </button>
         </div>
       </div>
@@ -3933,7 +3975,7 @@ function renderAnagathicsPrompt() {
           ${pending.length ? `<p style="color:var(--amber)">Additional physical stat reductions required — proceed to survival then apply them.</p>` : ''}
         </div>
         <div class="phase-actions" style="margin-top:16px">
-          <button class="btn primary" id="btn-anagathics-continue-survive">PROCEED TO SURVIVAL →</button>
+          <button class="btn primary" id="btn-anagathics-continue-survive">CONTINUE →</button>
         </div>
       </div>
     `;
@@ -3942,7 +3984,7 @@ function renderAnagathicsPrompt() {
   // Default view — offer anagathics or continue
   return `
     <div class="stage-content">
-      <div class="phase-label">Anagathics — Start of Term</div>
+      <div class="phase-label">Term ${character.total_terms + 1} · Before Career Selection</div>
       <h2 class="phase-title">${already ? 'Continue Anagathics?' : 'Obtain Anagathics?'}</h2>
 
       ${already ? `
@@ -3956,7 +3998,7 @@ function renderAnagathicsPrompt() {
         <div class="phase-actions" style="margin-top:12px">
           <button class="btn primary" id="btn-anagathics-attempt">CONTINUE ANAGATHICS (roll SOC 10+)</button>
           <button class="btn danger" id="btn-anagathics-stop">STOP ANAGATHICS (aging roll now)</button>
-          <button class="btn ghost" id="btn-anagathics-skip">SKIP THIS DECISION</button>
+          <button class="btn ghost" id="btn-anagathics-skip">SKIP →</button>
         </div>
       ` : `
         <p class="phase-body">Roll SOC 10+ to obtain a supply of anagathic drugs for this term.</p>
@@ -3970,7 +4012,7 @@ function renderAnagathicsPrompt() {
         <p class="phase-body">Your SOC: <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
         <div class="phase-actions">
           <button class="btn primary" id="btn-anagathics-attempt">ROLL SOC 10+ FOR ANAGATHICS</button>
-          <button class="btn ghost" id="btn-anagathics-skip">DECLINE — PROCEED TO SURVIVAL</button>
+          <button class="btn ghost" id="btn-anagathics-skip">DECLINE →</button>
         </div>
       `}
     </div>

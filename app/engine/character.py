@@ -127,6 +127,11 @@ class Character(BaseModel):
     # Careers permanently banned from re-entry (e.g. Scout event 2 failure).
     banned_career_ids: list[str] = Field(default_factory=list)
 
+    # Failed qualification attempts this career-selection round.
+    # RAW: each failed career attempt carries DM-1 to subsequent qualification
+    # rolls in the same round (resets when a term is completed).
+    failed_qualifications_this_term: int = 0
+
     # Pending interactive choice from a Life Event roll. Cleared once the
     # player resolves it via /api/character/life-event-choice.
     # Shape: {"kind": str, ...context keys...}
