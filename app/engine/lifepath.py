@@ -3441,6 +3441,102 @@ def ban_career(character: "Character", career_id: str) -> dict:
     return {"banned": career_id, "character": character.model_dump()}
 
 
+_COMMISSION_CAREER_IDS = {"army", "navy", "marine"}
+
+
+def commission_roll(character: "Character") -> dict:
+    """Attempt a Commission roll (Army, Navy, Marines only).
+
+    RAW MgT 2e p.36:
+    - Only eligible if career has a 'commission' key.
+    - First term in career: free attempt.
+    - Subsequent terms: only if SOC 9+, with DM−1 per term after the first.
+    - On success: character becomes Rank 1 officer (term.commissioned = True),
+      applies rank-1 officer bonus if defined, and may NOT roll advancement this term.
+    - On failure: can still roll for advancement normally.
+    """
+    term = character.current_term
+    if term is None:
+        raise ValueError("No active term.")
+    career = rules.careers()[term.career_id]
+    comm_data = career.get("commission", {})
+    if not comm_data:
+        raise ValueError(f"{career.get('name', term.career_id)} does not have a commission table.")
+    if term.commissioned:
+        raise ValueError("Already commissioned — officers do not re-roll commission.")
+
+    # Eligibility: first term free; later terms need SOC 9+
+    soc = character.characteristics.get("SOC")
+    if term.term_number > 1 and soc < 9:
+        raise ValueError(
+            f"Commission attempt requires SOC 9+ after the first term (your SOC is {soc})."
+        )
+
+    char_key = comm_data.get("characteristic", "SOC")
+    target = int(comm_data.get("target", 8))
+    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+    # DM−1 for every term after the first in this career
+    term_penalty = -(term.term_number - 1)
+    if term_penalty:
+        dm += term_penalty
+
+    # Pre-career permanent DMs (School of Hard Knocks grants DM−2 to first commission)
+    pdms = character.pre_career_permanent_dms or {}
+    first_comm_dm = int(pdms.get("first_career_commission_dm", 0))
+    if first_comm_dm and len(character.completed_careers) == 0:
+        dm += first_comm_dm
+
+    # Event/DM bonuses (dm_next_advancement applies to commission per RAW)
+    pending_dm = character.dm_next_advancement
+    dm += pending_dm
+
+    r = dice.roll("2D", modifier=dm, target=target)
+
+    dm_notes: list[str] = [f"{char_key} DM{dice.characteristic_dm(character.characteristics.get(char_key)):+d}"]
+    if term_penalty:
+        dm_notes.append(f"Term penalty DM{term_penalty:+d}")
+    if first_comm_dm:
+        dm_notes.append(f"Hard Knocks DM{first_comm_dm:+d}")
+    if pending_dm:
+        dm_notes.append(f"Pending DM{pending_dm:+d}")
+        character.dm_next_advancement = 0  # consumed
+
+    new_rank_title = None
+    rank_bonus_log = None
+
+    if r.succeeded:
+        # Commissioned: jump to Rank 1 officer regardless of current enlisted rank
+        term.commissioned = True
+        term.rank = 1
+        new_rank_title = _rank_title(career, term.assignment_id, 1)
+        term.rank_title = new_rank_title
+        rank_data = _rank_data(career, term.assignment_id, 1)
+        if rank_data and rank_data.get("bonus"):
+            rank_bonus_log = _apply_rank_bonus(character, rank_data["bonus"])
+            term.skills_gained.append(f"Commission rank bonus: {rank_data['bonus']}")
+        character.log(
+            f"Commission ({char_key} {target}+, {', '.join(dm_notes)}): "
+            f"2D{dm:+d} = {r.total} — COMMISSIONED as Rank 1"
+            + (f" ({new_rank_title})" if new_rank_title else "")
+        )
+    else:
+        character.log(
+            f"Commission ({char_key} {target}+, {', '.join(dm_notes)}): "
+            f"2D{dm:+d} = {r.total} — FAILED (may still roll advancement)"
+        )
+
+    return {
+        "roll": r.to_dict(),
+        "succeeded": r.succeeded,
+        "new_rank": term.rank,
+        "new_rank_title": new_rank_title,
+        "rank_bonus": rank_bonus_log,
+        "dm_notes": dm_notes,
+        "character": character.model_dump(),
+    }
+
+
 def advancement_roll(character: Character) -> dict:
     """Roll advancement. On success, rank increases.
 

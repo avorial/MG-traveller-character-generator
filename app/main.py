@@ -533,6 +533,16 @@ async def api_ban_career(action: BanCareerAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/commission")
+async def api_commission(action: CharacterAction):
+    """Attempt a commission roll (Army, Navy, Marines only)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.commission_roll(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/advance")
 async def api_advance(action: CharacterAction):
     character = action.character.model_copy(deep=True)

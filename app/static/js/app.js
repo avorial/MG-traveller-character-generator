@@ -1596,13 +1596,12 @@ function renderPreCareerPhase() {
   }
 
   // Default: pick a track
+  // All tracks are always available — the homeworld/SOC restrictions are flavour-only notes,
+  // not hard locks. (Previously gated; now open so players can always choose.)
   const hwUwp = character.homeworld_uwp || '';
   const hwTL = hwUwp.includes('-') ? parseInt(hwUwp.split('-').pop(), 16) : 99;
   const hwSize = hwUwp.length >= 2 ? parseInt(hwUwp[1], 16) : -1;
   const soc = character.characteristics?.SOC ?? 0;
-  const canColonial = hwTL <= 8;
-  const canSpacer = hwSize === 0;
-  const canHardKnocks = soc <= 6;
 
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
@@ -1624,26 +1623,17 @@ function renderPreCareerPhase() {
           <div class="card-title">Merchant Academy</div>
           <div class="card-desc">INT 9+ to qualify, 4 years. Choose Business or Shipboard curriculum. Graduate for +1 EDU and start Merchant/Citizen at officer rank with a permanent advancement bonus.</div>
         </button>
-        <button class="card${canColonial ? '' : ' card-disabled'}" id="btn-pc-colonial"${canColonial ? '' : ' disabled'}>
+        <button class="card" id="btn-pc-colonial">
           <div class="card-title">Colonial Upbringing</div>
-          <div class="card-desc">${canColonial
-            ? `Homeworld TL ${hwTL} ≤ 8 — automatic. Broad survival skills (Survival 1 + 10 skills at 0). Graduate for END+1, JoaT 1, but EDU−D3 and permanent qualification penalties.`
-            : `Requires homeworld TL 8 or less (your homeworld is TL ${hwTL === 99 ? 'unknown' : hwTL}).`
-          }</div>
+          <div class="card-desc">Typical for low-tech frontier worlds (TL 8 or less). Broad survival skills (Survival 1 + 10 skills at 0). Graduate for END+1, JoaT 1, but EDU−D3 and permanent qualification penalties.</div>
         </button>
-        <button class="card${canHardKnocks ? '' : ' card-disabled'}" id="btn-pc-hard-knocks"${canHardKnocks ? '' : ' disabled'}>
+        <button class="card" id="btn-pc-hard-knocks">
           <div class="card-title">School of Hard Knocks</div>
-          <div class="card-desc">${canHardKnocks
-            ? `SOC ${soc} ≤ 6 — automatic. Street smarts: Streetwise 1 + 2 skill picks. Graduate for Gun Combat 0 and 3 more skills, but DM−2 commission in first career.`
-            : `Requires SOC 6 or less (your SOC is ${soc}).`
-          }</div>
+          <div class="card-desc">The street as classroom. Street smarts: Streetwise 1 + 2 skill picks. Graduate for Gun Combat 0 and 3 more skills, but DM−2 to commission in first career.</div>
         </button>
-        <button class="card${canSpacer ? '' : ' card-disabled'}" id="btn-pc-spacer"${canSpacer ? '' : ' disabled'}>
+        <button class="card" id="btn-pc-spacer">
           <div class="card-title">Spacer Community</div>
-          <div class="card-desc">${canSpacer
-            ? `Homeworld size 0 — automatic, INT 4+. 3 years. Vacc Suit 1 + 2 picks. Graduate for DEX+1, Pilot 0, and DM+1 to Merchant (Free Trader) advancement.`
-            : `Requires a homeworld of size 0 (asteroid belt). Your homeworld size is ${hwSize === 99 ? 'unknown' : hwSize}.`
-          }</div>
+          <div class="card-desc">Raised on an asteroid belt or orbital. INT 4+ to enroll. 3 years. Vacc Suit 1 + 2 picks. Graduate for DEX+1, Pilot 0, and DM+1 to Merchant (Free Trader) advancement.</div>
         </button>
         <button class="card" id="btn-pc-psionic">
           <div class="card-title">Psionic Community</div>
@@ -2160,11 +2150,10 @@ function renderCareerPhase() {
     return renderDraftResult();
   }
 
-  // Anagathics intercept (term 4+): fires BEFORE career selection AND before same-career continuation.
-  // When continuing the same career, end_term (leaving=false) does NOT clear current_term, so term is
-  // still non-null. pendingNextTermAction being set is the signal we're in that intercept state.
-  if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone &&
-      (!term || uiState.pendingNextTermAction)) {
+  // Anagathics intercept: fires BEFORE every career selection — first career (after pre-career)
+  // and every term thereafter. When continuing the same career, end_term (leaving=false) does NOT
+  // clear current_term, so pendingNextTermAction being set is the signal we're in that state.
+  if (!uiState.anagathicsPhaseDone && (!term || uiState.pendingNextTermAction)) {
     return renderAnagathicsPrompt();
   }
 
@@ -3142,20 +3131,41 @@ function wireCareerPhase() {
     });
   });
 
+  // Commission roll (Army / Navy / Marine only)
+  const btnCommission = document.getElementById('btn-commission');
+  if (btnCommission) {
+    btnCommission.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/commission');
+        await applyResponse(response);
+        uiState.lastRoll = {
+          type: 'commission',
+          data: response.roll,
+          succeeded: response.succeeded,
+          newRank: response.new_rank,
+          newRankTitle: response.new_rank_title,
+          rankBonus: response.rank_bonus,
+        };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  }
+
   const btnAdvance = document.getElementById('btn-advance');
   if (btnAdvance) {
     btnAdvance.addEventListener('click', async () => {
-      const response = await apiCall('/api/character/advance');
-      await applyResponse(response);
-      uiState.lastRoll = {
-        type: 'advance',
-        data: response.roll,
-        outcome: response.advanced ? 'pass' : 'fail',
-        newRank: response.new_rank,
-        newRankTitle: response.new_rank_title,
-      };
-      // Stay on 'advance' — render already handles the post-roll view
-      renderAll();
+      try {
+        const response = await apiCall('/api/character/advance');
+        await applyResponse(response);
+        uiState.lastRoll = {
+          type: 'advance',
+          data: response.roll,
+          outcome: response.advanced ? 'pass' : 'fail',
+          newRank: response.new_rank,
+          newRankTitle: response.new_rank_title,
+        };
+        renderAll();
+      } catch (e) { alert(e.message); }
     });
   }
 
@@ -3173,8 +3183,8 @@ function wireCareerPhase() {
   // the player the roll result before continuing to the next phase.
   async function executeNextAction(nextAction) {
     if (nextAction.type === 'next_term') {
-      // Intercept for anagathics before starting the next term (term 4+, RAW start-of-term action).
-      if (character.total_terms >= 3 && !uiState.anagathicsPhaseDone) {
+      // Intercept for anagathics before starting the next term (every term, per user request).
+      if (!uiState.anagathicsPhaseDone) {
         uiState.pendingNextTermAction = nextAction;
         uiState.agingResult = null;
         uiState.agingNextAction = null;
@@ -3990,7 +4000,7 @@ function renderAnagathicsPrompt() {
   // Default view — offer anagathics or continue
   return `
     <div class="stage-content">
-      <div class="phase-label">Term ${character.total_terms + 1} · Before Career Selection</div>
+      <div class="phase-label">Before Career Selection · Term ${character.total_terms + 1}</div>
       <h2 class="phase-title">${already ? 'Continue Anagathics?' : 'Obtain Anagathics?'}</h2>
 
       ${already ? `
@@ -5391,9 +5401,61 @@ function renderAdvanceStep() {
   const career = CAREERS.find(c => c.id === term.career_id);
   const assignment = career.assignments[term.assignment_id];
   const a = assignment.advancement;
-  const dm = charDM(character.characteristics[a.characteristic]);
+  const advDm = charDM(character.characteristics[a.characteristic]);
 
-  // Post-roll view — show dice readout
+  // Commission eligibility
+  const commissionCareers = new Set(['army', 'navy', 'marine']);
+  const hasCommission = !!career.commission;
+  const alreadyCommissioned = term.commissioned;
+  const soc = character.characteristics?.SOC ?? 0;
+  const commEligible = hasCommission && !alreadyCommissioned &&
+    (term.term_number === 1 || soc >= 9);
+  const commTarget = career.commission?.target ?? 8;
+  const commChar  = career.commission?.characteristic ?? 'SOC';
+  const commDm = charDM(character.characteristics[commChar]);
+  const termPenaltyDm = -(term.term_number - 1);  // DM-1 per term after first
+
+  // Decide-phase actions (shared by advance result and already-rolled views)
+  const decideActions = `
+    <div class="phase-actions">
+      <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+      <button class="btn" id="btn-leave-career">MUSTER OUT</button>
+    </div>
+    ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  `;
+
+  // ── Commission result view ───────────────────────────────────
+  if (uiState.lastRoll?.type === 'commission') {
+    const lr = uiState.lastRoll;
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Commission Roll — ${lr.succeeded ? 'COMMISSIONED' : 'FAILED'}</div>
+        <h2 class="phase-title" style="color:${lr.succeeded ? 'var(--success,#7fd87f)' : 'var(--danger)'}">
+          ${lr.succeeded
+            ? `Commissioned! Rank 1${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
+            : 'Commission Failed'}
+        </h2>
+        ${rollReadoutHTML(lr.data, { label: `${commChar} ${commTarget}+` })}
+        ${lr.succeeded ? `
+          <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+            <span class="event-label" style="color:var(--success,#7fd87f)">OFFICER — RANK 1</span>
+            You are now commissioned. You may not roll for advancement this term.
+            ${lr.rankBonus ? `<br>Rank bonus: ${escapeHTML(lr.rankBonus)}` : ''}
+          </div>
+          <p class="phase-body" style="margin-top:12px">Term complete. Continue or muster out?</p>
+          ${decideActions}
+        ` : `
+          <p class="phase-body">Commission failed. You may still roll for advancement this term.</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-advance">ROLL FOR PROMOTION</button>
+            <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  // ── Advancement result view ──────────────────────────────────
   if (uiState.lastRoll?.type === 'advance') {
     const lr = uiState.lastRoll;
     const advanced = lr.outcome === 'pass';
@@ -5405,47 +5467,50 @@ function renderAdvanceStep() {
           : 'No Promotion This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
         <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or muster out?</p>
-        ${character.total_terms + 1 >= 4 ? `
-          <p class="phase-body" style="color:var(--danger);font-style:italic">
-            ⚠ Ending this next term will trigger an Aging roll.
-          </p>
-        ` : ''}
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
-          <button class="btn" id="btn-leave-career">MUSTER OUT</button>
-        </div>
-        ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+        ${decideActions}
       </div>
     `;
   }
 
   if (term.advanced === null || term.advanced === undefined) {
-    // Not yet rolled
+    // Not yet rolled — show commission option if eligible, then advancement
     return `
       <div class="stage-content">
-        <div class="phase-label">Advancement · 2D Roll</div>
-        <h2 class="phase-title">Promotion Check</h2>
-        <p class="phase-subtitle">${a.characteristic} ${a.target}+ (your DM is ${formatDM(dm)})</p>
-        <p class="phase-body">A successful roll promotes you by one rank. If you fail, your career continues — you just don't advance this term.</p>
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-advance">ROLL FOR PROMOTION</button>
-          <button class="btn" id="btn-skip-advance">SKIP</button>
-        </div>
+        <div class="phase-label">${commEligible ? 'Commission / ' : ''}Advancement · 2D Roll</div>
+        <h2 class="phase-title">${commEligible ? 'Commission or Promotion?' : 'Promotion Check'}</h2>
+
+        ${commEligible ? `
+          <div class="event-box" style="border-color:var(--amber);margin-top:12px">
+            <span class="event-label">COMMISSION AVAILABLE — ${commChar} ${commTarget}+</span>
+            Roll to become a Rank 1 officer. Your ${commChar} DM: ${formatDM(commDm)}${termPenaltyDm ? `, term penalty DM${termPenaltyDm}` : ''}.
+            <br><em>Success: commissioned, no advancement roll this term. Failure: may still roll for promotion.</em>
+            ${term.term_number > 1 ? `<br><span style="color:var(--amber-dim);font-size:11px">SOC 9+ required after first term (your SOC: ${soc}).</span>` : ''}
+          </div>
+          <div class="phase-actions" style="margin-top:12px">
+            <button class="btn primary" id="btn-commission">ROLL FOR COMMISSION</button>
+            <button class="btn" id="btn-advance">ROLL FOR PROMOTION ONLY</button>
+            <button class="btn ghost" id="btn-skip-advance">SKIP</button>
+          </div>
+        ` : `
+          <p class="phase-subtitle">${a.characteristic} ${a.target}+ (your DM is ${formatDM(advDm)})</p>
+          <p class="phase-body">A successful roll promotes you by one rank. If you fail, your career continues — you just don't advance this term.</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-advance">ROLL FOR PROMOTION</button>
+            <button class="btn" id="btn-skip-advance">SKIP</button>
+          </div>
+        `}
       </div>
     `;
   }
 
-  // Already rolled (state restored from a prior session, no fresh roll) — show terminal view
+  // Already rolled (restored from session)
   return `
     <div class="stage-content">
       <div class="phase-label">Term Complete</div>
-      <h2 class="phase-title">${term.advanced ? `Promoted to Rank ${term.rank}` : 'No Promotion'}</h2>
-      ${term.advanced && term.rank_title ? `<p class="phase-subtitle">${term.rank_title}</p>` : ''}
+      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}` : term.advanced ? `Promoted to Rank ${term.rank}` : 'No Promotion'}</h2>
+      ${term.rank_title ? `<p class="phase-subtitle">${term.rank_title}</p>` : ''}
       <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or leave?</p>
-      <div class="phase-actions">
-        <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
-        <button class="btn" id="btn-leave-career">MUSTER OUT</button>
-      </div>
+      ${decideActions}
     </div>
   `;
 }
