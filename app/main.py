@@ -118,7 +118,6 @@ class MonitorAction(BaseModel):
     active: bool
 
 
-
 class CareerAction(CharacterAction):
     career_id: str
     assignment_id: str | None = None

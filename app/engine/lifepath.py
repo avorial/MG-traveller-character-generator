@@ -257,9 +257,15 @@ def roll_initial_characteristics(character: Character) -> dict:
 
 _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 
+# All characteristic keys including PSI (used for GM set-stat and event branches).
+_STAT_KEYS: frozenset[str] = frozenset({"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"})
+
 # Retirement pension table (MgT 2e p.53): terms_served → Cr/year.
 # Terms ≥ 8 pay Cr16,000; terms < 5 pay nothing.
 _PENSION_TABLE: dict[int, int] = {5: 10_000, 6: 12_000, 7: 14_000, 8: 16_000}
+
+# Associate kinds that can appear as mustering-out benefits.
+_BENEFIT_ASSOC_KINDS: frozenset[str] = frozenset({"ally", "contact", "rival", "enemy"})
 
 
 def test_psionics(character: "Character") -> dict:
@@ -2974,9 +2980,7 @@ def event_roll(character: Character) -> dict:
     dm_grants = _apply_event_dms(character, event_text)
     for g in dm_grants:
         if g.get("applied"):
-            tgt = g["target"].capitalize()
-            sign = "+" if g["dm"] >= 0 else ""
-            character.log(f"  → Auto-applied DM{sign}{g['dm']} to next {tgt} roll.")
+            character.log(f"  → Auto-applied DM{g['dm']:+d} to next {g['target'].capitalize()} roll.")
 
     # Auto-apply any unconditional stat bonuses ("SOC +1" etc.). Only handles
     # the rare cases like entertainer[12]; conditional/choice events are
@@ -4602,8 +4606,7 @@ def _apply_aging(character: Character) -> dict:
     Anagathics positive DM: +anagathics_terms_used (RAW p.155).
     """
     dm = -character.total_terms  # "the older you are, the heavier the effects"
-    ana_dm = character.anagathics_terms_used if character.anagathics_terms_used > 0 else 0
-    dm += ana_dm
+    dm += max(0, character.anagathics_terms_used)
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
 
@@ -4830,16 +4833,10 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         return
 
     # Associates — Ally, Contact, Rival, Enemy
-    _ASSOC_KINDS = {
-        "ally": "ally",
-        "contact": "contact",
-        "rival": "rival",
-        "enemy": "enemy",
-    }
     b_lower = b.lower()
-    if b_lower in _ASSOC_KINDS:
+    if b_lower in _BENEFIT_ASSOC_KINDS:
         character.associates.append(
-            Associate(kind=_ASSOC_KINDS[b_lower], description="From mustering out")
+            Associate(kind=b_lower, description="From mustering out")
         )
         return
 
@@ -4854,8 +4851,8 @@ def _apply_benefit(character: Character, benefit: str) -> None:
     if " or " in b:
         parts = [p.strip() for p in b.split(" or ")]
         # Check if any part is an associate kind
-        assoc_parts = [p for p in parts if p.lower() in _ASSOC_KINDS]
-        non_assoc_parts = [p for p in parts if p.lower() not in _ASSOC_KINDS]
+        assoc_parts = [p for p in parts if p.lower() in _BENEFIT_ASSOC_KINDS]
+        non_assoc_parts = [p for p in parts if p.lower() not in _BENEFIT_ASSOC_KINDS]
         if assoc_parts and non_assoc_parts:
             # Mixed: e.g. "Blade or Ally" — add as equipment note so player can choose
             character.equipment.append(
@@ -4909,9 +4906,6 @@ def _rank_data(career: dict, assignment_id: str, rank: int) -> Optional[dict]:
     if rank_table is None:
         return None
     return rank_table.get(str(rank))
-
-
-_STAT_KEYS_RANK = {"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"}
 
 
 def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
@@ -5131,9 +5125,6 @@ def grant_event_dm(character: Character, dm: int, target: str) -> dict:
     term.events.append(f"Event choice: {msg}")
     character.log(f"Event DM chosen: {msg}")
     return {"applied": msg, "dm": dm, "target": tgt, "character": character.model_dump()}
-
-
-_STAT_KEYS = {"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"}
 
 
 def apply_event_stat_change(

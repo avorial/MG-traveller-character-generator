@@ -24,6 +24,7 @@ const ALL_SKILLS_NO_JOT = ALL_SKILLS.filter(s => s !== 'Jack-of-All-Trades');
 const STORAGE_KEY = 'traveller-character-v1';
 
 let SKILL_PACKAGES = {};
+let CAREER_DATA = {};  // full career JSON (loaded async in bootstrap)
 
 let character = null;
 let uiState = {
@@ -416,9 +417,9 @@ function renderSheet() {
     <div class="panel-header"><span class="led"></span><span>CHARACTER FILE</span></div>
     <div class="sheet-scroll">
       <div class="sheet-header">
-        <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${character.name || ''}" />
-        <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${character.homeworld || ''}" />
-        <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${character.homeworld_uwp || ''}" title="Universal World Profile (paste from travellermap.com)" />
+        <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${escapeAttr(character.name)}" />
+        <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${escapeAttr(character.homeworld)}" />
+        <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${escapeAttr(character.homeworld_uwp)}" title="Universal World Profile (paste from travellermap.com)" />
         <div class="sheet-meta">
           <span>SPECIES<br><strong>${species.name}</strong></span>
           <span>AGE<br><strong>${character.age}</strong></span>
@@ -519,7 +520,7 @@ function renderSheet() {
 
       <div class="sheet-section">
         <h3>Notes</h3>
-        <textarea id="char-notes" class="sheet-notes" placeholder="Personality, quirks, contacts, anything you want on the sheet…" rows="5">${(character.user_notes || '').replace(/</g, '&lt;')}</textarea>
+        <textarea id="char-notes" class="sheet-notes" placeholder="Personality, quirks, contacts, anything you want on the sheet…" rows="5">${escapeHTML(character.user_notes || '')}</textarea>
       </div>
     </div>
   `;
@@ -559,6 +560,11 @@ function renderLog() {
 
 function escapeHTML(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Escape for use inside a quoted HTML attribute (e.g. value="..."). */
+function escapeAttr(s) {
+  return escapeHTML(String(s || '')).replace(/"/g, '&quot;');
 }
 
 /**
@@ -4673,7 +4679,7 @@ function getCharacterSkillNames() {
 function getCareerTableSkills(careerKey, tableNames) {
   // Read skill entries from a career's skill_tables and return a dedup'd list.
   // careerKey: 'navy', 'marine', etc. tableNames: ['service_skills', ...].
-  const careerData = (window.__careerData && window.__careerData[careerKey]) || null;
+  const careerData = CAREER_DATA[careerKey] || null;
   const tables = careerData && careerData.skill_tables;
   if (!tables) return [];
   const out = [];
@@ -6351,7 +6357,7 @@ async function bootstrap() {
     const res = await fetch('/api/careers/full');
     if (res.ok) {
       const data = await res.json();
-      window.__careerData = data.careers || {};
+      CAREER_DATA = data.careers || {};
     }
   } catch (e) { /* network error — picker will degrade gracefully */ }
 
@@ -6372,7 +6378,7 @@ async function bootstrap() {
 
   document.getElementById('btn-reset').addEventListener('click', async () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
-    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     await freshCharacter();
     renderAll();
   });
@@ -6387,7 +6393,6 @@ async function bootstrap() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       character = data.character;
-      uiState.log = data.log || [];
       saveCharacter();
       renderAll();
     } catch (e) {
