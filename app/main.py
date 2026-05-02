@@ -676,8 +676,8 @@ async def api_anagathics_attempt(action: CharacterAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.attempt_anagathics(character)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(400, f"{type(e).__name__}: {e}")
 
 
 @app.post("/api/character/anagathics/stop")

@@ -144,8 +144,17 @@ async function apiCall(endpoint, extraData = {}) {
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+    const body = await res.text().catch(() => '');
+    let detail;
+    try {
+      const errJson = JSON.parse(body);
+      detail = typeof errJson.detail === 'string'
+        ? errJson.detail
+        : JSON.stringify(errJson.detail);
+    } catch {
+      detail = body.trim().slice(0, 300) || `HTTP ${res.status}`;
+    }
+    throw new Error(detail || `HTTP ${res.status}`);
   }
   return res.json();
 }
