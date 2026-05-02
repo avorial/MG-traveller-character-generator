@@ -184,8 +184,6 @@ class Character(BaseModel):
     anagathics_active: bool = False          # currently using anagathics
     anagathics_terms_used: int = 0           # terms already on anagathics (for positive aging DM)
     anagathics_pending_cost: int = 0         # Cr cost for this term (1D×25000), paid at end
-    # Legacy field — kept for any save files that still carry it; ignored by new logic
-    anagathics_purchased_terms: int = 0
     anagathics_addicted: bool = False
 
     # Home Forces Reserves (Solomani parallel service)

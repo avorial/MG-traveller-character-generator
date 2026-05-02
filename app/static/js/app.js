@@ -59,6 +59,11 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Done phase
+  lastCapsule: null,         // cached narrative text from /api/character/capsule
+  psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
+  // GM panel
+  gmLastRolls: [],           // last set of forced rolls, shown in GM panel
 };
 
 // ------------------------------------------------------------
@@ -104,7 +109,8 @@ async function freshCharacter() {
               gmMode: uiState.gmMode,
               connectionsDone: false, connections: [],
               basicTrainingSkills: null,
-              skillPackageApplied: false };
+              skillPackageApplied: false,
+              lastCapsule: null, psionicsOpen: false, gmLastRolls: [] };
   saveCharacter();
 }
 
@@ -191,7 +197,7 @@ async function applyResponse(response) {
 // ------------------------------------------------------------
 
 function charDM(score) {
-  if (score <= 0) return -3;
+  if (score == null || isNaN(score) || score <= 0) return -3;
   if (score <= 2) return -2;
   if (score <= 5) return -1;
   if (score <= 8) return 0;
@@ -418,7 +424,7 @@ function renderSheet() {
           <span>AGE<br><strong>${character.age}</strong></span>
           <span>TERMS<br><strong>${character.total_terms}</strong></span>
           <span>CREDITS<br><strong>Cr${character.credits.toLocaleString()}</strong></span>
-          ${nobleTitle(character.species_id, character.characteristics?.SOC) ? `<span class="noble-title-badge" title="Imperial Noble Title">TITLE<br><strong>${nobleTitle(character.species_id, character.characteristics?.SOC)}</strong></span>` : ''}
+          ${(() => { const t = nobleTitle(character.species_id, character.characteristics?.SOC); return t ? `<span class="noble-title-badge" title="Imperial Noble Title">TITLE<br><strong>${t}</strong></span>` : ''; })()}
         </div>
       </div>
 
@@ -4643,18 +4649,6 @@ function getSkillLevelFor(skillName, speciality) {
   return -3; // untrained
 }
 
-// Standard Traveller characteristic DM.
-function charDM(val) {
-  if (val == null || isNaN(val)) return 0;
-  if (val <= 0) return -3;
-  if (val <= 2) return -2;
-  if (val <= 5) return -1;
-  if (val <= 8) return 0;
-  if (val <= 11) return 1;
-  if (val <= 14) return 2;
-  return 3;
-}
-
 // Roll 2D + mods and return {total, dice:[a,b], mod}.
 function rollD2(mod) {
   const a = 1 + Math.floor(Math.random() * 6);
@@ -4664,21 +4658,14 @@ function rollD2(mod) {
 
 function getCharacterSkillNames() {
   // Flat list of the character's current skills as display strings.
-  // Parent skill with no speciality → bare name. With specialities → one
-  // entry per speciality ("Tactics (military)").
+  // Skills with a speciality → "Name (speciality)". Plain skills → bare name.
   if (!character || !Array.isArray(character.skills)) return [];
   const out = [];
   const seen = new Set();
   for (const s of character.skills) {
     if (!s || !s.name) continue;
-    if (Array.isArray(s.specialities) && s.specialities.length > 0) {
-      for (const spec of s.specialities) {
-        const display = `${s.name} (${spec.name})`;
-        if (!seen.has(display)) { seen.add(display); out.push(display); }
-      }
-    } else {
-      if (!seen.has(s.name)) { seen.add(s.name); out.push(s.name); }
-    }
+    const display = s.speciality ? `${s.name} (${s.speciality})` : s.name;
+    if (!seen.has(display)) { seen.add(display); out.push(display); }
   }
   return out.sort();
 }
@@ -6073,7 +6060,7 @@ function renderDonePhase() {
     <div class="stage-content">
       <div class="phase-label">Character Complete · Age ${character.age} · ${character.total_terms} Terms</div>
       <h2 class="phase-title">Your Traveller Is Ready</h2>
-      <p class="phase-subtitle">${character.name || 'This Traveller'} has survived creation. Take the character sheet and meet your group at the starport.</p>
+      <p class="phase-subtitle">${escapeHTML(character.name || 'This Traveller')} has survived creation. Take the character sheet and meet your group at the starport.</p>
 
       <div class="phase-body">
         <p>Your character's full history is in the Mission Log. Export the JSON to save them, or import a different Traveller to continue work.</p>
@@ -6268,7 +6255,7 @@ function renderDeadStage() {
     <div class="stage-content">
       <div class="death-banner">
         <h2>TRAVELLER EXPIRED</h2>
-        <p>${character.death_reason || 'Unknown cause.'}</p>
+        <p>${escapeHTML(character.death_reason || 'Unknown cause.')}</p>
       </div>
       <p class="phase-body">Welcome to Traveller. Your character died during creation — it happens. RAW allows survival via medical care (spend 1D × Cr10,000 as a medical loan, permanently reduce one physical characteristic by 1). Use the <strong>CHEAT DEATH</strong> button below, or start over.</p>
       <div class="phase-actions">

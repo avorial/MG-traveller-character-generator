@@ -168,8 +168,7 @@ def _apply_event_stat_bonuses(character: "Character", event_text: str) -> list[d
         old = character.characteristics.get(g["stat"])
         new_val = old + g["amount"]
         character.characteristics.set(g["stat"], new_val)
-        sign = "+" if g["amount"] >= 0 else ""
-        character.log(f"  - Event stat bonus: {g['stat']} {old} -> {new_val} ({sign}{g['amount']}).")
+        character.log(f"  - Event stat bonus: {g['stat']} {old} -> {new_val} ({g['amount']:+d}).")
         applied.append({"stat": g["stat"], "amount": g["amount"], "applied": True,
                         "from": old, "to": new_val})
     return applied
@@ -258,6 +257,10 @@ def roll_initial_characteristics(character: Character) -> dict:
 
 _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 
+# Retirement pension table (MgT 2e p.53): terms_served → Cr/year.
+# Terms ≥ 8 pay Cr16,000; terms < 5 pay nothing.
+_PENSION_TABLE: dict[int, int] = {5: 10_000, 6: 12_000, 7: 14_000, 8: 16_000}
+
 
 def test_psionics(character: "Character") -> dict:
     """Roll the Psionic Potential Test (2D 9+) and, on success, generate a Psi score.
@@ -339,7 +342,7 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
         raise ValueError(f"Unknown talent: {talent_id}")
 
     cost = talent.get("cost_cr", 200000)
-    pcs = (character.pre_career_status or {}) if hasattr(character, "pre_career_status") else {}
+    pcs = character.pre_career_status or {}
     if pcs.get("pending_psionic_training"):
         cost = 0
 
@@ -657,7 +660,6 @@ def set_boon_pool(character: Character, count: int) -> dict:
     character.boon_rolls_remaining = count
     character.log(f"Boon-roll pool set to {count}.")
     return {"boon_rolls_total": count, "character": character.model_dump()}
-
 
 
 def swap_characteristics(character: Character, stat_a: str, stat_b: str) -> dict:
@@ -1297,11 +1299,7 @@ def pre_career_qualify(
                     part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
                     if not part:
                         continue
-                    skill_name = part
-                    skill_spec = None
-                    if "(" in part and part.endswith(")"):
-                        skill_name = part[: part.index("(")].strip()
-                        skill_spec = part[part.index("(") + 1 : -1].strip()
+                    skill_name, skill_spec = _split_skill_speciality(part)
                     msg = character.add_skill(skill_name, level=0, speciality=skill_spec)
                     enrollment_applied.append(msg)
                     break
@@ -1649,12 +1647,8 @@ def pre_career_graduate(
                 raise ValueError(
                     f"'{s}' is not in the skill pool for this track."
                 )
-            name = s
-            speciality = None
-            if "(" in s and s.endswith(")"):
-                name = s[: s.index("(")].strip()
-                speciality = s[s.index("(") + 1 : -1].strip()
-            character.add_skill(name, level=1, speciality=speciality)
+            sn, spec = _split_skill_speciality(s)
+            character.add_skill(sn, level=1, speciality=spec)
         picks_remaining -= len(chosen_skills)
 
     # Log graduation result.
@@ -1826,9 +1820,7 @@ def pre_career_graduate(
 
     # Determine the pick level for the first pending round (if any).
     # all_rounds is only defined inside the else block; check if it exists.
-    first_round_level = 1  # classic default (graduation = level 1)
-    if outcome != "fail" and all_rounds:
-        first_round_level = all_rounds[0]["level"] if all_rounds else 1
+    first_round_level = all_rounds[0]["level"] if (outcome != "fail" and all_rounds) else 1
 
     # Set final status. Phase stays pre_career if skill picks are still pending;
     # otherwise advance to career now.
@@ -1912,12 +1904,8 @@ def pre_career_choose_skills(
     for s in chosen_skills:
         if s not in pool:
             raise ValueError(f"'{s}' not in this track's skill pool.")
-        name = s
-        speciality = None
-        if "(" in s and s.endswith(")"):
-            name = s[: s.index("(")].strip()
-            speciality = s[s.index("(") + 1 : -1].strip()
-        character.add_skill(name, level=skill_level, speciality=speciality)
+        sn, spec = _split_skill_speciality(s)
+        character.add_skill(sn, level=skill_level, speciality=spec)
 
     remaining -= len(chosen_skills)
     stage_label = "enrollment" if skill_pick_stage == "enrollment" else "graduation"
@@ -1978,12 +1966,7 @@ def pre_career_grant_any_skill(character: Character, skill_text: str) -> dict:
         raise ValueError("No skill specified.")
     if text == "Jack-of-All-Trades":
         raise ValueError("Jack-of-All-Trades cannot be chosen for this event.")
-    speciality: str | None = None
-    if "(" in text and text.endswith(")"):
-        name = text[: text.index("(")].strip()
-        speciality = text[text.index("(") + 1 : -1].strip()
-    else:
-        name = text
+    name, speciality = _split_skill_speciality(text)
     character.add_skill(name, level=0, speciality=speciality)
     character.log(f"Education event 9: gained {text} 0")
     return {"character": character.model_dump()}
@@ -2008,11 +1991,7 @@ def pre_career_event10_skill(character: Character, skill_text: str) -> dict:
 
     r = dice.roll("2D", target=9)
     if r.succeeded:
-        name = text
-        speciality: str | None = None
-        if "(" in text and text.endswith(")"):
-            name = text[: text.index("(")].strip()
-            speciality = text[text.index("(") + 1 : -1].strip()
+        name, speciality = _split_skill_speciality(text)
         msg = character.add_skill(name, level=1, speciality=speciality)
         character.associates.append(
             Associate(kind="rival", description="Rival [Tutor] — education event 10")
@@ -2073,7 +2052,7 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
         character.phase = "career"
 
     elif choice == "draft":
-        d6 = random.randint(1, 6)
+        d6 = dice.roll("1D").total
         if character.society_id == "solomani_confederation":
             # Solomani draft table:
             # 1=Confederation Navy, 2=Confederation Army, 3=Star Marines,
@@ -2251,7 +2230,8 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
         if use_solomani:
             # Solomani Pride — SOC+1.
             soc = character.characteristics.get("SOC")
-            character.characteristics["SOC"] = min(soc + 1, character.characteristic_max("SOC"))
+            sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+            character.characteristics.set("SOC", min(soc + 1, sp_max))
             auto_applied.append("Solomani Pride: SOC+1")
         else:
             # Crime — player picks: lose a benefit roll OR take Prisoner career.
@@ -2809,14 +2789,9 @@ def start_term(
             if re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$", skill_name):
                 continue
             # Parse optional speciality
-            if "(" in skill_name and skill_name.endswith(")"):
-                sname = skill_name[: skill_name.index("(")].strip()
-                spec = skill_name[skill_name.index("(") + 1: -1].strip()
-                character.add_skill(sname, level=0, speciality=spec)
-                disp = f"{sname} ({spec}) 0"
-            else:
-                character.add_skill(skill_name, level=0)
-                disp = f"{skill_name} 0"
+            sname, spec = _split_skill_speciality(skill_name)
+            character.add_skill(sname, level=0, speciality=spec)
+            disp = f"{sname}{f' ({spec})' if spec else ''} 0"
             basic_training_skills.append(disp)
         if basic_training_skills:
             term.skills_gained.extend([f"Basic training: {s}" for s in basic_training_skills])
@@ -4499,7 +4474,6 @@ def resolve_injury_payment(character: "Character", pay: bool) -> dict:
     }
 
 
-
 def end_term(character: Character, leaving: bool = False, reason: str = "voluntary") -> dict:
     """Close out the current term — apply aging if needed, commit the term record."""
     term = character.current_term
@@ -4577,16 +4551,9 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         # Retirement pension (MgT 2e p.53) — recalculate each time a career
         # ends so the final value reflects total terms served so far.
         # Pension is paid annually (Cr/yr) after the character retires.
-        _PENSION_TABLE = {5: 10_000, 6: 12_000, 7: 14_000}
         old_pension = character.pension_per_year
-        if character.total_terms >= 8:
-            character.pension_per_year = 16_000
-        elif character.total_terms in _PENSION_TABLE:
-            character.pension_per_year = _PENSION_TABLE[character.total_terms]
-        elif character.total_terms >= 5:
-            character.pension_per_year = 10_000
-        else:
-            character.pension_per_year = 0
+        terms_capped = min(character.total_terms, 8)  # 8+ all receive Cr16,000
+        character.pension_per_year = _PENSION_TABLE.get(terms_capped, 0)
         pension_note = ""
         if character.pension_per_year > 0 and character.pension_per_year != old_pension:
             pension_note = (
@@ -4997,13 +4964,7 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         level = int(m_level.group(1))
         text = text[: m_level.start()].strip()
 
-    speciality: str | None = None
-    if "(" in text and text.endswith(")"):
-        name = text[: text.index("(")].strip()
-        speciality = text[text.index("(") + 1: -1].strip()
-    else:
-        name = text
-
+    name, speciality = _split_skill_speciality(text)
     applied_msg = character.add_skill(name, level=level, speciality=speciality)
     disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     return f"Rank bonus applied: {disp} ({applied_msg})"
@@ -5108,16 +5069,11 @@ def _apply_skill_result(character: Character, result: str) -> str:
         character.add_skill(first, level=1)
         return f"Gained {first} 1 (from choice: {stripped})"
 
-    # Skill with speciality: "Melee (blade)", "Pilot (small craft)"
-    if "(" in stripped and ")" in stripped:
-        name = stripped.split("(")[0].strip()
-        spec = stripped.split("(")[1].rstrip(")")
-        character.add_skill(name, level=1, speciality=spec)
-        return f"Gained {name} ({spec}) 1"
-
-    # Plain skill name
-    character.add_skill(stripped, level=1)
-    return f"Gained {stripped} 1"
+    # Skill with optional speciality: "Melee (blade)", "Pilot (small craft)", "Recon"
+    name, spec = _split_skill_speciality(stripped)
+    character.add_skill(name, level=1, speciality=spec)
+    display = f"{name} ({spec})" if spec else name
+    return f"Gained {display} 1"
 
 
 def grant_event_skill(character: Character, skill_text: str) -> dict:
@@ -5143,14 +5099,7 @@ def grant_event_skill(character: Character, skill_text: str) -> dict:
         level = int(m.group(1))
         text = text[: m.start()].strip()
 
-    # Optional speciality in parens: "Tactics (military)"
-    speciality: str | None = None
-    if "(" in text and text.endswith(")"):
-        name = text[: text.index("(")].strip()
-        speciality = text[text.index("(") + 1 : -1].strip()
-    else:
-        name = text
-
+    name, speciality = _split_skill_speciality(text)
     applied_msg = character.add_skill(name, level=level, speciality=speciality)
     display = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     term.skills_gained.append(f"Event choice: {display}")
@@ -5410,16 +5359,13 @@ def generate_npc() -> dict:
     char.log(f"NPC: Selected {career['name']} / {assignment_id}")
 
     # ── Basic training: all service skills at level 0
+    # Grant all service skills at level 0 (basic training).
     service_table = career.get("skill_tables", {}).get("service_skills", {})
     for i in range(1, 7):
-        sk = service_table.get(str(i), "")
-        if sk:
-            _apply_skill_result(char, sk.split(" ")[0] if "+" not in sk else "")
-    # More reliable: just add service skills at 0
-    for i in range(1, 7):
-        sk = service_table.get(str(i), "")
-        if sk and "+" not in sk:
-            char.add_skill(sk.split("(")[0].strip(), level=0)
+        sk = service_table.get(str(i), "").split(" or ")[0].strip()
+        if sk and not re.match(r"^(STR|DEX|END|INT|EDU|SOC)\s*[+-]", sk):
+            sn, spec = _split_skill_speciality(sk)
+            char.add_skill(sn, level=0, speciality=spec)
 
     # ── Run terms
     num_terms = random.randint(2, 4)
@@ -5583,19 +5529,13 @@ def apply_skill_package(character: Character, package_id: str) -> dict:
     applied: list[str] = []
     for skill_str in package.get("skills", []):
         text = skill_str.strip()
-        # Extract trailing level number
+        # Extract trailing level number (default 1 for packages)
         level = 1
         m = re.search(r"\s+(\d+)\s*$", text)
         if m:
             level = int(m.group(1))
             text = text[: m.start()].strip()
-        # Extract optional speciality
-        speciality: str | None = None
-        if "(" in text and text.endswith(")"):
-            name = text[: text.index("(")].strip()
-            speciality = text[text.index("(") + 1: -1].strip()
-        else:
-            name = text
+        name, speciality = _split_skill_speciality(text)
         msg = character.add_skill(name, level=level, speciality=speciality)
         disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
         applied.append(disp)

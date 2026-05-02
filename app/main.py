@@ -93,6 +93,29 @@ class ResolveAgingAction(CharacterAction):
     reductions: list[dict]  # [{"stat": "STR", "amount": 1}, ...]
 
 
+class InjuryPaymentAction(CharacterAction):
+    pay: bool  # True = pay medical debt (stat stays); False = take stat loss (no debt)
+
+
+class AnagathicsInterestAction(CharacterAction):
+    interest: str  # "yes" | "no"
+
+
+class HomeForceAction(BaseModel):
+    """Enroll in or resign from Home Forces Reserves.
+
+    Uses plain BaseModel (not CharacterAction) because gm_rolls are
+    irrelevant for administrative enroll/leave actions.
+    """
+    character: Character
+    action: str  # "enroll" | "leave"
+    career_id: Optional[str] = None  # passed when enrolling before start_term
+
+
+class MonitorAction(BaseModel):
+    """Toggle SolSec Monitor status — no dice involved, no gm_rolls needed."""
+    character: Character
+    active: bool
 
 
 
@@ -432,10 +455,6 @@ async def api_injury_choice(action: InjuryChoiceAction):
         raise HTTPException(400, str(e))
 
 
-class InjuryPaymentAction(CharacterAction):
-    pay: bool  # True = pay medical debt (stat stays); False = take stat loss (no debt)
-
-
 @app.post("/api/character/injury-payment")
 async def api_injury_payment(action: InjuryPaymentAction):
     """Apply the treatment decision after injury-choice: pay=True keeps stats, pay=False takes loss."""
@@ -444,6 +463,8 @@ async def api_injury_payment(action: InjuryPaymentAction):
         return lifepath.resolve_injury_payment(character, action.pay)
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
 
 
 @app.post("/api/character/pre-career/event")
@@ -656,10 +677,6 @@ async def api_muster_out(action: MusterOutAction):
         raise HTTPException(400, str(e))
 
 
-class AnagathicsInterestAction(CharacterAction):
-    interest: str  # "yes" | "no"
-
-
 @app.post("/api/character/anagathics/interest")
 async def api_anagathics_interest(action: AnagathicsInterestAction):
     """Set the player's one-time anagathics preference: 'yes' (prompt each term) or 'no' (never prompt)."""
@@ -697,14 +714,8 @@ async def api_anagathics_legacy(action: CharacterAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.attempt_anagathics(character)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-
-
-class HomeForceAction(BaseModel):
-    character: Character
-    action: str  # "enroll" | "leave"
-    career_id: Optional[str] = None  # passed when enrolling before start_term
+    except Exception as e:
+        raise HTTPException(400, f"{type(e).__name__}: {e}")
 
 
 @app.post("/api/character/home-forces")
@@ -720,11 +731,6 @@ async def api_home_forces(action: HomeForceAction):
             raise HTTPException(400, f"Unknown action: {action.action!r}")
     except ValueError as e:
         raise HTTPException(400, str(e))
-
-
-class MonitorAction(BaseModel):
-    character: Character
-    active: bool
 
 
 @app.post("/api/character/solsec-monitor")

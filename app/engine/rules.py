@@ -233,7 +233,7 @@ def list_careers() -> list[dict]:
 
 def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
-    for fn in (species, careers, background_skills, life_events, solomani_life_events,
-               injury_table, aging_table, mustering_benefits, education,
-               psionics, societies):
+    for fn in (species, careers, background_skills, skill_packages, life_events,
+               solomani_life_events, injury_table, aging_table, mustering_benefits,
+               education, psionics, skills, societies):
         fn.cache_clear()
