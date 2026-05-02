@@ -6080,17 +6080,17 @@ function renderDonePhase() {
       </div>
 
       <div class="done-card">
-        <h3 class="done-card-title">Capsule Description</h3>
-        <p class="empty" style="margin-bottom:10px">A one-paragraph elevator pitch built from your stats, careers, and skills.</p>
+        <h3 class="done-card-title">Career Narrative</h3>
+        <p class="empty" style="margin-bottom:10px">A full narrative record of your Traveller's career history — what they did each term, what happened, and what they returned with.</p>
         ${uiState.lastCapsule ? `
-          <blockquote class="capsule-box">${escapeHTML(uiState.lastCapsule)}</blockquote>
+          <div class="capsule-box">${uiState.lastCapsule.split('\n\n').map(p => `<p style="margin:0 0 0.75em">${escapeHTML(p)}</p>`).join('')}</div>
           <div class="phase-actions" style="gap:6px;margin-top:6px">
             <button class="btn ghost" id="btn-regen-capsule">REGENERATE</button>
-            <button class="btn ghost" id="btn-copy-capsule">COPY</button>
+            <button class="btn ghost" id="btn-copy-capsule">COPY TEXT</button>
           </div>
         ` : `
           <div class="phase-actions">
-            <button class="btn" id="btn-gen-capsule">GENERATE CAPSULE</button>
+            <button class="btn" id="btn-gen-capsule">GENERATE NARRATIVE</button>
           </div>
         `}
       </div>

@@ -386,95 +386,195 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
     }
 
 
-def generate_capsule(character: Character) -> dict:
-    """Produce a capsule (one-paragraph) description of the character.
+def _cap_ordinal(n: int) -> str:
+    """Return ordinal string: 1 → '1st', 2 → '2nd', etc."""
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    suffix = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"]
+    return f"{n}{suffix[n % 10]}"
 
-    Deterministic-ish summary: species, age, total terms, top career,
-    top three skills, ship-share bragging rights. Used in the final
-    phase to give the player a copy-pasteable elevator pitch.
+
+def _cap_term_ages(overall_term: int, starting_age: int = 18) -> str:
+    """Return 'age 18–22' for term 1, 'age 22–26' for term 2, etc."""
+    start = starting_age + (overall_term - 1) * 4
+    return f"age {start}–{start + 4}"
+
+
+def _cap_article(word: str) -> str:
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+
+def _cap_join(items: list) -> str:
+    """Oxford-comma join."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def generate_capsule(character: Character) -> dict:
+    """Produce a multi-paragraph narrative description of the character.
+
+    Compiles the full mission log: what they did each term, what happened
+    (events, mishaps), and what they returned with as muster-out effects.
+    Returned as plain text with double-newline paragraph breaks so the UI
+    can split on \\n\\n and render as <p> tags.
     """
     species_data = rules.species().get(character.species_id, {"name": character.species_id})
     species_name = species_data.get("name", character.species_id)
+    name = character.name or "An unnamed Traveller"
+    paragraphs: list[str] = []
 
-    # Dominant career (most terms served)
-    careers_sorted = sorted(
-        character.completed_careers,
-        key=lambda c: c.terms_served,
-        reverse=True,
-    )
-    career_clause = ""
-    if careers_sorted:
-        top = careers_sorted[0]
-        career_def = rules.careers().get(top.career_id, {})
-        asgn = career_def.get("assignments", {}).get(top.assignment_id, {})
-        rank_title = top.final_rank_title or (f"rank {top.final_rank}" if top.final_rank else None)
-        career_clause = (
-            f" spent {top.terms_served} term{'s' if top.terms_served != 1 else ''} as a "
-            f"{(rank_title + ' ') if rank_title else ''}"
-            f"{asgn.get('name', top.assignment_id).lower()} in the "
-            f"{career_def.get('name', top.career_id)}"
-        )
-        if len(careers_sorted) > 1:
-            career_clause += f", with {len(careers_sorted) - 1} other career{'s' if len(careers_sorted) != 2 else ''} along the way"
-
-    # Top skills (level desc, then specialities)
-    skills_sorted = sorted(
-        character.skills, key=lambda s: (s.level, s.name), reverse=True
-    )
-    top_skills = [
-        (f"{s.name} ({s.speciality})" if s.speciality else s.name) + f" {s.level}"
-        for s in skills_sorted[:3]
-        if s.level > 0
-    ]
-    skills_clause = ""
-    if top_skills:
-        skills_clause = f" Best known for {', '.join(top_skills)}."
-
-    # Signature stats
-    stats = character.characteristics
-    notable_stat = max(
-        ("STR", "DEX", "END", "INT", "EDU", "SOC"),
-        key=lambda s: stats.get(s),
-    )
-    notable_val = stats.get(notable_stat)
-    stat_label = {
-        "STR": "imposing physical presence",
-        "DEX": "preternatural reflexes",
-        "END": "gruelling stamina",
-        "INT": "sharp mind",
-        "EDU": "broad education",
-        "SOC": "impressive social standing",
-    }.get(notable_stat, notable_stat)
-    stat_clause = f" Notable for their {stat_label} ({notable_stat} {notable_val})."
-
-    # Wealth / ship shares
-    extras = []
-    if character.credits >= 50000:
-        extras.append(f"{character.credits:,} credits to their name")
-    if character.ship_shares:
-        extras.append(f"{character.ship_shares} ship share{'s' if character.ship_shares != 1 else ''}")
-    if character.medical_debt:
-        extras.append(f"Cr{character.medical_debt:,} in outstanding medical debt")
-    if character.anagathics_addicted:
-        extras.append("dependent on anagathic treatments")
-    extras_clause = ""
-    if extras:
-        extras_clause = f" They carry {', and '.join(extras)}."
-
+    # ── Opening paragraph ──────────────────────────────────────────────────
     homeworld_clause = ""
     if character.homeworld:
         uwp = f" ({character.homeworld_uwp})" if character.homeworld_uwp else ""
-        homeworld_clause = f" born on {character.homeworld}{uwp},"
+        homeworld_clause = f", originally from {character.homeworld}{uwp},"
 
-    name = character.name or "An unnamed Traveller"
+    terms = character.total_terms
+    years = terms * 4
 
-    capsule = (
-        f"{name} is a {character.age}-year-old {species_name}"
-        f"{homeworld_clause} who"
-        f"{career_clause or ' drifted through known space without a steady career'}."
-        f"{skills_clause}{stat_clause}{extras_clause}"
+    unique_career_names: list[str] = []
+    seen: set[str] = set()
+    for cc in character.completed_careers:
+        cd = rules.careers().get(cc.career_id, {})
+        cn = cd.get("name", cc.career_id)
+        if cn not in seen:
+            unique_career_names.append(cn)
+            seen.add(cn)
+
+    if unique_career_names:
+        if len(unique_career_names) == 1:
+            career_summary = f"a career in the {unique_career_names[0]}"
+        else:
+            career_summary = (
+                "careers spanning the "
+                + _cap_join([f"{n}" for n in unique_career_names])
+            )
+    else:
+        career_summary = "a life adrift among the stars"
+
+    paragraphs.append(
+        f"{name} is a {character.age}-year-old {species_name}{homeworld_clause} "
+        f"who spent {terms} term{'s' if terms != 1 else ''} "
+        f"({years} years) building {career_summary}."
     )
 
+    # ── Per-term career narrative ──────────────────────────────────────────
+    for term in character.term_history:
+        career_def = rules.careers().get(term.career_id, {})
+        career_name = career_def.get("name", term.career_id)
+        asgn = career_def.get("assignments", {}).get(term.assignment_id, {})
+        asgn_name = asgn.get("name", term.assignment_id)
+
+        age_range = _cap_term_ages(term.overall_term_number)
+
+        rank_clause = ""
+        if term.rank_title:
+            rank_clause = (
+                f" serving as {_cap_article(term.rank_title)} {term.rank_title}"
+            )
+        elif term.rank:
+            rank_clause = f" at rank {term.rank}"
+
+        commissioned_clause = ""
+        if term.commissioned and term.term_number == 1:
+            commissioned_clause = " They received a commission."
+
+        frozen_clause = " (This term was spent in cryogenic suspension.)" if term.frozen_watch else ""
+
+        header = (
+            f"Term {term.overall_term_number} ({age_range}) — "
+            f"{career_name}: {asgn_name}{rank_clause}.{commissioned_clause}{frozen_clause}"
+        )
+
+        body_parts: list[str] = []
+
+        # Events
+        for evt in (term.events or []):
+            evt = evt.strip()
+            if evt:
+                body_parts.append(evt)
+
+        # Skills gained
+        if term.skills_gained:
+            sg = term.skills_gained
+            if len(sg) == 1:
+                body_parts.append(f"Gained {sg[0]}.")
+            else:
+                body_parts.append(f"Gained {_cap_join(sg)}.")
+
+        # Mishap
+        if term.mishap:
+            body_parts.append(f"Mishap: {term.mishap.strip()}")
+
+        if body_parts:
+            term_text = header + " " + " ".join(body_parts)
+        else:
+            term_text = header
+
+        paragraphs.append(term_text)
+
+    # ── Muster-out paragraph ──────────────────────────────────────────────
+    muster_parts: list[str] = []
+    if character.credits:
+        muster_parts.append(f"Cr{character.credits:,} in credits")
+    if character.ship_shares:
+        ss = character.ship_shares
+        muster_parts.append(f"{ss} ship share{'s' if ss != 1 else ''}")
+    if character.equipment:
+        eq_names = [e.name for e in character.equipment[:6]]
+        muster_parts.append("equipment including " + _cap_join(eq_names))
+    if character.pension_per_year:
+        muster_parts.append(f"a pension of Cr{character.pension_per_year:,}/year")
+    if character.medical_debt:
+        muster_parts.append(f"Cr{character.medical_debt:,} in outstanding medical debt")
+    if character.anagathics_addicted:
+        muster_parts.append("a dependency on anagathic treatments")
+
+    ally_count = sum(1 for a in character.associates if a.kind == "ally")
+    contact_count = sum(1 for a in character.associates if a.kind == "contact")
+    rival_count = sum(1 for a in character.associates if a.kind == "rival")
+    enemy_count = sum(1 for a in character.associates if a.kind == "enemy")
+
+    assoc_parts: list[str] = []
+    if ally_count:
+        assoc_parts.append(f"{ally_count} {'ally' if ally_count == 1 else 'allies'}")
+    if contact_count:
+        assoc_parts.append(f"{contact_count} {'contact' if contact_count == 1 else 'contacts'}")
+    if rival_count:
+        assoc_parts.append(f"{rival_count} {'rival' if rival_count == 1 else 'rivals'}")
+    if enemy_count:
+        assoc_parts.append(f"{enemy_count} {'enemy' if enemy_count == 1 else 'enemies'}")
+
+    muster_sentence = ""
+    if muster_parts:
+        muster_sentence = f"Mustering out, {name} carries {_cap_join(muster_parts)}."
+    else:
+        muster_sentence = f"{name} mustered out with little to show in material terms."
+
+    assoc_sentence = ""
+    if assoc_parts:
+        assoc_sentence = f" Along the way they accumulated {_cap_join(assoc_parts)}."
+
+    paragraphs.append(muster_sentence + assoc_sentence)
+
+    # ── Skills paragraph ──────────────────────────────────────────────────
+    skills_sorted = sorted(
+        character.skills, key=lambda s: (s.level, s.name), reverse=True
+    )
+    notable = [
+        (f"{s.name} ({s.speciality})" if s.speciality else s.name) + f" {s.level}"
+        for s in skills_sorted[:6]
+        if s.level > 0
+    ]
+    if notable:
+        paragraphs.append(f"Notable skills upon retirement: {', '.join(notable)}.")
+
+    capsule = "\n\n".join(paragraphs)
     return {"capsule": capsule, "length": len(capsule), "character": character.model_dump()}
 
 
