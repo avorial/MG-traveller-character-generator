@@ -2250,7 +2250,7 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
     elif total == 11:
         if use_solomani:
             # Solomani Pride — SOC+1.
-            soc = character.characteristics.get("SOC", 7)
+            soc = character.characteristics.get("SOC")
             character.characteristics["SOC"] = min(soc + 1, character.characteristic_max("SOC"))
             auto_applied.append("Solomani Pride: SOC+1")
         else:
@@ -3803,7 +3803,7 @@ def attempt_anagathics(character: "Character") -> dict:
     # handles the START-of-term check for both new and continuing users.
     already_active = character.anagathics_active
 
-    soc = character.characteristics.get("SOC", 0)
+    soc = character.characteristics.get("SOC")
     dm = dice.characteristic_dm(soc)
     r = dice.roll("2D", modifier=dm, target=10)
 
