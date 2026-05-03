@@ -3469,13 +3469,11 @@ function wireCareerPhase() {
       try {
         const resp = await apiCall('/api/character/anagathics/attempt', {});
         await applyResponse(resp);
-        uiState.lastRoll = {
-          type: 'anagathics_roll',
-          data: resp.roll,
-          succeeded: resp.succeeded,
-          nat2Prison: resp.nat2_prison,
-          costThisTerm: resp.cost_this_term,
-        };
+        // already_active = auto-continue (no dice); otherwise first-access SOC roll
+        uiState.lastRoll = resp.already_active
+          ? { type: 'anagathics_continue', costThisTerm: resp.cost_this_term }
+          : { type: 'anagathics_roll', data: resp.roll, succeeded: resp.succeeded,
+              nat2Prison: resp.nat2_prison, costThisTerm: resp.cost_this_term };
         renderStage();
       } catch (e) { alert(e.message); }
     });
@@ -4154,12 +4152,13 @@ function renderAnagathicsIntroScreen() {
         Each term you can roll <strong>SOC 10+</strong> to secure a supply.
       </p>
       <ul class="phase-body" style="margin:8px 0 12px 1.2em;color:var(--text-dim);font-size:13px">
-        <li>✓ <strong>Success:</strong> Aging roll gets +terms DM (effectively halts aging).</li>
-        <li>✗ <strong>Fail:</strong> No supply — normal aging applies this term.</li>
+        <li>🎲 <strong>One-time roll:</strong> Roll SOC 10+ once to establish supply. No re-roll needed after that.</li>
+        <li>✓ <strong>Success:</strong> Supply established — aging roll gets +terms DM each term going forward.</li>
+        <li>✗ <strong>Fail:</strong> No supply this term — try again next term.</li>
         <li>⚠ <strong>Natural 2:</strong> Must take Prisoner career immediately.</li>
-        <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either = Mishap.</li>
-        <li>💰 <strong>Cost:</strong> 1D × Cr25,000 per term (medical debt if broke).</li>
-        <li>🔒 <strong>Aging lock:</strong> Your effective age locks the moment you start — the earlier you begin, the bigger the eventual bonus.</li>
+        <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either failing = Mishap.</li>
+        <li>💰 <strong>Cost:</strong> 1D × Cr25,000 per term added to medical debt (paid at muster-out).</li>
+        <li>🔒 <strong>Start early:</strong> The earlier you begin, the bigger the aging roll bonus.</li>
       </ul>
       <p class="phase-body">Your SOC is <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
       <p class="phase-body" style="color:var(--text-dim);font-size:12px">
@@ -4184,18 +4183,18 @@ function renderAnagathicsPrompt() {
   const already = character.anagathics_active;
   const termsUsed = character.anagathics_terms_used ?? 0;
 
-  // Post-roll view — show result of the SOC attempt
+  // Post-roll view — show result of the initial SOC 10+ access attempt
   if (lr?.type === 'anagathics_roll') {
     const nat2 = lr.nat2Prison;
     const pass = lr.succeeded;
     const cost = lr.costThisTerm;
     return `
       <div class="stage-content">
-        <div class="phase-label">Anagathics — SOC 10+ Roll</div>
+        <div class="phase-label">Anagathics — First Access Roll (SOC 10+)</div>
         <h2 class="phase-title" style="color:${nat2 ? 'var(--danger)' : pass ? 'var(--success,#7fd87f)' : 'var(--text-dim)'}">
-          ${nat2 ? 'NATURAL 2 — PRISONER' : pass ? 'Supply Secured' : 'Unable to Obtain'}
+          ${nat2 ? 'NATURAL 2 — PRISONER' : pass ? 'Supply Established' : 'Unable to Obtain'}
         </h2>
-        ${rollReadoutHTML(lr.data, { label: `SOC 10+ (your DM ${formatDM(dm)})` })}
+        ${lr.data ? rollReadoutHTML(lr.data, { label: `SOC 10+ (your DM ${formatDM(dm)})` }) : ''}
         ${nat2 ? `
           <div class="event-box" style="border-color:var(--danger);margin-top:12px">
             <span class="event-label" style="color:var(--danger)">FORCED INTO PRISONER CAREER</span>
@@ -4203,18 +4202,38 @@ function renderAnagathicsPrompt() {
           </div>` : pass ? `
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
             <span class="event-label" style="color:var(--success,#7fd87f)">ANAGATHICS ACTIVE</span>
-            Treatment secured. You will need to make two survival checks this term.
-            Cost: Cr${cost.toLocaleString()} (1D×Cr25,000 = ${cost/25000}×Cr25,000). Paid at end of term.
-            ${termsUsed + 1 > 0 ? `<br>Aging roll bonus: +${termsUsed + 1} DM (terms on anagathics).` : ''}
+            Supply established — no re-roll needed in future terms.
+            Cost Cr${cost.toLocaleString()} added to medical debt (paid at muster-out).
+            <br><strong>Penalty this term:</strong> Two survival checks — either failing = Mishap.
           </div>` : `
           <div class="event-box" style="margin-top:12px">
             <span class="event-label">SUPPLY UNAVAILABLE</span>
-            You failed to secure a supply of anagathics this term. Aging applies normally.
+            Unable to establish a supply this term. You may try again next term.
           </div>`}
         <div class="phase-actions" style="margin-top:16px">
           <button class="btn primary" id="btn-anagathics-continue-survive">
             ${nat2 ? 'PROCEED TO PRISONER CAREER →' : 'CONTINUE →'}
           </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Post-auto-continue view — already active, cost added, no dice rolled
+  if (lr?.type === 'anagathics_continue') {
+    const cost = lr.costThisTerm;
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Anagathics — Continuing</div>
+        <h2 class="phase-title" style="color:var(--success,#7fd87f)">Treatment Continues</h2>
+        <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+          <span class="event-label" style="color:var(--success,#7fd87f)">SUPPLY ON HAND</span>
+          Cr${cost.toLocaleString()} (1D=${cost/25000}×Cr25,000) added to medical debt.
+          Aging roll bonus: +${termsUsed} DM (terms on anagathics so far).
+          <br><strong>Penalty this term:</strong> Two survival checks — either failing = Mishap.
+        </div>
+        <div class="phase-actions" style="margin-top:16px">
+          <button class="btn primary" id="btn-anagathics-continue-survive">CONTINUE →</button>
         </div>
       </div>
     `;
@@ -4245,40 +4264,45 @@ function renderAnagathicsPrompt() {
     `;
   }
 
-  // Default view — offer anagathics or continue
+  // ── Default prompt view ────────────────────────────────────────────────────
+  // Already active: no roll needed — offer to continue (auto) or stop
+  if (already) {
+    return `
+      <div class="stage-content">
+        <div class="phase-label">Before Career Selection · Term ${character.total_terms + 1}</div>
+        <h2 class="phase-title">Anagathics: Continue or Stop?</h2>
+        <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+          <span class="event-label" style="color:var(--success,#7fd87f)">SUPPLY ESTABLISHED</span>
+          ${termsUsed} term${termsUsed !== 1 ? 's' : ''} on anagathics. Aging roll bonus: +${termsUsed} DM.
+          <br>Continuing will add 1D × Cr25,000 to medical debt and require two survival checks this term.
+        </div>
+        <p class="phase-body" style="margin-top:12px">No SOC roll needed — your supply chain is established. Stopping triggers an immediate aging roll.</p>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn primary" id="btn-anagathics-attempt">CONTINUE ANAGATHICS →</button>
+          <button class="btn danger" id="btn-anagathics-stop">STOP (aging roll now)</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Not yet active: offer the initial SOC 10+ roll
   return `
     <div class="stage-content">
       <div class="phase-label">Before Career Selection · Term ${character.total_terms + 1}</div>
-      <h2 class="phase-title">${already ? 'Continue Anagathics?' : 'Obtain Anagathics?'}</h2>
-
-      ${already ? `
-        <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
-          <span class="event-label" style="color:var(--success,#7fd87f)">CURRENTLY ON ANAGATHICS</span>
-          You have been on anagathics for ${termsUsed} term${termsUsed !== 1 ? 's' : ''}.
-          Aging roll bonus: +${termsUsed} DM. Cost this term: 1D × Cr25,000 (rolled at end of term).
-          <br><strong>Penalty:</strong> Two survival checks required — either failing = Mishap.
-        </div>
-        <p class="phase-body" style="margin-top:12px">You can continue or voluntarily stop. Stopping triggers an immediate aging roll.</p>
-        <div class="phase-actions" style="margin-top:12px">
-          <button class="btn primary" id="btn-anagathics-attempt">CONTINUE ANAGATHICS (roll SOC 10+)</button>
-          <button class="btn danger" id="btn-anagathics-stop">STOP ANAGATHICS (aging roll now)</button>
-          <button class="btn ghost" id="btn-anagathics-skip">SKIP →</button>
-        </div>
-      ` : `
-        <p class="phase-body">Roll SOC 10+ to obtain a supply of anagathic drugs for this term.</p>
-        <ul class="phase-body" style="margin:8px 0 12px 1.2em;color:var(--text-dim);font-size:13px">
-          <li>✓ <strong>Success:</strong> Aging roll gets +terms DM (effectively halts aging).</li>
-          <li>✗ <strong>Fail:</strong> No supply — normal aging applies this term.</li>
-          <li>⚠ <strong>Natural 2:</strong> Must take Prisoner career immediately.</li>
-          <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either failing = Mishap.</li>
-          <li>💰 <strong>Cost:</strong> 1D × Cr25,000 (paid at end of term; goes to medical debt if broke).</li>
-        </ul>
-        <p class="phase-body">Your SOC: <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-anagathics-attempt">ROLL SOC 10+ FOR ANAGATHICS</button>
-          <button class="btn ghost" id="btn-anagathics-skip">DECLINE →</button>
-        </div>
-      `}
+      <h2 class="phase-title">Obtain Anagathics?</h2>
+      <p class="phase-body">Roll SOC 10+ to establish a supply of anagathic drugs. You only roll once — if successful, supply continues automatically in future terms.</p>
+      <ul class="phase-body" style="margin:8px 0 12px 1.2em;color:var(--text-dim);font-size:13px">
+        <li>✓ <strong>Success:</strong> Supply established. Aging roll gets +terms DM each term.</li>
+        <li>✗ <strong>Fail:</strong> No supply this term — try again next term.</li>
+        <li>⚠ <strong>Natural 2:</strong> Must take Prisoner career immediately.</li>
+        <li>⚠ <strong>Active penalty:</strong> Two survival checks per term; either failing = Mishap.</li>
+        <li>💰 <strong>Cost:</strong> 1D × Cr25,000 per term added to medical debt (paid at muster-out).</li>
+      </ul>
+      <p class="phase-body">Your SOC: <strong>${soc}</strong> (DM ${formatDM(dm)}), need 10+ on 2D.</p>
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-anagathics-attempt">ROLL SOC 10+ FOR ANAGATHICS</button>
+        <button class="btn ghost" id="btn-anagathics-skip">DECLINE →</button>
+      </div>
     </div>
   `;
 }

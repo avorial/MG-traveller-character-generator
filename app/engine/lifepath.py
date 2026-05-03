@@ -3753,43 +3753,70 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
 # ============================================================
 #
 # RAW rules (MG2e p.47):
-#   • At the START of any career term: roll SOC 10+ to obtain supply.
-#     Natural 2 on the SOC roll → must take Prisoner career this term.
+#   • First access: roll SOC 10+ to establish a supply.
+#     Natural 2 on this roll → must take Prisoner career this term.
+#     Failure → cannot access this term; try again next term.
+#   • Once active: supply continues automatically (no re-roll each term).
 #   • While active: add anagathics_terms_used as a POSITIVE DM to aging rolls.
-#   • Two survival checks required each term; if either fails → Mishap.
-#   • Cost: 1D × Cr25,000 per term, paid from cash benefits (else medical debt).
+#   • Two survival checks required each term; either failing → Mishap.
+#     (The two checks represent the risk of acquiring the drugs mid-career.)
+#   • Cost: 1D × Cr25,000 per term → added to medical debt each term,
+#     paid out of the character's eventual muster-out cash benefits.
 #   • Stopping: immediately roll on the Aging table.
 
 
 def attempt_anagathics(character: "Character") -> dict:
-    """Roll SOC 10+ to access anagathics at the start of a career term.
+    """Obtain or continue anagathics at the start of a career term.
 
-    May be called when character.total_terms >= 3 (i.e. this term would be
-    the 4th or later, when aging kicks in).
+    RAW (MgT 2e p.47):
+      • SOC 10+ is only rolled the FIRST time a character seeks anagathics.
+        Once the supply chain is established it continues automatically.
+      • Natural 2 on the initial access roll → forced into Prisoner career.
+      • Cost: 1D × Cr25,000 per term, added to medical debt each term
+        (paid out of eventual muster-out cash benefits).
+      • Active penalty: two survival checks per term; either failing = Mishap.
 
     Returns:
-        roll          – the SOC roll result
-        succeeded     – True if SOC 10+ passed
-        nat2_prison   – True if natural 2 was rolled (forced into Prisoner)
-        already_active– True if anagathics were already active (auto-continue)
+        roll          – the SOC roll result (None if already active; no roll needed)
+        succeeded     – True if active (either auto-continued or newly passed)
+        nat2_prison   – True if natural 2 was rolled (first access only)
+        already_active– True when no roll was needed (continuing use)
         cost_this_term– Cr cost rolled for this term (0 if failed/nat2)
         character     – updated character dict
     """
     if character.phase != "career":
         raise ValueError("Anagathics can only be attempted during the career phase.")
 
-    # If already active this term can be continued automatically — this call
-    # handles the START-of-term check for both new and continuing users.
     already_active = character.anagathics_active
 
+    # ── Already active: no SOC re-roll — supply is established ──────────────
+    if already_active:
+        cost_die = dice.roll("1D")
+        cost_this_term = cost_die.total * 25_000
+        character.anagathics_pending_cost += cost_this_term
+        character.log(
+            f"Anagathics continuing (supply established). "
+            f"Cost this term: Cr{cost_this_term:,} (1D={cost_die.total} × Cr25,000) "
+            "added to medical debt (paid at muster-out)."
+        )
+        return {
+            "roll": None,
+            "succeeded": True,
+            "nat2_prison": False,
+            "already_active": True,
+            "cost_this_term": cost_this_term,
+            "character": character.model_dump(),
+        }
+
+    # ── First access: roll SOC 10+ ───────────────────────────────────────────
     soc = character.characteristics.get("SOC")
     dm = dice.characteristic_dm(soc)
     r = dice.roll("2D", modifier=dm, target=10)
 
     nat2_prison = r.raw_total == 2
-    succeeded = r.succeeded and not nat2_prison
-
+    succeeded = bool(r.succeeded) and not nat2_prison
     cost_this_term = 0
+
     if nat2_prison:
         # Natural 2 → immediately forced into Prisoner career this term.
         character.forced_next_career_id = "prisoner"
@@ -3799,18 +3826,16 @@ def attempt_anagathics(character: "Character") -> dict:
             "NATURAL 2 — must take Prisoner career this term!"
         )
     elif succeeded:
-        # Roll cost: 1D × Cr25,000; paid at end of term (medical debt if broke).
         cost_die = dice.roll("1D")
-        cost_this_term = cost_die.total * 25000
+        cost_this_term = cost_die.total * 25_000
         character.anagathics_active = True
         character.anagathics_pending_cost += cost_this_term
         character.log(
             f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: SUCCESS. "
-            f"Treatment secured. Cost this term: Cr{cost_this_term:,} "
-            f"(1D={cost_die.total} × Cr25,000). Paid at end of term."
+            f"Supply established. Cost this term: Cr{cost_this_term:,} "
+            f"(1D={cost_die.total} × Cr25,000) added to medical debt."
         )
     else:
-        # Failed roll — cannot obtain supply this term.
         character.anagathics_active = False
         character.log(
             f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: FAILED "
@@ -3821,7 +3846,7 @@ def attempt_anagathics(character: "Character") -> dict:
         "roll": r.to_dict(),
         "succeeded": succeeded,
         "nat2_prison": nat2_prison,
-        "already_active": already_active,
+        "already_active": False,
         "cost_this_term": cost_this_term,
         "character": character.model_dump(),
     }
@@ -4497,24 +4522,16 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     _aging_starts_term = int(_sp_aging_data.get("aging_starts_term", 4))
     if character.total_terms >= _aging_starts_term:
         # ── Anagathics cost settlement (RAW: 1D×Cr25,000 per term) ────────
+        # Costs accrue as medical debt — paid out of eventual muster-out cash.
         if character.anagathics_active and character.anagathics_pending_cost > 0:
             cost = character.anagathics_pending_cost
             character.anagathics_pending_cost = 0
-            if character.credits >= cost:
-                character.credits -= cost
-                anagathics_cost_paid = cost
-                character.log(f"Anagathics cost: Cr{cost:,} paid from credits.")
-            else:
-                paid = character.credits
-                shortfall = cost - paid
-                character.credits = 0
-                character.medical_debt += shortfall
-                anagathics_cost_paid = paid
-                anagathics_debt = shortfall
-                character.log(
-                    f"Anagathics cost: Cr{paid:,} paid, "
-                    f"Cr{shortfall:,} added to medical debt."
-                )
+            character.medical_debt += cost
+            anagathics_debt = cost
+            character.log(
+                f"Anagathics cost: Cr{cost:,} added to medical debt "
+                "(paid from muster-out cash benefits)."
+            )
 
         # ── Aging roll (with anagathics positive DM if active) ────────────
         if character.anagathics_active:
