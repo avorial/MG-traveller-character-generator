@@ -4228,8 +4228,8 @@ function renderAnagathicsPrompt() {
         <h2 class="phase-title" style="color:var(--success,#7fd87f)">Treatment Continues</h2>
         <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
           <span class="event-label" style="color:var(--success,#7fd87f)">SUPPLY ON HAND</span>
-          Cr${cost.toLocaleString()} (1D=${cost/25000}×Cr25,000) added to medical debt.
-          Aging roll bonus: +${termsUsed} DM (terms on anagathics so far).
+          Term ${termsUsed} on anagathics. Aging roll bonus: +${termsUsed} DM.
+          <br>Cr${cost.toLocaleString()} (1D=${cost/25000}×Cr25,000) added to medical debt.
           <br><strong>Penalty this term:</strong> Two survival checks — either failing = Mishap.
         </div>
         <div class="phase-actions" style="margin-top:16px">
@@ -4273,8 +4273,9 @@ function renderAnagathicsPrompt() {
         <h2 class="phase-title">Anagathics: Continue or Stop?</h2>
         <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
           <span class="event-label" style="color:var(--success,#7fd87f)">SUPPLY ESTABLISHED</span>
-          ${termsUsed} term${termsUsed !== 1 ? 's' : ''} on anagathics. Aging roll bonus: +${termsUsed} DM.
-          <br>Continuing will add 1D × Cr25,000 to medical debt and require two survival checks this term.
+          ${termsUsed} term${termsUsed !== 1 ? 's' : ''} completed on anagathics.
+          Continuing gives aging roll bonus +${termsUsed + 1} DM this term.
+          <br>Cost: 1D × Cr25,000 added to medical debt. Two survival checks required.
         </div>
         <p class="phase-body" style="margin-top:12px">No SOC roll needed — your supply chain is established. Stopping triggers an immediate aging roll.</p>
         <div class="phase-actions" style="margin-top:12px">

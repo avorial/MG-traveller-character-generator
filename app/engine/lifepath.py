@@ -3791,12 +3791,14 @@ def attempt_anagathics(character: "Character") -> dict:
 
     # ── Already active: no SOC re-roll — supply is established ──────────────
     if already_active:
+        character.anagathics_terms_used += 1
         cost_die = dice.roll("1D")
         cost_this_term = cost_die.total * 25_000
         character.anagathics_pending_cost += cost_this_term
         character.log(
-            f"Anagathics continuing (supply established). "
-            f"Cost this term: Cr{cost_this_term:,} (1D={cost_die.total} × Cr25,000) "
+            f"Anagathics continuing (term {character.anagathics_terms_used}): "
+            f"+{character.anagathics_terms_used} DM on aging roll this term. "
+            f"Cost: Cr{cost_this_term:,} (1D={cost_die.total} × Cr25,000) "
             "added to medical debt (paid at muster-out)."
         )
         return {
@@ -3826,14 +3828,16 @@ def attempt_anagathics(character: "Character") -> dict:
             "NATURAL 2 — must take Prisoner career this term!"
         )
     elif succeeded:
+        character.anagathics_active = True
+        character.anagathics_terms_used += 1
         cost_die = dice.roll("1D")
         cost_this_term = cost_die.total * 25_000
-        character.anagathics_active = True
         character.anagathics_pending_cost += cost_this_term
         character.log(
             f"Anagathics access roll SOC [2D{dm:+d}={r.total}]: SUCCESS. "
-            f"Supply established. Cost this term: Cr{cost_this_term:,} "
-            f"(1D={cost_die.total} × Cr25,000) added to medical debt."
+            f"Supply established (term {character.anagathics_terms_used}). "
+            f"+{character.anagathics_terms_used} DM on aging roll this term. "
+            f"Cost: Cr{cost_this_term:,} (1D={cost_die.total} × Cr25,000) added to medical debt."
         )
     else:
         character.anagathics_active = False
@@ -4533,12 +4537,10 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                 "(paid from muster-out cash benefits)."
             )
 
-        # ── Aging roll (with anagathics positive DM if active) ────────────
+        # ── Aging roll (anagathics DM already counted — incremented at term start) ──
         if character.anagathics_active:
-            character.anagathics_terms_used += 1
             character.log(
-                f"Anagathics active (term {character.anagathics_terms_used}): "
-                f"+{character.anagathics_terms_used} DM on aging roll."
+                f"Aging roll with anagathics DM +{character.anagathics_terms_used}."
             )
         aging_log = _apply_aging(character)
 
