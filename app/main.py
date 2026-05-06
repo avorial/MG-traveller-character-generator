@@ -10,12 +10,13 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from typing import Optional
 from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
+from .engine.pdf_sheet import generate_character_pdf
 
 
 BASE_DIR = Path(__file__).parent
@@ -849,3 +850,20 @@ async def api_generate_npc():
         return lifepath.generate_npc()
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@app.post("/api/character/pdf")
+async def api_character_pdf(action: CharacterAction):
+    """Generate a fillable PDF character sheet and return it as a download."""
+    character = action.character.model_copy(deep=True)
+    try:
+        pdf_bytes = generate_character_pdf(character)
+        safe_name = (character.name or "traveller").replace(" ", "_")[:40]
+        filename = f"{safe_name}_character_sheet.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as e:
+        raise HTTPException(500, f"PDF generation failed: {e}")
