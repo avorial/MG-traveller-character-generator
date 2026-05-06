@@ -6131,8 +6131,8 @@ function renderDonePhase() {
       ${renderPsionicsCard()}
 
       <div class="phase-actions">
-        <button class="btn primary" id="btn-export-prominent">EXPORT CHARACTER JSON</button>
-        <button class="btn" id="btn-export-pdf">EXPORT CHARACTER PDF</button>
+        <button class="btn primary" id="btn-export-pdf">⬇ EXPORT PDF</button>
+        <button class="btn ghost" id="btn-export-prominent">EXPORT JSON</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
       </div>
     </div>
@@ -6203,35 +6203,7 @@ function wireDonePhase() {
   if (btnExport) btnExport.addEventListener('click', exportCharacter);
 
   const btnPdf = document.getElementById('btn-export-pdf');
-  if (btnPdf) btnPdf.addEventListener('click', async () => {
-    try {
-      btnPdf.disabled = true;
-      btnPdf.textContent = 'GENERATING…';
-      const resp = await fetch('/api/character/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ character }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-        throw new Error(err.detail || 'PDF generation failed');
-      }
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const safeName = (character.name || 'traveller').replace(/\s+/g, '_').slice(0, 40);
-      a.href = url;
-      a.download = `${safeName}_character_sheet.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert(`PDF export failed: ${e.message}`);
-    } finally {
-      btnPdf.disabled = false;
-      btnPdf.textContent = 'EXPORT CHARACTER PDF';
-    }
-  });
-
+  if (btnPdf) btnPdf.addEventListener('click', exportPDF);
   const btnBack = document.getElementById('btn-back-careers');
   if (btnBack) btnBack.addEventListener('click', () => {
     character.phase = 'career';
@@ -6365,6 +6337,32 @@ function exportCharacter() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+async function exportPDF() {
+  const btn = document.getElementById('btn-export-pdf');
+  if (btn) { btn.textContent = 'GENERATING…'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/character/export-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ character }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(character.name || 'traveller').replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('PDF export failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '⬇ EXPORT PDF'; btn.disabled = false; }
+  }
 }
 
 async function importCharacter(file) {

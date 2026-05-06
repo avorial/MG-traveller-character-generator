@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
-from .engine.pdf_sheet import generate_character_pdf
+from .engine import pdf_export
 
 
 BASE_DIR = Path(__file__).parent
@@ -843,6 +843,22 @@ async def api_resolve_aging(action: ResolveAgingAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/export-pdf")
+async def api_export_pdf(action: CharacterAction):
+    """Generate and return a PDF character sheet."""
+    character = action.character.model_copy(deep=True)
+    try:
+        pdf_bytes = pdf_export.generate_pdf(character)
+    except Exception as e:
+        raise HTTPException(500, f"PDF generation failed: {e}")
+    name = (character.name or "traveller").replace(" ", "_")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
+    )
+
+
 @app.get("/api/character/generate-npc")
 async def api_generate_npc():
     """Generate a fully fleshed-out NPC character server-side."""
@@ -851,19 +867,3 @@ async def api_generate_npc():
     except Exception as e:
         raise HTTPException(500, str(e))
 
-
-@app.post("/api/character/pdf")
-async def api_character_pdf(action: CharacterAction):
-    """Generate a fillable PDF character sheet and return it as a download."""
-    character = action.character.model_copy(deep=True)
-    try:
-        pdf_bytes = generate_character_pdf(character)
-        safe_name = (character.name or "traveller").replace(" ", "_")[:40]
-        filename = f"{safe_name}_character_sheet.pdf"
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-    except Exception as e:
-        raise HTTPException(500, f"PDF generation failed: {e}")
