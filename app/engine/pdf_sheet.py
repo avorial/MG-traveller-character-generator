@@ -1,10 +1,16 @@
 """
-Fillable PDF character sheet generator.
+Traveller Character Sheet PDF generator.
 
-Produces a print-ready, US-Letter PDF that mirrors the web-UI character
-sheet.  Name, Homeworld, UWP, and Notes are live AcroForm text fields so
-players can edit them after printing to PDF / in Acrobat.
-All other data is pre-populated from the character JSON.
+Produces a 2-page landscape (792×612) PDF matching the travellercc.avorial.com
+reference design:
+  - Steel blue-gray page background
+  - Black section header bars with diagonal corner notch and white text
+  - Pointy-top hexagonal stat boxes in a left characteristics strip
+  - CORE CHARACTERISTICS (STR/DEX/END/INT/EDU/SOC) + OTHER CHARACTERISTICS
+  - Page 1 sections: PERSONAL DATA FILE, CAREERS, SKILLS, FINANCES, ARMOUR,
+    WEAPONS, AUGMENTS, EQUIPMENT
+  - Page 2 sections: NOTES (fillable), ALLIES/CONTACTS/RIVALS/ENEMIES,
+    PREVIOUS HISTORY, PERSONAL DATA FILE (brief), UCP hexes, WOUNDS
 
 Usage:
     from .pdf_sheet import generate_character_pdf
@@ -12,43 +18,64 @@ Usage:
 """
 
 import io
-import math
 from typing import Optional
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.colors import Color, HexColor, black, white
+from reportlab.lib.colors import Color, white, black
 from reportlab.pdfgen import canvas as rl_canvas
 
 from .character import Character
 
-# ── palette (amber CRT aesthetic, print-safe) ────────────────────────────────
-C_BG        = HexColor("#FDFAF5")   # off-white page background
-C_PANEL     = HexColor("#2B1F12")   # dark amber-brown header bars
-C_PANEL_MID = HexColor("#3D2F1F")   # mid-tone for sub-headers
-C_ACCENT    = HexColor("#FFB347")   # amber accent
-C_TEXT      = HexColor("#1A1208")   # near-black body text
-C_MUTED     = HexColor("#7A6040")   # muted label text
-C_BORDER    = HexColor("#C8A870")   # light amber border
-C_DANGER    = HexColor("#C0392B")   # medical-debt red
-C_SUCCESS   = HexColor("#2E7D32")   # positive green
-C_FIELD_BG  = HexColor("#FFFBF0")   # very light amber for fillable fields
 
-# ── page geometry ─────────────────────────────────────────────────────────────
-W, H        = letter                 # 612 × 792 pt
-MARGIN      = 28                     # outer margin (pt)
-COL_GAP     = 10                     # gap between columns
-COL_L_W     = 228                    # left-column width (skills / characteristics)
-COL_R_W     = W - 2 * MARGIN - COL_L_W - COL_GAP   # right column fills the rest
-ROW_H       = 13                     # standard row height
-SECTION_PAD = 6                      # padding inside sections
+# ─────────────────────────────────────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── fonts ─────────────────────────────────────────────────────────────────────
-FONT_BODY   = "Helvetica"
-FONT_BOLD   = "Helvetica-Bold"
-FONT_MONO   = "Courier"
+PW = 792.0   # page width  (landscape)
+PH = 612.0   # page height (landscape)
+
+# Palette
+BG         = Color(0.67, 0.72, 0.83)   # steel blue-gray background
+PANEL      = Color(1.0,  1.0,  1.0)   # white section panels
+HDR_BG     = Color(0.0,  0.0,  0.0)   # black header bars
+HDR_FG     = white
+SIDEBAR_BG = Color(0.0,  0.0,  0.0)   # black stat sidebar
+SIDEBAR_FG = white
+ROW_RED    = Color(0.9,  0.0,  0.0)   # red training-row bar
+HEX_FILL   = Color(1.0,  1.0,  1.0)   # white hex interior
+HEX_STR    = Color(0.0,  0.0,  0.0)   # hex border
+ROW_ALT    = Color(0.93, 0.94, 0.97)  # subtle alternating row tint
+STAT_AREA  = Color(0.94, 0.95, 0.98)  # stat panel tint
+LABEL_COL  = Color(0.4,  0.4,  0.4)   # muted label text
+BODY_COL   = Color(0.08, 0.08, 0.08)  # near-black body text
+RULE_COL   = Color(0.72, 0.74, 0.80)  # field rule lines
+FIELD_BG   = Color(0.96, 0.97, 1.0)   # fillable field background
+FIELD_BDR  = Color(0.50, 0.55, 0.65)  # fillable field border
+
+# Fonts
+F_REG  = "Helvetica"
+F_BOLD = "Helvetica-Bold"
+F_OBOL = "Helvetica-BoldOblique"
+F_OBL  = "Helvetica-Oblique"
 
 
-# ── helper: Traveller DM ──────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Coordinate helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def dy(display_y: float) -> float:
+    """Display-y (0=top) → canvas-y (0=bottom)."""
+    return PH - display_y
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stat / game helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def stat_digits(val: int) -> tuple:
+    v = max(0, min(99, int(val or 0)))
+    return str(v // 10), str(v % 10)
+
+
 def char_dm(score: int) -> int:
     if score <= 0:  return -3
     if score <= 2:  return -2
@@ -63,586 +90,928 @@ def fmt_dm(dm: int) -> str:
     return f"+{dm}" if dm >= 0 else str(dm)
 
 
-# ── noble title (Imperial only) ───────────────────────────────────────────────
+def ucp_char(val: int) -> str:
+    if val >= 10:
+        return chr(ord('A') + val - 10)
+    return str(max(0, val))
+
+
+_NOBLE_TITLES = {11: "Knight", 12: "Baronet", 13: "Baron",
+                 14: "Marquis", 15: "Count"}
 _IMPERIAL_SPECIES = {
     "imperial_human", "imperial_aslan", "imperial_vargr", "imperial_bwap",
     "hierate_aslan", "frontier_human", "luriani", "jonkeereen",
 }
-_NOBLE_TITLES = {11: "Knight", 12: "Baronet", 13: "Baron", 14: "Marquis", 15: "Count"}
 
-
-def noble_title(society_id: str, species_id: str, soc: int) -> Optional[str]:
-    imperial = society_id in ("third_imperium", "") or species_id in _IMPERIAL_SPECIES
-    if not imperial:
+def noble_title(char: Character) -> Optional[str]:
+    imp = (char.society_id in ("third_imperium", "")
+           or char.species_id in _IMPERIAL_SPECIES)
+    if not imp:
         return None
+    soc = char.characteristics.SOC
     if soc > 15:
         return "Archduke"
     return _NOBLE_TITLES.get(soc)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Drawing primitives
-# ─────────────────────────────────────────────────────────────────────────────
-
-class SheetCanvas:
-    """Thin wrapper around ReportLab canvas with helpers for the sheet layout."""
-
-    def __init__(self, buf: io.BytesIO, title: str = "Traveller Character Sheet"):
-        self.c = rl_canvas.Canvas(buf, pagesize=letter)
-        self.c.setTitle(title)
-        self.c.setAuthor("Traveller Character Creator")
-        self.c.setSubject("MgT 2e Character Sheet")
-        # current y-position (top of page = H - MARGIN)
-        self.y = H - MARGIN
-        self._page = 1
-
-    # ── page management ──────────────────────────────────────────────────────
-
-    def new_page(self):
-        self.c.showPage()
-        self._page += 1
-        self.y = H - MARGIN
-        self._draw_page_bg()
-
-    def _draw_page_bg(self):
-        self.c.setFillColor(C_BG)
-        self.c.rect(0, 0, W, H, stroke=0, fill=1)
-
-    def save(self):
-        self.c.save()
-
-    # ── low-level drawing ────────────────────────────────────────────────────
-
-    def rect_filled(self, x, y, w, h, fill: Color, stroke: Optional[Color] = None,
-                    stroke_width: float = 0.5):
-        self.c.setFillColor(fill)
-        if stroke:
-            self.c.setStrokeColor(stroke)
-            self.c.setLineWidth(stroke_width)
-            self.c.rect(x, y, w, h, stroke=1, fill=1)
-        else:
-            self.c.rect(x, y, w, h, stroke=0, fill=1)
-
-    def line(self, x1, y1, x2, y2, color: Color = C_BORDER, width: float = 0.5):
-        self.c.setStrokeColor(color)
-        self.c.setLineWidth(width)
-        self.c.line(x1, y1, x2, y2)
-
-    def text(self, x, y, s: str, font=FONT_BODY, size=8, color: Color = C_TEXT,
-             align="left", max_width: Optional[float] = None):
-        """Draw a single text string. y is the baseline."""
-        s = str(s)
-        if max_width:
-            # truncate to fit
-            while self.c.stringWidth(s, font, size) > max_width and len(s) > 1:
-                s = s[:-1]
-            if len(s) < len(str(s)):
-                s = s[:-1] + "…"
-        self.c.setFont(font, size)
-        self.c.setFillColor(color)
-        if align == "right":
-            self.c.drawRightString(x, y, s)
-        elif align == "center":
-            self.c.drawCentredString(x, y, s)
-        else:
-            self.c.drawString(x, y, s)
-
-    def wrapped_text(self, x, y, s: str, max_width: float, font=FONT_BODY,
-                     size: float = 8, color: Color = C_TEXT, line_height: float = 10) -> float:
-        """Draw multi-line wrapped text. Returns the y after the last line."""
-        from reportlab.lib.utils import simpleSplit
-        lines = simpleSplit(s, font, size, max_width)
-        self.c.setFont(font, size)
-        self.c.setFillColor(color)
-        for ln in lines:
-            self.c.drawString(x, y, ln)
-            y -= line_height
-        return y
-
-    # ── acroform fillable field ───────────────────────────────────────────────
-
-    def text_field(self, name: str, x, y, w, h, value: str = "",
-                   font_size: float = 9, multiline: bool = False):
-        """Add a fillable AcroForm text field."""
-        form = self.c.acroForm
-        flags = "multiline" if multiline else ""
-        form.textfield(
-            name=name,
-            tooltip=name,
-            x=x, y=y,
-            width=w, height=h,
-            value=value,
-            fontSize=font_size,
-            fontName=FONT_BODY,
-            fillColor=C_FIELD_BG,
-            borderColor=C_BORDER,
-            borderWidth=0.5,
-            textColor=C_TEXT,
-            fieldFlags=flags,
-            relative=False,
-        )
-
-    # ── higher-level section primitives ──────────────────────────────────────
-
-    def section_header(self, x, y, w, label: str) -> float:
-        """Draw a dark header bar. Returns the y just below it."""
-        BAR_H = 14
-        self.rect_filled(x, y - BAR_H, w, BAR_H, C_PANEL)
-        self.text(x + 5, y - BAR_H + 4, label.upper(), font=FONT_BOLD, size=7,
-                  color=C_ACCENT)
-        return y - BAR_H
-
-    def row_pair(self, x, y, w, label: str, value: str,
-                 label_w: float = 0.52, danger: bool = False,
-                 value_color: Optional[Color] = None) -> float:
-        """One label+value row inside a section. Returns the y after the row."""
-        ROW = ROW_H
-        # alternating row background handled by caller if desired
-        lw = w * label_w
-        self.text(x + 4, y - ROW + 3, label, font=FONT_BODY, size=7.5, color=C_MUTED,
-                  max_width=lw - 6)
-        vc = value_color or (C_DANGER if danger else C_TEXT)
-        self.text(x + lw, y - ROW + 3, str(value), font=FONT_BOLD, size=7.5,
-                  color=vc, max_width=w - lw - 4)
-        self.line(x, y - ROW, x + w, y - ROW, C_BORDER, 0.3)
-        return y - ROW
-
-    def skill_row(self, x, y, w, label: str, level_or_right: str,
-                  italic: bool = False) -> float:
-        """Skill / career row with name left and level right. Returns y after."""
-        ROW = ROW_H
-        font = FONT_BODY
-        label_w = w - 22
-        self.text(x + 4, y - ROW + 3, label, font=font, size=7.5, color=C_TEXT,
-                  max_width=label_w)
-        self.text(x + w - 4, y - ROW + 3, str(level_or_right), font=FONT_BOLD,
-                  size=7.5, color=C_TEXT, align="right")
-        self.line(x, y - ROW, x + w, y - ROW, C_BORDER, 0.3)
-        return y - ROW
-
-    def ensure_space(self, needed: float, x: float, w: float,
-                     col_x_r: float, col_w_r: float, right_y: float) -> float:
-        """If self.y < needed, start a new page and reset y. Returns right_y unchanged."""
-        if self.y < MARGIN + needed:
-            self.new_page()
-        return right_y
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Main entry point
-# ─────────────────────────────────────────────────────────────────────────────
-
-def generate_character_pdf(char: Character) -> bytes:
-    """Return the PDF as raw bytes."""
-    buf = io.BytesIO()
-    sheet = SheetCanvas(buf, title=f"{char.name or 'Traveller'} — Character Sheet")
-    c = sheet.c
-
-    # page background
-    sheet._draw_page_bg()
-
-    # ── master title bar ──────────────────────────────────────────────────────
-    TITLE_H = 24
-    sheet.rect_filled(MARGIN, H - MARGIN - TITLE_H, W - 2 * MARGIN, TITLE_H, C_PANEL)
-    sheet.text(MARGIN + 8, H - MARGIN - TITLE_H + 8, "TRAVELLER", font=FONT_BOLD,
-               size=14, color=C_ACCENT)
-    sheet.text(W - MARGIN - 8, H - MARGIN - TITLE_H + 8,
-               f"v{char.total_terms} TERMS  ·  AGE {char.age}",
-               font=FONT_BODY, size=8, color=C_MUTED, align="right")
-
-    # track y below the title bar
-    y_top = H - MARGIN - TITLE_H - 6   # 6 pt gap
-
-    # ── HEADER — name / homeworld / uwp / meta ────────────────────────────────
-    HDR_H = 52
-    sheet.rect_filled(MARGIN, y_top - HDR_H, W - 2 * MARGIN, HDR_H,
-                      C_PANEL_MID, C_BORDER)
-
-    # Name field (fillable)
-    NAME_W = 200
-    sheet.text(MARGIN + 8, y_top - 10, "NAME", font=FONT_BOLD, size=6.5, color=C_ACCENT)
-    sheet.text_field("Name", MARGIN + 8, y_top - HDR_H + 22, NAME_W, 14,
-                     value=char.name or "", font_size=10)
-
-    # Homeworld field
-    HW_X = MARGIN + 8 + NAME_W + 10
-    HW_W = 130
-    sheet.text(HW_X, y_top - 10, "HOMEWORLD", font=FONT_BOLD, size=6.5, color=C_ACCENT)
-    sheet.text_field("Homeworld", HW_X, y_top - HDR_H + 22, HW_W, 14,
-                     value=char.homeworld or "", font_size=9)
-
-    # UWP field
-    UWP_X = HW_X + HW_W + 10
-    UWP_W = 96
-    sheet.text(UWP_X, y_top - 10, "UWP", font=FONT_BOLD, size=6.5, color=C_ACCENT)
-    sheet.text_field("UWP", UWP_X, y_top - HDR_H + 22, UWP_W, 14,
-                     value=char.homeworld_uwp or "", font_size=9)
-
-    # Meta pills (species / credits / noble title)
-    meta_x = MARGIN + 8
-    meta_y = y_top - HDR_H + 10
-    species_name = _species_name(char.species_id)
-    nt = noble_title(char.society_id, char.species_id, char.characteristics.SOC)
-    pills = [
-        f"SPECIES: {species_name}",
-        f"CREDITS: Cr{char.credits:,}",
-    ]
-    if char.ship_shares:
-        pills.append(f"SHIP SHARES: {char.ship_shares}×MCr1")
-    if char.pension_per_year:
-        pills.append(f"PENSION: Cr{char.pension_per_year:,}/yr")
-    if nt:
-        pills.append(f"TITLE: {nt}")
-    for pill in pills:
-        pw = c.stringWidth(pill, FONT_BOLD, 7) + 10
-        sheet.rect_filled(meta_x, meta_y - 1, pw, 12, C_PANEL, C_BORDER, 0.3)
-        sheet.text(meta_x + 5, meta_y + 2, pill, font=FONT_BOLD, size=7, color=C_ACCENT)
-        meta_x += pw + 6
-
-    y_cursor = y_top - HDR_H - 8   # gap below header
-
-    # ── two-column layout ─────────────────────────────────────────────────────
-    COL_L_X = MARGIN
-    COL_R_X = MARGIN + COL_L_W + COL_GAP
-
-    left_y  = y_cursor
-    right_y = y_cursor
-
-    # ════════════════════════════════════════════════════════
-    # LEFT COLUMN — Characteristics + Skills
-    # ════════════════════════════════════════════════════════
-
-    # ── Characteristics ───────────────────────────────────────────────────────
-    left_y = sheet.section_header(COL_L_X, left_y, COL_L_W, "Characteristics")
-
-    stats_order = ["STR", "DEX", "END", "INT", "EDU", "SOC"]
-    ch = char.characteristics
-    STAT_BOX_W = COL_L_W / 3
-    STAT_BOX_H = 36
-
-    for i, stat in enumerate(stats_order):
-        sx = COL_L_X + (i % 3) * STAT_BOX_W
-        sy = left_y - (i // 3) * STAT_BOX_H
-        val = getattr(ch, stat, 0)
-        dm  = char_dm(val)
-
-        # box background
-        sheet.rect_filled(sx, sy - STAT_BOX_H, STAT_BOX_W, STAT_BOX_H,
-                          C_BG, C_BORDER, 0.5)
-        # stat label
-        sheet.text(sx + STAT_BOX_W / 2, sy - 9, stat, font=FONT_BOLD, size=8,
-                   color=C_MUTED, align="center")
-        # value (large)
-        sheet.text(sx + STAT_BOX_W / 2, sy - 23, str(val), font=FONT_BOLD, size=18,
-                   color=C_TEXT, align="center")
-        # DM
-        sheet.text(sx + STAT_BOX_W / 2, sy - 33, f"DM {fmt_dm(dm)}", font=FONT_BODY,
-                   size=7, color=C_MUTED, align="center")
-
-    left_y -= 2 * STAT_BOX_H
-
-    # PSI (if applicable)
-    if char.psi > 0:
-        PSI_W = COL_L_W
-        PSI_H = 20
-        left_y -= 2
-        sheet.rect_filled(COL_L_X, left_y - PSI_H, PSI_W, PSI_H, C_PANEL_MID, C_BORDER, 0.5)
-        psi_dm = char_dm(char.psi)
-        sheet.text(COL_L_X + 10, left_y - PSI_H + 6,
-                   f"PSI  {char.psi}  (DM {fmt_dm(psi_dm)})",
-                   font=FONT_BOLD, size=9, color=C_ACCENT)
-        if char.psi_trained_talents:
-            talents = ", ".join(char.psi_trained_talents)
-            sheet.text(COL_L_X + PSI_W - 6, left_y - PSI_H + 6,
-                       f"Talents: {talents}", font=FONT_BODY, size=7.5,
-                       color=C_MUTED, align="right")
-        left_y -= PSI_H
-
-    left_y -= 6
-
-    # ── Skills ────────────────────────────────────────────────────────────────
-    left_y = sheet.section_header(COL_L_X, left_y, COL_L_W, "Skills")
-
-    if char.skills:
-        sorted_skills = sorted(char.skills, key=lambda s: (s.name, s.speciality or ""))
-        for sk in sorted_skills:
-            label = f"{sk.name} ({sk.speciality})" if sk.speciality else sk.name
-            left_y = sheet.skill_row(COL_L_X, left_y, COL_L_W, label, str(sk.level))
-            if left_y < MARGIN + 80:
-                # start new section in place — add a continuation note
-                sheet.text(COL_L_X + 4, left_y - 8,
-                           "… continued on next page", font=FONT_BODY, size=7,
-                           color=C_MUTED)
-                left_y -= 12
-                break
-    else:
-        sheet.text(COL_L_X + 6, left_y - ROW_H + 3, "No skills yet",
-                   font=FONT_BODY, size=7.5, color=C_MUTED)
-        left_y -= ROW_H
-
-    left_y -= 6
-
-    # ════════════════════════════════════════════════════════
-    # RIGHT COLUMN — Careers + Associates + Equipment
-    # ════════════════════════════════════════════════════════
-
-    # ── Careers ───────────────────────────────────────────────────────────────
-    right_y = sheet.section_header(COL_R_X, right_y, COL_R_W, "Career History")
-
-    if char.completed_careers:
-        for cr in char.completed_careers:
-            cname  = _career_label(cr.career_id, cr.assignment_id)
-            rank_s = cr.final_rank_title or (f"Rank {cr.final_rank}" if cr.final_rank else "No rank")
-            terms_s = f"{cr.terms_served}t"
-            right_y = sheet.skill_row(COL_R_X, right_y, COL_R_W, cname, terms_s)
-            sheet.text(COL_R_X + 10, right_y - 2, f"{rank_s} — {cr.left_due_to}",
-                       font=FONT_BODY, size=6.5, color=C_MUTED,
-                       max_width=COL_R_W - 14)
-            right_y -= 8
-    else:
-        sheet.text(COL_R_X + 6, right_y - ROW_H + 3, "No careers yet",
-                   font=FONT_BODY, size=7.5, color=C_MUTED)
-        right_y -= ROW_H
-
-    right_y -= 6
-
-    # ── Associates ────────────────────────────────────────────────────────────
-    right_y = sheet.section_header(COL_R_X, right_y, COL_R_W, "Associates")
-
-    assoc_by_kind = {"contact": [], "ally": [], "rival": [], "enemy": []}
-    for a in (char.associates or []):
-        if a.kind in assoc_by_kind:
-            assoc_by_kind[a.kind].append(a)
-
-    KIND_LABELS = [("contact", "Contacts"), ("ally", "Allies"),
-                   ("rival", "Rivals"), ("enemy", "Enemies")]
-    any_assoc = any(assoc_by_kind[k] for k, _ in KIND_LABELS)
-
-    if any_assoc:
-        for kind, label in KIND_LABELS:
-            items = assoc_by_kind[kind]
-            if not items:
-                continue
-            # mini header
-            sheet.rect_filled(COL_R_X, right_y - 11, COL_R_W, 11, C_PANEL_MID)
-            sheet.text(COL_R_X + 4, right_y - 8, f"{label} ({len(items)})",
-                       font=FONT_BOLD, size=7, color=C_ACCENT)
-            right_y -= 11
-            for a in items:
-                desc = a.description or "(unnamed)"
-                right_y = sheet.skill_row(COL_R_X, right_y, COL_R_W, desc, "")
-    else:
-        sheet.text(COL_R_X + 6, right_y - ROW_H + 3, "No associates",
-                   font=FONT_BODY, size=7.5, color=C_MUTED)
-        right_y -= ROW_H
-
-    right_y -= 6
-
-    # ── Equipment ─────────────────────────────────────────────────────────────
-    right_y = sheet.section_header(COL_R_X, right_y, COL_R_W, "Equipment")
-
-    if char.equipment:
-        for eq in char.equipment:
-            label = f"{eq.name}" + (f" ×{eq.quantity}" if eq.quantity > 1 else "")
-            note  = eq.notes or ""
-            right_y = sheet.skill_row(COL_R_X, right_y, COL_R_W, label,
-                                      note[:18] if note else "")
-    else:
-        sheet.text(COL_R_X + 6, right_y - ROW_H + 3, "No equipment",
-                   font=FONT_BODY, size=7.5, color=C_MUTED)
-        right_y -= ROW_H
-
-    right_y -= 6
-
-    # ── Species Traits ────────────────────────────────────────────────────────
-    if char.traits:
-        right_y = sheet.section_header(COL_R_X, right_y, COL_R_W, "Species Traits")
-        for tr in char.traits:
-            name = tr.get("name", "Trait")
-            desc = tr.get("description", "")
-            right_y = sheet.skill_row(COL_R_X, right_y, COL_R_W, name, "")
-            if desc:
-                from reportlab.lib.utils import simpleSplit
-                lines = simpleSplit(desc, FONT_BODY, 7, COL_R_W - 16)
-                for ln in lines[:2]:   # cap at 2 description lines
-                    sheet.text(COL_R_X + 12, right_y - 4, ln,
-                               font=FONT_BODY, size=7, color=C_MUTED)
-                    right_y -= 9
-        right_y -= 6
-
-    # ── Misc sections (SolSec, Home Forces, Anagathics, Medical Debt) ─────────
-    right_y = _draw_misc_sections(sheet, char, COL_R_X, right_y, COL_R_W)
-
-    # ════════════════════════════════════════════════════════
-    # BOTTOM SECTION — full-width Notes
-    # ════════════════════════════════════════════════════════
-    bottom_y = min(left_y, right_y) - 10
-
-    NOTES_LABEL_H = 14
-    NOTES_FIELD_H = 60
-    NOTES_TOTAL   = NOTES_LABEL_H + NOTES_FIELD_H + 6
-
-    # If there isn't room, push to a new page
-    if bottom_y < MARGIN + NOTES_TOTAL + 10:
-        sheet.new_page()
-        bottom_y = H - MARGIN - 10
-
-    bottom_y = sheet.section_header(MARGIN, bottom_y, W - 2 * MARGIN, "Notes")
-    sheet.text_field(
-        "Notes",
-        MARGIN + 2, bottom_y - NOTES_FIELD_H,
-        W - 2 * MARGIN - 4, NOTES_FIELD_H,
-        value=char.user_notes or "",
-        font_size=9,
-        multiline=True,
-    )
-    bottom_y -= NOTES_FIELD_H + 4
-
-    # ── capsule description (if generated) ────────────────────────────────────
-    if char.capsule_description:
-        bottom_y -= 6
-        bottom_y = sheet.section_header(MARGIN, bottom_y, W - 2 * MARGIN,
-                                        "Career Narrative")
-        from reportlab.lib.utils import simpleSplit
-        for para in char.capsule_description.split("\n\n"):
-            para = para.strip()
-            if not para:
-                continue
-            lines = simpleSplit(para, FONT_BODY, 8, W - 2 * MARGIN - 10)
-            for ln in lines:
-                if bottom_y < MARGIN + 14:
-                    sheet.new_page()
-                    bottom_y = H - MARGIN - 10
-                sheet.text(MARGIN + 5, bottom_y - 10, ln, font=FONT_BODY, size=8,
-                           color=C_TEXT)
-                bottom_y -= 11
-            bottom_y -= 4
-
-    sheet.save()
-    buf.seek(0)
-    return buf.read()
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _draw_misc_sections(sheet: SheetCanvas, char: Character,
-                        x: float, y: float, w: float) -> float:
-    """Draw optional sections into the right column. Returns updated y."""
-
-    if char.medical_debt > 0:
-        y = sheet.section_header(x, y, w, "⚠ Medical Debt")
-        y = sheet.row_pair(x, y, w, "Amount owed",
-                           f"Cr{char.medical_debt:,}", danger=True)
-        y = sheet.row_pair(x, y, w, "Note",
-                           "Deducted from cash rolls")
-        y -= 6
-
-    if char.anagathics_active:
-        y = sheet.section_header(x, y, w, "Anagathics")
-        y = sheet.row_pair(x, y, w, "Status", "ACTIVE",
-                           value_color=HexColor("#2E7D32"))
-        terms_u = char.anagathics_terms_used or 0
-        y = sheet.row_pair(x, y, w, "Terms on treatment", str(terms_u))
-        y = sheet.row_pair(x, y, w, "Aging DM bonus", f"+{terms_u}")
-        y -= 6
-
-    if char.home_forces_enrolled:
-        y = sheet.section_header(x, y, w, "Home Forces Reserves")
-        comp = (char.home_forces_component or "groundside").replace("_", " ")
-        y = sheet.row_pair(x, y, w, "Component", comp.title())
-        y = sheet.row_pair(x, y, w, "Reserve rank", str(char.home_forces_rank))
-        y -= 6
-
-    if char.solsec_monitor:
-        y = sheet.section_header(x, y, w, "SolSec Monitor")
-        y = sheet.row_pair(x, y, w, "Monitor rank", str(char.solsec_monitor_rank))
-        note = "DM+1 adv · nat-2 → SolSec mishap · nat-12 → SolSec event"
-        if char.solsec_monitor_rank >= 3:
-            note += " · +1 benefit roll"
-        sheet.text(x + 4, y - 9, note, font=FONT_BODY, size=6.5, color=C_MUTED,
-                   max_width=w - 8)
-        y -= 12
-        y -= 6
-
-    if char.pension_per_year > 0:
-        y = sheet.section_header(x, y, w, "Retirement Pension")
-        y = sheet.row_pair(x, y, w, "Annual pension",
-                           f"Cr{char.pension_per_year:,}")
-        y = sheet.row_pair(x, y, w, "Based on", f"{char.total_terms} terms served")
-        y -= 6
-
-    if char.ship_shares > 0 and not char.pension_per_year:
-        # ship shares shown in pills in header but also here if notable
-        pass  # already in header
-
-    return y
-
-
-def _species_name(species_id: str) -> str:
-    """Best-effort human-readable species name from id."""
-    mapping = {
-        "imperial_human":   "Imperial Human",
-        "solomani_human":   "Solomani Human",
-        "solomani_mixed":   "Solomani Mixed",
-        "solomani_racial":  "Solomani (racial)",
-        "confederation_human": "Confederation Human",
-        "frontier_human":   "Frontier Human",
-        "imperial_aslan":   "Imperial Aslan",
-        "hierate_aslan":    "Hierate Aslan",
-        "imperial_vargr":   "Imperial Vargr",
-        "extents_vargr":    "Extents Vargr",
-        "imperial_bwap":    "Imperial Bwap",
-        "sword_worlds_human": "Sword Worlds Human",
-        "zhodani_human":    "Zhodani Human",
-        "two_thousand_worlds_human": "2K-Worlds Human",
-        "hiver_federation_human": "Hiver-Federation Human",
-        "luriani":          "Luriani",
-        "jonkeereen":       "Jonkeereen",
-        "droashav":         "Droashav",
-        "akeed":            "Akeed",
-        "sydite":           "Sydite",
-        "faar":             "Faar",
-        "dolphin":          "Dolphin",
-        "uplifted_orca":    "Uplifted Orca",
-        "alpine_caprisap":  "Alpine Caprisap",
-        "boar_caprisap":    "Boar Caprisap",
-        "capry_big_male":   "Capry (Big Male)",
-        "capry_female":     "Capry (Female)",
-        "capry_small_male": "Capry (Small Male)",
+def species_name(sid: str) -> str:
+    m = {
+        "imperial_human": "Imperial Human", "solomani_human": "Solomani Human",
+        "solomani_mixed": "Solomani Mixed", "frontier_human": "Frontier Human",
+        "imperial_aslan": "Imperial Aslan", "hierate_aslan": "Hierate Aslan",
+        "imperial_vargr": "Imperial Vargr", "extents_vargr": "Extents Vargr",
+        "imperial_bwap": "Imperial Bwap", "sword_worlds_human": "Sword Worlds Human",
+        "zhodani_human": "Zhodani Human", "luriani": "Luriani",
+        "jonkeereen": "Jonkeereen", "dolphin": "Dolphin",
+        "uplifted_orca": "Uplifted Orca", "droashav": "Droashav",
+        "akeed": "Akeed", "sydite": "Sydite", "faar": "Faar",
     }
-    return mapping.get(species_id, species_id.replace("_", " ").title())
+    return m.get(sid, sid.replace("_", " ").title())
 
 
-def _career_label(career_id: str, assignment_id: str) -> str:
-    """Human-readable career/assignment label."""
-    career_map = {
-        "navy":             "Navy",
-        "marines":          "Marines",
-        "army":             "Army",
-        "scouts":           "Scouts",
-        "merchant":         "Merchant",
-        "agent":            "Agent",
-        "noble":            "Noble",
-        "drifter":          "Drifter",
-        "entertainer":      "Entertainer",
-        "scholar":          "Scholar",
-        "rogue":            "Rogue",
-        "citizen":          "Citizen",
-        "prisoner":         "Prisoner",
-        "solsec":           "SolSec",
-        "confederation_navy":  "Confederation Navy",
-        "confederation_army":  "Confederation Army",
-        "solomani_marine":     "Solomani Marine",
-        "party":               "Party",
-        "dolphin_civilian":    "Dolphin Civilian",
-        "dolphin_military":    "Dolphin Military",
-        "philosopher_elder":   "Philosopher-Elder",
-        "spirit_singer":       "Spirit Singer",
+def career_label(career_id: str, assignment_id: str) -> str:
+    m = {
+        "navy": "Navy", "marines": "Marines", "army": "Army", "scouts": "Scouts",
+        "merchant": "Merchant", "agent": "Agent", "noble": "Noble",
+        "drifter": "Drifter", "entertainer": "Entertainer", "scholar": "Scholar",
+        "rogue": "Rogue", "citizen": "Citizen", "prisoner": "Prisoner",
+        "solsec": "SolSec", "confederation_navy": "Confederation Navy",
+        "confederation_army": "Confederation Army",
+        "solomani_marine": "Solomani Marine", "party": "Party",
+        "dolphin_civilian": "Dolphin Civilian", "dolphin_military": "Dolphin Military",
+        "philosopher_elder": "Philosopher-Elder", "spirit_singer": "Spirit Singer",
     }
-    cname = career_map.get(career_id, career_id.replace("_", " ").title())
-    aname = assignment_id.replace("_", " ").title() if assignment_id else ""
+    cname = m.get(career_id, career_id.replace("_", " ").title())
+    aname = (assignment_id or "").replace("_", " ").title()
     if aname and aname.lower() != cname.lower():
         return f"{cname} / {aname}"
     return cname
+
+
+def get_stat(char: Character, code: str) -> int:
+    ch = char.characteristics
+    if code == "STR": return ch.STR
+    if code == "DEX": return ch.DEX
+    if code == "END": return ch.END
+    if code == "INT": return ch.INT
+    if code == "EDU": return ch.EDU
+    if code == "SOC": return ch.SOC
+    if code == "PSI": return char.psi
+    return 0  # MOR, LCK, SAN, CHA — not in model
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Low-level drawing primitives
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fill_rect(c, x, y_top_d, w, h, color):
+    c.setFillColor(color)
+    c.rect(x, dy(y_top_d + h), w, h, fill=1, stroke=0)
+
+
+def fill_stroke_rect(c, x, y_top_d, w, h, fill_color, stroke_color,
+                     stroke_w=0.3):
+    c.setFillColor(fill_color)
+    c.setStrokeColor(stroke_color)
+    c.setLineWidth(stroke_w)
+    c.rect(x, dy(y_top_d + h), w, h, fill=1, stroke=1)
+
+
+def hline(c, x0, x1, y_d, color=None, w=0.3):
+    c.setStrokeColor(color or RULE_COL)
+    c.setLineWidth(w)
+    c.line(x0, dy(y_d), x1, dy(y_d))
+
+
+def vline(c, x, y_top_d, y_bot_d, color=None, w=0.3):
+    c.setStrokeColor(color or RULE_COL)
+    c.setLineWidth(w)
+    c.line(x, dy(y_top_d), x, dy(y_bot_d))
+
+
+def draw_text(c, x, y_d, text, font=F_REG, size=7.0, color=None,
+              align="left", max_w=None):
+    if not text:
+        return
+    s = str(text)
+    if max_w:
+        while c.stringWidth(s, font, size) > max_w and len(s) > 1:
+            s = s[:-2] + "…"
+    c.setFillColor(color or BODY_COL)
+    c.setFont(font, size)
+    base_y = dy(y_d) - size * 0.30
+    if align == "center":
+        c.drawCentredString(x, base_y, s)
+    elif align == "right":
+        c.drawRightString(x, base_y, s)
+    else:
+        c.drawString(x, base_y, s)
+
+
+def draw_hex(c, cx, cy_d, hw, hh,
+             fill=None, stroke=None, sw=0.6):
+    """Pointy-top hexagon centred at display position (cx, cy_d)."""
+    fill  = fill  or HEX_FILL
+    stroke = stroke or HEX_STR
+    cy_c = dy(cy_d)
+    pts = [
+        (cx,      cy_c + hh),
+        (cx + hw, cy_c + hh / 2),
+        (cx + hw, cy_c - hh / 2),
+        (cx,      cy_c - hh),
+        (cx - hw, cy_c - hh / 2),
+        (cx - hw, cy_c + hh / 2),
+    ]
+    p = c.beginPath()
+    p.moveTo(*pts[0])
+    for pt in pts[1:]:
+        p.lineTo(*pt)
+    p.close()
+    c.setFillColor(fill)
+    c.setStrokeColor(stroke)
+    c.setLineWidth(sw)
+    c.drawPath(p, fill=1, stroke=1)
+
+
+def section_header(c, x0, x1, y_top_d, height=18.0, title="",
+                   font_size=7.0, notch_w=10.0, notch_h=7.0):
+    """
+    Black bar from x0→x1 with a diagonal notch cut from the bottom-right.
+    Returns y_d just below the bar (= y_top_d + height).
+    """
+    y_bot_d = y_top_d + height
+    pts = [
+        (x0,           dy(y_top_d)),
+        (x1,           dy(y_top_d)),
+        (x1,           dy(y_bot_d) + notch_h),
+        (x1 - notch_w, dy(y_bot_d)),
+        (x0,           dy(y_bot_d)),
+    ]
+    p = c.beginPath()
+    p.moveTo(*pts[0])
+    for pt in pts[1:]:
+        p.lineTo(*pt)
+    p.close()
+    c.setFillColor(HDR_BG)
+    c.setLineWidth(0)
+    c.drawPath(p, fill=1, stroke=0)
+
+    if title:
+        c.setFillColor(HDR_FG)
+        c.setFont(F_BOLD, font_size)
+        c.drawString(x0 + 4.0,
+                     dy(y_top_d + height * 0.5) - font_size * 0.30,
+                     title)
+    return y_bot_d
+
+
+def add_text_field(c, name, x, y_top_d, w, h, value="",
+                   font_size=7.5, multiline=False):
+    """AcroForm fillable text field."""
+    flags = "multiline" if multiline else ""
+    c.acroForm.textfield(
+        name=name, tooltip=name,
+        x=x, y=dy(y_top_d + h),
+        width=w, height=h,
+        value=value or "",
+        fontSize=font_size, fontName=F_REG,
+        fillColor=FIELD_BG, borderColor=FIELD_BDR,
+        borderWidth=0.5, textColor=BODY_COL,
+        fieldFlags=flags, relative=False,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Characteristics strip  (shared geometry)
+# ─────────────────────────────────────────────────────────────────────────────
+
+SBAR_X0 = 24.0   # sidebar left
+SBAR_X1 = 40.0   # sidebar right  (= hex-area left)
+STAT_X1 = 106.0  # stat strip right edge
+
+LARGE_CX = 59.0;  LARGE_HW = 10.2;  LARGE_HH = 12.0
+SMALL_CX = 84.0;  SMALL_HW = 8.5;   SMALL_HH = 10.0
+
+CORE_TOP_D  = 24.0;   CORE_BOT_D  = 296.0
+OTHER_TOP_D = 310.0;  OTHER_BOT_D = 548.0
+
+CORE_CENTERS  = [59.17, 101.5, 143.8, 186.2, 228.5, 270.8]
+OTHER_CENTERS = [342.3, 379.0, 415.7, 452.3, 489.0]
+
+CORE_STATS  = [("STR","Strength"), ("DEX","Dexterity"), ("END","Endurance"),
+               ("INT","Intellect"), ("EDU","Education"), ("SOC","Social")]
+OTHER_STATS = [("MOR","Morale"), ("LCK","Luck"), ("SAN","Sanity"),
+               ("CHA","Charisma"), ("PSI","Psionic")]
+
+
+def draw_stat_block(c, char, stats, centers_d, sec_top_d, sec_bot_d, label):
+    """Draw one stat section: sidebar + hex cells."""
+    # Sidebar
+    fill_rect(c, SBAR_X0, sec_top_d, SBAR_X1 - SBAR_X0,
+              sec_bot_d - sec_top_d, SIDEBAR_BG)
+    # Hex area background
+    fill_rect(c, SBAR_X1, sec_top_d, STAT_X1 - SBAR_X1,
+              sec_bot_d - sec_top_d, STAT_AREA)
+
+    # Rotated label in sidebar
+    c.saveState()
+    c.setFillColor(SIDEBAR_FG)
+    c.setFont(F_BOLD, 4.5)
+    mid_d = (sec_top_d + sec_bot_d) / 2
+    c.translate(SBAR_X0 + 8.0, dy(mid_d))
+    c.rotate(90)
+    c.drawCentredString(0, 0, label)
+    c.restoreState()
+
+    for i, ((code, _), ctr_d) in enumerate(zip(stats, centers_d)):
+        val = get_stat(char, code)
+        tens, units = stat_digits(val)
+        dm = char_dm(val)
+
+        # Divider above each row (skip first)
+        if i > 0:
+            prev_d = centers_d[i - 1]
+            hline(c, SBAR_X1, STAT_X1, (prev_d + ctr_d) / 2)
+
+        # Stat code label (above hexes)
+        draw_text(c, SBAR_X1 + 1.5, ctr_d - 13.5, code, F_OBOL, 4.0, LABEL_COL)
+
+        # Large hex (tens digit)
+        draw_hex(c, LARGE_CX, ctr_d, LARGE_HW, LARGE_HH)
+        c.setFillColor(BODY_COL)
+        c.setFont(F_BOLD, 9.0)
+        c.drawCentredString(LARGE_CX, dy(ctr_d) - 3.2, tens)
+
+        # Small hex (units digit)
+        draw_hex(c, SMALL_CX, ctr_d, SMALL_HW, SMALL_HH)
+        c.setFillColor(BODY_COL)
+        c.setFont(F_BOLD, 7.5)
+        c.drawCentredString(SMALL_CX, dy(ctr_d) - 2.8, units)
+
+        # DM label + value (right of hexes)
+        c.setFillColor(LABEL_COL)
+        c.setFont(F_BOLD, 3.5)
+        c.drawString(95.5, dy(ctr_d - 5.5), "DM")
+        dm_str = fmt_dm(dm)
+        c.setFillColor(BODY_COL)
+        c.setFont(F_REG, 6.5)
+        c.drawCentredString(98.5, dy(ctr_d + 2.5), dm_str)
+
+
+def draw_stat_column(c, char):
+    """Draw the full left characteristics strip on the current page."""
+    draw_stat_block(c, char, CORE_STATS, CORE_CENTERS,
+                    CORE_TOP_D, CORE_BOT_D, "CORE CHARACTERISTICS")
+    draw_stat_block(c, char, OTHER_STATS, OTHER_CENTERS,
+                    OTHER_TOP_D, OTHER_BOT_D, "OTHER CHARACTERISTICS")
+    # Wealth strip (below OTHER, simple label)
+    wt = OTHER_BOT_D + 2
+    fill_rect(c, SBAR_X0, wt, STAT_X1 - SBAR_X0, 18.0, STAT_AREA)
+    draw_text(c, SBAR_X0 + 3.0, wt + 5.5, "WEALTH", F_BOLD, 4.5, LABEL_COL)
+    draw_text(c, SBAR_X0 + 3.0, wt + 13.5, f"Cr{char.credits:,}", F_BOLD, 6.5, BODY_COL)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Page furniture
+# ─────────────────────────────────────────────────────────────────────────────
+
+def draw_background(c):
+    c.setFillColor(BG)
+    c.rect(0, 0, PW, PH, fill=1, stroke=0)
+
+
+def draw_footer(c, page_num):
+    draw_text(c, PW / 2, 598.0,
+              f"Traveller Character Sheet  —  Page {page_num}       travellercc.avorial.com",
+              F_REG, 5.0, LABEL_COL, "center")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Generic row helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def data_row(c, x0, x1, y_d, rh, label, value,
+             alt=False, label_w=62.0, v_size=7.0):
+    """Single-label + value row with bottom rule."""
+    if alt:
+        fill_rect(c, x0, y_d, x1 - x0, rh, ROW_ALT)
+    draw_text(c, x0 + 3.0, y_d + rh * 0.52, label, F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, x0 + label_w, y_d + rh * 0.52, str(value) if value is not None else "",
+              F_REG, v_size, BODY_COL, max_w=x1 - x0 - label_w - 3.0)
+    hline(c, x0, x1, y_d + rh)
+
+
+def skill_row(c, x0, x1, y_d, rh, label, level, alt=False):
+    """Name-left, level-right row with bottom rule."""
+    if alt:
+        fill_rect(c, x0, y_d, x1 - x0, rh, ROW_ALT)
+    draw_text(c, x0 + 3.0, y_d + rh * 0.52, label, F_REG, 6.5, BODY_COL,
+              max_w=x1 - x0 - 20.0)
+    draw_text(c, x1 - 3.0, y_d + rh * 0.52, str(level), F_BOLD, 7.0, BODY_COL,
+              align="right")
+    hline(c, x0, x1, y_d + rh)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE 1
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Left main column
+LM_X0 = 114.0
+LM_X1 = 360.0
+LM_W  = LM_X1 - LM_X0
+
+# Right main column
+RM_X0 = 372.0
+RM_X1 = 768.0
+RM_W  = RM_X1 - RM_X0
+
+
+def draw_p1_personal_data(c, char):
+    """PERSONAL DATA FILE panel, page 1 left column."""
+    sec_top = 24.0;  sec_bot = 118.0
+    fill_rect(c, LM_X0, sec_top, LM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, LM_X0, LM_X1, sec_top, title="PERSONAL DATA FILE")
+    rh = 9.5
+
+    # Name (fillable)
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.48, "NAME", F_BOLD, 5.0, LABEL_COL)
+    add_text_field(c, "Name", LM_X0 + 40.0, y, LM_W - 43.0, rh,
+                   value=char.name or "")
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Homeworld + UWP
+    hw_mid = LM_X0 + LM_W * 0.58
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.48, "HOMEWORLD", F_BOLD, 5.0, LABEL_COL)
+    add_text_field(c, "Homeworld", LM_X0 + 58.0, y, hw_mid - LM_X0 - 61.0, rh,
+                   value=char.homeworld or "")
+    vline(c, hw_mid, y, y + rh)
+    draw_text(c, hw_mid + 3.0, y + rh * 0.48, "UWP", F_BOLD, 5.0, LABEL_COL)
+    add_text_field(c, "UWP", hw_mid + 24.0, y, LM_X1 - hw_mid - 26.0, rh,
+                   value=char.homeworld_uwp or "")
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Species + Age
+    mid = (LM_X0 + LM_X1) / 2
+    fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "SPECIES", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, LM_X0 + 45.0, y + rh * 0.52, species_name(char.species_id),
+              F_REG, 6.5, BODY_COL, max_w=mid - LM_X0 - 48.0)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "AGE", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, mid + 28.0, y + rh * 0.52, str(char.age), F_BOLD, 7.5, BODY_COL)
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Terms
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "TERMS SERVED", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, LM_X0 + 70.0, y + rh * 0.52, str(char.total_terms),
+              F_BOLD, 7.5, BODY_COL)
+    vline(c, mid, y, y + rh)
+    nt = noble_title(char)
+    if nt:
+        draw_text(c, mid + 3.0, y + rh * 0.52, "TITLE", F_BOLD, 5.0, LABEL_COL)
+        draw_text(c, mid + 30.0, y + rh * 0.52, nt, F_REG, 6.5, BODY_COL)
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Credits
+    fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "CREDITS", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, LM_X0 + 45.0, y + rh * 0.52, f"Cr {char.credits:,}",
+              F_BOLD, 7.0, BODY_COL)
+    if char.ship_shares > 0:
+        vline(c, mid, y, y + rh)
+        draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
+        draw_text(c, mid + 60.0, y + rh * 0.52, str(char.ship_shares),
+                  F_BOLD, 7.0, BODY_COL)
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Pension (if any)
+    if char.pension_per_year > 0:
+        draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "PENSION/YR", F_BOLD, 5.0, LABEL_COL)
+        draw_text(c, LM_X0 + 60.0, y + rh * 0.52,
+                  f"Cr {char.pension_per_year:,}", F_BOLD, 7.0, BODY_COL)
+        hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+    # Society
+    draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "SOCIETY", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, LM_X0 + 45.0, y + rh * 0.52,
+              char.society_id.replace("_", " ").title(), F_REG, 6.5, BODY_COL)
+    hline(c, LM_X0, LM_X1, y + rh)
+
+
+def draw_p1_careers(c, char):
+    """CAREERS panel, page 1 left column."""
+    sec_top = 126.0;  sec_bot = 234.0
+    fill_rect(c, LM_X0, sec_top, LM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, LM_X0, LM_X1, sec_top, title="CAREERS")
+    rh = 9.0
+
+    careers = char.completed_careers
+    if not careers:
+        draw_text(c, LM_X0 + 4.0, y + 8.0, "No careers completed.",
+                  F_OBL, 6.5, LABEL_COL)
+        return
+
+    for i, cr in enumerate(careers[:10]):  # cap to fit panel
+        label = career_label(cr.career_id, cr.assignment_id)
+        rank_s = cr.final_rank_title or f"Rank {cr.final_rank}"
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
+
+        # Career name on upper line, rank on lower line; terms right-aligned
+        draw_text(c, LM_X0 + 3.0, y + rh * 0.35, label,
+                  F_BOLD, 6.5, BODY_COL, max_w=LM_W - 40.0)
+        draw_text(c, LM_X1 - 3.0, y + rh * 0.35,
+                  f"{cr.terms_served}t", F_BOLD, 6.5, BODY_COL, align="right")
+        draw_text(c, LM_X0 + 10.0, y + rh * 0.75, rank_s,
+                  F_OBL, 5.0, LABEL_COL, max_w=LM_W - 14.0)
+        hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
+
+def draw_p1_skills(c, char):
+    """SKILLS panel (with red Training Row), page 1 left column."""
+    sec_top = 242.0;  sec_bot = 530.0
+    fill_rect(c, LM_X0, sec_top, LM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, LM_X0, LM_X1, sec_top, title="SKILLS")
+
+    # Red training row
+    train_h = 14.0
+    fill_rect(c, LM_X0, y, LM_W, train_h, ROW_RED)
+    draw_text(c, LM_X0 + 3.0, y + train_h * 0.52,
+              "TRAINING / EDUCATION", F_BOLD, 5.0, white)
+    y += train_h
+
+    rh = 9.5
+    skills = sorted(char.skills or [], key=lambda s: (s.name, s.speciality or ""))
+    max_rows = int((sec_bot - y) / rh)
+
+    if not skills:
+        draw_text(c, LM_X0 + 4.0, y + 8.0, "No skills yet.",
+                  F_OBL, 6.5, LABEL_COL)
+        return
+
+    for i, sk in enumerate(skills[:max_rows]):
+        label = f"{sk.name} ({sk.speciality})" if sk.speciality else sk.name
+        skill_row(c, LM_X0, LM_X1, y, rh, label, sk.level, alt=(i % 2 == 1))
+        y += rh
+        if y + rh > sec_bot:
+            draw_text(c, LM_X0 + 4.0, y + 4.0,
+                      f"+ {len(skills) - i - 1} more skills…",
+                      F_OBL, 5.5, LABEL_COL)
+            break
+
+
+def draw_p1_finances(c, char):
+    """FINANCES panel, page 1 right column."""
+    sec_top = 24.0;  sec_bot = 94.0
+    fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, RM_X0, RM_X1, sec_top, title="FINANCES")
+    rh = 9.0;  lw = 85.0
+    mid = RM_X0 + RM_W / 2
+
+    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "CASH", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, RM_X0 + lw,  y + rh * 0.52, f"Cr {char.credits:,}",
+              F_BOLD, 7.0, BODY_COL)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, mid + lw,  y + rh * 0.52, str(char.ship_shares or 0),
+              F_BOLD, 7.0, BODY_COL)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "PENSION/YR", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, RM_X0 + lw,  y + rh * 0.52,
+              f"Cr {char.pension_per_year:,}" if char.pension_per_year else "—",
+              F_REG, 7.0, BODY_COL)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "MEDICAL DEBT", F_BOLD, 5.0, LABEL_COL)
+    debt_col = Color(0.8, 0.1, 0.1) if char.medical_debt > 0 else BODY_COL
+    draw_text(c, mid + lw, y + rh * 0.52,
+              f"Cr {char.medical_debt:,}" if char.medical_debt else "—",
+              F_BOLD, 7.0, debt_col)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    # Benefit rows (blank lines to fill the panel)
+    for i in range(3):
+        alt = (i % 2 == 0)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        lbl_idx = i + 1
+        draw_text(c, RM_X0 + 3.0, y + rh * 0.52,
+                  f"BENEFIT {lbl_idx}", F_BOLD, 5.0, LABEL_COL)
+        hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+
+def draw_p1_armour(c, char):
+    """ARMOUR panel, page 1 right column."""
+    sec_top = 106.0;  sec_bot = 210.0
+    fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, RM_X0, RM_X1, sec_top, title="ARMOUR")
+    rh = 9.0
+    col_w = RM_W / 4
+
+    # Header mini-row
+    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+    hdrs = ["NAME", "TL", "PROTECTION", "OTHER"]
+    for i, h in enumerate(hdrs):
+        draw_text(c, RM_X0 + i * col_w + 3.0, y + rh * 0.52,
+                  h, F_BOLD, 4.5, LABEL_COL)
+        if i:
+            vline(c, RM_X0 + i * col_w, y, y + rh)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    # Blank rows for recording armour
+    for i in range(8):
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        for j in range(1, 4):
+            vline(c, RM_X0 + j * col_w, y, y + rh)
+        hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+
+def draw_p1_weapons(c, char):
+    """WEAPONS panel, page 1 right column."""
+    sec_top = 220.0;  sec_bot = 350.0
+    fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, RM_X0, RM_X1, sec_top, title="WEAPONS")
+    rh = 9.0
+
+    # Column headers
+    cols = [("NAME", 0.0, 0.36), ("TL", 0.36, 0.10), ("SKILL", 0.46, 0.14),
+            ("RANGE", 0.60, 0.12), ("DAMAGE", 0.72, 0.16), ("OTHER", 0.88, 0.12)]
+    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+    prev_x = RM_X0
+    for lbl, frac, _ in cols:
+        cx_ = RM_X0 + RM_W * frac
+        if frac > 0:
+            vline(c, cx_, y, y + rh)
+        draw_text(c, cx_ + 3.0, y + rh * 0.52, lbl, F_BOLD, 4.5, LABEL_COL)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    # Blank weapon rows
+    for i in range(10):
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        for _, frac, _ in cols[1:]:
+            vline(c, RM_X0 + RM_W * frac, y, y + rh)
+        hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+
+def draw_p1_augments(c, char):
+    """AUGMENTS panel, page 1 right column."""
+    sec_top = 360.0;  sec_bot = 444.0
+    fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, RM_X0, RM_X1, sec_top, title="AUGMENTS")
+    rh = 9.0
+    mid = RM_X0 + RM_W * 0.55
+
+    # Col headers
+    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "AUGMENT", F_BOLD, 4.5, LABEL_COL)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "EFFECT", F_BOLD, 4.5, LABEL_COL)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    for i in range(6):
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        vline(c, mid, y, y + rh)
+        hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+
+def draw_p1_equipment(c, char):
+    """EQUIPMENT panel, page 1 right column."""
+    sec_top = 454.0;  sec_bot = 564.0
+    fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, RM_X0, RM_X1, sec_top, title="EQUIPMENT")
+    rh = 9.0
+    mid = RM_X0 + RM_W * 0.55
+
+    # Col headers
+    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "ITEM", F_BOLD, 4.5, LABEL_COL)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "NOTES / QTY", F_BOLD, 4.5, LABEL_COL)
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    equipment = char.equipment or []
+    shown = 0
+    for eq in equipment:
+        if y + rh > sec_bot:
+            break
+        alt = (shown % 2 == 1)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        draw_text(c, RM_X0 + 3.0, y + rh * 0.52, eq.name,
+                  F_REG, 6.5, BODY_COL, max_w=mid - RM_X0 - 6.0)
+        vline(c, mid, y, y + rh)
+        note = (eq.notes or "") + (f"  ×{eq.quantity}" if eq.quantity > 1 else "")
+        draw_text(c, mid + 3.0, y + rh * 0.52, note,
+                  F_REG, 6.5, BODY_COL, max_w=RM_X1 - mid - 6.0)
+        hline(c, RM_X0, RM_X1, y + rh)
+        y += rh;  shown += 1
+
+    # Fill remaining blank rows
+    i = shown
+    while y + rh <= sec_bot:
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        vline(c, mid, y, y + rh)
+        hline(c, RM_X0, RM_X1, y + rh)
+        y += rh;  i += 1
+
+
+def draw_page1(c, char):
+    draw_background(c)
+    draw_stat_column(c, char)
+    draw_p1_personal_data(c, char)
+    draw_p1_careers(c, char)
+    draw_p1_skills(c, char)
+    draw_p1_finances(c, char)
+    draw_p1_armour(c, char)
+    draw_p1_weapons(c, char)
+    draw_p1_augments(c, char)
+    draw_p1_equipment(c, char)
+    draw_footer(c, 1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE 2
+# ─────────────────────────────────────────────────────────────────────────────
+
+P2_L_X0 = 24.0;   P2_L_X1 = 416.0;  P2_L_W = P2_L_X1 - P2_L_X0
+P2_R_X0 = 432.0;  P2_R_X1 = 768.0;  P2_R_W = P2_R_X1 - P2_R_X0
+
+# UCP hex geometry (page 2)
+UCP_HW = 12.75;  UCP_HH = 15.0
+UCP_CY_D = 229.0
+UCP_CX = [463.0, 509.0, 555.0, 601.0, 647.0, 693.0]
+UCP_LABELS = ["STR", "DEX", "END", "INT", "EDU", "SOC"]
+UCP_STAT_CODES = ["STR", "DEX", "END", "INT", "EDU", "SOC"]
+
+
+def draw_p2_notes(c, char):
+    """NOTES panel (fillable), page 2 left column."""
+    sec_top = 24.0;  sec_bot = 118.0
+    fill_rect(c, P2_L_X0, sec_top, P2_L_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_L_X0, P2_L_X1, sec_top, title="NOTES")
+
+    # Fillable notes textarea
+    add_text_field(c, "Notes", P2_L_X0 + 2.0, y,
+                   P2_L_W - 4.0, sec_bot - y - 2.0,
+                   value=char.user_notes or "", multiline=True)
+
+
+def draw_p2_associates(c, char):
+    """ALLIES / CONTACTS / RIVALS / ENEMIES panel, page 2 left column."""
+    sec_top = 134.0;  sec_bot = 356.0
+    fill_rect(c, P2_L_X0, sec_top, P2_L_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_L_X0, P2_L_X1, sec_top,
+                       title="ALLIES / CONTACTS / RIVALS / ENEMIES")
+    rh = 9.5
+
+    # Four-column header
+    col_frac = [0.0, 0.25, 0.50, 0.75]
+    col_labels = ["ALLIES", "CONTACTS", "RIVALS", "ENEMIES"]
+    col_kinds  = ["ally",   "contact",  "rival",  "enemy"]
+    col_w = P2_L_W / 4
+
+    fill_rect(c, P2_L_X0, y, P2_L_W, rh, ROW_ALT)
+    for i, (lbl, kind) in enumerate(zip(col_labels, col_kinds)):
+        cx_ = P2_L_X0 + i * col_w
+        if i:
+            vline(c, cx_, y, sec_bot)
+        count = sum(1 for a in (char.associates or []) if a.kind == kind)
+        draw_text(c, cx_ + 3.0, y + rh * 0.52,
+                  f"{lbl} ({count})", F_BOLD, 5.0, LABEL_COL)
+    hline(c, P2_L_X0, P2_L_X1, y + rh);  y += rh
+
+    # Collect associates by kind
+    by_kind = {"ally": [], "contact": [], "rival": [], "enemy": []}
+    for a in (char.associates or []):
+        if a.kind in by_kind:
+            by_kind[a.kind].append(a)
+
+    max_rows = int((sec_bot - y) / rh)
+    # Interleave across columns in the same row
+    max_in_col = max(len(lst) for lst in by_kind.values()) if by_kind else 0
+    for row in range(min(max_in_col + 1, max_rows)):
+        alt = (row % 2 == 1)
+        if alt:
+            fill_rect(c, P2_L_X0, y, P2_L_W, rh, ROW_ALT)
+        for i, kind in enumerate(col_kinds):
+            lst = by_kind[kind]
+            cx_ = P2_L_X0 + i * col_w
+            if row < len(lst):
+                draw_text(c, cx_ + 3.0, y + rh * 0.52, lst[row].description,
+                          F_REG, 6.0, BODY_COL, max_w=col_w - 6.0)
+        hline(c, P2_L_X0, P2_L_X1, y + rh);  y += rh
+        if y >= sec_bot:
+            break
+
+    # Fill remaining blank rows
+    while y + rh <= sec_bot:
+        hline(c, P2_L_X0, P2_L_X1, y + rh);  y += rh
+
+
+def draw_p2_history(c, char):
+    """PREVIOUS HISTORY panel, page 2 left column."""
+    sec_top = 372.0;  sec_bot = 548.0
+    fill_rect(c, P2_L_X0, sec_top, P2_L_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_L_X0, P2_L_X1, sec_top, title="PREVIOUS HISTORY")
+    rh = 9.5
+
+    # Collect events from term history
+    events = []
+    for term in (char.term_history or []):
+        cname = career_label(term.career_id, term.assignment_id)
+        for ev in (term.events or []):
+            events.append((cname, term.overall_term_number, ev))
+
+    if not events:
+        if char.capsule_description:
+            # Wrap capsule description
+            from reportlab.lib.utils import simpleSplit
+            lines = simpleSplit(char.capsule_description, F_REG, 6.5, P2_L_W - 8.0)
+            for ln in lines:
+                if y + 8.0 > sec_bot:
+                    break
+                draw_text(c, P2_L_X0 + 4.0, y + 6.5, ln, F_REG, 6.5, BODY_COL)
+                y += 8.5
+        else:
+            draw_text(c, P2_L_X0 + 4.0, y + 8.0, "No recorded history.",
+                      F_OBL, 6.5, LABEL_COL)
+        return
+
+    for i, (cname, term_num, ev) in enumerate(events):
+        if y + rh > sec_bot:
+            break
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, P2_L_X0, y, P2_L_W, rh, ROW_ALT)
+        prefix = f"T{term_num} {cname}: "
+        draw_text(c, P2_L_X0 + 3.0, y + rh * 0.52, prefix,
+                  F_BOLD, 5.5, LABEL_COL)
+        pw = c.stringWidth(prefix, F_BOLD, 5.5)
+        draw_text(c, P2_L_X0 + 3.0 + pw, y + rh * 0.52, ev,
+                  F_REG, 6.0, BODY_COL, max_w=P2_L_W - pw - 6.0)
+        hline(c, P2_L_X0, P2_L_X1, y + rh);  y += rh
+
+
+def draw_p2_personal_data(c, char):
+    """PERSONAL DATA FILE panel, page 2 right column (summary)."""
+    sec_top = 24.0;  sec_bot = 170.0
+    fill_rect(c, P2_R_X0, sec_top, P2_R_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_R_X0, P2_R_X1, sec_top, title="PERSONAL DATA FILE")
+    rh = 9.5
+
+    rows = [
+        ("NAME",     char.name or ""),
+        ("HOMEWORLD", char.homeworld or ""),
+        ("UWP",      char.homeworld_uwp or ""),
+        ("SPECIES",  species_name(char.species_id)),
+        ("SOCIETY",  char.society_id.replace("_", " ").title()),
+        ("AGE",      str(char.age)),
+        ("TERMS",    str(char.total_terms)),
+        ("CREDITS",  f"Cr {char.credits:,}"),
+    ]
+    nt = noble_title(char)
+    if nt:
+        rows.insert(4, ("TITLE", nt))
+
+    for i, (lbl, val) in enumerate(rows):
+        if y + rh > sec_bot:
+            break
+        data_row(c, P2_R_X0, P2_R_X1, y, rh, lbl, val,
+                 alt=(i % 2 == 1), label_w=68.0)
+        y += rh
+
+
+def draw_p2_ucp(c, char):
+    """UCP (Universal Character Profile) hex display, page 2 right column."""
+    sec_top = 190.0;  sec_bot = 262.0
+    fill_rect(c, P2_R_X0, sec_top, P2_R_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_R_X0, P2_R_X1, sec_top,
+                       title="UNIVERSAL CHARACTER PROFILE (UCP)")
+
+    # Six UCP hexes (one per core stat)
+    for i, (code, cx_) in enumerate(zip(UCP_STAT_CODES, UCP_CX)):
+        val = get_stat(char, code)
+        ch = ucp_char(val)
+
+        draw_hex(c, cx_, UCP_CY_D, UCP_HW, UCP_HH)
+        # Stat label below hex
+        draw_text(c, cx_, UCP_CY_D + UCP_HH + 5.0, code,
+                  F_BOLD, 4.5, LABEL_COL, "center")
+        # Value in hex (red)
+        c.setFillColor(ROW_RED)
+        c.setFont(F_BOLD, 10.0)
+        c.drawCentredString(cx_, dy(UCP_CY_D) - 3.5, ch)
+
+    # UCP string below hexes
+    ucp_str = "".join(ucp_char(get_stat(char, cd)) for cd in UCP_STAT_CODES)
+    if char.psi > 0:
+        ucp_str += "-" + ucp_char(char.psi)
+    draw_text(c, (P2_R_X0 + P2_R_X1) / 2, sec_bot - 5.0, ucp_str,
+              F_BOLD, 11.0, ROW_RED, "center")
+
+
+def draw_p2_wounds(c, char):
+    """WOUNDS / INJURIES panel, page 2 right column."""
+    sec_top = 274.0;  sec_bot = 386.0
+    fill_rect(c, P2_R_X0, sec_top, P2_R_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_R_X0, P2_R_X1, sec_top, title="WOUNDS / INJURIES")
+    rh = 9.5
+
+    ch = char.characteristics
+    stat_entries = [
+        ("STR", ch.STR), ("DEX", ch.DEX), ("END", ch.END),
+        ("INT", ch.INT), ("EDU", ch.EDU), ("SOC", ch.SOC),
+    ]
+    if char.psi > 0:
+        stat_entries.append(("PSI", char.psi))
+
+    mid = P2_R_X0 + P2_R_W / 2
+
+    # Header
+    fill_rect(c, P2_R_X0, y, P2_R_W, rh, ROW_ALT)
+    draw_text(c, P2_R_X0 + 3.0, y + rh * 0.52, "CHARACTERISTIC", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, P2_R_X0 + 85.0, y + rh * 0.52, "CURRENT", F_BOLD, 5.0, LABEL_COL)
+    vline(c, mid, y, y + rh)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "DAMAGE", F_BOLD, 5.0, LABEL_COL)
+    draw_text(c, mid + 60.0, y + rh * 0.52, "REDUCED TO", F_BOLD, 5.0, LABEL_COL)
+    hline(c, P2_R_X0, P2_R_X1, y + rh);  y += rh
+
+    for i, (code, val) in enumerate(stat_entries):
+        if y + rh > sec_bot:
+            break
+        alt = (i % 2 == 1)
+        if alt:
+            fill_rect(c, P2_R_X0, y, P2_R_W, rh, ROW_ALT)
+        draw_text(c, P2_R_X0 + 3.0, y + rh * 0.52, code, F_BOLD, 6.5, LABEL_COL)
+        draw_text(c, P2_R_X0 + 85.0, y + rh * 0.52, str(val), F_BOLD, 7.0, BODY_COL)
+        vline(c, mid, y, y + rh)
+        hline(c, P2_R_X0, P2_R_X1, y + rh);  y += rh
+
+    # Blank rows for additional wounds
+    while y + rh <= sec_bot:
+        vline(c, mid, y, y + rh)
+        hline(c, P2_R_X0, P2_R_X1, y + rh);  y += rh
+
+
+def draw_p2_psionics(c, char):
+    """PSIONICS panel (only drawn if char has PSI), page 2 right column."""
+    if not char.psi:
+        return
+    sec_top = 398.0;  sec_bot = 468.0
+    fill_rect(c, P2_R_X0, sec_top, P2_R_W, sec_bot - sec_top, PANEL)
+    y = section_header(c, P2_R_X0, P2_R_X1, sec_top, title="PSIONICS")
+    rh = 9.5
+
+    data_row(c, P2_R_X0, P2_R_X1, y, rh, "PSI STRENGTH", str(char.psi),
+             label_w=70.0);  y += rh
+    talent_str = ", ".join(char.psi_trained_talents) if char.psi_trained_talents else "None"
+    data_row(c, P2_R_X0, P2_R_X1, y, rh, "TRAINED TALENTS", talent_str,
+             label_w=85.0, alt=True);  y += rh
+
+
+def draw_page2(c, char):
+    draw_background(c)
+    draw_p2_notes(c, char)
+    draw_p2_associates(c, char)
+    draw_p2_history(c, char)
+    draw_p2_personal_data(c, char)
+    draw_p2_ucp(c, char)
+    draw_p2_wounds(c, char)
+    draw_p2_psionics(c, char)
+    draw_footer(c, 2)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Public entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
+def generate_character_pdf(char: Character) -> bytes:
+    """Return the two-page landscape character sheet as raw PDF bytes."""
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(PW, PH))
+    c.setTitle(f"{char.name or 'Traveller'}  —  Character Sheet")
+    c.setAuthor("Traveller Character Creator")
+    c.setSubject("MgT 2e Character Sheet")
+
+    # Page 1
+    draw_page1(c, char)
+    c.showPage()
+
+    # Page 2
+    draw_page2(c, char)
+    c.showPage()
+
+    c.save()
+    buf.seek(0)
+    return buf.read()
