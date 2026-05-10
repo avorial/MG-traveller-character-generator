@@ -1136,10 +1136,11 @@ function renderCharacteristicsPhase() {
           ◉ OPTIONAL STATS
           <span class="heroic-mechanic">House-rule extras — PSI, Wealth, Luck, Morale, Sanity, Territory</span>
         </button>
-        ${uiState.extraStatsEnabled ? `
+        <!-- Grid is always in the DOM; JS shows/hides it directly so scroll position is preserved -->
+        <div id="extra-stats-wrapper" style="display:${uiState.extraStatsEnabled ? 'block' : 'none'}">
           <div class="extra-stats-grid">
             ${EXTRA_STATS.map(s => {
-              const rolled = character.extra_characteristics?.[s.id];
+              const rolled = (character.extra_characteristics || {})[s.id];
               const checked = uiState.extraStatsSelected.has(s.id);
               const rollResult = uiState.extraStatsRolls[s.id];
               return `
@@ -1159,7 +1160,7 @@ function renderCharacteristicsPhase() {
             </button>
             ${uiState.heroicRoll ? `<span class="extra-stat-desc" style="align-self:center">Heroic: 3D drop lowest</span>` : ''}
           </div>
-        ` : ''}
+        </div>
       </div>
     </div>
   `;
@@ -1183,10 +1184,18 @@ function wireCharacteristicsPhase() {
     renderAll();
   });
 
-  // Extra stats toggle
+  // Extra stats toggle — direct DOM show/hide, no full re-render (avoids scroll reset)
   document.getElementById('btn-toggle-extra-stats')?.addEventListener('click', () => {
     uiState.extraStatsEnabled = !uiState.extraStatsEnabled;
-    renderAll();
+    const btn = document.getElementById('btn-toggle-extra-stats');
+    if (btn) btn.classList.toggle('btn-heroic-active', uiState.extraStatsEnabled);
+    const wrapper = document.getElementById('extra-stats-wrapper');
+    if (wrapper) {
+      wrapper.style.display = uiState.extraStatsEnabled ? 'block' : 'none';
+      if (uiState.extraStatsEnabled) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   });
   // Extra stat checkboxes
   document.querySelectorAll('.extra-stat-cb').forEach(cb => {
