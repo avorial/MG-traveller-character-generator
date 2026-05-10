@@ -283,6 +283,8 @@ let uiState = {
   lastAdvanceRoll: null,     // stored advance roll data for restoring after bonus skill roll
   // Career skill specialty pick: set when a bare cascade skill (e.g. "Electronics") is rolled
   pendingCareerSpecialty: null,   // { skillName, level, tableKey, rollData, result } or null
+  // Background skill phase: which cascade skill chip is expanded to show specialties
+  bgExpandedCascade: null,
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -335,6 +337,7 @@ async function freshCharacter() {
               basicTrainingSkills: null,
               skillPackageApplied: false,
               pendingCareerSpecialty: null,
+              bgExpandedCascade: null,
               lastCapsule: null, psionicsOpen: false, gmLastRolls: [] };
   saveCharacter();
 }
@@ -1631,13 +1634,33 @@ function renderBackgroundPhase() {
   const extraBgSkills = (speciesDef && speciesDef.extra_background_skills) || [];
   const bgSkills = [...new Set([...baseBgSkills, ...extraBgSkills])].sort();
 
+  // For cascade skills that need a specialty, track which one is expanded
+  const expandedCascade = uiState.bgExpandedCascade || null;
+
   const chips = bgSkills.map(skill => {
-    const isSelected = selected.has(skill);
-    const disabled = !isSelected && selected.size >= allowed;
+    const isCascade = !!CASCADE_SKILLS[skill];
+    // A cascade skill can be "selected" as any of its specialties
+    const selectedVariant = [...selected].find(s => s === skill || s.startsWith(skill + ' ('));
+    const isSelected = !!selectedVariant;
+    const isExpanded = expandedCascade === skill;
+    const disabled = !isSelected && !isExpanded && selected.size >= allowed;
+
+    let subChips = '';
+    if (isCascade && isExpanded) {
+      subChips = `<div class="bg-specialty-row">${(CASCADE_SKILLS[skill] || []).map(sp => {
+        const fullName = `${skill} (${sp})`;
+        const spSelected = selected.has(fullName);
+        return `<button class="skill-chip specialty-chip ${spSelected ? 'selected' : ''}" data-bg-specialty="${escapeHTML(fullName)}">${escapeHTML(sp)}</button>`;
+      }).join('')}</div>`;
+    }
+
     return `
-      <button class="skill-chip ${isSelected ? 'selected' : ''}" data-skill="${skill}" ${disabled ? 'disabled' : ''}>
-        ${skill}
-      </button>
+      <div class="bg-skill-wrap" style="display:inline-block">
+        <button class="skill-chip ${isSelected ? 'selected' : ''} ${isCascade ? 'cascade' : ''} ${isExpanded ? 'expanded-cascade' : ''}" data-skill="${skill}" ${disabled ? 'disabled' : ''}>
+          ${skill}${isCascade ? (isExpanded ? ' ▾' : ' ▸') : ''}
+        </button>
+        ${subChips}
+      </div>
     `;
   }).join('');
 
@@ -1673,11 +1696,44 @@ function wireBackgroundPhase() {
   document.querySelectorAll('[data-skill]').forEach(chip => {
     chip.addEventListener('click', () => {
       const skill = chip.dataset.skill;
-      if (uiState.selectedBgSkills.has(skill)) {
-        uiState.selectedBgSkills.delete(skill);
+      const isCascade = !!CASCADE_SKILLS[skill];
+
+      if (isCascade) {
+        // Remove any previously selected variant of this cascade skill
+        const existing = [...uiState.selectedBgSkills].find(s => s === skill || s.startsWith(skill + ' ('));
+        if (existing) {
+          // Already selected a specialty — deselect it and collapse
+          uiState.selectedBgSkills.delete(existing);
+          uiState.bgExpandedCascade = null;
+        } else if (uiState.bgExpandedCascade === skill) {
+          // Already expanded — collapse without selecting
+          uiState.bgExpandedCascade = null;
+        } else {
+          // Expand specialty sub-picker
+          uiState.bgExpandedCascade = skill;
+        }
       } else {
-        uiState.selectedBgSkills.add(skill);
+        if (uiState.selectedBgSkills.has(skill)) {
+          uiState.selectedBgSkills.delete(skill);
+        } else {
+          uiState.selectedBgSkills.add(skill);
+        }
       }
+      renderStage();
+    });
+  });
+
+  // Specialty chips inside expanded cascade skills
+  document.querySelectorAll('[data-bg-specialty]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const fullName = chip.dataset.bgSpecialty; // e.g. "Electronics (Computers)"
+      const parentSkill = fullName.split(' (')[0];
+      // Remove any other variant of the same parent already selected
+      const existing = [...uiState.selectedBgSkills].find(s => s === parentSkill || s.startsWith(parentSkill + ' ('));
+      if (existing) uiState.selectedBgSkills.delete(existing);
+      // Select this specialty
+      uiState.selectedBgSkills.add(fullName);
+      uiState.bgExpandedCascade = null;
       renderStage();
     });
   });

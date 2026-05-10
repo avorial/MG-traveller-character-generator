@@ -511,6 +511,23 @@ body {
   border-color: var(--amber);
   color: var(--amber-bright);
 }
+/* Background-phase cascade skill sub-row */
+.bg-skill-wrap {
+  vertical-align: top;
+}
+.bg-specialty-row {
+  display: block;
+  padding: 4px 2px 2px 8px;
+  margin: 2px 0 4px;
+  border-left: 2px solid var(--amber-dim);
+  background: rgba(0,0,0,0.2);
+  border-radius: 0 4px 4px 0;
+}
+/* Cascade parent chip gets a subtle highlight when expanded */
+.skill-chip.cascade.expanded-cascade {
+  border-color: var(--amber);
+  color: var(--amber-bright);
+}
 
 .heroic-mechanic {
   display: block;
