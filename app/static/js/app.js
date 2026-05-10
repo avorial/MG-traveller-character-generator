@@ -5054,7 +5054,6 @@ function renderEventStep() {
             return `<button class="skill-chip" data-contested-roll="${i}">Roll ${escapeHTML(label)} ${contested.target}+ (your DM ${lvlStr})</button>`;
           }).join('')}
           ${refuseChipHTML}
-          <button class="skill-chip dm-alt" data-contested-skip="1">Skip this check</button>
         </div>
       </div>
     ` : '';
