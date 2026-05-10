@@ -296,8 +296,16 @@ body {
   opacity: 0.5;
 }
 
-.sheet-homeworld {
+.sheet-homeworld-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   width: 100%;
+}
+
+.sheet-homeworld {
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -307,6 +315,19 @@ body {
   outline: none;
   letter-spacing: 0.15em;
   text-transform: uppercase;
+}
+
+.homeworld-map-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  text-decoration: none;
+  opacity: 0.55;
+  padding-top: 4px;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.homeworld-map-link:hover {
+  opacity: 1;
 }
 
 .sheet-meta {

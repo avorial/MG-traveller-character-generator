@@ -5751,7 +5751,7 @@ def generate_npc() -> dict:
     edu_dm = dice.characteristic_dm(char.characteristics.EDU)
     bg_count = max(1, 3 + edu_dm)
     bg = rules.background_skills()
-    for sk in list(bg.get("skills", {}).keys())[:bg_count]:
+    for sk in list(bg.get("skills", []))[:bg_count]:
         char.add_skill(sk, level=0)
 
     char.phase = "career"

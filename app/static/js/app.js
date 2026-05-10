@@ -340,7 +340,7 @@ function nobleTitle(speciesId, soc) {
 function renderSheet() {
   const sheet = document.getElementById('sheet');
   const stats = character.characteristics;
-  const species = SPECIES.find((s) => s.id === character.species_id) || { name: '—' };
+  const species = SPECIES.find((s) => s.id === character.species_id) || { name: character.species_id ? '—' : 'Unknown' };
 
   const statCells = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
     .map((stat) => {
@@ -418,8 +418,11 @@ function renderSheet() {
     <div class="sheet-scroll">
       <div class="sheet-header">
         <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${escapeAttr(character.name)}" />
-        <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${escapeAttr(character.homeworld)}" />
-        <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${escapeAttr(character.homeworld_uwp)}" title="Universal World Profile (paste from travellermap.com)" />
+        <span class="sheet-homeworld-wrap">
+          <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${escapeAttr(character.homeworld)}" />
+          <a href="https://travellermap.com/" target="_blank" rel="noopener noreferrer" class="homeworld-map-link" title="Open Traveller Map">🗺</a>
+        </span>
+        <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${escapeAttr(character.homeworld_uwp)}" title="Universal World Profile" />
         <div class="sheet-meta">
           <span>SPECIES<br><strong>${species.name}</strong></span>
           <span>AGE<br><strong>${character.age}</strong></span>
@@ -536,7 +539,9 @@ function renderSheet() {
   });
   const uwpEl = document.getElementById('char-uwp');
   if (uwpEl) uwpEl.addEventListener('change', (e) => {
-    character.homeworld_uwp = e.target.value.trim();
+    const stripped = e.target.value.replace(/\s+/g, '');
+    character.homeworld_uwp = stripped;
+    e.target.value = stripped;
     saveCharacter();
   });
   const notesEl = document.getElementById('char-notes');
