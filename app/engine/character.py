@@ -70,6 +70,7 @@ class CareerRecord(BaseModel):
     final_rank_title: Optional[str] = None
     commissioned: bool = False
     left_due_to: str = "voluntary"  # "voluntary" | "mishap" | "aged_out"
+    benefit_rolls_used: int = 0     # rolls already spent on this career's muster table
 
 
 class Equipment(BaseModel):

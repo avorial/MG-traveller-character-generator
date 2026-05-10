@@ -5161,6 +5161,18 @@ def muster_out_roll(
     if not table:
         raise ValueError(f"{career['name']} has no mustering-out table encoded yet")
 
+    # Enforce: at most one roll per term served in this career
+    career_rec = next(
+        (c for c in character.completed_careers if c.career_id == career_id), None
+    )
+    if career_rec is None:
+        raise ValueError(f"You have no completed terms in {career['name']}")
+    if career_rec.benefit_rolls_used >= career_rec.terms_served:
+        raise ValueError(
+            f"Already used all {career_rec.terms_served} benefit roll(s) for "
+            f"{career['name']} (1 roll per term served)."
+        )
+
     # Gambler bonus on cash rolls
     dm = 0
     if column == "cash":
@@ -5210,6 +5222,7 @@ def muster_out_roll(
         result_text = benefit
         character.log(f"Muster out (benefit)[{r.total}]: {benefit}")
 
+    career_rec.benefit_rolls_used += 1
     character.pending_benefit_rolls -= 1
     return {
         "roll": r.to_dict(),

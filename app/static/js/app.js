@@ -5865,7 +5865,7 @@ function renderDecideStep() {
 // ============================================================
 
 /** Build the two-row cash/benefit chart for a career's mustering-out table. */
-function musterTableHTML(careerDef) {
+function musterTableHTML(careerDef, termsServed, rollsUsed) {
   const table = careerDef?.mustering_out || {};
   const rolls = [1,2,3,4,5,6,7];
   const cashCells = rolls.map(n => {
@@ -5882,9 +5882,13 @@ function musterTableHTML(careerDef) {
     const isStat = /^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$/i.test(String(raw).trim());
     return `<span class="stable-preview-cell"><span class="stable-preview-n">${n}</span><span class="stable-preview-v ${isStat ? 'is-stat' : ''}">${escapeHTML(String(raw))}</span></span>`;
   }).join('');
+  const rollsLeft = termsServed != null ? (termsServed - (rollsUsed || 0)) : null;
+  const rollsNote = rollsLeft != null
+    ? ` · ${rollsLeft} of ${termsServed} roll${termsServed === 1 ? '' : 's'} remaining`
+    : '';
   return `
     <div class="muster-table-chart">
-      <div class="muster-table-label">MUSTERING-OUT TABLE · 1D ROLL</div>
+      <div class="muster-table-label">MUSTERING-OUT TABLE · 1D ROLL${rollsNote}</div>
       <div class="muster-table-row">
         <span class="muster-col-label cash-label">CASH</span>
         <span class="stable-preview muster-preview">${cashCells}</span>
@@ -5961,11 +5965,15 @@ function renderMusterPhase() {
   const careerPicker = careers.map(c => {
     const careerDef = CAREERS.find(x => x.id === c.career_id);
     const hasTable = careerDef?.mustering_out && Object.keys(careerDef.mustering_out).length > 0;
+    const rollsUsed = c.benefit_rolls_used || 0;
+    const rollsLeft = c.terms_served - rollsUsed;
+    const exhausted = rollsLeft <= 0;
+    const locked = !hasTable || exhausted;
     return `
-      <button class="card ${hasTable ? '' : 'locked'}" data-muster-career="${c.career_id}" ${hasTable ? '' : 'disabled'}>
+      <button class="card ${locked ? 'locked' : ''}" data-muster-career="${c.career_id}" ${locked ? 'disabled' : ''}>
         <div class="card-title">${careerDef?.name || c.career_id}</div>
-        <div class="card-meta">${c.terms_served} TERMS · RANK ${c.final_rank}</div>
-        <div class="card-desc">${hasTable ? 'Mustering-out table encoded. Choose this to roll.' : 'Mustering-out table not yet encoded for this career.'}</div>
+        <div class="card-meta">${c.terms_served} TERMS · RANK ${c.final_rank} · ${exhausted ? 'NO ROLLS LEFT' : `${rollsLeft} ROLL${rollsLeft === 1 ? '' : 'S'} LEFT`}</div>
+        <div class="card-desc">${!hasTable ? 'Mustering-out table not yet encoded for this career.' : exhausted ? 'All benefit rolls used for this career (1 per term served).' : `${rollsLeft} of ${c.terms_served} roll${c.terms_served === 1 ? '' : 's'} remaining.`}</div>
       </button>
     `;
   }).join('');
@@ -5984,8 +5992,10 @@ function renderMusterPhase() {
 
       ${uiState.selectedCareer ? (() => {
         const selDef = CAREERS.find(x => x.id === uiState.selectedCareer);
+        const selRec = careers.find(x => x.career_id === uiState.selectedCareer);
+        const selRollsLeft = selRec ? (selRec.terms_served - (selRec.benefit_rolls_used || 0)) : 0;
         return `
-          ${musterTableHTML(selDef)}
+          ${musterTableHTML(selDef, selRec?.terms_served, selRec?.benefit_rolls_used || 0)}
           ${(character.good_fortune_benefit_dm || 0) > 0 ? `
             <div class="dm-applied-box" style="margin-top:12px">
               <span class="event-label">Good Fortune</span>
