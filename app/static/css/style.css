@@ -487,6 +487,19 @@ body {
   color: var(--amber-bright);
 }
 
+.heroic-mechanic {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: none;
+  font-weight: 400;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+.btn-heroic-active .heroic-mechanic {
+  color: var(--amber-dim);
+}
 .btn-heroic-active {
   background: var(--amber-dim);
   color: var(--amber);

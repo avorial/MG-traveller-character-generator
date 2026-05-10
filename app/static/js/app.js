@@ -1092,7 +1092,10 @@ function renderCharacteristicsPhase() {
 
       <div class="phase-actions">
         <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : (uiState.heroicRoll ? 'ROLL HEROIC' : 'ROLL 2D × 6')}</button>
-        <button class="btn ${uiState.heroicRoll ? 'btn-heroic-active' : ''}" id="btn-toggle-heroic" title="Heroic: 4 stats rolled 2D, 2 random stats rolled 3D6 drop lowest">⚔ ${uiState.heroicRoll ? 'HEROIC ON' : 'HEROIC'}</button>
+        <button class="btn ${uiState.heroicRoll ? 'btn-heroic-active' : ''}" id="btn-toggle-heroic">
+          ⚔ ${uiState.heroicRoll ? 'HEROIC ON' : 'HEROIC'}
+          <span class="heroic-mechanic">${uiState.heroicRoll ? '4 stats: 2D · 2 stats: 3D6 drop lowest' : '4×2D + 2 stats rolled 3D6, drop lowest die'}</span>
+        </button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
       </div>
     </div>
