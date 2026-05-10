@@ -6415,8 +6415,8 @@ function renderMusterPhase() {
             </div>
           ` : ''}
           <div class="phase-actions">
-            <button class="btn primary" id="btn-roll-cash" ${cashRolled >= 3 ? 'disabled' : ''}>ROLL CASH (1D)${cashRolled >= 3 ? ' — MAX' : ''}</button>
-            <button class="btn" id="btn-roll-benefit">ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
+            <button class="btn primary" id="btn-roll-cash" ${cashRolled >= 3 || selRollsLeft <= 0 ? 'disabled' : ''}>ROLL CASH (1D)${cashRolled >= 3 ? ' — MAX' : ''}</button>
+            <button class="btn" id="btn-roll-benefit" ${selRollsLeft <= 0 ? 'disabled' : ''}>ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
           </div>`;
       })() : ''}
     </div>
@@ -6444,6 +6444,10 @@ function wireMusterPhase() {
         const response = await apiCall('/api/character/muster-out',
           { career_id: careerId, column: 'cash' });
         await applyResponse(response);
+        // Auto-clear selection if this career has no rolls left after the roll
+        const updatedRec = character.completed_careers?.find(x => x.career_id === careerId);
+        const updatedRollsLeft = updatedRec ? (updatedRec.terms_served - (updatedRec.benefit_rolls_used || 0)) : 0;
+        if (updatedRollsLeft <= 0) uiState.selectedCareer = null;
         uiState.lastRoll = {
           type: 'muster',
           column: 'cash',
@@ -6470,6 +6474,10 @@ function wireMusterPhase() {
           { career_id: careerId, column: 'benefit', use_good_fortune: useGoodFortune });
         await applyResponse(response);
         uiState.useGoodFortune = false;
+        // Auto-clear selection if this career has no rolls left after the roll
+        const updatedRec = character.completed_careers?.find(x => x.career_id === careerId);
+        const updatedRollsLeft = updatedRec ? (updatedRec.terms_served - (updatedRec.benefit_rolls_used || 0)) : 0;
+        if (updatedRollsLeft <= 0) uiState.selectedCareer = null;
         uiState.lastRoll = {
           type: 'muster',
           column: 'benefit',
@@ -6490,6 +6498,7 @@ function wireMusterPhase() {
   if (btnPostMuster) {
     btnPostMuster.addEventListener('click', () => {
       uiState.lastRoll = null;
+      uiState.selectedCareer = null;
       renderStage();
     });
   }
