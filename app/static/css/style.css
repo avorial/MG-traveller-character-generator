@@ -40,6 +40,31 @@ body.gm-active {
   --tint-rgb: 111, 255, 143;
 }
 
+/* Font size scales — toggled by app.js adding body.font-large / body.font-xl */
+body.font-large {
+  font-size: 15px;
+}
+body.font-large .phase-title,
+body.font-large h2 { font-size: 1.6rem; }
+body.font-large .phase-body,
+body.font-large .card-desc,
+body.font-large p { font-size: 0.95rem; }
+body.font-large .stat-value { font-size: 2rem; }
+body.font-large .btn { font-size: 13px; padding: 10px 18px; }
+body.font-large .card { font-size: 13px; }
+
+body.font-xl {
+  font-size: 17px;
+}
+body.font-xl .phase-title,
+body.font-xl h2 { font-size: 1.9rem; }
+body.font-xl .phase-body,
+body.font-xl .card-desc,
+body.font-xl p { font-size: 1.05rem; }
+body.font-xl .stat-value { font-size: 2.4rem; }
+body.font-xl .btn { font-size: 15px; padding: 12px 20px; }
+body.font-xl .card { font-size: 14px; }
+
 /* Light theme — white background, green accent.
    Toggled by app.js setting body.theme-light */
 body.theme-light {

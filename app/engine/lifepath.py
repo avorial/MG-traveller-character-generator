@@ -5034,6 +5034,13 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         terms_in_career = sum(
             1 for h in character.term_history if h.career_id == term.career_id
         )
+        # Benefit rolls = 1 per full term + rank bonus (computed before CareerRecord so it can be stored)
+        rank_bonus = _benefit_rolls_from_rank(term.rank)
+        earned = terms_in_career + rank_bonus
+        forfeit_note = ""
+        if term.benefit_forfeited:
+            earned = max(0, earned - 1)
+            forfeit_note = " (−1 forfeited by mishap)"
         character.completed_careers.append(
             CareerRecord(
                 career_id=term.career_id,
@@ -5043,15 +5050,9 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                 final_rank_title=term.rank_title,
                 commissioned=term.commissioned,
                 left_due_to=reason,
+                benefit_rolls_earned=earned,
             )
         )
-        # Benefit rolls = 1 per full term + rank bonus
-        rank_bonus = _benefit_rolls_from_rank(term.rank)
-        earned = terms_in_career + rank_bonus
-        forfeit_note = ""
-        if term.benefit_forfeited:
-            earned = max(0, earned - 1)
-            forfeit_note = " (−1 forfeited by mishap)"
         character.pending_benefit_rolls += earned
         character.current_term = None
 
@@ -5600,14 +5601,24 @@ def _apply_skill_result(character: Character, result: str) -> str:
     # "X or Y" — just record both options; first one is granted for simplicity
     if " or " in stripped:
         first = stripped.split(" or ")[0]
-        character.add_skill(first, level=1)
-        return f"Gained {first} 1 (from choice: {stripped})"
+        msg = character.add_skill(first, level=1)
+        if msg.startswith("Increased "):
+            new_level = msg.rsplit(" ", 1)[-1]
+            return f"+1 {first} → now level {new_level} (from choice: {stripped})"
+        return f"+1 {first} (level 1) (from choice: {stripped})"
 
     # Skill with optional speciality: "Melee (blade)", "Pilot (small craft)", "Recon"
     name, spec = _split_skill_speciality(stripped)
-    character.add_skill(name, level=1, speciality=spec)
+    msg = character.add_skill(name, level=1, speciality=spec)
     display = f"{name} ({spec})" if spec else name
-    return f"Gained {display} 1"
+    # Return "+1 SkillName → level N" so players clearly see it's an increment
+    if msg.startswith("Increased "):
+        # "Increased Gun Combat (blade) to 2" → "+1 Gun Combat (blade) → now level 2"
+        new_level = msg.rsplit(" ", 1)[-1]
+        return f"+1 {display} → now level {new_level}"
+    else:
+        # New skill at level 1
+        return f"+1 {display} (level 1)"
 
 
 def grant_event_skill(character: Character, skill_text: str) -> dict:

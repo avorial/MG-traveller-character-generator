@@ -71,6 +71,7 @@ class CareerRecord(BaseModel):
     commissioned: bool = False
     left_due_to: str = "voluntary"  # "voluntary" | "mishap" | "aged_out"
     benefit_rolls_used: int = 0     # rolls already spent on this career's muster table
+    benefit_rolls_earned: int = 0   # total rolls granted (terms + rank bonus, after forfeit)
 
 
 class Equipment(BaseModel):

@@ -208,6 +208,25 @@ const EXTRA_STATS = [
   { id: 'TER', label: 'Territory', desc: 'Influence and turf' },
 ];
 
+// Skills that require a specialty when gained at level 1 (MgT 2e cascade skills).
+// Maps bare skill name → list of common specialties.
+const CASCADE_SKILLS = {
+  'Athletics':      ['Dexterity', 'Endurance', 'Strength'],
+  'Drive':          ['Hovercraft', 'Mole', 'Track', 'Walker', 'Wheel'],
+  'Electronics':    ['Comms', 'Computers', 'Remote Ops', 'Sensors'],
+  'Engineer':       ['J-drive', 'Life Support', 'M-drive', 'Power'],
+  'Flyer':          ['Airship', 'Grav', 'Ornithopter', 'Rotor', 'Wing'],
+  'Gun Combat':     ['Archaic', 'Energy', 'Slug'],
+  'Gunner':         ['Capital', 'Ortillery', 'Screen', 'Turret'],
+  'Heavy Weapons':  ['Artillery', 'Man Portable', 'Vehicle'],
+  'Language':       ['Anglic', 'Bilanidin', 'Oynprith', 'Trokh', 'Zdetl'],
+  'Melee':          ['Blade', 'Bludgeon', 'Natural', 'Unarmed'],
+  'Pilot':          ['Capital Ships', 'Small Craft', 'Spacecraft'],
+  'Science':        ['Archaeology', 'Astronomy', 'Biology', 'Chemistry', 'Cosmology', 'Cybernetics', 'Economics', 'Genetics', 'History', 'Linguistics', 'Philosophy', 'Physics', 'Planetology', 'Psionicology', 'Psychology', 'Robotics', 'Sophontology', 'Xenology'],
+  'Seafarer':       ['Ocean Ships', 'Personal', 'Sail', 'Submarine'],
+  'Tactics':        ['Military', 'Naval'],
+};
+
 const STORAGE_KEY = 'traveller-character-v1';
 
 let SKILL_PACKAGES = {};
@@ -262,6 +281,8 @@ let uiState = {
   // Advancement bonus skill roll pending (after successful advancement)
   pendingAdvancementSkill: false,
   lastAdvanceRoll: null,     // stored advance roll data for restoring after bonus skill roll
+  // Career skill specialty pick: set when a bare cascade skill (e.g. "Electronics") is rolled
+  pendingCareerSpecialty: null,   // { skillName, level, tableKey, rollData, result } or null
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -313,6 +334,7 @@ async function freshCharacter() {
               connectionsDone: false, connections: [],
               basicTrainingSkills: null,
               skillPackageApplied: false,
+              pendingCareerSpecialty: null,
               lastCapsule: null, psionicsOpen: false, gmLastRolls: [] };
   saveCharacter();
 }
@@ -3015,14 +3037,29 @@ function wireCareerPhase() {
       try {
         const response = await apiCall('/api/character/skill-roll', { table_key: tableKey });
         await applyResponse(response);
+        const tableName = (CAREERS.find(c => c.id === character.current_term?.career_id)
+                            ?.skill_tables?.[tableKey]?.name) || tableKey;
         uiState.lastRoll = {
           type: 'skill',
           data: response.roll,
-          tableName: (CAREERS.find(c => c.id === character.current_term.career_id)
-                        ?.skill_tables?.[tableKey]?.name) || tableKey,
+          tableName,
           result: response.result,
           applied: response.applied,
         };
+        // Check if the result is a bare cascade skill that needs specialty selection
+        const bareSkill = (response.result || '').trim();
+        if (CASCADE_SKILLS[bareSkill]) {
+          uiState.pendingCareerSpecialty = {
+            skillName: bareSkill,
+            level: 1,
+            tableKey,
+            rollData: response.roll,
+            result: response.result,
+            applied: response.applied,
+          };
+        } else {
+          uiState.pendingCareerSpecialty = null;
+        }
         // Stay on 'train' subPhase so the user sees the 1D result
         renderAll();
       } catch (e) {
@@ -3041,10 +3078,33 @@ function wireCareerPhase() {
   if (btnPostSkill) {
     btnPostSkill.addEventListener('click', () => {
       uiState.lastRoll = null;
+      uiState.pendingCareerSpecialty = null;
       uiState.subPhase = postTrainingSubPhase();
       renderStage();
     });
   }
+
+  // Career specialty picker (fired when a bare cascade skill is rolled, e.g. "Electronics")
+  document.querySelectorAll('[data-career-specialty]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const spec = chip.dataset.careerSpecialty;
+      const pending = uiState.pendingCareerSpecialty;
+      if (!pending) return;
+      try {
+        // Apply the specialty via grant_event_skill — reuses existing endpoint
+        const resp = await apiCall('/api/character/event-skill-grant', {
+          skill_text: `${pending.skillName} (${spec}) 1`,
+        });
+        await applyResponse(resp);
+        uiState.pendingCareerSpecialty = null;
+        // Update the lastRoll to show the fully resolved skill
+        if (uiState.lastRoll) {
+          uiState.lastRoll.applied = `+1 ${pending.skillName} (${spec}) (level 1)`;
+        }
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
 
   const btnBasicTrainingContinue = document.getElementById('btn-basic-training-continue');
   if (btnBasicTrainingContinue) {
@@ -3743,6 +3803,13 @@ function wireCareerPhase() {
         const response = await apiCall('/api/character/skill-roll', { table_key: tableKey });
         await applyResponse(response);
         uiState.pendingAdvancementSkill = false;
+        // Carry the gained skill onto the advance roll so the result screen can show it
+        if (uiState.lastAdvanceRoll) {
+          uiState.lastAdvanceRoll = {
+            ...uiState.lastAdvanceRoll,
+            advancementSkillGained: response.applied || response.result || '',
+          };
+        }
         // Restore the advance roll view so decide actions are shown
         uiState.lastRoll = uiState.lastAdvanceRoll ? { ...uiState.lastAdvanceRoll } : uiState.lastRoll;
         renderAll();
@@ -4438,6 +4505,8 @@ function renderSkillChoice() {
   // Post-roll view: a skill-table roll just completed
   if (uiState.lastRoll?.type === 'skill') {
     const lr = uiState.lastRoll;
+    const pendingSpec = uiState.pendingCareerSpecialty;
+    const specialties = pendingSpec ? (CASCADE_SKILLS[pendingSpec.skillName] || []) : [];
     return `
       <div class="stage-content">
         <div class="phase-label">Skill Training · 1D Result</div>
@@ -4445,11 +4514,20 @@ function renderSkillChoice() {
         ${rollReadoutHTML(lr.data, { label: '1D', showTarget: false })}
         <div class="event-box">
           <span class="event-label">Rolled ${lr.data?.total ?? '?'} → ${escapeHTML(lr.result || '?')}</span>
-          ${escapeHTML(lr.applied || '')}
+          ${pendingSpec ? `<span style="color:var(--amber-dim);font-size:11px"> — ${escapeHTML(lr.applied || '')}</span>` : escapeHTML(lr.applied || '')}
         </div>
+        ${pendingSpec ? `
+          <div class="event-box" style="border-color:var(--amber);margin-top:10px">
+            <span class="event-label" style="color:var(--amber)">CHOOSE SPECIALTY</span>
+            <p style="font-size:12px;color:var(--text-dim);margin:4px 0 8px">${escapeHTML(pendingSpec.skillName)} requires a specialty. Pick one:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${specialties.map(s => `<button class="btn ghost specialty-chip" data-career-specialty="${escapeHTML(s)}">${escapeHTML(s)}</button>`).join('')}
+            </div>
+          </div>
+        ` : `
         <div class="phase-actions">
           <button class="btn primary" id="btn-post-skill">SURVIVAL ROLL →</button>
-        </div>
+        </div>`}
       </div>
     `;
   }
@@ -6182,6 +6260,11 @@ function renderAdvanceStep() {
           ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
           : 'No Advancement This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
+        ${lr.advancementSkillGained ? `
+          <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:10px">
+            <span class="event-label" style="color:var(--success,#7fd87f)">BONUS SKILL GAINED</span>
+            ${escapeHTML(lr.advancementSkillGained)}
+          </div>` : ''}
         <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or muster out?</p>
         ${advDecideActions}
       </div>
@@ -6217,13 +6300,13 @@ function renderAdvanceStep() {
     `;
   }
 
-  // Already rolled (restored from session)
+  // Already rolled (restored from session — roll data no longer available)
   return `
     <div class="stage-content">
-      <div class="phase-label">Term Complete</div>
-      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}` : term.advanced ? `Promoted to Rank ${term.rank}` : 'No Advancement'}</h2>
-      ${term.rank_title ? `<p class="phase-subtitle">${term.rank_title}</p>` : ''}
-      <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or leave?</p>
+      <div class="phase-label">Term ${term.overall_term_number} Complete</div>
+      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}${term.rank_title ? ` — ${term.rank_title}` : ''}` : term.advanced ? `Promoted to Rank ${term.rank}${term.rank_title ? ` — ${term.rank_title}` : ''}` : 'No Promotion This Term'}</h2>
+      <p class="phase-body" style="color:var(--text-dim);font-size:11px">Advancement roll already resolved — see the log for the result.</p>
+      <p class="phase-body">Continue in this career or muster out?</p>
       ${decideActions}
     </div>
   `;
@@ -6374,14 +6457,19 @@ function renderMusterPhase() {
     const careerDef = CAREERS.find(x => x.id === c.career_id);
     const hasTable = careerDef?.mustering_out && Object.keys(careerDef.mustering_out).length > 0;
     const rollsUsed = c.benefit_rolls_used || 0;
-    const rollsLeft = c.terms_served - rollsUsed;
+    const maxRolls = c.benefit_rolls_earned || c.terms_served;  // earned includes rank bonus; fall back to terms for old saves
+    const rollsLeft = maxRolls - rollsUsed;
+    const rankBonus = maxRolls - c.terms_served;
     const exhausted = rollsLeft <= 0;
     const locked = !hasTable || exhausted;
+    const rollsDesc = rankBonus > 0
+      ? `${c.terms_served} terms + ${rankBonus} rank bonus = ${maxRolls} total`
+      : `${c.terms_served} term${c.terms_served === 1 ? '' : 's'}`;
     return `
       <button class="card ${locked ? 'locked' : ''}" data-muster-career="${c.career_id}" ${locked ? 'disabled' : ''}>
         <div class="card-title">${careerDef?.name || c.career_id}</div>
         <div class="card-meta">${c.terms_served} TERMS · RANK ${c.final_rank} · ${exhausted ? 'NO ROLLS LEFT' : `${rollsLeft} ROLL${rollsLeft === 1 ? '' : 'S'} LEFT`}</div>
-        <div class="card-desc">${!hasTable ? 'Mustering-out table not yet encoded for this career.' : exhausted ? 'All benefit rolls used for this career (1 per term served).' : `${rollsLeft} of ${c.terms_served} roll${c.terms_served === 1 ? '' : 's'} remaining.`}</div>
+        <div class="card-desc">${!hasTable ? 'Mustering-out table not yet encoded for this career.' : exhausted ? 'All benefit rolls used.' : `${rollsLeft} of ${maxRolls} rolls remaining (${rollsDesc}).`}</div>
       </button>
     `;
   }).join('');
@@ -7025,6 +7113,29 @@ async function bootstrap() {
       uiState.themeLight = !uiState.themeLight;
       try { localStorage.setItem('theme', uiState.themeLight ? 'light' : 'dark'); } catch (e) { /* ignore */ }
       applyTheme();
+    });
+  }
+
+  // Font-size cycle: normal → large → xl → normal
+  const btnFontSize = document.getElementById('btn-font-size');
+  if (btnFontSize) {
+    const FONT_LEVELS = ['normal', 'large', 'xl'];
+    const FONT_LABELS = { normal: 'Aa', large: 'A+', xl: 'A++' };
+    const FONT_TITLES = { normal: 'Font: Normal — click for Large', large: 'Font: Large — click for Extra Large', xl: 'Font: Extra Large — click for Normal' };
+    const savedFont = localStorage.getItem('traveller_font_size') || 'normal';
+    let currentFont = FONT_LEVELS.includes(savedFont) ? savedFont : 'normal';
+    const applyFont = () => {
+      document.body.classList.remove('font-large', 'font-xl');
+      if (currentFont !== 'normal') document.body.classList.add(`font-${currentFont}`);
+      btnFontSize.textContent = FONT_LABELS[currentFont];
+      btnFontSize.title = FONT_TITLES[currentFont];
+    };
+    applyFont();
+    btnFontSize.addEventListener('click', () => {
+      const idx = FONT_LEVELS.indexOf(currentFont);
+      currentFont = FONT_LEVELS[(idx + 1) % FONT_LEVELS.length];
+      try { localStorage.setItem('traveller_font_size', currentFont); } catch (e) { /* ignore */ }
+      applyFont();
     });
   }
 
