@@ -237,8 +237,12 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Light/dark theme toggle
+  themeLight: localStorage.getItem('theme') === 'light',
   // Heroic stat generation toggle (4×2D + 2×3D6 drop lowest)
   heroicRoll: false,
+  // College skill pick: awaiting specialty selection for this skill name
+  pcSkillSpecialtyPick: null,
   // Advancement bonus skill roll pending (after successful advancement)
   pendingAdvancementSkill: false,
   lastAdvanceRoll: null,     // stored advance roll data for restoring after bonus skill roll
@@ -1594,11 +1598,30 @@ function renderPreCareerPhase() {
     const stageLabel = pickStage === 'enrollment' ? 'Enrollment Skills' : 'Graduation Skills';
     const levelLabel = pickLevel === 0 ? 'level 0 (your majors — you can raise them later)' : 'level 1';
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
+    const awaitingSpec = uiState.pcSkillSpecialtyPick; // skill name pending specialty
     const picker = pool.map(s => {
-      const sel = picked.includes(s);
-      return `<button class="skill-chip ${sel ? 'selected' : ''}" data-pc-skill="${escapeHTML(s)}"
-        ${!sel && picked.length >= remaining ? 'disabled' : ''}>${escapeHTML(s)}</button>`;
+      const hasSpec = !!(SKILLS_DATA.speciality && SKILLS_DATA.speciality[s]);
+      // A skill with specialties is "selected" if any picked entry starts with "s ("
+      const sel = hasSpec
+        ? picked.some(p => p === s || p.startsWith(s + ' ('))
+        : picked.includes(s);
+      const isAwaiting = awaitingSpec === s;
+      return `<button class="skill-chip ${sel ? 'selected' : ''} ${isAwaiting ? 'awaiting-spec' : ''}"
+        data-pc-skill="${escapeHTML(s)}"
+        ${!sel && !isAwaiting && picked.length >= remaining ? 'disabled' : ''}
+        >${escapeHTML(s)}${hasSpec ? ' ▾' : ''}</button>`;
     }).join('');
+    // Specialty sub-picker — appears when user clicked a skill that needs one
+    const specPickerHTML = awaitingSpec ? (() => {
+      const specs = SKILLS_DATA.speciality[awaitingSpec] || [];
+      const chips = specs.map(sp =>
+        `<button class="specialty-chip" data-pc-specialty="${escapeHTML(awaitingSpec)}" data-spec="${escapeHTML(sp)}">${escapeHTML(sp)}</button>`
+      ).join('');
+      return `<div class="specialty-picker-box">
+        <div class="specialty-picker-label">CHOOSE SPECIALITY FOR ${escapeHTML(awaitingSpec).toUpperCase()}</div>
+        ${chips}
+      </div>`;
+    })() : '';
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -1606,6 +1629,7 @@ function renderPreCareerPhase() {
         <h2 class="phase-title">Pick ${remaining} Skill${remaining === 1 ? '' : 's'}</h2>
         <p class="phase-body">Choose <strong>${remaining}</strong> skill${remaining === 1 ? '' : 's'} at <strong>${levelLabel}</strong>.</p>
         <div class="skill-picker">${picker}</div>
+        ${specPickerHTML}
         <div class="phase-actions">
           <button class="btn primary" id="btn-confirm-pc-skills"
             ${picked.length !== remaining ? 'disabled' : ''}>
@@ -2076,7 +2100,7 @@ function wirePreCareerPhase() {
         psi: response.psi,
         psi_roll: response.psi_roll,
       };
-      if (hasPicks) uiState.selectedPreCareerSkills = new Set();
+      if (hasPicks) uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
       renderAll();
     } catch (e) { alert(e.message); }
   }
@@ -2206,7 +2230,7 @@ function wirePreCareerPhase() {
       // University enrollment: player picks 2 skills at level 0 before events
       const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
       if (hasPicks) {
-        uiState.selectedPreCareerSkills = new Set();
+        uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
         uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_skill_pick' };
         renderStage();
       } else {
@@ -2234,7 +2258,7 @@ function wirePreCareerPhase() {
       // Prefer server-supplied char_key/target (works for all tracks including PSI)
       const charLabel = response.char_key || (track === 'university' ? 'EDU' : 'INT');
       const target = response.target || (track === 'university' ? 7 : 8);
-      uiState.selectedPreCareerSkills = new Set();
+      uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
       uiState.lastRoll = {
         type: 'precareer_graduate',
         data: response.roll,
@@ -2449,7 +2473,7 @@ function wirePreCareerPhase() {
         const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
         uiState.anySkillFilter = '';
         if (hasPicks) {
-          uiState.selectedPreCareerSkills = new Set();
+          uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
           uiState.lastRoll = { ...lr, type: 'precareer_skill_pick', pending_any_skill: false };
         } else {
           uiState.lastRoll = { ...lr, type: 'precareer_graduate', event: { ...lr.event, pending_any_skill: false } };
@@ -2462,21 +2486,47 @@ function wirePreCareerPhase() {
   // Transition from graduation result screen to skill picker screen
   const startPickBtn = document.getElementById('btn-start-skill-pick');
   if (startPickBtn) startPickBtn.addEventListener('click', () => {
-    uiState.selectedPreCareerSkills = new Set();
+    uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
     uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_skill_pick' };
     renderStage();
   });
 
-  // Skill picker chips
+  // Skill picker chips — intercept specialty-requiring skills
   document.querySelectorAll('[data-pc-skill]').forEach(chip => {
     chip.addEventListener('click', () => {
       const skill = chip.dataset.pcSkill;
-      if (!uiState.selectedPreCareerSkills) uiState.selectedPreCareerSkills = new Set();
-      if (uiState.selectedPreCareerSkills.has(skill)) {
-        uiState.selectedPreCareerSkills.delete(skill);
-      } else {
-        uiState.selectedPreCareerSkills.add(skill);
+      if (!uiState.selectedPreCareerSkills) uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+      const hasSpec = !!(SKILLS_DATA.speciality && SKILLS_DATA.speciality[skill]);
+      // De-select: remove any picked entry for this skill (bare or with specialty)
+      const existingPick = [...uiState.selectedPreCareerSkills].find(p => p === skill || p.startsWith(skill + ' ('));
+      if (existingPick) {
+        uiState.selectedPreCareerSkills.delete(existingPick);
+        if (uiState.pcSkillSpecialtyPick === skill) uiState.pcSkillSpecialtyPick = null;
+        renderStage();
+        return;
       }
+      if (hasSpec) {
+        // Open specialty sub-picker instead of immediately adding
+        uiState.pcSkillSpecialtyPick = (uiState.pcSkillSpecialtyPick === skill) ? null : skill;
+        renderStage();
+        return;
+      }
+      uiState.selectedPreCareerSkills.add(skill);
+      renderStage();
+    });
+  });
+
+  // Specialty sub-picker chips
+  document.querySelectorAll('[data-pc-specialty]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const skill = chip.dataset.pcSpecialty;
+      const spec = chip.dataset.spec;
+      if (!uiState.selectedPreCareerSkills) uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+      // Remove any prior pick for this skill
+      const prior = [...uiState.selectedPreCareerSkills].find(p => p === skill || p.startsWith(skill + ' ('));
+      if (prior) uiState.selectedPreCareerSkills.delete(prior);
+      uiState.selectedPreCareerSkills.add(`${skill} (${spec})`);
+      uiState.pcSkillSpecialtyPick = null;
       renderStage();
     });
   });
@@ -2490,7 +2540,7 @@ function wirePreCareerPhase() {
       const response = await apiCall('/api/character/pre-career/choose-skills',
         { chosen_skills: chosen });
       await applyResponse(response);
-      uiState.selectedPreCareerSkills = new Set();
+      uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
       if (response.skill_pick_stage === 'enrollment' && response.skill_picks_remaining === 0) {
         // Enrollment picks done: stay in pre_career for events/graduation
         uiState.lastRoll = null;
@@ -6776,6 +6826,9 @@ async function bootstrap() {
     }
   } catch (e) { /* non-fatal */ }
 
+  // Apply saved theme before first paint
+  if (uiState.themeLight) document.body.classList.add('theme-light');
+
   renderAll();
 
   document.getElementById('btn-export').addEventListener('click', exportCharacter);
@@ -6809,6 +6862,22 @@ async function bootstrap() {
       btn.disabled = false;
     }
   });
+
+  // Theme toggle
+  const btnTheme = document.getElementById('btn-theme-toggle');
+  if (btnTheme) {
+    const applyTheme = () => {
+      document.body.classList.toggle('theme-light', !!uiState.themeLight);
+      btnTheme.textContent = uiState.themeLight ? '◑' : '◐';
+      btnTheme.title = uiState.themeLight ? 'Switch to dark theme' : 'Switch to light theme';
+    };
+    applyTheme();
+    btnTheme.addEventListener('click', () => {
+      uiState.themeLight = !uiState.themeLight;
+      try { localStorage.setItem('theme', uiState.themeLight ? 'light' : 'dark'); } catch (e) { /* ignore */ }
+      applyTheme();
+    });
+  }
 
   const btnGm = document.getElementById('btn-gm-mode');
   if (btnGm) {

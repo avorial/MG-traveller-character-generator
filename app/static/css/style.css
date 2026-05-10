@@ -40,6 +40,28 @@ body.gm-active {
   --tint-rgb: 111, 255, 143;
 }
 
+/* Light theme — white background, green accent.
+   Toggled by app.js setting body.theme-light */
+body.theme-light {
+  --bg-deep: #f0f4f0;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #e8f0e8;
+  --border: #aac8aa;
+  --border-glow: #66aa66;
+  --amber: #1a7a1a;
+  --amber-bright: #0d5c0d;
+  --amber-dim: #4d9e4d;
+  --amber-deep: #2e7d2e;
+  --amber-glow: rgba(26, 122, 26, 0.25);
+  --tint-rgb: 26, 122, 26;
+  --cream: #1a2a1a;
+  --muted: #5a7a5a;
+  --danger: #cc2200;
+  --danger-bg: rgba(204, 34, 0, 0.10);
+  --success: #1a7a1a;
+  --success-bg: rgba(26, 122, 26, 0.12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -302,6 +324,40 @@ body {
   color: var(--amber);
   border-color: var(--amber);
 }
+/* Sub-skill specialty picker (college skill picks) */
+.specialty-picker-box {
+  margin: 8px 0 4px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--amber-dim);
+  background: var(--bg-panel-alt);
+  border-radius: 4px;
+}
+.specialty-picker-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--amber-dim);
+  margin-bottom: 8px;
+}
+.specialty-chip {
+  display: inline-block;
+  margin: 3px 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.specialty-chip:hover {
+  background: var(--amber-deep);
+  border-color: var(--amber);
+  color: var(--amber-bright);
+}
+
 .btn-heroic-active {
   background: var(--amber-dim);
   color: var(--amber);
