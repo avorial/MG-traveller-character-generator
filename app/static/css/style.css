@@ -278,8 +278,33 @@ body {
   border-bottom: 1px dashed var(--border);
 }
 
-.sheet-name-input {
+.sheet-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
+}
+.btn-gen-name {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  color: var(--amber-dim);
+  font-size: 13px;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+.btn-gen-name:hover {
+  opacity: 1;
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.sheet-name-input {
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   border-bottom: 1px dotted var(--amber-dim);

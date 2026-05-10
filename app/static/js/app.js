@@ -7,6 +7,183 @@
 // Boot data + state
 // ------------------------------------------------------------
 
+// ============================================================
+// NAME GENERATOR  (ported from Corsair WordGen by J. Robinson / D. Burden)
+// ============================================================
+
+const _NL = {
+  // basicSyls / alternateSyls: cumulative weights out of 36
+  // initConst / finalConst / vowels: cumulative weights out of 216
+  1:  { // Trokh (Aslan)
+    b:[["v",13],["cv",22],["vc",30],["cvc",36]],
+    a:[["v",15],["vc",36]],
+    i:[["f",12],["ft",22],["h",40],["hf",45],["hk",57],["hl",65],["hr",72],["ht",84],["hw",89],["k",106],["kh",121],["kht",132],["kt",142],["l",147],["r",154],["s",164],["st",171],["t",191],["tl",196],["tr",201],["w",216]],
+    f:[["h",46],["kh",64],["l",96],["lr",110],["r",133],["rl",151],["s",175],["w",199],["'",216]],
+    v:[["a",41],["ai",52],["ao",60],["au",64],["e",90],["ea",114],["ei",127],["i",143],["iy",155],["o",163],["oa",167],["oi",175],["ou",180],["u",184],["ua",188],["ui",195],["ya",200],["ye",208],["yo",212],["yu",216]]
+  },
+  2:  { // Te-Zlodh (Darrian)
+    b:[["cvc",27],["cv",36]],
+    a:[["vc",27],["v",36]],
+    i:[["b",17],["d",39],["g",46],["p",58],["t",66],["th",73],["k",78],["m",88],["n",110],["z",132],["l",142],["r",156],["y",162],["zb",166],["zd",171],["zg",174],["zl",177],["mb",182],["nd",187],["ngg",190],["ry",195],["ly",198],["ny",204],["lz",209],["ld",216]],
+    f:[["bh",9],["dh",18],["gh",24],["p",30],["t",36],["k",45],["n",66],["ng",78],["l",109],["r",138],["s",156],["m",171],["mb",177],["nd",183],["ngg",186],["yr",192],["ly",195],["ny",198],["lbh",201],["lz",207],["ld",216]],
+    v:[["a",47],["e",94],["eh",123],["i",152],["ih",175],["o",204],["u",216]]
+  },
+  3:  { // Oynprith (Droyne)
+    b:[["v",7],["cv",18],["vc",29],["cvc",36]],
+    a:[["v",6],["cv",12],["vc",18],["cvc",36]],
+    i:[["b",8],["br",12],["d",24],["dr",29],["f",42],["h",55],["k",68],["kr",71],["l",20],["m",94],["n",108],["p",120],["pr",122],["r",133],["s",157],["ss",167],["st",170],["t",180],["th",186],["tr",189],["ts",198],["tw",207],["v",216]],
+    f:[["b",6],["d",17],["f",22],["h",28],["k",36],["l",40],["lb",42],["ld",49],["lk",53],["lm",56],["ln",57],["lp",58],["ls",60],["lt",62],["m",73],["n",80],["p",92],["r",101],["rd",104],["rf",106],["rk",111],["rm",115],["rn",118],["rp",119],["rs",123],["rt",128],["rv",130],["s",153],["sk",160],["ss",167],["st",172],["t",184],["th",190],["ts",200],["v",204],["x",216]],
+    v:[["a",24],["ay",42],["e",84],["i",114],["o",138],["oy",150],["u",189],["ya",198],["yo",205],["yu",216]]
+  },
+  4:  { // Ithklur
+    b:[["cv",36]],
+    a:[["cv",36]],
+    i:[["d",12],["f",24],["g",30],["gh",36],["h",42],["hz",48],["j",54],["jj",60],["jz",66],["k",75],["kk",80],["kl",85],["ks",90],["kz",95],["l",102],["ll",105],["mm",111],["n",117],["q",126],["r",130],["rr",136],["rs",139],["rz",142],["s",148],["ss",156],["th",165],["tr",170],["x",183],["xx",195],["z",201],["zz",207],["'",216]],
+    f:[["d",15],["f",24],["g",30],["gh",42],["h",48],["hz",54],["j",60],["jj",63],["jz",69],["k",81],["kk",90],["ks",99],["kz",108],["l",116],["ll",120],["m",126],["n",132],["q",141],["r",150],["rr",156],["rs",162],["rz",168],["ss",180],["th",186],["x",192],["xx",198],["z",207],["zz",216]],
+    v:[["a",30],["aa",36],["ae",42],["e",66],["ee",72],["i",102],["ii",117],["o",144],["ou",150],["u",174],["ue",186],["uu",196],["y",201],["yu",204],["yy",207],["'t'",216]]
+  },
+  5:  { // K'Kree
+    b:[["v",6],["cv",21],["vc",27],["cvc",36]],
+    a:[["cv",18],["vc",23],["cvc",36]],
+    i:[["b",2],["g",10],["gh",24],["gn",33],["gr",37],["gz",39],["hk",43],["k",96],["kr",118],["kt",120],["l",131],["m",135],["mb",137],["n",147],["p",149],["r",175],["rr",182],["t",197],["tr",201],["x",210],["xk",212],["xr",214],["xt",216]],
+    f:[["b",5],["g",11],["d",15],["gh",20],["gr",25],["k",57],["kr",72],["l",82],["m",87],["n",97],["ng",112],["p",117],["r",159],["rr",181],["t",196],["x",211],["xk",216]],
+    v:[["a",68],["aa",75],["e",86],["ee",100],["i",122],["ii",129],["o",133],["oo",140],["u",162],["uu",169],["'",197],["!",208],["!!",212],["!'",216]]
+  },
+  6:  { // Gvegh (Vargr)
+    b:[["v",4],["vc",18],["cv",22],["cvc",36]],
+    a:[["cv",18],["cvc",36]],
+    i:[["d",9],["dh",18],["dz",23],["f",30],["g",48],["gh",59],["gn",62],["gv",69],["gz",73],["k",91],["kf",96],["kh",107],["kn",113],["ks",120],["l",124],["ll",132],["n",139],["ng",144],["r",155],["rr",163],["s",174],["t",181],["th",190],["ts",194],["v",204],["z",216]],
+    f:[["dh",5],["dz",10],["g",25],["gh",35],["ghz",40],["gz",45],["k",55],["kh",65],["khs",70],["ks",76],["l",86],["ll",91],["n",116],["ng",141],["r",156],["rr",171],["rrg",176],["rrgh",181],["rs",186],["rz",191],["s",196],["th",201],["ts",106],["z",216]],
+    v:[["a",42],["ae",76],["e",92],["i",102],["o",136],["oe",152],["ou",168],["u",192],["ue",216]]
+  },
+  7:  { // Vilani
+    b:[["v",6],["cv",21],["vc",29],["cvc",36]],
+    a:[["cv",21],["cvc",36]],
+    i:[["k",39],["g",78],["m",99],["d",120],["l",141],["sh",162],["kh",180],["n",190],["s",200],["p",204],["b",208],["z",212],["r",216]],
+    f:[["r",75],["n",102],["m",139],["sh",165],["g",180],["s",191],["d",204],["p",210],["k",216]],
+    v:[["a",67],["e",84],["i",143],["u",183],["aa",192],["ii",208],["uu",216]]
+  },
+  8:  { // Zhodani
+    b:[["v",3],["cv",6],["vc",15],["cvc",36]],
+    a:[["v",6],["cv",12],["vc",18],["cvc",36]],
+    i:[["b",6],["bl",8],["br",13],["ch",25],["cht",32],["d",41],["dl",48],["dr",53],["f",58],["fl",61],["fr",64],["j",71],["jd",76],["k",81],["kl",83],["kr",85],["l",88],["m",90],["n",98],["p",105],["pl",112],["pr",115],["q",117],["ql",119],["qr",121],["r",126],["s",133],["sh",140],["sht",147],["t",152],["st",159],["tl",169],["ts",172],["v",177],["vl",179],["vr",181],["y",184],["z",189],["zd",199],["zh",206],["zhd",216]],
+    f:[["b",2],["bl",9],["br",16],["ch",21],["d",25],["dl",32],["dr",39],["f",44],["fl",49],["fr",54],["j",58],["k",60],["kl",64],["kr",66],["l",78],["m",80],["n",82],["nch",89],["nj",94],["ns",99],["nsh",106],["nt",110],["nts",114],["nz",119],["nzh",126],["p",128],["pl",135],["pr",142],["q",144],["ql",146],["qr",148],["r",153],["sh",160],["t",164],["ts",171],["tl",180],["v",185],["vl",189],["vr",194],["z",203],["zh",210],["'",216]],
+    v:[["a",43],["e",105],["i",140],["ia",168],["ie",192],["o",210],["r",216]]
+  },
+  9:  { // Gurvin (Hiver)
+    b:[["cv",12],["vc",24],["cvc",36]],
+    a:[["v",6],["cv",8],["vc",22],["cvc",36]],
+    i:[["bl",6],["c",12],["d",24],["dr",30],["f",36],["g",54],["gl",58],["h",62],["k",86],["kl",90],["l",102],["ld",105],["ly",108],["m",116],["n",138],["p",150],["phl",158],["q",162],["r",171],["s",174],["sl",180],["sp",186],["t",192],["th",195],["tr",202],["v",206],["w",208],["wr",214],["z",216]],
+    f:[["c",12],["ck",18],["d",21],["f",27],["ft",30],["g",33],["h",36],["k",39],["l",57],["ld",60],["m",66],["n",102],["nsk",105],["nt",108],["p",114],["phl",117],["q",126],["r",149],["rk",151],["rn",157],["rt",159],["s",162],["sk",174],["st",177],["t",192],["th",195],["v",198],["x",216]],
+    v:[["a",72],["e",108],["i",138],["o",168],["oo",180],["u",204],["ua",212],["y",216]]
+  },
+  10: { // Ael Yael
+    b:[["vc",3],["cv",30],["cvc",36]],
+    a:[["cv",36]],
+    i:[["h",54],["j",72],["l",90],["y",216]],
+    f:[["l",216]],
+    v:[["ae",66],["a",116],["e",166],["i",200],["u",216]]
+  },
+  11: { // Neo-Icelandic (Sword Worlds)
+    b:[["v",1],["vc",6],["cv",14],["cvc",36]],
+    a:[["vc",3],["cv",14],["cvc",36]],
+    i:[["b",12],["bl",14],["br",16],["d",31],["f",45],["fl",46],["fr",47],["g",51],["gj",52],["gr",54],["h",61],["j",67],["k",78],["kj",79],["kl",81],["l",97],["m",108],["n",120],["p",128],["pr",129],["r",145],["s",160],["sj",161],["sk",164],["sl",166],["sm",167],["sn",168],["sp",170],["st",175],["sv",177],["t",196],["tr",200],["v",216]],
+    f:[["b",3],["d",12],["dd",13],["f",15],["g",27],["gg",29],["gn",30],["gs",31],["gt",32],["k",44],["kk",49],["ks",50],["kt",51],["l",72],["ld",73],["ll",74],["lm",75],["lp",76],["lt",78],["lv",79],["m",85],["n",110],["nd",112],["ndt",113],["ng",126],["nn",131],["nsk",132],["nt",134],["p",139],["psk",140],["r",170],["rd",173],["rk",174],["rsk",175],["rt",177],["rv",178],["s",182],["sk",184],["sp",185],["st",187],["t",210],["tt",215],["v",216]],
+    v:[["au",1],["ie",2],["oy",4],["o",11],["ae",13],["a",18],["a",60],["e",126],["i",168],["o",193],["u",207],["y",216]]
+  },
+  12: { // Bwap
+    b:[["cv",13],["cvc",25],["vc",34],["v",36]],
+    a:[["cv",13],["cvc",25],["vc",34],["v",36]],
+    i:[["p",42],["w",108],["s",132],["t",156],["d",162],["k",192],["b",207],["f",216]],
+    f:[["-",72],["b",150],["s",174],["t",186],["th",198],["k",204],["r",210],["p",216]],
+    v:[["a",132],["e",204],["o",216]]
+  },
+  16: { // Galanglic
+    b:[["cv",15],["cvc",29],["vc",35],["cvc",36]],
+    a:[["cv",15],["cvc",29],["vc",35],["cvc",36]],
+    i:[["b",5],["c",15],["ch",18],["d",23],["f",33],["fr",36],["g",48],["gh",51],["h",59],["j",64],["k",69],["kn",72],["l",80],["m",92],["n",107],["p",120],["phl",121],["q",125],["r",140],["s",152],["sh",155],["st",158],["t",176],["th",184],["tr",187],["v",192],["w",200],["wh",203],["y",211],["z",216]],
+    f:[["c",10],["ch",15],["d",29],["k",34],["l",66],["ll",70],["m",80],["n",138],["nd",142],["p",151],["r",178],["rb",182],["rs",186],["rt",190],["s",200],["st",205],["tw",209],["v",213],["z",216]],
+    v:[["a",38],["ae",41],["e",111],["i",145],["ie",148],["io",151],["o",187],["ou",194],["u",206],["ua",209],["y",216]]
+  }
+};
+
+// Solomani real-world name pools (forebears.io)
+const _SOL_FIRST = ["Maria","Mohammed","Jose","Wei","Ahmed","Yan","Ali","John","David","Li","Abdul","Ana","Michael","Juan","Anna","Mary","Jean","Robert","Daniel","Luis","Carlos","James","Antonio","Joseph","Elena","Francisco","Marie","Ibrahim","Peter","Fatima","Richard","Paul","Olga","Pedro","William","Rosa","Thomas","Jorge","Elizabeth","Sergey","Ram","Patricia","Hassan","Anita","Manuel","Victor","Sandra","Miguel","Emmanuel","Samuel","Charles","Sarah","Mario","Mark","Martin","Patrick","Natalya","Ahmad","Martha","Sunita","Andrea","Christine","Irina","Laura","Linda","Marina","Carmen","Vladimir","Barbara","Angela","George","Roberto","Ivan","Alexander","Ekaterina","Jesus","Susan","Sara","Noor","Eric","Fernando","Esther","Diana","Mahmoud","Chao","Nancy","Musa","Omar","Jennifer","Claudia","Maryam","Gloria","Ruth","Teresa","Sanjay","Francis","Amina","Denis","Stephen","Gabriel","Andrew","Eduardo","Abdullah","Grace","Mei","Rafael","Ricardo","Christian","Steven","Frank","Karen","Brian","Christopher","Rajesh","Mustafa","Eva","Monica","Oscar","Andre","Catherine","Ramesh","Sonia","Anthony","Manoj","Ashok","Rose","Alberto","Rekha","Aung","Alex","Suresh","Anil","Julio","Simon","Paulo","Juana","Irene","Adam","Kevin","Vijay","Mehmet","Angel","Edward","Julia","Victoria","Ronald","Lakshmi","Francisca","Veronica","Roman","Ismail","Margaret","Luz","Anne","Silvia","Kamal","Raju","Sergio","Walter","Lisa","Marta","Marco","Albert","Alice","Isabel","Zainab","Michelle","Michel","Pierre","Felix","Hector","Jan","Roger","Joyce","Joel","Jessica","Lucia","Pavel","Nadia","Benjamin","Rebecca","Julie","Vera","Vinod","Khalid","Ramon","Janet","Sharon","Jane","Abubakar","Aisha","Jonathan","Paula","Bruno","Monika","Mamadou","Judith","Kenneth","Chris","Helen","Nikolay","Marcos","Norma","Anton","Raul","Cristina","Henry","Antonia","Betty","Alejandro","Nelson","Igor","Evgeniy","Adriana","Amir","Pablo","Raj","Regina","Brenda","Hussein","Mikhail","Jaime","Nicole","Giuseppe","Dinesh","Bernard","Gary","Javier","Hasan","Moses","Agnes","Cesar","Usha","Alfredo","Kiran","Dennis","Khaled","Carol","Rani","Yusuf","Rakesh","Isaac","Luiz","Josephine","Krishna","Raymond","Erika","Blanca","Deborah","Amanda","Natalia","Gladys","Florence","Usman","Donald","Maya","Mahdi","Khadija","Valentina","Ruben","Jason","Doris","Rene","Cecilia","Umar","Cynthia","Gustavo","Kim","Lucas","Moussa","Nawaz","Amit","Mona","Dilip","Caroline","Tun","Claude","Elisabeth","Beatrice","Edwin","Kristina","Scott","Christina","Ajay","Alina","Denise","Matthew","Daniela","Joan","Leonardo","Ravi","Virginia","Hamid","Alain","Alicia","Mohan","Hans","Ann","Nicolas","Felipe","Amal","Donna","Dina","Hugo","Yolanda","Beatriz","Mukesh","Brigitte","Evelyn","Emma","Kenji","Galina","Diego","Viktor","Arun","Alexandra","Alfred","Louis","Armando","Vincent","Edith","Alan","Hiroshi","Gabriela","Rachel","Adrian","Mira","Shankar","Carla","Miriam","Gopal","Amy","Mercy","Timothy","Irma","Marcelo","Rodrigo","Pamela","Agus","Jerry","Jacques","Jeanne","Joy","Ganesh","Ingrid","Juliana","Mahesh","Nina","Rahul","Petra","Nikita","Yasmin","Melissa","Wilson","Jeffrey","Giovanni","Larry","Elias","Kelly","Osman","Piotr","Philip","Raja","Dorothy","Sultan","Ernesto","Oleg","Joe","Ruslan","Diane","Andres","Shirley","Justin","Enrique","Mariana","Monique","Vanessa","Prakash","Dan","Dominique","Susana","Annie","Douglas","Ahmet","Bashir","Elsa","Samir","Abbas","Aya","Chunyan","Guillermo","Luisa","Karin","Andreas","Leila","Helena","Philippe","Vicente","Konstantin","Tania","Pascal","Aziz","Martina","Fred","Tamara","Tony","Ryan","Lucy","Surendra","Marc","Sabina","Guadalupe","Salim","Amar","Lydia","Mahendra","Joshua","Lee","Ayesha","Karina","Salah","Ilya","Josef","Leticia","Michele","Nasir","Josefa","Narayan","Kavita","Pramod","Sofia","Alexey","Hossein","Tina","Claudio","Nathalie","Arthur","Sam","Karl","Mercedes","Shigeru","Kathleen","Farida","Marcel","Guohua","Francesco","Nurul","Sayed","Jay","Abraham","Nour","Imran","Sai","Iman","Jamal","Wolfgang","Manuela","Raquel","Artur","Uma","Louise","Nabil","Hilda","Abdoulaye","Wendy","Ian","Stella","Elvira","Valerie","Subhash","Sylvia","Jeff","Carolina","Tomasz","Gilbert","Gerald","Francois","Rodolfo","Melanie","Ashraf","Gerardo","Sheila","Rana","Kalpana","Simone","Orlando","Petr","Arif","Eunice","Farzana","Angelo","Amadou","Robin","Rashid","Abel","Ranjit","Alexandre","Jack","Fabio","Prem","Mustapha","Sabine","Aida","Klaus","Ran","Heba","Shah","Terry","Yvonne","Lawrence","Lal","Therese","Jenny","Mike","Nada","Vasylyi","Manfred","Marcia","Keith","Guy","Umesh","Solomon","Jimmy","Paulina","Aminata","Nora","Ravindra","Sophie","Joanna","Sylvie","Raimundo","Laila","Pankaj","Reza","Roland","Emily","Habib","Angelica","Liliana","Isabelle","Tim","Durga","Naresh","Babu","Nguyen","Arjun","Shyam","Alaa","Herbert","Olivier","Kseniya","Hanan","Amin","Renu","Masako","Priyanka","Nasreen","Salvador","Martine","Judy","Maha","Nicholas","Theresa","Shahid","Stefan","Marcin","Sebastian","Josefina","Gilberto","Ida","Artyom","Rosario","Roy","Pramila","Kathy","Rabia","Nestor","Paola","Ernest","Yousef","Luciano","Faisal","Dmitry","Alma","Yanyan","Dolores","Leonard","Marilyn","Bharat","Katarzyna","Sabrina","Arturo","Gerhard","Cristian","Joaquim","Julius","Maurice","Kirill","Rosemary","Elaine","Marianne","Cheryl","Helga","Faith","Heather","Heinz","Sandeep","Satish","Ellen","Sangeeta","Bernadette","Noel","Deepak","Christophe","Ken","Kailash","Lorena","Samia","Issa","Gregory","Lila","Chantal","Thierry"];
+const _SOL_LAST = ["Wang","Li","Zhang","Chen","Liu","Yang","Huang","Singh","Wu","Kumar","Xu","Ali","Zhao","Zhou","Nguyen","Khan","Ma","Lu","Zhu","Sun","Yu","Lin","Kim","He","Hu","Jiang","Guo","Ahmed","Luo","Devi","Garcia","Mohammad","Tan","Deng","Bai","Ahmad","Yan","Kaur","Feng","Hernandez","Rodriguez","Cao","Lopez","Hassan","Hussain","Gonzalez","Martinez","Ibrahim","Peng","Cai","Xiao","Tran","Pan","dos Santos","Cheng","Yuan","Rahman","Yadav","Su","Perez","Le","Fan","Dong","Ye","Ram","Tian","Fu","Hossain","Kumari","Sanchez","Du","Pereira","Yao","Zhong","Jin","Pak","Ding","Mohammed","Lal","Yin","Bibi","Silva","Muhammad","Ren","Ferreira","Liao","Mandal","Cui","Begum","Fang","Sharma","Alves","Shah","Ray","Qiu","Meng","Ramirez","Mondal","Dai","Kang","Patel","Wen","Gu","Gomez","Pham","Jia","Sah","Xia","Hong","Abdul","Rodrigues","Smith","Santos","Diaz","Hou","Hasan","Xiong","Zou","Alam","Prasad","de Oliveira","Qin","Choe","Ji","Uddin","Musa","Gong","Ghosh","Chang","Flores","Diallo","Gomes","Xue","Lei","Patil","Torres","de Souza","Qi","Lai","Cruz","Long","Ramos","Hussein","Fernandez","Duan","Shaikh","Xiang","Pal","Morales","Wan","Johnson","Reyes","Abdullahi","Tao","Gupta","Jimenez","Mao","Biswas","Kong","Hoang","Williams","Abubakar","Abbas","Sahu","Gutierrez","Chong","Hao","Shao","Saha","Guan","Mo","Ruiz","Oliveira","Qian","Roy","Saleh","Abdullah","Lan","Sarkar","Sani","Castillo","Alvarez","Brown","Martin","Jones","Mendoza","Romero","Iqbal","Qu","Rana","Castro","Ansari","Usman","Traore","Bao","Rojas","Mahmoud","Martins","Ortiz","Vu","Moreno","Malik","Ribeiro","Lee","Ullah","Ismail","Fernandes","Rani","Thomas","John","Phan","Rivera","Chu","Adamu","Tong","Vargas","Niu","Xing","Joseph","Lopes","Cho","Osman","Umar","Pang","Rathod","Jadhav","Bui","Chand","Coulibaly","Barman","Soares","Sato","Khaled","Chan","Saeed","Mishra","Herrera","Thakur","Barbosa","Behera","Adam","Lima","Sultana","Suzuki","Medina","Ho","Bano","Costa","Aguilar","Dias","Dang","Paswan","Qiao","Abdi","Miller","Chowdhury","Camara","Omar","Akhtar","Ouedraogo","Shen","Gul","Mai","Vieira","Davis","Wilson","Mendez","Batista","Souza","Sardar","Paul","Ha","Vazquez","Thakor","Miranda","Vasquez","Haque","Haji","Chauhan","Amin","Huynh","Sayed","Rashid","Pawar","Chavez","Shang","Gan","Rai","Pradhan","Naik","Karim","James","Taylor","Geng","Hossen","de Sousa","Jahan","Salazar","Yun","da Costa","Kone","Tanaka","Moussa","Mustafa","Guzman","Jiao","Rao","Juma","Watanabe","Anderson","Moreira","Ilunga","Takahashi","Sheikh","Shinde","Hamid","Bello","Aliyu","Akhter","Nath","Mendes","Suarez","Jackson","Aziz","Ortega","Cardoso","Molla","Garba","Campos","Pinto","Ashraf","Khalil","Jean","Delgado","Noor","Truong","Nunes","Miah","Anwar","Almeida","Molina","Dominguez","Banda","Chandra","Thompson","Contreras","Hua","Aslam","de Lima","Araujo","Rocha","Shaik","Ivanova","Raut","Ruan","Guerrero","David","Peter","Soto","Acosta","Ivanov","Jha","Santana","Bala","White","Tesfaye","Moore","Sultan","Mejia","Solomon","Ghulam","Zaman","Ouattara","Issa","Yamamoto","Lam","Navarro","Nakamura","Machado","Andrade","Bauri","Said","Simon","Raj","Barry","Ramadan","do Nascimento","Vega","Saad","Alvarado","Patra","Espinoza","Abdel","Cabrera","Rios","Murmu","Mehmood","Salem","Teixeira","Leon","Marques","Mostafa","Solanki","Harris","Kobayashi","Huo","Xin","Schmidt","Bah","Pandey","Idris","Dutta","Sheng","Prakash","Pei","Rosa","Kato","Aung","Saito","May","Gonzales","Francisco","Awad","Correa","Sawadogo","Perera","Santiago","de Almeida","Hwang","Pandit","Toure","Ko","Chai","Khin","Munda","Robinson","Suleiman","Chakraborty","Sharif","Juarez","Patal","Kamal","Jain","Phiri","Salah","Walker","Akbar","Clark","Lewis","Diarra","Avila","Chaudhary","Franco","Ndiaye","Arias","Pathan","Charles","Luna","Pacheco","Samuel","Marquez","Carvalho","Salim","Qasim","Hamza","Emmanuel","Rehman","Bautista","Nascimento","Hoque","Fernando","Mahmud","Salman","Kabir","Kamble","Bashir","Manjhi","Sousa","Fuentes","Domingos","Marin","Cisse","Adams","Keita","Hall","King","Abdalla","Habib","Young","Monteiro","Debnath","Daniel","Getachew","Husain","Jena","Wright","Makavan","Kaya","Thapa","Yoshida","Giri","Yahaya","Akram","Mora","Kazem","Saleem","Siddique","Baba","Yamada","Sandoval","Velasquez","Estrada","Abu","Green","Scott","Roberts","Rivas","Isah","Escobar","Duran","Dey","Tadesse","Nisha","Benitez","Cortes","Lawal","Dao","Kwon","Abebe","Mahamat","Evans","Kamara","Campbell","Mir","Girma","Win","Khalid","Borges","Lim","Yakubu","Pierre","Jassim","Diop","Reddy","Quispe","Gayakwad","Sinha","Yousef","de La Cruz","Lara","Hill","Valencia","Shaw","Felix","Taha","Rasool","Aguirre","Aminu","Sadiq","Maldonado","Calderon","Nelson","Wong","Valdez","Karmakar","Baker","Parveen","Koffi","Rahim","Correia","Guerra","Trinh","Varma","Arif","Jana","George","Vera","Demir","Cardenas","Mun","Sosa","Kouassi","Haider","Serrano","Schneider","Bag","Lang","Meyer","Parvin","Figueroa","Hadi","Magar","Villanueva","Padilla","Ayala","Nasser","Edwards","Pineda","Rosales","Zin","Hosseini","Kadam","Blanco","Mansour","Barik","Rahaman","Sasaki","Oraon","Hayat","Dembele","Brito","Carrillo","Babu","Mitchell","Tudu","Al Numan","Velazquez","Matsumoto","Michael","Amir","Setiawan","Khalaf","Adhikari","Jan","de Araujo","Tiwari","Javed","Camacho","Eze","Bhagat","Morris","Gil","Sylla","Yamaguchi","Latif","Sarker","Elias","Mamani","Sidibe","Turner","Phillips","Raza","Kebede","Yousuf","Solis","Carter","Mori","Murphy","Nasir","Inoue","Kouadio","Mallik","Salas","Bravo","de Carvalho","Parra","Stewart","Tavares","Afzal","Kanwar","Verma","Henrique","Kouame","Collins","Cooper","Antonio","Quintero","Bekele","Ahmadi","Nair","Kelly","Nahar","Pinheiro","Bux","Adel","Wagner","dela Cruz","Akpan","Weber","Dube","Salam","Gamal","Asif","Morgan","Luong","Sheik","Barros","Pedro","Palacios","Parker","Abe","Kimura","Bezerra","Cortez","Doan","Shehu","Bahadur","Joshi","Mane","Farah","Ahamed","Barrios","Balde","Amadi","Bera","Bell","Nabi","Gabriel","Hamad","Shankar","Sen","Lucas","Basumatary","Fischer","Robles","Arshad","Hailu","Kouakou","Farooq","Oumarou","Fofana","Jamal","Hansen","Wood","Aden","Pires","Alemayehu","Peralta","Espinosa","Dlamini","Meza","Hayashi","Petrov","Hamed","Shimizu","Mensah","Jang","Panda","Moses","Saidi","Tahir","Sahani","Halder","Cook","Moyo","Watson","Hughes","Ochoa","Paredes","Mahmood","Lozano","Hameed","Conde","Otieno","Mousa","Rogers","Guevara","Osorio","Ward","Salinas","Fonseca","Riaz","Valenzuela","Sulaiman","Thanh","Alonso","da Cruz","Yahya","Gogoi","Saputra","Pramanik","Zapata","Younis","Roman","Francis","Mukherjee","Manna","Freitas","Leal","Vaghel","Shahzad","Abbasi","Petrova","Ndlovu","Bailey","Shafi","Orozco","Banerjee","Ponce","Zamora","Sahoo","Kale","Banza","Coelho","Amadou","Bagdi","Adamou","Narayan","Ono","Ibarra","Caballero","Mercado","Bennett","Montoya","Yar","Aquino","Barrera"];
+
+// Species → language mapping
+const _SPECIES_LANG = {
+  imperial_human:'galanglic', frontier_human:'galanglic',
+  confederation_human:'galanglic', hiver_federation_human:'galanglic',
+  two_thousand_worlds_human:'galanglic', drinax_palace_human:'galanglic',
+  drinax_wasteland_human:'galanglic', asim_human:'galanglic',
+  human:'galanglic', luriani:'vilani', jonkeereen:'galanglic',
+  sydite:'galanglic', akeed:'galanglic', faar:'galanglic',
+  droashav:'galanglic', dolphin:'galanglic', uplifted_orca:'galanglic',
+  alpine_caprisap:'galanglic', boar_caprisap:'galanglic',
+  capry_big_male:'galanglic', capry_female:'galanglic', capry_small_male:'galanglic',
+  solomani_human:'solomani', solomani_mixed:'solomani', solomani_racial:'solomani',
+  sword_worlds_human:'icelandic',
+  zhodani_human:'zhodani',
+  imperial_bwap:'bwap',
+  imperial_aslan:'aslan', hierate_aslan:'aslan', aslan:'aslan',
+  imperial_vargr:'vargr', extents_vargr:'vargr', vargr:'vargr',
+};
+const _LANG_ID = { aslan:1, vargr:6, vilani:7, zhodani:8, bwap:12, icelandic:11, galanglic:16 };
+
+function _randLetter(arr) {
+  const r = Math.ceil(Math.random() * 216);
+  for (const [ch, w] of arr) if (r <= w) return ch;
+  return '';
+}
+function _randSyl(arr) {
+  const r = Math.ceil(Math.random() * 36);
+  for (const [pat, w] of arr) if (r <= w) return pat;
+  return 'cv';
+}
+function _numSyls(max = 4) {
+  let n = 1;
+  for (let i = 1; i < max; i++) if (Math.random() < 0.5) n++;
+  return n;
+}
+function _makeSyl(pat, L) {
+  let out = '';
+  for (const ch of pat) {
+    if (ch === 'v') out += _randLetter(L.v);
+    else if (ch === 'c') out += _randLetter(pat.indexOf(ch) === 0 ? L.i : L.f);
+  }
+  return out;
+}
+function _buildWord(lid, syls) {
+  const L = _NL[lid];
+  if (!L) return '';
+  let pat = _randSyl(L.b);
+  let out = '';
+  for (let i = 0; i < syls; i++) {
+    out += _makeSyl(pat, L);
+    pat = pat.endsWith('v') ? _randSyl(L.b) : _randSyl(L.a);
+  }
+  return out;
+}
+function _capWord(lid) {
+  const w = _buildWord(lid, _numSyls());
+  return w ? w[0].toUpperCase() + w.slice(1) : '';
+}
+
+function generateSpeciesName(speciesId) {
+  const lang = _SPECIES_LANG[speciesId] || 'galanglic';
+  if (lang === 'solomani') {
+    const fn = _SOL_FIRST[Math.floor(Math.random() * _SOL_FIRST.length * 0.99)];
+    const ln = _SOL_LAST[Math.floor(Math.random() * _SOL_LAST.length * 0.99)];
+    return `${fn} ${ln}`;
+  }
+  const lid = _LANG_ID[lang] || 16;
+  const r = Math.ceil(Math.random() * 6);
+  if (r === 1) return _capWord(lid);
+  if (r <= 5) return `${_capWord(lid)} ${_capWord(lid)}`;
+  return `${_capWord(lid)} ${_capWord(lid)} ${_capWord(lid)}`;
+}
+
 const SPECIES = JSON.parse(document.getElementById('bootstrap-species').textContent);
 const CAREERS = JSON.parse(document.getElementById('bootstrap-careers').textContent);
 const SKILLS_DATA = JSON.parse(document.getElementById('bootstrap-skills').textContent);
@@ -420,7 +597,10 @@ function renderSheet() {
     <div class="panel-header"><span class="led"></span><span>CHARACTER FILE</span></div>
     <div class="sheet-scroll">
       <div class="sheet-header">
-        <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${escapeAttr(character.name)}" />
+        <div class="sheet-name-wrap">
+          <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${escapeAttr(character.name)}" />
+          <button class="btn-gen-name" id="btn-gen-name" title="Generate species-appropriate name">↺</button>
+        </div>
         <span class="sheet-homeworld-wrap">
           <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${escapeAttr(character.homeworld)}" />
           <a href="https://travellermap.com/" target="_blank" rel="noopener noreferrer" class="homeworld-map-link" title="Open Traveller Map"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
@@ -534,6 +714,12 @@ function renderSheet() {
   // Wire up name + homeworld
   document.getElementById('char-name').addEventListener('change', (e) => {
     character.name = e.target.value;
+    saveCharacter();
+  });
+  document.getElementById('btn-gen-name').addEventListener('click', () => {
+    const name = generateSpeciesName(character.species_id || 'imperial_human');
+    character.name = name;
+    document.getElementById('char-name').value = name;
     saveCharacter();
   });
   document.getElementById('char-homeworld').addEventListener('change', (e) => {
