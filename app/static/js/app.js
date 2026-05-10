@@ -5860,7 +5860,10 @@ function renderEventStep() {
         <span class="event-label">Mishap [1D=${lr.mishapFromEvent.total ?? '?'}]</span>
         ${escapeHTML(lr.mishapFromEvent.text || '')}
         ${stayInCareer ? `
-          <p class="empty" style="margin-top:8px;color:var(--amber-dim)"><em>You are not ejected from this career — keep going.</em></p>
+          <div class="event-box" style="border-color:var(--amber-dim);margin-top:10px;padding:8px 10px">
+            <span class="event-label" style="color:var(--amber-dim)">⚠ NOT EJECTED — CAREER CONTINUES</span>
+            Your event stated <em>"not ejected from this career"</em>. Any career-ending language in the mishap result is <strong>overridden</strong> — you suffer the other mishap effects but keep your position and may still advance.
+          </div>
         ` : ''}
       </div>
     ` : '';
@@ -5935,14 +5938,17 @@ function renderEventStep() {
       || entertainerPending || citizenMishapPending;
 
     // Action row varies by what's happening:
-    // - Pending forced mishap roll: show ROLL MISHAP + skip
+    // - Pending forced mishap roll: show ROLL MISHAP
     // - Forced mishap already rolled, career ends: show END CAREER
+    // - Forced mishap already rolled, NOT ejected: show CONTINUE (not ejected)
     // - Citizen ev8 survival failed: show mishap button (handled inline above)
     // - Normal flow: show ATTEMPT/SKIP advancement
     const actionsHTML = pendingMishapRoll ? `
       <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
     ` : (forcesMishap && lr.mishapFromEvent && !stayInCareer) ? `
       <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
+    ` : (forcesMishap && lr.mishapFromEvent && stayInCareer) ? `
+      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>CONTINUE — NOT EJECTED →</button>
     ` : `
       <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
     `;
