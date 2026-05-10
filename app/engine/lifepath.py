@@ -1027,7 +1027,7 @@ def pre_career_qualify(
         hc = track_data["qualification"].get("homeworld_condition", {})
         tl_max = int(hc.get("tl_max", 8))
         tl = _homeworld_tl(character.homeworld_uwp or "")
-        if tl > tl_max:
+        if character.homeworld_uwp and tl > tl_max:
             raise ValueError(
                 f"Colonial Upbringing requires homeworld TL {tl_max} or less "
                 f"('{character.homeworld}' is TL {tl})."
@@ -1186,7 +1186,7 @@ def pre_career_qualify(
         hc = track_data["qualification"].get("homeworld_condition", {})
         req_size = int(hc.get("size", 0))
         size = _homeworld_size(character.homeworld_uwp or "")
-        if size != req_size:
+        if character.homeworld_uwp and size != req_size:
             raise ValueError(
                 f"Spacer Community requires homeworld size {req_size} "
                 f"('{character.homeworld}' is size {size})."
