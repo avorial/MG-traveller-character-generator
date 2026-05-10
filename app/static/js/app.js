@@ -285,6 +285,8 @@ let uiState = {
   pendingCareerSpecialty: null,   // { skillName, level, tableKey, rollData, result } or null
   // Background skill phase: which cascade skill chip is expanded to show specialties
   bgExpandedCascade: null,
+  // Shared cascade-skill specialty intercept (used by event/pre-career direct-API paths)
+  pendingSkillGrant: null,
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -338,6 +340,7 @@ async function freshCharacter() {
               skillPackageApplied: false,
               pendingCareerSpecialty: null,
               bgExpandedCascade: null,
+              pendingSkillGrant: null,
               lastCapsule: null, psionicsOpen: false, gmLastRolls: [] };
   saveCharacter();
 }
@@ -956,8 +959,79 @@ function formatMedicalBillsMsg(response) {
 // Rendering: Stage (center panel — phase-specific UI)
 // ------------------------------------------------------------
 
+// ============================================================
+// Shared cascade-skill specialty intercept
+// Works across any phase: pre-career event10, any-skill, event skills,
+// contested skills. Stores a callback; renderStage injects the overlay.
+// ============================================================
+
+let _skillGrantCallback = null;  // async (fullSkillText: string) => void
+
+/**
+ * Call before any direct-API skill grant.
+ * If skillText is a bare cascade skill, stores the callback, sets
+ * uiState.pendingSkillGrant, and returns true (caller must return/abort).
+ * Otherwise returns false (caller proceeds normally).
+ *
+ * @param {string} skillText  e.g. "Electronics" or "Electronics (Computers) 1"
+ * @param {function} callback async function called with the full skill text after specialty chosen
+ */
+function interceptCascadeSkill(skillText, callback) {
+  const text = (skillText || '').trim();
+  // Strip trailing level number to get bare skill name
+  const bare = text.replace(/\s+\d+\s*$/, '').trim();
+  // If it already has a specialty (parenthetical), no intercept needed
+  if (/\(/.test(bare)) return false;
+  if (!CASCADE_SKILLS[bare]) return false;
+  // Parse level from original text
+  const levelMatch = text.match(/\s+(\d+)\s*$/);
+  const level = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+  uiState.pendingSkillGrant = { skillName: bare, level };
+  _skillGrantCallback = callback;
+  renderStage();
+  return true;
+}
+
 function renderStage() {
   const stage = document.getElementById('stage');
+
+  // Cascade specialty picker overlay — injected on top of whatever phase is active
+  if (uiState.pendingSkillGrant) {
+    const { skillName, level } = uiState.pendingSkillGrant;
+    const specs = CASCADE_SKILLS[skillName] || [];
+    stage.innerHTML = `
+      <div class="panel-header"><span class="led"></span><span>CHOOSE SPECIALTY</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Cascade Skill — ${escapeHTML(skillName)}</div>
+        <h2 class="phase-title">${escapeHTML(skillName)} requires a specialty</h2>
+        <p class="phase-body">Pick one specialty to gain at level ${level}:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+          ${specs.map(s => `<button class="btn ghost specialty-chip" data-grant-specialty="${escapeHTML(s)}">${escapeHTML(s)}</button>`).join('')}
+        </div>
+        <div class="phase-actions" style="margin-top:16px">
+          <button class="btn ghost" id="btn-cancel-specialty">CANCEL</button>
+        </div>
+      </div>
+    `;
+    // Wire specialty chips
+    stage.querySelectorAll('[data-grant-specialty]').forEach(chip => {
+      chip.addEventListener('click', async () => {
+        const spec = chip.dataset.grantSpecialty;
+        const fullText = `${skillName} (${spec}) ${level}`;
+        const cb = _skillGrantCallback;
+        uiState.pendingSkillGrant = null;
+        _skillGrantCallback = null;
+        if (cb) await cb(fullText);
+      });
+    });
+    const btnCancel = stage.querySelector('#btn-cancel-specialty');
+    if (btnCancel) btnCancel.addEventListener('click', () => {
+      uiState.pendingSkillGrant = null;
+      _skillGrantCallback = null;
+      renderStage();
+    });
+    return;
+  }
 
   if (character.dead) {
     stage.innerHTML = renderDeadStage();
@@ -2576,18 +2650,21 @@ function wirePreCareerPhase() {
   document.querySelectorAll('[data-event10-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const skill = chip.dataset.event10Skill;
-      try {
-        const response = await apiCall('/api/character/pre-career/event10-skill', { skill_text: skill });
-        await applyResponse(response);
-        const succeeded = response.roll?.succeeded;
-        const msg = succeeded
-          ? `Tutor challenge on ${skill}: SUCCESS! Gained +1 level and Rival [Tutor].`
-          : `Tutor challenge on ${skill}: failed. No bonus.`;
-        alert(msg);
-        uiState.event10Filter = '';
-        uiState.lastRoll = null;
-        renderAll();
-      } catch (e) { alert(e.message); }
+      const applyEvent10 = async (skillText) => {
+        try {
+          const response = await apiCall('/api/character/pre-career/event10-skill', { skill_text: skillText });
+          await applyResponse(response);
+          const succeeded = response.roll?.succeeded;
+          const msg = succeeded
+            ? `Tutor challenge on ${skillText}: SUCCESS! Gained +1 level and Rival [Tutor].`
+            : `Tutor challenge on ${skillText}: failed. No bonus.`;
+          alert(msg);
+          uiState.event10Filter = '';
+          uiState.lastRoll = null;
+          renderAll();
+        } catch (e) { alert(e.message); }
+      };
+      if (!interceptCascadeSkill(skill, applyEvent10)) await applyEvent10(skill);
     });
   });
 
@@ -2652,20 +2729,23 @@ function wirePreCareerPhase() {
   document.querySelectorAll('[data-any-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const skill = chip.dataset.anySkill;
-      try {
-        const response = await apiCall('/api/character/pre-career/any-skill', { skill_text: skill });
-        await applyResponse(response);
-        const lr = uiState.lastRoll;
-        const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
-        uiState.anySkillFilter = '';
-        if (hasPicks) {
-          uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
-          uiState.lastRoll = { ...lr, type: 'precareer_skill_pick', pending_any_skill: false };
-        } else {
-          uiState.lastRoll = { ...lr, type: 'precareer_graduate', event: { ...lr.event, pending_any_skill: false } };
-        }
-        renderStage();
-      } catch (e) { alert(e.message); }
+      const applyAnySkill = async (skillText) => {
+        try {
+          const response = await apiCall('/api/character/pre-career/any-skill', { skill_text: skillText });
+          await applyResponse(response);
+          const lr = uiState.lastRoll;
+          const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+          uiState.anySkillFilter = '';
+          if (hasPicks) {
+            uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+            uiState.lastRoll = { ...lr, type: 'precareer_skill_pick', pending_any_skill: false };
+          } else {
+            uiState.lastRoll = { ...lr, type: 'precareer_graduate', event: { ...lr.event, pending_any_skill: false } };
+          }
+          renderStage();
+        } catch (e) { alert(e.message); }
+      };
+      if (!interceptCascadeSkill(skill, applyAnySkill)) await applyAnySkill(skill);
     });
   });
 
@@ -3301,19 +3381,22 @@ function wireCareerPhase() {
   document.querySelectorAll('[data-event-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const pick = chip.getAttribute('data-event-skill');
-      try {
-        disableAllEventChips();
-        const response = await apiCall('/api/character/event-skill-grant', { skill_text: pick });
-        await applyResponse(response);
-        if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
-          uiState.lastRoll.eventSkillApplied = response.skill || pick;
-          uiState.lastRoll.eventChoicePath = 'skill';
+      const applyEventSkill = async (skillText) => {
+        try {
+          disableAllEventChips();
+          const response = await apiCall('/api/character/event-skill-grant', { skill_text: skillText });
+          await applyResponse(response);
+          if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+            uiState.lastRoll.eventSkillApplied = response.skill || skillText;
+            uiState.lastRoll.eventChoicePath = 'skill';
+          }
+          renderAll();
+        } catch (err) {
+          alert(err.message || 'Could not apply that skill.');
+          enableAllEventChips();
         }
-        renderAll();
-      } catch (err) {
-        alert(err.message || 'Could not apply that skill.');
-        enableAllEventChips();
-      }
+      };
+      if (!interceptCascadeSkill(pick, applyEventSkill)) await applyEventSkill(pick);
     });
   });
 
@@ -3476,21 +3559,24 @@ function wireCareerPhase() {
       const lr = uiState.lastRoll;
       if (!lr || !lr.eventContestedResolved) return;
       const pick = chip.getAttribute('data-contested-skill');
-      try {
-        chip.disabled = true;
-        document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = true; });
-        const resp = await apiCall('/api/character/event-skill-grant', { skill_text: pick });
-        await applyResponse(resp);
-        lr.eventContestedResolved.skillChosen = resp.skill || pick;
-        lr.eventContestedResolved.appliedMsgs = [
-          ...(lr.eventContestedResolved.appliedMsgs || []),
-          `+ ${resp.skill || pick}`,
-        ];
-      } catch (err) {
-        alert(err.message || 'Could not apply that skill.');
-        document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = false; });
-      }
-      renderAll();
+      const applyContestedSkill = async (skillText) => {
+        try {
+          chip.disabled = true;
+          document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = true; });
+          const resp = await apiCall('/api/character/event-skill-grant', { skill_text: skillText });
+          await applyResponse(resp);
+          lr.eventContestedResolved.skillChosen = resp.skill || skillText;
+          lr.eventContestedResolved.appliedMsgs = [
+            ...(lr.eventContestedResolved.appliedMsgs || []),
+            `+ ${resp.skill || skillText}`,
+          ];
+        } catch (err) {
+          alert(err.message || 'Could not apply that skill.');
+          document.querySelectorAll('[data-contested-skill]').forEach(c => { c.disabled = false; });
+        }
+        renderAll();
+      };
+      if (!interceptCascadeSkill(pick, applyContestedSkill)) await applyContestedSkill(pick);
     });
   });
   // Refuse branch for noble[3] / noble[8]. On click, apply the parsed
