@@ -113,11 +113,11 @@ const _SOL_LAST = ["Wang","Li","Zhang","Chen","Liu","Yang","Huang","Singh","Wu",
 
 // Species → language mapping
 const _SPECIES_LANG = {
-  imperial_human:'galanglic', frontier_human:'galanglic',
-  confederation_human:'galanglic', hiver_federation_human:'galanglic',
-  two_thousand_worlds_human:'galanglic', drinax_palace_human:'galanglic',
-  drinax_wasteland_human:'galanglic', asim_human:'galanglic',
-  human:'galanglic', luriani:'vilani', jonkeereen:'galanglic',
+  imperial_human:'solomani', frontier_human:'solomani',
+  confederation_human:'solomani', hiver_federation_human:'solomani',
+  two_thousand_worlds_human:'solomani', drinax_palace_human:'solomani',
+  drinax_wasteland_human:'solomani', asim_human:'solomani',
+  human:'solomani', luriani:'vilani', jonkeereen:'solomani',
   sydite:'galanglic', akeed:'galanglic', faar:'galanglic',
   droashav:'galanglic', dolphin:'galanglic', uplifted_orca:'galanglic',
   alpine_caprisap:'galanglic', boar_caprisap:'galanglic',
