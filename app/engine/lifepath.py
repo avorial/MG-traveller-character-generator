@@ -204,7 +204,7 @@ def _apply_event_auto_promotion(character: "Character", event_text: str) -> dict
 
     # Check for rank cap — some careers cap at rank 6.
     next_rank = term.rank + 1
-    rank_data = _rank_data(career, term.assignment_id, next_rank)
+    rank_data = _rank_data(career, term.assignment_id, next_rank, commissioned=term.commissioned)
     if rank_data is None and next_rank > 1:
         # No data for the next rank means we've hit the top.
         character.log(f"  - Event grants automatic promotion, but already at top rank for {term.career_id}/{term.assignment_id}.")
@@ -212,7 +212,7 @@ def _apply_event_auto_promotion(character: "Character", event_text: str) -> dict
 
     old_rank = term.rank
     term.rank = next_rank
-    term.rank_title = _rank_title(career, term.assignment_id, term.rank)
+    term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
 
     # Treat this term as already advanced so the player doesn't roll again.
     term.advanced = True
@@ -3205,7 +3205,7 @@ def start_term(
         term_number=1 if is_new_career else (character.current_term.term_number + 1),
         overall_term_number=character.total_terms + character.pre_career_terms + 1,
         rank=starting_rank,
-        rank_title=_rank_title(career, assignment_id, starting_rank),
+        rank_title=_rank_title(career, assignment_id, starting_rank, commissioned=commissioned_start),
         basic_training=is_first_career and not commissioned_start,
         commissioned=commissioned_start,
         cover_career_id=cover_career_id or None,
@@ -4054,9 +4054,9 @@ def commission_roll(character: "Character") -> dict:
         # Commissioned: jump to Rank 1 officer regardless of current enlisted rank
         term.commissioned = True
         term.rank = 1
-        new_rank_title = _rank_title(career, term.assignment_id, 1)
+        new_rank_title = _rank_title(career, term.assignment_id, 1, commissioned=True)
         term.rank_title = new_rank_title
-        rank_data = _rank_data(career, term.assignment_id, 1)
+        rank_data = _rank_data(career, term.assignment_id, 1, commissioned=True)
         if rank_data and rank_data.get("bonus"):
             rank_bonus_log = _apply_rank_bonus(character, rank_data["bonus"])
             term.skills_gained.append(f"Commission rank bonus: {rank_data['bonus']}")
@@ -4143,8 +4143,8 @@ def advancement_roll(character: Character) -> dict:
     monitor_rank_up = False
     if r.succeeded:
         term.rank += 1
-        term.rank_title = _rank_title(career, term.assignment_id, term.rank)
-        rank_data = _rank_data(career, term.assignment_id, term.rank)
+        term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
+        rank_data = _rank_data(career, term.assignment_id, term.rank, commissioned=term.commissioned)
         if rank_data and rank_data.get("bonus"):
             bonus = rank_data["bonus"]
             rank_bonus_log = _apply_rank_bonus(character, bonus)
@@ -5394,13 +5394,28 @@ def _apply_benefit(character: Character, benefit: str) -> None:
 # ============================================================
 
 
-def _rank_title(career: dict, assignment_id: str, rank: int) -> Optional[str]:
-    """Look up rank title for a career+assignment."""
+def _officer_rank_table(ranks_data: dict) -> Optional[dict]:
+    """Return the officer rank table from a career's ranks dict, handling both
+    'officer' (Army/Marine/Navy/Conf-Army/Sol-Marine) and '_officer' (Conf-Navy)."""
+    return ranks_data.get("officer") or ranks_data.get("_officer")
+
+
+def _rank_title(career: dict, assignment_id: str, rank: int,
+                commissioned: bool = False) -> Optional[str]:
+    """Look up rank title for a career+assignment.
+
+    For commissioned characters the officer rank table is checked first.
+    Careers use various key structures:
+      - by assignment ("law_enforcement", "intelligence"…)
+      - single "default" (Scout)
+      - "enlisted" + "officer" / "_officer" (Army / Navy / Marines)
+    """
     ranks_data = career.get("ranks", {})
-    # Careers use various key structures:
-    #  - by assignment ("law_enforcement", "intelligence"...)
-    #  - single "default" (Scout)
-    #  - "enlisted" + "officer" (Army/Navy/Marines)
+    if commissioned:
+        officer_table = _officer_rank_table(ranks_data)
+        if officer_table is not None:
+            entry = officer_table.get(str(rank))
+            return entry.get("title") if entry else None
     rank_table = (
         ranks_data.get(assignment_id)
         or ranks_data.get("default")
@@ -5412,8 +5427,17 @@ def _rank_title(career: dict, assignment_id: str, rank: int) -> Optional[str]:
     return entry.get("title") if entry else None
 
 
-def _rank_data(career: dict, assignment_id: str, rank: int) -> Optional[dict]:
+def _rank_data(career: dict, assignment_id: str, rank: int,
+               commissioned: bool = False) -> Optional[dict]:
+    """Return the full rank entry dict (title + bonus).
+
+    For commissioned characters the officer rank table is used when present.
+    """
     ranks_data = career.get("ranks", {})
+    if commissioned:
+        officer_table = _officer_rank_table(ranks_data)
+        if officer_table is not None:
+            return officer_table.get(str(rank))
     rank_table = (
         ranks_data.get(assignment_id)
         or ranks_data.get("default")
@@ -5968,8 +5992,8 @@ def generate_npc() -> dict:
         term.advanced = bool(adv_roll.succeeded)
         if adv_roll.succeeded:
             term.rank += 1
-            term.rank_title = _rank_title(career, assignment_id, term.rank)
-            rd = _rank_data(career, assignment_id, term.rank)
+            term.rank_title = _rank_title(career, assignment_id, term.rank, commissioned=term.commissioned)
+            rd = _rank_data(career, assignment_id, term.rank, commissioned=term.commissioned)
             if rd and rd.get("bonus"):
                 _apply_skill_result(char, rd["bonus"])
                 term.skills_gained.append(f"Rank bonus: {rd['bonus']}")
