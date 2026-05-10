@@ -3361,6 +3361,7 @@ function wireCareerPhase() {
           uiState.lastRoll.mishapFromEvent = {
             total: response.roll?.total,
             text: response.mishap,
+            frozenWatch: response.frozen_watch || false,
           };
         }
         renderAll();
@@ -5853,18 +5854,16 @@ function renderEventStep() {
     const rawForcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
     const contestedSucceededForMishap = lr.eventContestedResolved && lr.eventContestedResolved.success === true;
     const forcesMishap = rawForcesMishap && !contestedSucceededForMishap;
-    const stayInCareer = /not\s+ejected/i.test(lr.eventText || '');
     const pendingMishapRoll = forcesMishap && !lr.mishapFromEvent;
     const mishapRolledHTML = (forcesMishap && lr.mishapFromEvent) ? `
       <div class="mishap-box">
         <span class="event-label">Mishap [1D=${lr.mishapFromEvent.total ?? '?'}]</span>
         ${escapeHTML(lr.mishapFromEvent.text || '')}
-        ${stayInCareer ? `
-          <div class="event-box" style="border-color:var(--amber-dim);margin-top:10px;padding:8px 10px">
-            <span class="event-label" style="color:var(--amber-dim)">⚠ NOT EJECTED — CAREER CONTINUES</span>
-            Your event stated <em>"not ejected from this career"</em>. Any career-ending language in the mishap result is <strong>overridden</strong> — you suffer the other mishap effects but keep your position and may still advance.
-          </div>
-        ` : ''}
+        ${lr.mishapFromEvent.frozenWatch ? `
+          <p class="small-hint" style="margin-top:8px;color:var(--amber-dim)"><em>Frozen Watch — you are preserved in cryo. Career continues; no advancement or skill roll this term.</em></p>
+        ` : `
+          <p class="small-hint" style="margin-top:8px;color:var(--danger)"><em>A mishap ends your career.</em></p>
+        `}
       </div>
     ` : '';
 
@@ -5939,16 +5938,16 @@ function renderEventStep() {
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP
-    // - Forced mishap already rolled, career ends: show END CAREER
-    // - Forced mishap already rolled, NOT ejected: show CONTINUE (not ejected)
+    // - Forced mishap rolled, Frozen Watch: career continues (no advancement this term)
+    // - Forced mishap rolled, anything else: career ENDS — show END CAREER
     // - Citizen ev8 survival failed: show mishap button (handled inline above)
-    // - Normal flow: show ATTEMPT/SKIP advancement
+    // - Normal flow: show ATTEMPT advancement
     const actionsHTML = pendingMishapRoll ? `
       <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
-    ` : (forcesMishap && lr.mishapFromEvent && !stayInCareer) ? `
+    ` : (forcesMishap && lr.mishapFromEvent && lr.mishapFromEvent.frozenWatch) ? `
+      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>FROZEN WATCH — CONTINUE →</button>
+    ` : (forcesMishap && lr.mishapFromEvent) ? `
       <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
-    ` : (forcesMishap && lr.mishapFromEvent && stayInCareer) ? `
-      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>CONTINUE — NOT EJECTED →</button>
     ` : `
       <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
     `;
