@@ -63,7 +63,7 @@
     </section>
 
     <!-- RIGHT: Activity Log -->
-    <aside class="log-panel">
+    <aside class="log-panel" id="log-panel">
       <div class="panel-header">
         <span class="led"></span>
         <span>MISSION LOG</span>
@@ -71,6 +71,22 @@
       <ol class="log" id="log"></ol>
     </aside>
   </main>
+
+  <!-- Mobile tab bar — only visible on small screens -->
+  <nav class="mobile-tabs" id="mobile-tabs" aria-label="Panel navigation">
+    <button class="mobile-tab" data-tab="sheet">
+      <span class="mobile-tab-icon">▤</span>
+      <span class="mobile-tab-label">CHARACTER</span>
+    </button>
+    <button class="mobile-tab mobile-tab-active" data-tab="stage">
+      <span class="mobile-tab-icon">◈</span>
+      <span class="mobile-tab-label">ACTION</span>
+    </button>
+    <button class="mobile-tab" data-tab="log">
+      <span class="mobile-tab-icon">≡</span>
+      <span class="mobile-tab-label">LOG</span>
+    </button>
+  </nav>
 
   <footer class="terminal-footer">
     <div class="footer-left">

@@ -240,6 +240,135 @@ body {
   }
 }
 
+/* ============ Mobile tab bar (hidden on desktop) ============ */
+.mobile-tabs { display: none; }
+
+@media (max-width: 768px) {
+  /* Prevent any horizontal overflow */
+  html, body { overflow-x: hidden; }
+
+  /* Header: collapse to single row */
+  .header-content {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .header-left { gap: 6px; }
+  .terminal-id { display: none; }
+  .title { text-align: center; }
+  .title-main { font-size: 22px; letter-spacing: 0.2em; }
+  .title-sub { font-size: 9px; letter-spacing: 0.12em; }
+  .status-text { display: none; }
+  .status-dot { width: 6px; height: 6px; }
+  .app-version { font-size: 9px; }
+  .imperial-crest { font-size: 16px; }
+
+  /* Layout: single column, no gap, fills space above tab bar */
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+    min-height: calc(100vh - 104px); /* header ~52px + tab bar ~52px */
+  }
+
+  /* All panels hidden by default on mobile — JS shows the active one */
+  .sheet, .stage, .log-panel {
+    display: none;
+    height: calc(100vh - 104px);
+    overflow-y: auto;
+    border: none;
+    border-radius: 0;
+  }
+  .sheet.mobile-panel-active,
+  .stage.mobile-panel-active,
+  .log-panel.mobile-panel-active {
+    display: flex;
+    flex-direction: column;
+  }
+  /* Log panel needs block not flex */
+  .log-panel.mobile-panel-active { display: block; }
+
+  /* Stage content: reduce padding for narrow screens */
+  .stage-content { padding: 18px 16px; }
+  .phase-title { font-size: 30px; }
+  .phase-actions { margin-top: 18px; padding-top: 14px; gap: 8px; }
+
+  /* Buttons: bigger touch targets */
+  .btn { padding: 12px 16px; font-size: 11px; }
+  .btn.primary { padding: 14px 18px; }
+
+  /* Card grid: single column */
+  .card-grid { grid-template-columns: 1fr; }
+
+  /* Skill picker: tighter chips */
+  .skill-chip { padding: 8px 10px; font-size: 11px; }
+  .skill-table-btn { padding: 10px 10px; }
+
+  /* Footer: wrap tightly */
+  .terminal-footer { padding: 6px 10px; flex-wrap: wrap; gap: 4px; }
+  .footer-left { flex-wrap: wrap; gap: 2px; }
+  .footer-right { display: none; }
+  .text-btn { font-size: 9px; padding: 6px 6px; letter-spacing: 0.12em; }
+
+  /* Mobile tab bar */
+  .mobile-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background: var(--bg-panel-alt);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+  }
+  .mobile-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    cursor: pointer;
+    padding: 6px 4px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tab-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .mobile-tab-label {
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .mobile-tab.mobile-tab-active {
+    color: var(--amber);
+  }
+  .mobile-tab.mobile-tab-active .mobile-tab-icon {
+    text-shadow: 0 0 8px var(--amber-glow);
+  }
+
+  /* Push page content above fixed tab bar */
+  body { padding-bottom: 52px; }
+  .terminal-footer { margin-bottom: 0; }
+
+  /* Stable preview 6-column grid — shrink text further */
+  .stable-preview-v { font-size: 8px; }
+  .stable-preview-n { font-size: 7px; }
+
+  /* Muster table: allow horizontal scroll on tiny screens */
+  .muster-table-chart { overflow-x: auto; }
+
+  /* Roll readout: ensure it doesn't overflow */
+  .roll-readout { overflow-x: auto; word-break: break-word; }
+}
+
 /* ============ Panels ============ */
 
 .sheet, .stage, .log-panel {

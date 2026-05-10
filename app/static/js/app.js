@@ -237,6 +237,8 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Mobile tab: 'sheet' | 'stage' | 'log'
+  mobileTab: 'stage',
   // Light/dark theme toggle
   themeLight: localStorage.getItem('theme') === 'light',
   // Heroic stat generation toggle (4×2D + 2×3D6 drop lowest)
@@ -375,6 +377,10 @@ async function applyResponse(response) {
     }
     character = incoming;
     saveCharacter();
+  }
+  // On mobile, switch to ACTION tab after any API response so the result is visible
+  if (uiState.mobileTab !== 'stage') {
+    uiState.mobileTab = 'stage';
   }
   return response;
 }
@@ -6797,11 +6803,40 @@ function renderGMPanel() {
   }
 }
 
+// ============================================================
+// Mobile tab navigation
+// ============================================================
+
+const MOBILE_PANELS = { sheet: 'sheet', stage: 'stage', log: 'log-panel' };
+
+function setMobileTab(tab) {
+  uiState.mobileTab = tab;
+  // Update panel visibility
+  Object.entries(MOBILE_PANELS).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('mobile-panel-active', key === tab);
+  });
+  // Update tab button active state
+  document.querySelectorAll('.mobile-tab').forEach(btn => {
+    btn.classList.toggle('mobile-tab-active', btn.dataset.tab === tab);
+  });
+}
+
+function wireMobileTabs() {
+  document.querySelectorAll('.mobile-tab').forEach(btn => {
+    btn.addEventListener('click', () => setMobileTab(btn.dataset.tab));
+  });
+  // Apply default tab on load
+  setMobileTab(uiState.mobileTab || 'stage');
+}
+
 function renderAll() {
   renderSheet();
   renderStage();
   renderLog();
   renderGMPanel();
+  // Re-apply mobile tab visibility after every render (innerHTML wipes classes)
+  setMobileTab(uiState.mobileTab || 'stage');
 }
 
 async function bootstrap() {
@@ -6828,6 +6863,9 @@ async function bootstrap() {
 
   // Apply saved theme before first paint
   if (uiState.themeLight) document.body.classList.add('theme-light');
+
+  // Mobile tab bar wiring
+  wireMobileTabs();
 
   renderAll();
 
