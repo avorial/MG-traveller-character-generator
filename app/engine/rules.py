@@ -122,6 +122,21 @@ def solomani_life_events() -> dict:
     return _load_file("tables/solomani_life_events.json")
 
 
+@lru_cache(maxsize=1)
+def drinax_palace_life_events() -> dict:
+    return _load_file("tables/drinax_palace_life_events.json")
+
+
+@lru_cache(maxsize=1)
+def drinax_wasteland_life_events() -> dict:
+    return _load_file("tables/drinax_wasteland_life_events.json")
+
+
+@lru_cache(maxsize=1)
+def asim_life_events() -> dict:
+    return _load_file("tables/asim_life_events.json")
+
+
 # Careers that use the Solomani Life Events table instead of the standard one.
 # (The five unique Confederation careers — any career that events reference
 # "Roll on the Solomani Life Events table".)
@@ -129,9 +144,30 @@ SOLOMANI_CAREER_IDS: frozenset[str] = frozenset(
     {"party", "confederation_navy", "solsec", "confederation_army", "solomani_marine"}
 )
 
+# Species that have their own homeworld life events tables (1D).
+# Maps species_id → loader function name (resolved in life_events_for_species).
+SPECIES_LIFE_EVENTS_TABLE: dict[str, str] = {
+    "drinax_palace_human": "drinax_palace",
+    "drinax_wasteland_human": "drinax_wasteland",
+    "asim_human": "asim",
+}
+
 # Careers that have no qualification roll — Party Patronage and Mixed Heritage
 # penalties are irrelevant for these.
 CAREERS_WITHOUT_QUALIFICATION: frozenset[str] = frozenset({"drifter", "prisoner"})
+
+
+def life_events_for_species(species_id: str) -> dict | None:
+    """Return a homeworld-specific 1D life-events table for the given species,
+    or None if the species uses the standard (career-routed) table."""
+    key = SPECIES_LIFE_EVENTS_TABLE.get(species_id or "")
+    if key == "drinax_palace":
+        return drinax_palace_life_events()
+    if key == "drinax_wasteland":
+        return drinax_wasteland_life_events()
+    if key == "asim":
+        return asim_life_events()
+    return None
 
 
 def life_events_for_career(career_id: str) -> dict:

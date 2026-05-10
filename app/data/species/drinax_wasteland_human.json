@@ -1,0 +1,31 @@
+{
+    "id": "drinax_wasteland_human",
+    "name": "Vespexer (Drinax Wasteland)",
+    "description": "A Vespexer — one of the tribes who wander the blasted surface of Drinax. Two hundred years ago the Aslan wiped out your world and condemned your ancestors to a living hell. The King in his floating palace may claim you as one of his subjects, but the Vespexers kneel to no-one.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 2,
+        "INT": 0,
+        "EDU": -1,
+        "SOC": -1
+    },
+    "characteristic_maximum": 15,
+    "sort_order": 825,
+    "life_events_table": "drinax_wasteland_life_events",
+    "traits": [
+        {
+            "name": "Wasteland Survivor",
+            "description": "Raised on the blasted, Aslan-ravaged surface of Drinax, Vespexers are extraordinarily tough. DM+1 to all Survival checks and END characteristic checks to endure hardship, exposure, or starvation. They begin play with Survival 0 as a free background skill."
+        },
+        {
+            "name": "Hatred of the Aslan",
+            "description": "Two centuries of racial memory do not fade easily. Vespexers gain DM+1 to checks involving Recon, Stealth, or combat against Aslan opponents. However, DM-1 on Diplomat and Persuade checks when dealing with Aslan — the hatred is difficult to conceal."
+        }
+    ],
+    "aliases": [
+        "vespexer",
+        "wasteland_human"
+    ],
+    "source": "Pirates of Drinax; Mongoose Publishing"
+}

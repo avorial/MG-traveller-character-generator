@@ -1,0 +1,30 @@
+{
+  "description": "Life Events for Vespexer characters from the Drinax Wasteland. Rolled when a career Event roll results in 'Life Event'. Roll 1D.",
+  "dice": "1D",
+  "entries": {
+    "1": {
+      "title": "New Contact",
+      "text": "You are not without friends. Pick Rachando, Chieftain Galx, Sal Dancet or Prince Harrick as a Contact."
+    },
+    "2": {
+      "title": "Family Affairs",
+      "text": "Roll 1D. 1-2: Someone close to you gives birth, and the tribe cannot feed another mouth. Either the child dies, or you must leave your current career and strike out as a Drifter or Rogue. 3-4: Your tribe is struck by disease, and someone in your family dies. Gain their possessions as a bonus Benefit roll. 5-6: One of your kin is accused of a crime and exiled from the tribe. Gain him as a vengeful Enemy, should you ever meet him again."
+    },
+    "3": {
+      "title": "Romantic Entanglement",
+      "text": "The tribe must grow, and you are married off. Roll 1D to see how it turned out. 1-2: Partner died. 3-5: Ongoing relationship — gain your spouse as an Ally, and you have 1D-3 children. 6: Tragic death or disappearance."
+    },
+    "4": {
+      "title": "Misfortune",
+      "text": "You suffer an unfortunate accident. Roll 1D. 1-2: You are framed for a crime and exiled from the tribe. Gain your persecutor as an Enemy and reduce SOC by 1. 3-4: While exploring a ruined city, you contract a disease left over from the Aslan attack. Reduce END by 1. 5-6: You are wounded while hunting, and worse, your hazard suit is torn. Lose one Benefit roll to pay for its repair."
+    },
+    "5": {
+      "title": "Good Fortune",
+      "text": "Fortune smiles upon you. Roll 1D. 1-2: Rachando the merchant offers you a good price for a relic recovered from the ruined cities. Gain 1D×Cr10,000. 3-4: A travelling merchant or smuggler offers you a place on board his ship. You may automatically qualify for the Rogue or Merchant career. 5-6: Your tribe prospers. Gain an extra Benefit roll."
+    },
+    "6": {
+      "title": "Unusual Event",
+      "text": "Roll 1D. 1-2: You are psionic! Roll to test your Psionic Strength immediately, and gain DM+4 to the roll. 3-4: You find the wreckage of an Aslan ship that crashed on Drinax, and recover a mysterious chest from its cargo hold. You have never managed to open the chest, but it bears the symbol of the Syoisuis assassin-clan. 5-6: When you were a child, the tribe's wise-woman declared that you were the Hlax Kur Eisa — the messiah who would avenge the Vespexers upon the Aslan."
+    }
+  }
+}

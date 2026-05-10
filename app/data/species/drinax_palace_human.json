@@ -1,0 +1,31 @@
+{
+    "id": "drinax_palace_human",
+    "name": "Drinax Noble (Floating Palace)",
+    "description": "A noble of the Kingdom of Drinax, raised aboard the decaying wonders of the Floating Palace. You grew up learning court politics, ancient history, and the glorious deeds of your ancestors. The Palace is magnificent — and slowly falling apart.",
+    "characteristic_modifiers": {
+        "STR": -1,
+        "DEX": 0,
+        "END": -1,
+        "INT": 0,
+        "EDU": 1,
+        "SOC": 1
+    },
+    "characteristic_maximum": 15,
+    "sort_order": 820,
+    "life_events_table": "drinax_palace_life_events",
+    "traits": [
+        {
+            "name": "Court Education",
+            "description": "Raised among the nobles and scholars of the Floating Palace, Drinax courtiers gain Diplomat 0 or Persuade 0 as a free background skill, regardless of EDU DM. They also gain DM+1 on checks involving Drinax history, noble genealogy, or Trojan Reach politics."
+        },
+        {
+            "name": "Decaying Grandeur",
+            "description": "Life on the Floating Palace is one of fading splendour. DM+1 on SOC checks dealing with other nobles or royalty who recognise the Drinax claim. DM-1 on checks that require genuine military or physical credibility — you have the title, but not the muscle."
+        }
+    ],
+    "aliases": [
+        "drinax_noble",
+        "palace_human"
+    ],
+    "source": "Pirates of Drinax; Mongoose Publishing"
+}

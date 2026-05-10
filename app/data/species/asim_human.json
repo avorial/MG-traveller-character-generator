@@ -1,0 +1,31 @@
+{
+    "id": "asim_human",
+    "name": "Asim Local",
+    "description": "From Asim, the only province left to the Kings of Drinax — a minor agricultural world, low-tech and long-suffering. Prior to the reconquest the Asim were ruled by the cryptic Foundation; life has improved marginally for the peasants since then, but the planet is still a backwater.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": -1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "sort_order": 830,
+    "life_events_table": "asim_life_events",
+    "traits": [
+        {
+            "name": "Agricultural World",
+            "description": "Asim is a low-tech farming world where hard work and resourcefulness are the only currencies that matter. Characters from Asim gain Animals 0 or Mechanic 0 as a free background skill. DM+1 on checks to evaluate food, crops, or trade goods for their true value."
+        },
+        {
+            "name": "Foundation Shadow",
+            "description": "The cryptic Foundation once ruled Asim and their legacy lingers in whispered secrets and old loyalties. Asim locals begin play aware of Foundation rumours — the GM may use this as a plot hook. DM+1 to notice when someone is withholding information about the Foundation or its former activities."
+        }
+    ],
+    "aliases": [
+        "asim",
+        "asim_local"
+    ],
+    "source": "Pirates of Drinax; Mongoose Publishing"
+}

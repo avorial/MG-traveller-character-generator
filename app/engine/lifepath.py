@@ -2131,17 +2131,404 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
     }
 
 
+def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
+    """Roll 1D on a homeworld-specific life events table and apply effects.
+
+    Used for Drinax (Floating Palace), Drinax (Wasteland), and Asim characters
+    whose homeworld tables roll 1D (1–6) instead of the standard 2D.
+    """
+    sp_max = int(rules.species().get(species_id, {}).get("characteristic_maximum", 15))
+
+    def clamp_stat(char: Character, stat: str, delta: int) -> None:
+        val = char.characteristics.get(stat, 7)
+        char.characteristics.set(stat, max(1, min(val + delta, sp_max)))
+
+    r = dice.roll("1D")
+    total = r.total
+    auto_applied: list[str] = []
+    pending_choice: Optional[dict] = None
+
+    # ── DRINAX — FLOATING PALACE ─────────────────────────────────────────────
+    if species_id == "drinax_palace_human":
+        if total == 1:
+            character.associates.append(
+                Associate(kind="contact", description="Contact [Drinax Court]")
+            )
+            auto_applied.append("Gained Contact [Drinax Court]")
+
+        elif total == 2:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Family Affairs sub-roll: 1D={sub}")
+            if sub <= 2:
+                clamp_stat(character, "SOC", -1)
+                auto_applied.append("Family Affairs (1-2): SOC-1 — title lost to succession")
+            elif sub <= 4:
+                auto_applied.append(
+                    "Family Affairs (3-4): Arranged marriage — player may apply SOC+1 if accepted (apply manually)"
+                )
+            else:
+                character.pending_benefit_rolls += 1
+                auto_applied.append(
+                    "Family Affairs (5-6): Inheritance — extra Benefit roll added (or apply SOC+1 manually)"
+                )
+
+        elif total == 3:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Romantic Entanglement sub-roll: 1D={sub}")
+            if sub == 1:
+                auto_applied.append("Romantic (1): Amicable breakup — no mechanical effect")
+            elif sub == 2:
+                pending_choice = {"kind": "romantic_split"}
+                auto_applied.append("PENDING: choose Rival or Enemy [Nasty Breakup]")
+            elif sub <= 4:
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Romantic Partner — Drinax Court]")
+                )
+                auto_applied.append("Romantic (3-4): Gained Contact [Romantic Partner]")
+            elif sub == 5:
+                character.associates.append(Associate(kind="ally", description="Ally [Spouse — Drinax Court]"))
+                auto_applied.append("Romantic (5): Gained Ally [Spouse]")
+            else:
+                character.associates.append(
+                    Associate(kind="contact", description="Deceased [Tragic Death/Disappearance — Romantic]")
+                )
+                auto_applied.append("Romantic (6): Tragic death or disappearance — noted in associates")
+
+        elif total == 4:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Misfortune sub-roll: 1D={sub}")
+            if sub <= 2:
+                lost = min(2, character.pending_benefit_rolls)
+                character.pending_benefit_rolls = max(0, character.pending_benefit_rolls - 2)
+                clamp_stat(character, "SOC", -2)
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Treacherous Uncle — Stolen Inheritance]")
+                )
+                auto_applied.append(
+                    f"Misfortune (1-2): Lost {lost} Benefit roll(s), SOC-2, gained Enemy [Treacherous Uncle]"
+                )
+            elif sub <= 4:
+                clamp_stat(character, "END", -1)
+                auto_applied.append("Misfortune (3-4): END-1 — disease contracted from Vespexers")
+            else:
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Cheating Duelling Opponent — Drinax Court]")
+                )
+                character.add_skill("Melee", level=1, speciality="Blade")
+                auto_applied.append(
+                    "Misfortune (5-6): Gained Rival [Duelling Opponent], Melee (Blade) +1 — "
+                    "also choose: lose 1 Benefit roll, 1 SOC, or 1 END (apply one manually)"
+                )
+
+        elif total == 5:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Good Fortune sub-roll: 1D={sub}")
+            if sub <= 2:
+                cash_roll = dice.roll("1D").total
+                cash = cash_roll * 10_000
+                character.credits += cash
+                auto_applied.append(f"Good Fortune (1-2): Gained Cr{cash:,} (1D={cash_roll}×Cr10,000) — family heirloom sold")
+            elif sub <= 4:
+                auto_applied.append(
+                    "Good Fortune (3-4): Star Guard commission — choose: sell for 1D×Cr10,000 "
+                    "OR automatically qualify for Navy + automatic promotion in first turn (apply manually)"
+                )
+            else:
+                character.equipment.append(
+                    Equipment(
+                        name="Antique Weapon (Drinax Armoury)",
+                        notes="Choose: Ancient Rapier or Laser Pistol — apply choice manually",
+                    )
+                )
+                auto_applied.append(
+                    "Good Fortune (5-6): Ancient weapon from Palace armoury — choose rapier or laser pistol (noted in equipment)"
+                )
+
+        elif total == 6:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Unusual Event sub-roll: 1D={sub}")
+            if sub <= 2:
+                psi_roll = dice.roll("2D")
+                psi_total = min(psi_roll.total + 4, 15)
+                character.psi = psi_total
+                character.psi_tested = True
+                auto_applied.append(
+                    f"Unusual Event (1-2): Psionic! PSI tested 2D={psi_roll.total}+DM+4 → PSI {psi_total}"
+                )
+            elif sub <= 4:
+                planets = {1: "Paal", 2: "Torpal", 3: "Clarke", 4: "Asim", 5: "Banks/Khusai", 6: "Sindalian world (player's choice)"}
+                planet_roll = dice.roll("1D").total
+                planet = planets[planet_roll]
+                character.notes.append(f"Family estate claim: {planet} (Unusual Event — Drinax Palace).")
+                auto_applied.append(
+                    f"Unusual Event (3-4): Family owned estates on {planet} (1D={planet_roll}) — noted"
+                )
+            else:
+                character.notes.append("Bastard child of King Oleb (Unusual Event — Drinax Palace).")
+                auto_applied.append("Unusual Event (5-6): Bastard child of King Oleb — noted")
+
+    # ── DRINAX — WASTELAND (VESPEXER) ────────────────────────────────────────
+    elif species_id == "drinax_wasteland_human":
+        if total == 1:
+            character.associates.append(
+                Associate(kind="contact", description="Contact [Drinax Wasteland — Rachando/Galx/Dancet/Harrick]")
+            )
+            auto_applied.append("Gained Contact [Drinax Wasteland Court]")
+
+        elif total == 2:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Family Affairs sub-roll: 1D={sub}")
+            if sub <= 2:
+                auto_applied.append(
+                    "Family Affairs (1-2): Crisis — child born but tribe cannot feed them. "
+                    "Either child dies (narrative) or you must change career to Drifter or Rogue next term (apply manually)"
+                )
+            elif sub <= 4:
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Family Affairs (3-4): Tribe struck by disease — inherited possessions, extra Benefit roll added")
+            else:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Exiled Kin — Vespexer Tribe]")
+                )
+                auto_applied.append("Family Affairs (5-6): Gained Enemy [Vengeful Exiled Kin]")
+
+        elif total == 3:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Romantic Entanglement sub-roll: 1D={sub}")
+            if sub <= 2:
+                character.associates.append(
+                    Associate(kind="contact", description="Deceased [Partner — Married Off, Died]")
+                )
+                auto_applied.append("Romantic (1-2): Spouse died — noted in associates")
+            elif sub <= 5:
+                children_roll = dice.roll("1D").total
+                children = max(0, children_roll - 3)
+                character.associates.append(
+                    Associate(kind="ally", description=f"Ally [Spouse — Vespexer Tribe{', ' + str(children) + ' children' if children > 0 else ''}]")
+                )
+                auto_applied.append(
+                    f"Romantic (3-5): Gained Ally [Spouse], {children} children (1D={children_roll}-3)"
+                )
+            else:
+                character.associates.append(
+                    Associate(kind="contact", description="Deceased [Tragic Death/Disappearance — Romantic]")
+                )
+                auto_applied.append("Romantic (6): Tragic death or disappearance — noted")
+
+        elif total == 4:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Misfortune sub-roll: 1D={sub}")
+            if sub <= 2:
+                clamp_stat(character, "SOC", -1)
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Persecutor — Framed for Crime, Exiled]")
+                )
+                auto_applied.append("Misfortune (1-2): SOC-1, gained Enemy [Persecutor]")
+            elif sub <= 4:
+                clamp_stat(character, "END", -1)
+                auto_applied.append("Misfortune (3-4): END-1 — disease from Aslan ruins")
+            else:
+                lost = min(1, character.pending_benefit_rolls)
+                character.pending_benefit_rolls = max(0, character.pending_benefit_rolls - 1)
+                auto_applied.append(f"Misfortune (5-6): Lost {lost} Benefit roll — hazard suit repair")
+
+        elif total == 5:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Good Fortune sub-roll: 1D={sub}")
+            if sub <= 2:
+                cash_roll = dice.roll("1D").total
+                cash = cash_roll * 10_000
+                character.credits += cash
+                auto_applied.append(f"Good Fortune (1-2): Gained Cr{cash:,} (1D={cash_roll}×Cr10,000) — relic sold to Rachando")
+            elif sub <= 4:
+                auto_applied.append(
+                    "Good Fortune (3-4): Ship berth offered — may automatically qualify for Rogue or Merchant career (apply manually)"
+                )
+            else:
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Good Fortune (5-6): Tribe prospers — extra Benefit roll added")
+
+        elif total == 6:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Unusual Event sub-roll: 1D={sub}")
+            if sub <= 2:
+                psi_roll = dice.roll("2D")
+                psi_total = min(psi_roll.total + 4, 15)
+                character.psi = psi_total
+                character.psi_tested = True
+                auto_applied.append(
+                    f"Unusual Event (1-2): Psionic! PSI tested 2D={psi_roll.total}+DM+4 → PSI {psi_total}"
+                )
+            elif sub <= 4:
+                character.equipment.append(
+                    Equipment(name="Mysterious Aslan Chest [Syoisuis symbol]", notes="Unusual Event — Drinax Wasteland. Sealed; never been opened.")
+                )
+                auto_applied.append("Unusual Event (3-4): Mysterious Aslan chest (Syoisuis assassin-clan) — added to equipment")
+            else:
+                character.notes.append("Declared Hlax Kur Eisa by tribe wise-woman — Vespexer messiah prophecy.")
+                auto_applied.append("Unusual Event (5-6): Declared Hlax Kur Eisa — noted")
+
+    # ── ASIM ─────────────────────────────────────────────────────────────────
+    elif species_id == "asim_human":
+        if total == 1:
+            character.associates.append(
+                Associate(kind="contact", description="Contact [Asim Court — Cleon Hardy/Rachando/Kisayl/Lord Wrax]")
+            )
+            auto_applied.append("Gained Contact [Asim Court]")
+
+        elif total == 2:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Family Affairs sub-roll: 1D={sub}")
+            if sub <= 2:
+                clamp_stat(character, "SOC", 1)
+                auto_applied.append("Family Affairs (1-2): SOC+1 — family thrived since reconquest")
+            elif sub <= 4:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Drinaxi Noble — killed father during the war]")
+                )
+                auto_applied.append("Family Affairs (3-4): Gained Enemy [Drinaxi Noble — killed father]")
+            else:
+                auto_applied.append(
+                    "Family Affairs (5-6): Impoverished family — you may lose 1 Benefit roll to relieve their suffering "
+                    "and gain DM+1 to your next Advancement roll (apply manually)"
+                )
+
+        elif total == 3:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Romantic Entanglement sub-roll: 1D={sub}")
+            if sub <= 3:
+                character.associates.append(Associate(kind="ally", description="Ally [Spouse — Arranged Marriage, Asim]"))
+                auto_applied.append("Romantic (1-3): Married off — gained Ally [Spouse]")
+            else:
+                # Roll 1D for how it turned out (same as standard romantic table)
+                sub2 = dice.roll("1D").total
+                auto_applied.append(f"Romantic (4-6) sub-sub-roll: 1D={sub2}")
+                if sub2 == 1:
+                    auto_applied.append("Romantic (4-6, 1): Amicable breakup — no mechanical effect")
+                elif sub2 == 2:
+                    pending_choice = {"kind": "romantic_split"}
+                    auto_applied.append("PENDING: choose Rival or Enemy [Nasty Breakup]")
+                elif sub2 <= 4:
+                    character.associates.append(
+                        Associate(kind="contact", description="Contact [Romantic Partner — Drinax]")
+                    )
+                    auto_applied.append("Romantic (4-6, 3-4): Gained Contact [Romantic Partner]")
+                elif sub2 == 5:
+                    character.associates.append(Associate(kind="ally", description="Ally [Spouse — Drinax]"))
+                    auto_applied.append("Romantic (4-6, 5): Gained Ally [Spouse]")
+                else:
+                    character.associates.append(
+                        Associate(kind="contact", description="Deceased [Tragic Death/Disappearance — Romantic]")
+                    )
+                    auto_applied.append("Romantic (4-6, 6): Tragic death or disappearance — noted")
+
+        elif total == 4:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Misfortune sub-roll: 1D={sub}")
+            if sub <= 2:
+                # Lose 1 benefit roll or a Contact/Ally — auto lose benefit if available
+                if character.pending_benefit_rolls > 0:
+                    character.pending_benefit_rolls -= 1
+                    auto_applied.append(
+                        "Misfortune (1-2): Dangerous misunderstanding — lost 1 Benefit roll "
+                        "(alternatively, lose a Contact or Ally — apply manually if preferred)"
+                    )
+                else:
+                    auto_applied.append(
+                        "Misfortune (1-2): Dangerous misunderstanding — no Benefit rolls to lose; "
+                        "lose a Contact or Ally (apply manually)"
+                    )
+            elif sub <= 4:
+                injury = apply_injury(character)
+                auto_applied.append(f"Misfortune (3-4): Injured while travelling — {injury.get('title', 'see log')}")
+            else:
+                slavers_roll = dice.roll("1D").total
+                if slavers_roll <= 2:
+                    career_label = "Navy"
+                elif slavers_roll <= 4:
+                    career_label = "Army"
+                else:
+                    career_label = "Scout"
+                character.notes.append(
+                    f"Aslan Slavers (Misfortune — Asim): enslaved, placed in {career_label} "
+                    f"(1D={slavers_roll}). Cannot gain Commission or Benefit rolls while enslaved. "
+                    "May escape each term on 2D 8+ (fail → Injury table). Apply career change manually."
+                )
+                auto_applied.append(
+                    f"Misfortune (5-6): ASLAN SLAVERS! Placed in {career_label} (1D={slavers_roll}). "
+                    "Cannot gain Commission or Benefits while enslaved. Escape 8+ each term or roll Injury. Noted."
+                )
+
+        elif total == 5:
+            character.good_fortune_benefit_dm += 1
+            auto_applied.append("Good Fortune: DM+1 token available for one mustering-out Benefit roll")
+
+        elif total == 6:
+            sub = dice.roll("1D").total
+            auto_applied.append(f"Unusual Event sub-roll: 1D={sub}")
+            if sub <= 2:
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Aslan — time spent in Hierate]")
+                )
+                auto_applied.append("Unusual Event (1-2): Gained Contact [Aslan]")
+            elif sub <= 4:
+                character.notes.append("Secret Foundation agent — mission to spy on Drinax court (Unusual Event — Asim).")
+                auto_applied.append(
+                    "Unusual Event (3-4): Secret Foundation conspiracy — inducted as agent, mission to spy on Drinax. Noted."
+                )
+            else:
+                psi_roll = dice.roll("2D")
+                psi_total = min(psi_roll.total + 4, 15)
+                character.psi = psi_total
+                character.psi_tested = True
+                auto_applied.append(
+                    f"Unusual Event (5-6): Psionic! PSI tested 2D={psi_roll.total}+DM+4 → PSI {psi_total}"
+                )
+
+    # Fetch descriptive text from the homeworld table.
+    homeworld_table = rules.life_events_for_species(species_id) or {}
+    event_entry = homeworld_table.get("entries", {}).get(str(total), {})
+    if isinstance(event_entry, dict):
+        event_text = f"{event_entry.get('title', '')}: {event_entry.get('text', 'Something happens in your life.')}"
+    else:
+        event_text = str(event_entry) if event_entry else "Something happens in your life."
+
+    character.log(
+        f"Homeworld Life Event [1D={total}]: {event_text}"
+        + (f" — {', '.join(auto_applied)}" if auto_applied else "")
+    )
+
+    if pending_choice:
+        character.pending_life_event_choice = pending_choice
+
+    return {
+        "roll": r.to_dict(),
+        "total": total,
+        "event_text": event_text,
+        "auto_applied": auto_applied,
+        "pending_choice": pending_choice,
+        "homeworld_table": True,
+    }
+
+
 def apply_life_event(character: Character, career_id: Optional[str] = None) -> dict:
     """Roll 2D on the Life Events table and auto-apply everything possible.
 
     Pass career_id to route to the appropriate table (e.g. Solomani careers
     use the Solomani Life Events table instead of the standard one).
+    For species with homeworld-specific 1D tables (Drinax, Asim), delegates
+    to _apply_homeworld_life_event instead.
 
     Returns a dict describing what happened. Interactive outcomes set
     character.pending_life_event_choice so the caller can prompt the player.
     """
     if career_id is None and character.current_term is not None:
         career_id = character.current_term.career_id
+
+    # Homeworld override: species with their own 1D life events tables.
+    if rules.life_events_for_species(character.species_id or ""):
+        return _apply_homeworld_life_event(character, character.species_id)
+
     use_solomani = career_id in rules.SOLOMANI_CAREER_IDS
 
     r = dice.roll("2D")

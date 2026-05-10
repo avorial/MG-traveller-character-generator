@@ -1,0 +1,30 @@
+{
+  "description": "Life Events for characters from the Drinax Floating Palace. Rolled when a career Event roll results in 'Life Event'. Roll 1D.",
+  "dice": "1D",
+  "entries": {
+    "1": {
+      "title": "New Contact",
+      "text": "You befriended one of the figures in the court of Drinax. Gain a Contact [Drinax Court]."
+    },
+    "2": {
+      "title": "Family Affairs",
+      "text": "Roll 1D. 1-2: Someone close to you gives birth, complicating the line of succession and taking one of your inherited titles away. Reduce SOC by 1. 3-4: A marriage is arranged for you by your family. Gain SOC +1 if you go through with it, but you don't get to meet your new spouse until the ceremony. 5-6: Someone close to you dies, and you inherit their estate and titles. Gain an extra Benefit roll or increase your SOC by 1."
+    },
+    "3": {
+      "title": "Romantic Entanglement",
+      "text": "You become romantically involved with another courtier. Roll 1D to see how it turned out. 1: Amicable breakup. 2: Nasty breakup — gain a Rival or Enemy. 3-4: Ongoing relationship — gain a Contact. 5: Marriage — gain an Ally [Spouse]. 6: Tragic death or disappearance."
+    },
+    "4": {
+      "title": "Misfortune",
+      "text": "You suffer an unfortunate accident. Roll 1D. 1-2: A wicked uncle steals your family inheritance and titles. Lose 2 Benefit rolls, reduce SOC by 2, and gain an Enemy. 3-4: While trading with the Vespexers of the surface, you contract a disease. Reduce END by 1. 5-6: You fight a duel of honour with another noble, and the cur cheats. Gain a Rival and Melee (blade) 1, and lose either 1 Benefit roll, 1 SOC, or 1 END."
+    },
+    "5": {
+      "title": "Good Fortune",
+      "text": "Fortune smiles upon you. Roll 1D. 1-2: Rachando the merchant offers you a good price for a family heirloom. Gain 1D×Cr10,000. 3-4: You inherit a place in the Star Guard. You can sell this commission for 1D×Cr10,000, or you may automatically qualify for the Navy career and automatically gain a promotion in your first turn. 5-6: You find an antique weapon in the armoury of the Floating Palace. Gain either an ancient rapier or a laser pistol."
+    },
+    "6": {
+      "title": "Unusual Event",
+      "text": "Roll 1D. 1-2: You are psionic! Roll to test your Psionic Strength immediately, and gain DM+4 to the roll. 3-4: Great expectations. Before the fall of Drinax, your family owned large estates on a planet. Roll 1D: 1 Paal, 2 Torpal, 3 Clarke, 4 Asim, 5 Banks/Khusai, 6 one of the old Sindalian worlds. 5-6: You discover that you are actually the bastard child of King Oleb."
+    }
+  }
+}
