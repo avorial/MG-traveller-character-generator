@@ -4902,7 +4902,7 @@ function renderEventStep() {
     // the picker (reversed pattern: DM first, skill alt) or as a dual-DM choice.
     const _eSkillOpts = parseEventSkillOptions(lr.eventText || '');
     const _eWild = !_eSkillOpts ? parseEventWildcardSkill(lr.eventText || '') : null;
-    const _eCareerKey = (character?.current_term?.career) || null;
+    const _eCareerKey = (character?.current_term?.career_id) || null;
     const _eWildOpts = _eWild ? resolveWildcardSkillOptions(_eWild, _eCareerKey) : null;
     const _eDmAlt = parseEventDmAlternative(lr.eventText || '');
     const _eTransfer = parseEventTransferOffer(lr.eventText || '');
@@ -5054,7 +5054,7 @@ function renderEventStep() {
             return `<button class="skill-chip" data-contested-roll="${i}">Roll ${escapeHTML(label)} ${contested.target}+ (your DM ${lvlStr})</button>`;
           }).join('')}
           ${refuseChipHTML}
-          <button class="skill-chip dm-alt" data-contested-skip="1">Skip (apply manually)</button>
+          <button class="skill-chip dm-alt" data-contested-skip="1">Skip this check</button>
         </div>
       </div>
     ` : '';
@@ -5378,7 +5378,7 @@ function renderEventStep() {
         ${citizenEv8HTML}
         ${prisonerParoleHTML}
         ${scoutBanHTML}
-        ${showPicker || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
+        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>
