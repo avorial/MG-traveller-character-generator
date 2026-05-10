@@ -1275,6 +1275,28 @@ body {
   color: var(--amber-dim);
 }
 
+/* Origin header items pinned at top of mission log */
+.log-origin {
+  color: var(--amber-dim);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  border-bottom: none !important;
+  padding: 2px 0 2px 0 !important;
+  animation: none !important;
+}
+.log-origin::before {
+  content: '' !important;
+}
+.log-origin strong {
+  color: var(--amber);
+  font-weight: normal;
+}
+.log-origin-divider {
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 4px;
+  padding: 0 !important;
+}
+
 .log li:last-child {
   color: var(--amber-bright);
   animation: log-fade-in 0.4s ease-out;

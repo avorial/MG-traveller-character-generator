@@ -562,7 +562,23 @@ function renderSheet() {
 
 function renderLog() {
   const log = document.getElementById('log');
-  log.innerHTML = (character.notes || []).slice(-80).map(n => `<li>${escapeHTML(n)}</li>`).join('');
+
+  // Build origin header — species, society, homeworld
+  const _speciesChosen2 = !['characteristics', 'society'].includes(character.phase || '');
+  const _sp = _speciesChosen2 ? (SPECIES.find(s => s.id === character.species_id) || null) : null;
+  const _spName = _sp ? _sp.name : (_speciesChosen2 && character.species_id ? character.species_id : null);
+  const _soc = (SOCIETIES || []).find(s => s.id === character.society_id);
+  const _socName = _soc ? _soc.name : character.society_id || null;
+  const _hw = character.homeworld ? character.homeworld + (character.homeworld_uwp ? ` (${character.homeworld_uwp})` : '') : null;
+
+  const originItems = [];
+  if (_spName)  originItems.push(`<li class="log-origin">Species · <strong>${escapeHTML(_spName)}</strong></li>`);
+  if (_socName) originItems.push(`<li class="log-origin">Society · <strong>${escapeHTML(_socName)}</strong></li>`);
+  if (_hw)      originItems.push(`<li class="log-origin">Origin  · <strong>${escapeHTML(_hw)}</strong></li>`);
+  if (originItems.length) originItems.push(`<li class="log-origin log-origin-divider"></li>`);
+
+  const notes = (character.notes || []).slice(-80).map(n => `<li>${escapeHTML(n)}</li>`).join('');
+  log.innerHTML = originItems.join('') + notes;
   log.scrollTop = log.scrollHeight;
 }
 

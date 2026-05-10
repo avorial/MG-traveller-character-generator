@@ -438,10 +438,17 @@ def generate_capsule(character: Character) -> dict:
     paragraphs: list[str] = []
 
     # ── Opening paragraph ──────────────────────────────────────────────────
-    homeworld_clause = ""
+    # Build origin clause: prefer specific homeworld; fall back to society name.
+    societies_map = {s["id"]: s["name"] for s in rules.list_societies()}
+    society_name = societies_map.get(character.society_id or "", "")
     if character.homeworld:
         uwp = f" ({character.homeworld_uwp})" if character.homeworld_uwp else ""
-        homeworld_clause = f", originally from {character.homeworld}{uwp},"
+        origin = character.homeworld + uwp
+        homeworld_clause = f", originally from {origin},"
+    elif society_name and society_name.lower() not in ("other / far domains", "other"):
+        homeworld_clause = f", a {society_name} citizen,"
+    else:
+        homeworld_clause = ""
 
     terms = character.total_terms
     years = terms * 4
