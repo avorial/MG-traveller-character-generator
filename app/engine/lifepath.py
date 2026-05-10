@@ -5909,7 +5909,7 @@ def generate_npc() -> dict:
                 if benefit:
                     _apply_skill_result(char, benefit)
 
-    char.phase = "complete"
+    char.phase = "done"
     char.log(f"NPC generation complete. Age {char.age}, {char.total_terms} terms.")
     return {"character": char.model_dump()}
 

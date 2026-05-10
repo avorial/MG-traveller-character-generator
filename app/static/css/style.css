@@ -319,9 +319,11 @@ body {
 
 .homeworld-map-link {
   flex-shrink: 0;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
   text-decoration: none;
-  opacity: 0.55;
+  color: var(--amber);
+  opacity: 0.45;
   padding-top: 4px;
   transition: opacity 0.15s;
   line-height: 1;

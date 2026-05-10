@@ -340,7 +340,10 @@ function nobleTitle(speciesId, soc) {
 function renderSheet() {
   const sheet = document.getElementById('sheet');
   const stats = character.characteristics;
-  const species = SPECIES.find((s) => s.id === character.species_id) || { name: character.species_id ? '—' : 'Unknown' };
+  const _speciesChosen = !['characteristics', 'society'].includes(character.phase || '');
+  const species = _speciesChosen
+    ? (SPECIES.find((s) => s.id === character.species_id) || { name: '—' })
+    : { name: 'Unknown' };
 
   const statCells = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
     .map((stat) => {
@@ -420,7 +423,7 @@ function renderSheet() {
         <input type="text" class="sheet-name-input" id="char-name" placeholder="[ Unnamed Traveller ]" value="${escapeAttr(character.name)}" />
         <span class="sheet-homeworld-wrap">
           <input type="text" class="sheet-homeworld" id="char-homeworld" placeholder="Homeworld" value="${escapeAttr(character.homeworld)}" />
-          <a href="https://travellermap.com/" target="_blank" rel="noopener noreferrer" class="homeworld-map-link" title="Open Traveller Map">🗺</a>
+          <a href="https://travellermap.com/" target="_blank" rel="noopener noreferrer" class="homeworld-map-link" title="Open Traveller Map"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
         </span>
         <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${escapeAttr(character.homeworld_uwp)}" title="Universal World Profile" />
         <div class="sheet-meta">
