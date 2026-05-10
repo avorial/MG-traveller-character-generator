@@ -4513,6 +4513,13 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     if term is None:
         raise ValueError("No active term")
 
+    # Guard: cannot voluntarily muster out when a mandatory career is pending.
+    if leaving and reason == "voluntary" and character.forced_next_career_id:
+        forced = character.forced_next_career_id
+        raise ValueError(
+            f"Cannot muster out: you must serve a term as {forced.capitalize()} first."
+        )
+
     character.age += 4
     character.total_terms += 1
     character.term_history.append(term)

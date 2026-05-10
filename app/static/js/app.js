@@ -2374,9 +2374,10 @@ function renderChooseCareer() {
         if (isCetacean && (!c.allowed_species || c.allowed_species.length === 0) && !hasVaccSuit) return false;
         return true;
       });
+  const forcedCareerName = forcedId ? (CAREERS.find(c => c.id === forcedId)?.name || forcedId.toUpperCase()) : null;
   const forcedBanner = forcedId ? `
     <p class="phase-body" style="color:var(--danger);font-weight:bold">
-      ⚠ You must enter the ${forcedId.toUpperCase()} career this term (education event mandate).
+      ⚠ You must enter the <strong>${forcedCareerName}</strong> career this term — this is mandatory.
     </p>` : '';
   const bannedBanner = banned.size && !forcedId ? `
     <p class="phase-body" style="color:var(--amber-dim);font-size:11px">
@@ -3577,6 +3578,14 @@ function wireCareerPhase() {
   if (btnLeaveCareer) {
     btnLeaveCareer.addEventListener('click', async () => {
       await endTermWithAgingIntercept(true, 'voluntary', { type: 'muster_out' });
+    });
+  }
+
+  // Forced-career sentence button (shown instead of muster-out when forced_next_career_id is set)
+  const btnEnterForcedCareer = document.getElementById('btn-enter-forced-career');
+  if (btnEnterForcedCareer) {
+    btnEnterForcedCareer.addEventListener('click', async () => {
+      await endTermWithAgingIntercept(true, 'conviction', { type: 'muster_out_mishap' });
     });
   }
 
@@ -5677,7 +5686,19 @@ function renderAdvanceStep() {
   const termPenaltyDm = -(term.term_number - 1);  // DM-1 per term after first
 
   // Decide-phase actions (shared by advance result and already-rolled views)
-  const decideActions = `
+  const _forcedNext = character.forced_next_career_id || null;
+  const _forcedNextName = _forcedNext ? (CAREERS.find(c => c.id === _forcedNext)?.name || _forcedNext) : null;
+  const decideActions = _forcedNext ? `
+    <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+      <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${_forcedNextName.toUpperCase()}</span>
+      A conviction (or equivalent) forces you into the <strong>${_forcedNextName}</strong> career next term.
+      You cannot muster out or continue in your current career until you serve this term.
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+    </div>
+    ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  ` : `
     <div class="phase-actions">
       <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
       <button class="btn" id="btn-leave-career">MUSTER OUT</button>
@@ -5779,6 +5800,8 @@ function renderAdvanceStep() {
 function renderDecideStep() {
   const term = character.current_term;
   const career = CAREERS.find(c => c.id === term.career_id);
+  const forcedNext = character.forced_next_career_id || null;
+  const forcedNextName = forcedNext ? (CAREERS.find(c => c.id === forcedNext)?.name || forcedNext) : null;
 
   return `
     <div class="stage-content">
@@ -5793,10 +5816,21 @@ function renderDecideStep() {
           ⚠ Ending this next term will trigger an Aging roll. The older your Traveller, the heavier it hits.
         </p>
       ` : ''}
-      <div class="phase-actions">
-        <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${career.name.toUpperCase()}</button>
-        <button class="btn" id="btn-leave-career">MUSTER OUT OF ${career.name.toUpperCase()}</button>
-      </div>
+      ${forcedNext ? `
+        <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+          <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${forcedNextName.toUpperCase()}</span>
+          A conviction (or equivalent) forces you into the <strong>${forcedNextName}</strong> career next term.
+          You cannot muster out or continue in your current career — you must serve your sentence first.
+        </div>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+        </div>
+      ` : `
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${career.name.toUpperCase()}</button>
+          <button class="btn" id="btn-leave-career">MUSTER OUT OF ${career.name.toUpperCase()}</button>
+        </div>
+      `}
       ${anagathicsBoxHTML('btn-buy-anagathics')}
     </div>
   `;
