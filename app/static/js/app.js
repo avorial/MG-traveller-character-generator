@@ -237,6 +237,11 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Heroic stat generation toggle (4×2D + 2×3D6 drop lowest)
+  heroicRoll: false,
+  // Advancement bonus skill roll pending (after successful advancement)
+  pendingAdvancementSkill: false,
+  lastAdvanceRoll: null,     // stored advance roll data for restoring after bonus skill roll
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -1076,7 +1081,8 @@ function renderCharacteristicsPhase() {
       ` : ''}
 
       <div class="phase-actions">
-        <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : 'ROLL 2D × 6'}</button>
+        <button class="btn primary" id="btn-roll-stats">${hasRolled ? 'REROLL ALL' : (uiState.heroicRoll ? 'ROLL HEROIC' : 'ROLL 2D × 6')}</button>
+        <button class="btn ${uiState.heroicRoll ? 'btn-heroic-active' : ''}" id="btn-toggle-heroic" title="Heroic: 4 stats rolled 2D, 2 random stats rolled 3D6 drop lowest">⚔ ${uiState.heroicRoll ? 'HEROIC ON' : 'HEROIC'}</button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
       </div>
     </div>
@@ -1084,9 +1090,13 @@ function renderCharacteristicsPhase() {
 }
 
 function wireCharacteristicsPhase() {
+  document.getElementById('btn-toggle-heroic').addEventListener('click', () => {
+    uiState.heroicRoll = !uiState.heroicRoll;
+    renderAll();
+  });
   document.getElementById('btn-roll-stats').addEventListener('click', async () => {
     uiState.swapPick = null;
-    const response = await apiCall('/api/character/roll-characteristics');
+    const response = await apiCall('/api/character/roll-characteristics', { heroic: uiState.heroicRoll });
     await applyResponse(response);
     renderAll();
   });
@@ -3547,26 +3557,40 @@ function wireCareerPhase() {
       try {
         const response = await apiCall('/api/character/advance');
         await applyResponse(response);
-        uiState.lastRoll = {
+        const advRoll = {
           type: 'advance',
           data: response.roll,
           outcome: response.advanced ? 'pass' : 'fail',
           newRank: response.new_rank,
           newRankTitle: response.new_rank_title,
+          forcedFromCareer: response.forced_from_career || false,
         };
+        uiState.lastRoll = advRoll;
+        uiState.lastAdvanceRoll = advRoll;
+        if (response.advanced && response.advancement_skill_roll) {
+          uiState.pendingAdvancementSkill = true;
+        } else {
+          uiState.pendingAdvancementSkill = false;
+        }
         renderAll();
       } catch (e) { alert(e.message); }
     });
   }
 
-  const btnSkipAdvance = document.getElementById('btn-skip-advance');
-  if (btnSkipAdvance) {
-    btnSkipAdvance.addEventListener('click', () => {
-      uiState.lastRoll = null;
-      uiState.subPhase = 'decide';
-      renderStage();
+  // Wire advancement bonus skill table buttons
+  document.querySelectorAll('[data-adv-skill-table]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tableKey = btn.dataset.advSkillTable;
+      try {
+        const response = await apiCall('/api/character/skill-roll', { table_key: tableKey });
+        await applyResponse(response);
+        uiState.pendingAdvancementSkill = false;
+        // Restore the advance roll view so decide actions are shown
+        uiState.lastRoll = uiState.lastAdvanceRoll ? { ...uiState.lastAdvanceRoll } : uiState.lastRoll;
+        renderAll();
+      } catch (e) { alert(e.message); }
     });
-  }
+  });
 
   // ── Aging intercept helpers ───────────────────────────────────────────
   // After every end-term call, if aging occurred (term 4+) we pause to show
@@ -5539,12 +5563,10 @@ function renderEventStep() {
     // - Normal flow: show ATTEMPT/SKIP advancement
     const actionsHTML = pendingMishapRoll ? `
       <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
-      <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
     ` : (forcesMishap && lr.mishapFromEvent && !stayInCareer) ? `
       <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
     ` : `
       <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>ATTEMPT ADVANCEMENT →</button>
-      <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
     `;
 
     return `
@@ -5940,8 +5962,7 @@ function renderAdvanceStep() {
         ` : `
           <p class="phase-body">Commission failed. You may still roll for advancement this term.</p>
           <div class="phase-actions">
-            <button class="btn primary" id="btn-advance">ROLL FOR PROMOTION</button>
-            <button class="btn" id="btn-skip-advance">SKIP ADVANCEMENT</button>
+            <button class="btn primary" id="btn-advance">ROLL FOR ADVANCEMENT</button>
           </div>
         `}
       </div>
@@ -5952,15 +5973,59 @@ function renderAdvanceStep() {
   if (uiState.lastRoll?.type === 'advance') {
     const lr = uiState.lastRoll;
     const advanced = lr.outcome === 'pass';
+    const forcedOut = lr.forcedFromCareer || false;
+    const advDecideActions = forcedOut ? `
+      <div class="event-box" style="border-color:var(--danger);margin-top:12px">
+        <span class="event-label" style="color:var(--danger)">FORCED OUT</span>
+        Your advancement roll (${lr.data?.total ?? '?'}) is less than your terms served (${term.term_number}) — you must leave this career.
+      </div>
+      <div class="phase-actions" style="margin-top:12px">
+        <button class="btn" id="btn-leave-career">MUSTER OUT →</button>
+      </div>
+    ` : decideActions;
+
+    // If advanced and bonus skill roll still pending
+    if (advanced && uiState.pendingAdvancementSkill) {
+      const advCareer = CAREERS.find(c => c.id === term.career_id);
+      const advTables = advCareer?.skill_tables || {};
+      const advAvailable = Object.entries(advTables).filter(([key, t]) => {
+        if (t.assignment_only && t.assignment_only !== term.assignment_id) return false;
+        if (t.requires_commission && !term.commissioned) return false;
+        return true;
+      });
+      const advSkillBtns = advAvailable.map(([key, t]) => {
+        const gated = t.requires_edu && character.characteristics.EDU < t.requires_edu;
+        const previewItems = [1,2,3,4,5,6].map(n => {
+          const entry = t[String(n)];
+          if (!entry) return '';
+          const isStatBump = /^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$/i.test(String(entry).trim());
+          return `<span class="stable-preview-cell ${isStatBump ? 'is-stat' : ''}"><span class="stable-preview-n">${n}</span><span class="stable-preview-v">${escapeHTML(String(entry))}</span></span>`;
+        }).join('');
+        return `<button class="btn skill-table-btn ${gated ? 'ghost' : ''}" data-adv-skill-table="${key}" ${gated ? 'disabled' : ''}><span class="stable-name">${t.name || key}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>${previewItems ? `<span class="stable-preview">${previewItems}</span>` : ''}</button>`;
+      }).join('');
+      return `
+        <div class="stage-content">
+          <div class="phase-label">Advancement — Promoted · Bonus Skill Roll</div>
+          <h2 class="phase-title">Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}</h2>
+          ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
+          <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
+            <span class="event-label" style="color:var(--success,#7fd87f)">ADVANCEMENT BONUS</span>
+            Promotion grants an additional skill roll. Pick a table:
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">${advSkillBtns}</div>
+        </div>
+      `;
+    }
+
     return `
       <div class="stage-content">
         <div class="phase-label">Advancement — ${advanced ? 'Promoted' : 'No Change'}</div>
         <h2 class="phase-title">${advanced
           ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
-          : 'No Promotion This Term'}</h2>
+          : 'No Advancement This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
         <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or muster out?</p>
-        ${decideActions}
+        ${advDecideActions}
       </div>
     `;
   }
@@ -5970,26 +6035,24 @@ function renderAdvanceStep() {
     return `
       <div class="stage-content">
         <div class="phase-label">${commEligible ? 'Commission / ' : ''}Advancement · 2D Roll</div>
-        <h2 class="phase-title">${commEligible ? 'Commission or Promotion?' : 'Promotion Check'}</h2>
+        <h2 class="phase-title">${commEligible ? 'Commission or Advancement?' : 'Advancement Roll'}</h2>
 
         ${commEligible ? `
           <div class="event-box" style="border-color:var(--amber);margin-top:12px">
             <span class="event-label">COMMISSION AVAILABLE — ${commChar} ${commTarget}+</span>
             Roll to become a Rank 1 officer. Your ${commChar} DM: ${formatDM(commDm)}${termPenaltyDm ? `, term penalty DM${termPenaltyDm}` : ''}.
-            <br><em>Success: commissioned, no advancement roll this term. Failure: may still roll for promotion.</em>
+            <br><em>Success: commissioned, no advancement roll this term. Failure: may still roll for advancement.</em>
             ${term.term_number > 1 ? `<br><span style="color:var(--amber-dim);font-size:11px">SOC 9+ required after first term (your SOC: ${soc}).</span>` : ''}
           </div>
           <div class="phase-actions" style="margin-top:12px">
             <button class="btn primary" id="btn-commission">ROLL FOR COMMISSION</button>
-            <button class="btn" id="btn-advance">ROLL FOR PROMOTION ONLY</button>
-            <button class="btn ghost" id="btn-skip-advance">SKIP</button>
+            <button class="btn" id="btn-advance">ROLL FOR ADVANCEMENT ONLY</button>
           </div>
         ` : `
           <p class="phase-subtitle">${a.characteristic} ${a.target}+ (your DM is ${formatDM(advDm)})</p>
           <p class="phase-body">A successful roll promotes you by one rank. If you fail, your career continues — you just don't advance this term.</p>
           <div class="phase-actions">
-            <button class="btn primary" id="btn-advance">ROLL FOR PROMOTION</button>
-            <button class="btn" id="btn-skip-advance">SKIP</button>
+            <button class="btn primary" id="btn-advance">ROLL FOR ADVANCEMENT</button>
           </div>
         `}
       </div>
@@ -6000,7 +6063,7 @@ function renderAdvanceStep() {
   return `
     <div class="stage-content">
       <div class="phase-label">Term Complete</div>
-      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}` : term.advanced ? `Promoted to Rank ${term.rank}` : 'No Promotion'}</h2>
+      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}` : term.advanced ? `Promoted to Rank ${term.rank}` : 'No Advancement'}</h2>
       ${term.rank_title ? `<p class="phase-subtitle">${term.rank_title}</p>` : ''}
       <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or leave?</p>
       ${decideActions}

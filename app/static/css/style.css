@@ -302,6 +302,12 @@ body {
   color: var(--amber);
   border-color: var(--amber);
 }
+.btn-heroic-active {
+  background: var(--amber-dim);
+  color: var(--amber);
+  border-color: var(--amber);
+  font-weight: 700;
+}
 .sheet-name-input {
   flex: 1;
   min-width: 0;
