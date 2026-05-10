@@ -198,6 +198,16 @@ const ALL_SKILLS = [
 ];
 const ALL_SKILLS_NO_JOT = ALL_SKILLS.filter(s => s !== 'Jack-of-All-Trades');
 
+// Optional / house-rule extra characteristics
+const EXTRA_STATS = [
+  { id: 'PSI', label: 'Psychic',   desc: 'Psionic potential' },
+  { id: 'WLT', label: 'Wealth',    desc: 'Starting financial fortune' },
+  { id: 'LCK', label: 'Luck',      desc: 'Fortune and chance' },
+  { id: 'MRL', label: 'Morale',    desc: 'Resolve and spirit' },
+  { id: 'STY', label: 'Sanity',    desc: 'Mental stability' },
+  { id: 'TER', label: 'Territory', desc: 'Influence and turf' },
+];
+
 const STORAGE_KEY = 'traveller-character-v1';
 
 let SKILL_PACKAGES = {};
@@ -237,6 +247,10 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Optional extra characteristics panel
+  extraStatsEnabled: false,
+  extraStatsSelected: new Set(),   // which ids are checked
+  extraStatsRolls: {},             // last roll results { PSI: {total,dice,...}, ... }
   // Mobile tab: 'sheet' | 'stage' | 'log'
   mobileTab: 'stage',
   // Light/dark theme toggle
@@ -634,6 +648,23 @@ function renderSheet() {
         <h3>Characteristics</h3>
         <div class="stat-grid">${statCells}</div>
       </div>
+
+      ${Object.keys(character.extra_characteristics || {}).length ? `
+      <div class="sheet-section">
+        <h3>Optional Characteristics</h3>
+        <div class="stat-grid">${
+          EXTRA_STATS.filter(s => character.extra_characteristics[s.id] != null).map(s => {
+            const val = character.extra_characteristics[s.id];
+            const dm = charDM(val);
+            return `<div class="stat-cell stat-cell-extra">
+              <span class="stat-label">${s.id}</span>
+              <span class="stat-value">${val}</span>
+              <span class="stat-dm extra-stat-name-tiny">${s.label}</span>
+            </div>`;
+          }).join('')
+        }</div>
+      </div>
+      ` : ''}
 
       <div class="sheet-section">
         <h3>Skills</h3>
@@ -1098,6 +1129,38 @@ function renderCharacteristicsPhase() {
         </button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
       </div>
+
+      <!-- Optional extra characteristics -->
+      <div class="extra-stats-section">
+        <button class="btn extra-stats-toggle ${uiState.extraStatsEnabled ? 'btn-heroic-active' : ''}" id="btn-toggle-extra-stats">
+          ◉ OPTIONAL STATS
+          <span class="heroic-mechanic">House-rule extras — PSI, Wealth, Luck, Morale, Sanity, Territory</span>
+        </button>
+        ${uiState.extraStatsEnabled ? `
+          <div class="extra-stats-grid">
+            ${EXTRA_STATS.map(s => {
+              const rolled = character.extra_characteristics?.[s.id];
+              const checked = uiState.extraStatsSelected.has(s.id);
+              const rollResult = uiState.extraStatsRolls[s.id];
+              return `
+                <label class="extra-stat-row ${checked ? 'extra-stat-checked' : ''}">
+                  <input type="checkbox" class="extra-stat-cb" data-stat="${s.id}" ${checked ? 'checked' : ''} />
+                  <span class="extra-stat-abbr">${s.id}</span>
+                  <span class="extra-stat-label">${s.label}</span>
+                  <span class="extra-stat-desc">${s.desc}</span>
+                  ${rolled != null ? `<span class="extra-stat-val">${rolled}${rollResult?.heroic ? '*' : ''}</span>` : '<span class="extra-stat-val extra-stat-unrolled">—</span>'}
+                </label>`;
+            }).join('')}
+          </div>
+          <div class="extra-stats-actions">
+            <button class="btn primary" id="btn-roll-extra-stats"
+              ${uiState.extraStatsSelected.size === 0 ? 'disabled' : ''}>
+              ROLL SELECTED (${uiState.extraStatsSelected.size})
+            </button>
+            ${uiState.heroicRoll ? `<span class="extra-stat-desc" style="align-self:center">Heroic: 3D drop lowest</span>` : ''}
+          </div>
+        ` : ''}
+      </div>
     </div>
   `;
 }
@@ -1117,6 +1180,33 @@ function wireCharacteristicsPhase() {
     uiState.swapPick = null;
     character.phase = 'society';
     saveCharacter();
+    renderAll();
+  });
+
+  // Extra stats toggle
+  document.getElementById('btn-toggle-extra-stats')?.addEventListener('click', () => {
+    uiState.extraStatsEnabled = !uiState.extraStatsEnabled;
+    renderAll();
+  });
+  // Extra stat checkboxes
+  document.querySelectorAll('.extra-stat-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) uiState.extraStatsSelected.add(cb.dataset.stat);
+      else uiState.extraStatsSelected.delete(cb.dataset.stat);
+      renderAll();
+    });
+  });
+  // Roll extra stats button
+  document.getElementById('btn-roll-extra-stats')?.addEventListener('click', async () => {
+    const chosen = Array.from(uiState.extraStatsSelected);
+    if (!chosen.length) return;
+    const response = await apiCall('/api/character/roll-extra-characteristics', {
+      heroic: uiState.heroicRoll,
+      extra_stats: chosen,
+    });
+    await applyResponse(response);
+    // Store roll details for display
+    if (response.rolls) uiState.extraStatsRolls = { ...uiState.extraStatsRolls, ...response.rolls };
     renderAll();
   });
 

@@ -99,6 +99,7 @@ class Character(BaseModel):
     completed_careers: list[CareerRecord] = Field(default_factory=list)
     term_history: list[CareerTerm] = Field(default_factory=list)
     total_terms: int = 0
+    pre_career_terms: int = 0
 
     # Goodies and baggage
     credits: int = 0
@@ -207,6 +208,10 @@ class Character(BaseModel):
     # Boon / re-roll pool (GM-configurable; zero = unlimited or unused)
     boon_rolls_total: int = 0
     boon_rolls_remaining: int = 0
+
+    # Optional / house-rule extra characteristics (PSI, WLT, LCK, MRL, STY, TER).
+    # Keys are the 3-letter stat ids; values are rolled integers.
+    extra_characteristics: dict = Field(default_factory=dict)
 
     # Psionics (MgT 2e Core p.176). Set when the optional test is performed.
     psi: int = 0

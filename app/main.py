@@ -53,6 +53,10 @@ class CharacterAction(BaseModel):
     # GM Mode: list of raw dice totals to use instead of rolling randomly,
     # consumed in sequence. Ignored when empty.
     gm_rolls: list[int] = []
+    # Heroic roll mode: 4×2D + 2×3D drop-lowest for characteristics roll.
+    heroic: bool = False
+    # Extra optional stats to roll (PSI, WLT, LCK, MRL, STY, TER).
+    extra_stats: list[str] = []
 
     def model_post_init(self, __context) -> None:
         if self.gm_rolls:
@@ -305,7 +309,14 @@ async def api_new_character():
 @app.post("/api/character/roll-characteristics")
 async def api_roll_characteristics(action: CharacterAction):
     character = action.character.model_copy(deep=True)
-    result = lifepath.roll_initial_characteristics(character)
+    result = lifepath.roll_initial_characteristics(character, heroic=action.heroic)
+    return result
+
+
+@app.post("/api/character/roll-extra-characteristics")
+async def api_roll_extra_characteristics(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    result = lifepath.roll_extra_characteristics(character, action.extra_stats, heroic=action.heroic)
     return result
 
 

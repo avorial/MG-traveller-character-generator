@@ -241,16 +241,69 @@ def _apply_event_auto_promotion(character: "Character", event_text: str) -> dict
 # ============================================================
 
 
-def roll_initial_characteristics(character: Character) -> dict:
-    """Roll 2D for each of the six characteristics. Does NOT apply species mods."""
+def roll_initial_characteristics(character: Character, heroic: bool = False) -> dict:
+    """Roll characteristics. Standard: 6×2D. Heroic: 4×2D + 2×3D drop lowest."""
+    import random as _random
+    stats = ("STR", "DEX", "END", "INT", "EDU", "SOC")
     rolls = {}
-    for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
-        r = dice.roll("2D")
-        character.characteristics.set(stat, r.total)
-        rolls[stat] = r.to_dict()
+    heroic_stats = set(_random.sample(list(stats), 2)) if heroic else set()
+
+    for stat in stats:
+        if stat in heroic_stats:
+            three_dice = [dice.roll("1D").total for _ in range(3)]
+            kept = sorted(three_dice)[1:]  # drop lowest, keep best 2
+            total = sum(kept)
+            rolls[stat] = {"dice": three_dice, "kept": kept, "total": total, "heroic": True}
+        else:
+            r = dice.roll("2D")
+            d = r.to_dict()
+            d["heroic"] = False
+            rolls[stat] = d
+        character.characteristics.set(stat, rolls[stat]["total"])
+
     character.log(
-        "Rolled characteristics: "
-        + ", ".join(f"{k} {character.characteristics.get(k)}" for k in rolls)
+        ("Heroic roll: " if heroic else "Rolled characteristics: ")
+        + ", ".join(
+            f"{k} {character.characteristics.get(k)}{'*' if k in heroic_stats else ''}"
+            for k in stats
+        )
+        + (" (* = 3D best 2)" if heroic else "")
+    )
+    return {"rolls": rolls, "character": character.model_dump()}
+
+
+_VALID_EXTRA_STATS = {"PSI", "WLT", "LCK", "MRL", "STY", "TER"}
+
+
+def roll_extra_characteristics(character: Character, stats: list[str], heroic: bool = False) -> dict:
+    """Roll optional extra characteristics (PSI, WLT, LCK, MRL, STY, TER).
+    Standard: 2D per stat. Heroic: each selected stat rolls 3D drop lowest."""
+    import random as _random
+    valid = [s.upper() for s in stats if s.upper() in _VALID_EXTRA_STATS]
+    if not valid:
+        return {"rolls": {}, "character": character.model_dump()}
+
+    rolls = {}
+    for stat in valid:
+        if heroic:
+            three_dice = [dice.roll("1D").total for _ in range(3)]
+            kept = sorted(three_dice)[1:]
+            total = sum(kept)
+            rolls[stat] = {"dice": three_dice, "kept": kept, "total": total, "heroic": True}
+        else:
+            r = dice.roll("2D")
+            d = r.to_dict()
+            d["heroic"] = False
+            rolls[stat] = d
+        character.extra_characteristics[stat] = rolls[stat]["total"]
+        # PSI also updates the dedicated psi field so psionics system stays in sync
+        if stat == "PSI":
+            character.psi = rolls[stat]["total"]
+
+    character.log(
+        ("Heroic extra stats: " if heroic else "Rolled extra stats: ")
+        + ", ".join(f"{k} {character.extra_characteristics[k]}{'*' if heroic else ''}" for k in valid)
+        + (" (* = 3D best 2)" if heroic else "")
     )
     return {"rolls": rolls, "character": character.model_dump()}
 
@@ -1860,6 +1913,9 @@ def pre_career_graduate(
     # Always stay in pre_career so the JS can show the graduation+event screen.
     # The phase advances to career when the user clicks Continue (no picks)
     # or when pre_career_choose_skills completes the last pick.
+    # Count this as a pre-career term when no further server calls will do so.
+    if picks_remaining == 0 and not pending_event10 and not pending_event11:
+        character.pre_career_terms += 1
     character.phase = "pre_career"
 
     return {
@@ -1941,6 +1997,7 @@ def pre_career_choose_skills(
             }
             # Stay in pre_career for more picks
         elif skill_pick_stage == "graduation":
+            character.pre_career_terms += 1
             character.phase = "career"
             character.pre_career_status = {
                 **status,
@@ -2020,6 +2077,7 @@ def pre_career_event10_skill(character: Character, skill_text: str) -> dict:
 
     character.pre_career_status = {**status, "pending_event10": False}
     if not character.pre_career_status.get("skill_picks_remaining"):
+        character.pre_career_terms += 1
         character.phase = "career"
 
     return {
@@ -2062,6 +2120,7 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
             "pending_event11": False,
         }
         character.log("Education event 11: fled into Drifter career (did not graduate)")
+        character.pre_career_terms += 1
         character.phase = "career"
 
     elif choice == "draft":
@@ -2096,6 +2155,7 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
             f"Education event 11: drafted — D6={d6} → {draft_career} (did not graduate)"
         )
         roll_result = {"dice": [d6], "raw_total": d6, "total": d6}
+        character.pre_career_terms += 1
         character.phase = "career"
 
     elif choice == "dodge":
@@ -2112,6 +2172,7 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
             )
             # Advance to career if no picks left.
             if not character.pre_career_status.get("skill_picks_remaining"):
+                character.pre_career_terms += 1
                 character.phase = "career"
         else:
             _clear_graduation_bonuses()
@@ -2126,6 +2187,7 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
                 f"Education event 11: draft dodge — SOC {soc_val} check "
                 f"2D{soc_dm:+d}={r.total} vs 9+ FAILED. Did not graduate."
             )
+            character.pre_career_terms += 1
             character.phase = "career"
     else:
         raise ValueError(f"Unknown event 11 choice: {choice!r}. Must be 'drifter', 'draft', or 'dodge'.")
@@ -2831,6 +2893,7 @@ def pre_career_event_roll(character: Character) -> dict:
         "events_remaining": 0,
         "events_rolled": [*status.get("events_rolled", []), r.total],
     }
+    character.pre_career_terms += 1
     character.phase = "career"
 
     character.log(
@@ -3140,7 +3203,7 @@ def start_term(
         career_id=career_id,
         assignment_id=assignment_id,
         term_number=1 if is_new_career else (character.current_term.term_number + 1),
-        overall_term_number=character.total_terms + 1,
+        overall_term_number=character.total_terms + character.pre_career_terms + 1,
         rank=starting_rank,
         rank_title=_rank_title(career, assignment_id, starting_rank),
         basic_training=is_first_career and not commissioned_start,
@@ -3237,9 +3300,14 @@ def survival_roll(character: Character) -> dict:
     term.survived = bool(r.succeeded)
     term.survival_roll_total = r.total
 
+    # Natural 2 is always a mishap regardless of DMs
+    if r.raw_total == 2 and term.survived:
+        term.survived = False
+        character.log("Natural 2 on survival roll — automatic mishap regardless of DMs.")
+
     msg = (
         f"Survival ({char_key} {target}+){cover_note}: 2D{dm:+d} = {r.total} "
-        f"[{'SURVIVED' if r.succeeded else 'MISHAP'}]"
+        f"[{'SURVIVED' if term.survived else 'MISHAP'}]"
     )
     character.log(msg)
 
@@ -4102,6 +4170,15 @@ def advancement_roll(character: Character) -> dict:
         f"[{'PROMOTED to rank ' + str(term.rank) + (' — ' + term.rank_title if term.rank_title else '') if r.succeeded else 'no promotion'}]"
     )
     character.log(msg)
+
+    # RAW: if roll result < terms served in this career, must leave career
+    forced_from_career = r.total < term.term_number
+    if forced_from_career:
+        character.log(
+            f"Advancement roll {r.total} is less than terms served ({term.term_number}) "
+            f"— must leave this career at end of term."
+        )
+
     return {
         "roll": r.to_dict(),
         "advanced": r.succeeded,
@@ -4110,6 +4187,8 @@ def advancement_roll(character: Character) -> dict:
         "monitor_dm": monitor_dm,
         "monitor_rank_up": monitor_rank_up,
         "monitor_rank": character.solsec_monitor_rank,
+        "forced_from_career": forced_from_career,
+        "advancement_skill_roll": r.succeeded,
         "character": character.model_dump(),
     }
 
