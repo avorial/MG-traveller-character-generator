@@ -3092,7 +3092,7 @@ function wireCareerPhase() {
       if (!pending) return;
       try {
         // Apply the specialty via grant_event_skill — reuses existing endpoint
-        const resp = await apiCall('/api/character/event-skill-grant', {
+        const resp = await apiCall('/api/character/apply-specialty', {
           skill_text: `${pending.skillName} (${spec}) 1`,
         });
         await applyResponse(resp);

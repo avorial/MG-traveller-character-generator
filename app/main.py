@@ -618,6 +618,35 @@ async def api_event_skill_grant(action: EventSkillGrantAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/apply-specialty")
+async def api_apply_specialty(action: EventSkillGrantAction):
+    """Apply a specialty choice for a cascade skill rolled from a career table.
+
+    Directly calls character.add_skill — no event skill-pool check.
+    skill_text format: "Electronics (Computers) 1"
+    """
+    character = action.character.model_copy(deep=True)
+    try:
+        import re as _re
+        text = action.skill_text.strip()
+        # Parse optional trailing level
+        level = 1
+        m = _re.search(r"\s+(\d+)\s*$", text)
+        if m:
+            level = int(m.group(1))
+            text = text[: m.start()].strip()
+        from app.engine.lifepath import _split_skill_speciality
+        name, speciality = _split_skill_speciality(text)
+        msg = character.add_skill(name, level=level, speciality=speciality)
+        if character.current_term:
+            character.current_term.skills_gained.append(f"Specialty choice: {text} {level}")
+        character.log(f"Specialty applied: {msg}")
+        character.notes  # ensure serializable
+        return {"applied": msg, "character": character.model_dump()}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/event-dm-grant")
 async def api_event_dm_grant(action: EventDmGrantAction):
     """Apply the 'DM+N' side of an 'either skill or DM+N' event choice."""
