@@ -5864,6 +5864,38 @@ function renderDecideStep() {
 // PHASE 5: Mustering Out
 // ============================================================
 
+/** Build the two-row cash/benefit chart for a career's mustering-out table. */
+function musterTableHTML(careerDef) {
+  const table = careerDef?.mustering_out || {};
+  const rolls = [1,2,3,4,5,6,7];
+  const cashCells = rolls.map(n => {
+    const entry = table[String(n)];
+    if (!entry) return `<span class="stable-preview-cell muster-empty"><span class="stable-preview-n">${n}</span><span class="stable-preview-v">—</span></span>`;
+    const raw = entry.cash;
+    const label = raw != null ? (raw >= 1000 ? `Cr${(raw/1000).toFixed(0)}k` : `Cr${raw}`) : '—';
+    return `<span class="stable-preview-cell"><span class="stable-preview-n">${n}</span><span class="stable-preview-v muster-cash">${escapeHTML(String(label))}</span></span>`;
+  }).join('');
+  const benefitCells = rolls.map(n => {
+    const entry = table[String(n)];
+    if (!entry) return `<span class="stable-preview-cell muster-empty"><span class="stable-preview-n">${n}</span><span class="stable-preview-v">—</span></span>`;
+    const raw = entry.benefit ?? '—';
+    const isStat = /^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$/i.test(String(raw).trim());
+    return `<span class="stable-preview-cell"><span class="stable-preview-n">${n}</span><span class="stable-preview-v ${isStat ? 'is-stat' : ''}">${escapeHTML(String(raw))}</span></span>`;
+  }).join('');
+  return `
+    <div class="muster-table-chart">
+      <div class="muster-table-label">MUSTERING-OUT TABLE · 1D ROLL</div>
+      <div class="muster-table-row">
+        <span class="muster-col-label cash-label">CASH</span>
+        <span class="stable-preview muster-preview">${cashCells}</span>
+      </div>
+      <div class="muster-table-row">
+        <span class="muster-col-label">BENEFITS</span>
+        <span class="stable-preview muster-preview">${benefitCells}</span>
+      </div>
+    </div>`;
+}
+
 function renderMusterPhase() {
   const careers = character.completed_careers;
   const rolls = character.pending_benefit_rolls;
@@ -5950,22 +5982,25 @@ function renderMusterPhase() {
       <h3 style="margin-top:20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Pick Career</h3>
       <div class="card-grid">${careerPicker}</div>
 
-      ${uiState.selectedCareer ? `
-        ${(character.good_fortune_benefit_dm || 0) > 0 ? `
-          <div class="dm-applied-box" style="margin-top:12px">
-            <span class="event-label">Good Fortune</span>
-            <div class="dm-chip applied">DM+2 token available — click to toggle for your next benefit roll</div>
-            <label style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer">
-              <input type="checkbox" id="chk-good-fortune" ${uiState.useGoodFortune ? 'checked' : ''} />
-              <span style="font-family:var(--font-mono);font-size:11px;color:var(--amber)">Apply Good Fortune (+2) to next benefit roll</span>
-            </label>
-          </div>
-        ` : ''}
-        <div class="phase-actions">
-          <button class="btn primary" id="btn-roll-cash" ${cashRolled >= 3 ? 'disabled' : ''}>ROLL CASH (1D)${cashRolled >= 3 ? ' — MAX' : ''}</button>
-          <button class="btn" id="btn-roll-benefit">ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
-        </div>
-      ` : ''}
+      ${uiState.selectedCareer ? (() => {
+        const selDef = CAREERS.find(x => x.id === uiState.selectedCareer);
+        return `
+          ${musterTableHTML(selDef)}
+          ${(character.good_fortune_benefit_dm || 0) > 0 ? `
+            <div class="dm-applied-box" style="margin-top:12px">
+              <span class="event-label">Good Fortune</span>
+              <div class="dm-chip applied">DM+2 token available — click to toggle for your next benefit roll</div>
+              <label style="display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer">
+                <input type="checkbox" id="chk-good-fortune" ${uiState.useGoodFortune ? 'checked' : ''} />
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--amber)">Apply Good Fortune (+2) to next benefit roll</span>
+              </label>
+            </div>
+          ` : ''}
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-roll-cash" ${cashRolled >= 3 ? 'disabled' : ''}>ROLL CASH (1D)${cashRolled >= 3 ? ' — MAX' : ''}</button>
+            <button class="btn" id="btn-roll-benefit">ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
+          </div>`;
+      })() : ''}
     </div>
   `;
 }

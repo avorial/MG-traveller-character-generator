@@ -2147,3 +2147,51 @@ body.gm-mode #btn-gm-mode {
   color: var(--amber);
   font-weight: bold;
 }
+
+/* ── Muster-out table chart ────────────────────────────────────────────── */
+.muster-table-chart {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--tint-rgb), 0.2);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.muster-table-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--amber-dim);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.muster-table-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.muster-col-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.muster-col-label.cash-label {
+  color: var(--amber-dim);
+}
+.stable-preview.muster-preview {
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+}
+.stable-preview-cell.muster-empty {
+  opacity: 0.3;
+}
+.stable-preview-v.muster-cash {
+  color: var(--amber);
+}
