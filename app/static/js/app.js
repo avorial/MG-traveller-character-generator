@@ -5884,9 +5884,10 @@ function renderAdvanceStep() {
   const advDm = charDM(character.characteristics[a.characteristic]);
 
   // Commission eligibility
-  const commissionCareers = new Set(['army', 'navy', 'marine']);
   const hasCommission = !!career.commission;
-  const alreadyCommissioned = term.commissioned;
+  // Commissioned this term OR any prior term in the same career
+  const alreadyCommissioned = term.commissioned ||
+    (character.term_history || []).some(t => t.career_id === term.career_id && t.commissioned);
   const soc = character.characteristics?.SOC ?? 0;
   const commEligible = hasCommission && !alreadyCommissioned &&
     (term.term_number === 1 || soc >= 9);

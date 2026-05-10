@@ -3935,7 +3935,11 @@ def commission_roll(character: "Character") -> dict:
     comm_data = career.get("commission", {})
     if not comm_data:
         raise ValueError(f"{career.get('name', term.career_id)} does not have a commission table.")
-    if term.commissioned:
+    already = term.commissioned or any(
+        t.career_id == term.career_id and t.commissioned
+        for t in character.term_history
+    )
+    if already:
         raise ValueError("Already commissioned — officers do not re-roll commission.")
 
     # Eligibility: first term free; later terms need SOC 9+
