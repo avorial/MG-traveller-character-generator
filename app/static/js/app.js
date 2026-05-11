@@ -332,22 +332,36 @@ async function freshCharacter() {
   character = data.character;
   const keepGm   = uiState.gmMode;
   const keepTheme = uiState.themeLight;
-  uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
-              selectedCareer: null, selectedAssignment: null, selectedCoverCareer: null, lastRoll: null,
-              swapPick: null, swapA: 'EDU', swapB: 'STR',
-              subPhase: null, pendingAge: false,
-              agingResult: null, agingNextAction: null, agingSelectedStats: [],
-              anagathicsPhaseDone: false, pendingNextTermAction: null,
-              gmMode: keepGm,
-              themeLight: keepTheme,
-              connectionsDone: false, connections: [],
-              basicTrainingSkills: null,
-              skillPackageApplied: false,
-              pendingCareerSpecialty: null,
-              bgExpandedCascade: null,
-              pendingSkillGrant: null,
-              lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
-              mobileTab: 'stage' };
+  uiState = {
+    selectedSpecies: null,
+    selectedBgSkills: new Set(),
+    selectedPreCareerSkills: new Set(),
+    selectedCareer: null,
+    selectedAssignment: null,
+    selectedCoverCareer: null,
+    lastRoll: null,
+    swapPick: null, swapA: 'EDU', swapB: 'STR',
+    subPhase: null, pendingAge: false,
+    agingResult: null, agingNextAction: null, agingSelectedStats: [],
+    anagathicsPhaseDone: false, pendingNextTermAction: null,
+    gmMode: keepGm,
+    themeLight: keepTheme,
+    connectionsDone: false, connections: [],
+    basicTrainingSkills: null,
+    skillPackageApplied: false,
+    extraStatsEnabled: false,
+    extraStatsSelected: new Set(),
+    extraStatsRolls: {},
+    heroicRoll: false,
+    pcSkillSpecialtyPick: null,
+    pendingAdvancementSkill: false,
+    lastAdvanceRoll: null,
+    pendingCareerSpecialty: null,
+    bgExpandedCascade: null,
+    pendingSkillGrant: null,
+    lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
+    mobileTab: 'stage',
+  };
   saveCharacter();
 }
 
