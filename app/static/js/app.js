@@ -3815,11 +3815,26 @@ function wireCareerPhase() {
     });
   });
 
-  // Skill choice buttons
+  // Skill choice buttons (specific options)
   document.querySelectorAll('[id^="btn-mishap-skillchoice-"]').forEach(btn => {
     btn.addEventListener('click', () => {
       const skill = btn.id.replace('btn-mishap-skillchoice-', '');
       resolveMishapChoice({ skill });
+    });
+  });
+
+  // Any-skill choice chips (open picker — cascade skills go through specialty overlay first)
+  document.querySelectorAll('[data-mishap-anyskill]').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const skill = chip.dataset.mishapAnyskill;
+      if (CASCADE_SKILLS[skill]) {
+        interceptCascadeSkill(skill, async (fullText) => {
+          const nameOnly = fullText.replace(/\s+\d+\s*$/, '').trim();
+          await resolveMishapChoice({ skill: nameOnly });
+        });
+      } else {
+        await resolveMishapChoice({ skill });
+      }
     });
   });
 
@@ -6105,13 +6120,33 @@ function renderMishapStep() {
             <div class="card-grid">${opts}</div>
           </div>`;
       } else if (ptype === 'skill_choice') {
-        const opts = (pending.options || []).map(sk => `
-          <button class="btn" id="btn-mishap-skillchoice-${escapeHTML(sk)}">${escapeHTML(sk)}</button>`).join('');
-        pendingHtml = `
-          <div class="event-box" style="margin-top:14px">
-            <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
-            <div class="phase-actions" style="margin-top:8px">${opts}</div>
-          </div>`;
+        const options = pending.options || [];
+        if (options.length > 0) {
+          // Specific options — show as buttons
+          const opts = options.map(sk =>
+            `<button class="btn" id="btn-mishap-skillchoice-${escapeHTML(sk)}">${escapeHTML(sk)}</button>`).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">${opts}</div>
+            </div>`;
+        } else {
+          // Any skill — show comprehensive grid picker
+          const allSkills = ['Admin','Advocate','Animals','Art','Astrogation','Athletics','Broker',
+            'Carouse','Deception','Diplomat','Drive','Electronics','Engineer','Explosives','Flyer',
+            'Gambler','Gun Combat','Gunner','Heavy Weapons','Investigate','Jack-of-All-Trades',
+            'Language','Leadership','Mechanic','Medic','Melee','Navigation','Persuade','Pilot',
+            'Profession','Recon','Science','Seafarer','Stealth','Steward','Streetwise','Survival',
+            'Tactics','Vacc Suit'];
+          const chips = allSkills.map(sk =>
+            `<button class="skill-chip ${CASCADE_SKILLS[sk] ? 'cascade' : ''}" data-mishap-anyskill="${escapeHTML(sk)}">${escapeHTML(sk)}${CASCADE_SKILLS[sk] ? ' ▸' : ''}</button>`
+          ).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="skill-picker" style="margin-top:8px">${chips}</div>
+            </div>`;
+        }
       } else if (ptype === 'free_skill_choice') {
         pendingHtml = `
           <div class="event-box" style="margin-top:14px">
@@ -7065,7 +7100,7 @@ function renderDeadStage() {
 function wireDeadStage() {
   document.getElementById('btn-new-char').addEventListener('click', () => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    location.reload();
+    window.location.replace(window.location.pathname);
   });
 
   const btnCheatDeath = document.getElementById('btn-cheat-death');
@@ -7230,7 +7265,7 @@ async function bootstrap() {
   document.getElementById('btn-reset').addEventListener('click', () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    location.reload();
+    window.location.replace(window.location.pathname);
   });
 
   document.getElementById('btn-make-npc').addEventListener('click', async () => {

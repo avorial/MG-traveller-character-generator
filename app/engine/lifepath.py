@@ -3733,9 +3733,11 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
     elif ptype == "skill_choice":
         skill = choice_data["skill"]
         options = pending.get("options", [])
-        if skill not in options:
+        # Empty options list means "any skill" — skip validation
+        if options and skill not in options:
             raise ValueError(f"'{skill}' not in options {options}")
-        msg = character.add_skill(skill, level=1)
+        sn, spec = _split_skill_speciality(skill)
+        msg = character.add_skill(sn, level=1, speciality=spec)
         auto_applied.append(msg)
         character.pending_career_mishap_choice = None
 
@@ -4596,7 +4598,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "marine": {
         1: [{"type": "injury_severity_choice"}],
-        2: [{"type": "enemy", "desc": "Enemy [Disaster Engagement]"}, {"type": "skill", "name": "Gun Combat", "level": 1}],
+        2: [{"type": "enemy", "desc": "Enemy [Disaster Engagement]"}, {"type": "skill_choice", "options": [], "prompt": "Gain one level of any skill you choose:"}],
         3: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
         4: [{"type": "contact", "desc": "Contact [Fellow Prisoner]"}, {"type": "enemy", "desc": "Enemy [Captors]"}],
         5: [{"type": "rival", "desc": "Rival [Commander]"}],
