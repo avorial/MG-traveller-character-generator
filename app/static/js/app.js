@@ -7061,9 +7061,9 @@ function renderDeadStage() {
 }
 
 function wireDeadStage() {
-  document.getElementById('btn-new-char').addEventListener('click', async () => {
-    await freshCharacter();
-    renderAll();
+  document.getElementById('btn-new-char').addEventListener('click', () => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+    location.reload();
   });
 
   const btnCheatDeath = document.getElementById('btn-cheat-death');
@@ -7225,11 +7225,10 @@ async function bootstrap() {
     if (e.target.files[0]) importCharacter(e.target.files[0]);
   });
 
-  document.getElementById('btn-reset').addEventListener('click', async () => {
+  document.getElementById('btn-reset').addEventListener('click', () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    await freshCharacter();
-    renderAll();
+    location.reload();
   });
 
   document.getElementById('btn-make-npc').addEventListener('click', async () => {
