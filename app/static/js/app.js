@@ -6697,6 +6697,10 @@ function renderMusterPhase() {
             <button class="btn" id="btn-roll-benefit" ${selRollsLeft <= 0 ? 'disabled' : ''}>ROLL BENEFIT (1D)${uiState.useGoodFortune ? ' +GOOD FORTUNE' : ''}</button>
           </div>`;
       })() : ''}
+
+      <div class="phase-actions" style="margin-top:24px;border-top:1px solid var(--border);padding-top:16px">
+        <button class="btn ghost" id="btn-forfeit-muster">LEAVE MUSTERING OUT →</button>
+      </div>
     </div>
   `;
 }
@@ -6708,6 +6712,16 @@ function wireMusterPhase() {
       renderStage();
     });
   });
+  const btnForfeitMuster = document.getElementById('btn-forfeit-muster');
+  if (btnForfeitMuster) {
+    btnForfeitMuster.addEventListener('click', () => {
+      if (!confirm('Leave mustering out? Any remaining rolls will be forfeited.')) return;
+      character.pending_benefit_rolls = 0;
+      saveCharacter();
+      renderAll();
+    });
+  }
+
   const chkGoodFortune = document.getElementById('chk-good-fortune');
   if (chkGoodFortune) chkGoodFortune.addEventListener('change', () => {
     uiState.useGoodFortune = chkGoodFortune.checked;
@@ -7101,7 +7115,7 @@ function renderDeadStage() {
 function wireDeadStage() {
   document.getElementById('btn-new-char').addEventListener('click', () => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    window.location.replace(window.location.pathname);
+    window.location.href = '/';
   });
 
   const btnCheatDeath = document.getElementById('btn-cheat-death');
@@ -7266,7 +7280,7 @@ async function bootstrap() {
   document.getElementById('btn-reset').addEventListener('click', () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    window.location.replace(window.location.pathname);
+    window.location.href = '/';
   });
 
   document.getElementById('btn-make-npc').addEventListener('click', async () => {
