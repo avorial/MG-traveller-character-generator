@@ -359,6 +359,7 @@ async function freshCharacter() {
     pendingCareerSpecialty: null,
     bgExpandedCascade: null,
     pendingSkillGrant: null,
+    pendingMishapNoEject: false,
     lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
     mobileTab: 'stage',
   };
@@ -738,6 +739,13 @@ function renderSheet() {
       <div class="sheet-section">
         <h3>Ship Shares</h3>
         <div class="credits-line">${character.ship_shares} × MCr1</div>
+      </div>` : ''}
+
+      ${(character.reputation > 0) ? `
+      <div class="sheet-section">
+        <h3>Reputation (REP)</h3>
+        <div class="credits-line">${character.reputation}</div>
+        <p class="empty">Used for advancement in Bounty Hunter career.</p>
       </div>` : ''}
 
       ${character.pension_per_year > 0 ? (() => {
@@ -3291,6 +3299,7 @@ function wireCareerPhase() {
         type: 'survive',
         data: response.roll,
         outcome: response.survived ? 'pass' : 'fail',
+        mishapNoEject: response.mishap_no_eject || false,
         parallel_event: response.parallel_event || null,
         anagathics_second_roll: response.anagathics_second_roll || null,
       };
@@ -3305,6 +3314,9 @@ function wireCareerPhase() {
       // Use lastRoll outcome if available; fall back to server-side survived flag.
       const survived = uiState.lastRoll?.outcome === 'pass'
                     || (uiState.lastRoll?.outcome == null && character.current_term?.survived === true);
+      // Carry mishapNoEject into the mishap subPhase so the mishap roll result
+      // knows the career doesn't eject on mishap (e.g. Bounty Hunter).
+      uiState.pendingMishapNoEject = uiState.lastRoll?.mishapNoEject || false;
       uiState.lastRoll = null;
       uiState.subPhase = survived ? 'event' : 'mishap';
       renderStage();
@@ -3777,6 +3789,8 @@ function wireCareerPhase() {
     btnMishap.addEventListener('click', async () => {
       const response = await apiCall('/api/character/mishap');
       await applyResponse(response);
+      const noEject = uiState.pendingMishapNoEject || false;
+      uiState.pendingMishapNoEject = false;
       uiState.lastRoll = {
         type: 'mishap',
         data: response.roll,
@@ -3787,6 +3801,7 @@ function wireCareerPhase() {
         injuryText: response.injury_data?.text || null,
         injuryRoll: response.injury_data?.roll?.total ?? null,
         frozenWatch: response.frozen_watch || false,
+        mishapNoEject: noEject,
       };
       renderAll();
     });
@@ -3796,6 +3811,16 @@ function wireCareerPhase() {
   if (btnPostMishap) {
     btnPostMishap.addEventListener('click', async () => {
       await endTermWithAgingIntercept(true, 'mishap', { type: 'muster_out_mishap' });
+    });
+  }
+
+  // Bounty Hunter (and similar): mishap does not eject from career — continue as normal
+  const btnPostMishapContinue = document.getElementById('btn-post-mishap-continue');
+  if (btnPostMishapContinue) {
+    btnPostMishapContinue.addEventListener('click', () => {
+      uiState.lastRoll = null;
+      uiState.subPhase = 'advance';
+      renderStage();
     });
   }
 
@@ -5037,7 +5062,9 @@ function renderSurviveStep() {
         ${parallelNotice}
         <p class="phase-body">${survived
           ? 'Your term continues. Roll the Event table to see what the last four years brought.'
-          : 'Your career is over. Roll on the Mishap table to see how it ended.'}</p>
+          : lr.mishapNoEject
+            ? 'A mishap struck — but you stay in the career. Roll on the Mishap table to see what happened.'
+            : 'Your career is over. Roll on the Mishap table to see how it ended.'}</p>
         <div class="phase-actions">
           <button class="btn ${survived ? 'primary' : 'danger'}" id="btn-post-survive">
             ${survived ? 'ROLL EVENT →' : 'ROLL MISHAP →'}
@@ -6319,7 +6346,9 @@ function renderMishapStep() {
           <span class="event-label">Mishap [1D=${lr.data?.total ?? '?'}]</span>
           ${escapeHTML(lr.mishapText || '')}
           ${(!lr.injuryPending && !character.pending_career_mishap_choice && !(lr.autoApplied && lr.autoApplied.length)) ? `
-            <p class="small-hint" style="margin-top:8px;color:var(--muted)">Career ends — no further mechanical effects apply.</p>
+            <p class="small-hint" style="margin-top:8px;color:var(--muted)">${lr.mishapNoEject
+              ? 'You remain in your career despite the mishap — you lose REP but continue serving.'
+              : 'Career ends — no further mechanical effects apply.'}</p>
           ` : ''}
         </div>
         ${autoHtml}
@@ -6328,19 +6357,26 @@ function renderMishapStep() {
         ${skillCheckHtml}
         ${injPickerHtml}
         ${injTreatmentHtml}
-        ${canEnd ? anagathicsBoxHTML('btn-mishap-buy-anagathics') : ''}
+        ${(canEnd && !lr.mishapNoEject) ? anagathicsBoxHTML('btn-mishap-buy-anagathics') : ''}
         <div class="phase-actions" style="margin-top:16px">
-          ${canEnd ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>` : ''}
+          ${canEnd && lr.mishapNoEject
+            ? `<button class="btn primary" id="btn-post-mishap-continue">CONTINUE IN CAREER →</button>`
+            : canEnd
+            ? `<button class="btn danger" id="btn-post-mishap">END CAREER →</button>`
+            : ''}
         </div>
       </div>
     `;
   }
 
+  const _noEject = uiState.pendingMishapNoEject || false;
   return `
     <div class="stage-content">
       <div class="phase-label">Mishap Table · 1D Roll</div>
-      <h2 class="phase-title">You Failed to Survive</h2>
-      <p class="phase-body">A mishap ends your career. Roll 1D to see what went wrong.</p>
+      <h2 class="phase-title">${_noEject ? 'A Mishap Occurred' : 'You Failed to Survive'}</h2>
+      <p class="phase-body">${_noEject
+        ? 'This career\'s mishaps do not end your service — but you lose REP. Roll 1D to see what went wrong.'
+        : 'A mishap ends your career. Roll 1D to see what went wrong.'}</p>
       <div class="phase-actions">
         <button class="btn danger" id="btn-mishap">ROLL MISHAP</button>
       </div>
@@ -6353,7 +6389,9 @@ function renderAdvanceStep() {
   const career = CAREERS.find(c => c.id === term.career_id);
   const assignment = career.assignments[term.assignment_id];
   const a = assignment.advancement;
-  const advDm = charDM(character.characteristics[a.characteristic]);
+  const advDm = a.characteristic === 'REP'
+    ? charDM(character.reputation || 0)
+    : charDM(character.characteristics[a.characteristic]);
 
   // Commission eligibility
   const hasCommission = !!career.commission;

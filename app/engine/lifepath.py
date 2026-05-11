@@ -313,6 +313,19 @@ _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 # All characteristic keys including PSI (used for GM set-stat and event branches).
 _STAT_KEYS: frozenset[str] = frozenset({"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"})
 
+
+def _char_dm(character: "Character", char_key: str) -> int:
+    """Return the DM for a characteristic, including REP and PSI.
+
+    REP is stored on character.reputation; all others use the standard
+    Characteristics object.  Unknown keys return DM 0.
+    """
+    k = char_key.upper()
+    if k == "REP":
+        return dice.characteristic_dm(character.reputation)
+    val = character.characteristics.get(k)
+    return dice.characteristic_dm(val) if val is not None else 0
+
 # Retirement pension table (MgT 2e p.53): terms_served → Cr/year.
 # Terms ≥ 8 pay Cr16,000; 9+ add Cr2,000 per term beyond 8. Terms < 5 pay nothing.
 _PENSION_TABLE: dict[int, int] = {5: 10_000, 6: 12_000, 7: 14_000, 8: 16_000}
@@ -3053,6 +3066,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             dm += mod["dm"] * character.total_terms
         elif mod["type"] == "age" and character.age >= mod.get("threshold", mod.get("age_threshold", 99)):
             dm += mod["dm"]
+        elif mod["type"] == "last_career":
+            # DM applies if the most recent completed career is in the list
+            careers_list = mod.get("careers", [])
+            if character.completed_careers and character.completed_careers[-1].career_id in careers_list:
+                dm += mod["dm"]
 
     # Apply permanent pre-career education DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -3314,7 +3332,7 @@ def survival_roll(character: Character) -> dict:
 
     char_key = survival["characteristic"]
     target = survival["target"]
-    dm = dice.characteristic_dm(character.characteristics.get(char_key)) + cover_dm
+    dm = _char_dm(character, char_key) + cover_dm
     r = dice.roll("2D", modifier=dm, target=target)
     term.survived = bool(r.succeeded)
     term.survival_roll_total = r.total
@@ -3420,9 +3438,14 @@ def survival_roll(character: Character) -> dict:
                 f"Anagathics second survival check [2D{dm:+d}={r2.total}]: PASSED."
             )
 
+    # Career-level flag: some careers (e.g. Bounty Hunter) never eject on mishap.
+    career_for_flag = rules.careers().get(term.career_id, {})
+    mishap_no_eject = bool(career_for_flag.get("mishap_no_eject", False))
+
     return {
         "roll": r.to_dict(),
         "survived": term.survived,    # reflects both checks
+        "mishap_no_eject": mishap_no_eject,
         "anagathics_second_roll": anagathics_second_roll,
         "parallel_event": parallel_event,
         "character": character.model_dump(),
@@ -4132,7 +4155,7 @@ def advancement_roll(character: Character) -> dict:
 
     char_key = adv["characteristic"]
     target = adv["target"]
-    dm = dice.characteristic_dm(character.characteristics.get(char_key)) + cover_dm
+    dm = _char_dm(character, char_key) + cover_dm
 
     # Apply permanent pre-career advancement DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -5310,8 +5333,9 @@ def muster_out_roll(
         good_fortune_used = True
 
     r = dice.roll("1D", modifier=dm)
-    # 1D result capped to 1-6 for table lookup
-    key = str(max(1, min(6, r.total)))
+    # Cap to the highest defined row (usually 6, some careers extend to 7 or 8)
+    max_row = max(int(k) for k in table.keys() if k.isdigit())
+    key = str(max(1, min(max_row, r.total)))
     row = table.get(key)
     if row is None:
         raise ValueError(f"No row for result {key}")
@@ -5358,6 +5382,12 @@ def muster_out_roll(
 def _apply_benefit(character: Character, benefit: str) -> None:
     """Apply a mustering-out benefit to the character."""
     b = benefit.strip()
+
+    # REP bonus (Bounty Hunter career)
+    if b == "REP +1":
+        character.reputation += 1
+        character.log(f"Muster benefit: REP increased to {character.reputation}.")
+        return
 
     # Characteristic bonuses
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
@@ -5515,6 +5545,14 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         new_val = max(floor_val, current + bonus_n)
         character.characteristics.set(stat, new_val)
         return f"{stat} {current}→{new_val} (rank bonus)"
+
+    # "REP +N" — reputation characteristic used by Bounty Hunter career
+    m_rep = re.match(r"^REP\s*\+(\d+)$", text, re.IGNORECASE)
+    if m_rep:
+        n = int(m_rep.group(1))
+        old_rep = character.reputation
+        character.reputation += n
+        return f"REP {old_rep}→{character.reputation} (rank bonus)"
 
     # "STAT +N" or "STAT+N"
     m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s*\+(\d+)$", text, re.IGNORECASE)

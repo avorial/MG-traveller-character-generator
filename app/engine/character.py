@@ -214,6 +214,11 @@ class Character(BaseModel):
     # Keys are the 3-letter stat ids; values are rolled integers.
     extra_characteristics: dict = Field(default_factory=dict)
 
+    # Reputation (REP) — used by careers such as Bounty Hunter (Pirates of Drinax).
+    # Starts at 0; modified by career events and mishaps; used as the DM base
+    # for REP-keyed advancement rolls.
+    reputation: int = 0
+
     # Psionics (MgT 2e Core p.176). Set when the optional test is performed.
     psi: int = 0
     psi_tested: bool = False
