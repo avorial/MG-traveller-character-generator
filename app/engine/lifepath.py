@@ -314,8 +314,21 @@ _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 _STAT_KEYS: frozenset[str] = frozenset({"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"})
 
 # Retirement pension table (MgT 2e p.53): terms_served → Cr/year.
-# Terms ≥ 8 pay Cr16,000; terms < 5 pay nothing.
+# Terms ≥ 8 pay Cr16,000; 9+ add Cr2,000 per term beyond 8. Terms < 5 pay nothing.
 _PENSION_TABLE: dict[int, int] = {5: 10_000, 6: 12_000, 7: 14_000, 8: 16_000}
+
+# Careers excluded from pension eligibility (RAW p.53).
+_PENSION_EXEMPT_CAREERS: frozenset[str] = frozenset({"scout", "rogue", "prisoner", "drifter"})
+
+
+def _pension_for_terms(n: int) -> int:
+    """Annual pension in Cr for n qualifying (non-exempt) terms. 0 if n < 5."""
+    if n < 5:
+        return 0
+    if n <= 8:
+        return _PENSION_TABLE[n]
+    return 16_000 + (n - 8) * 2_000
+
 
 # Associate kinds that can appear as mustering-out benefits.
 _BENEFIT_ASSOC_KINDS: frozenset[str] = frozenset({"ally", "contact", "rival", "enemy"})
@@ -5066,17 +5079,23 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         character.pending_benefit_rolls += earned
         character.current_term = None
 
-        # Retirement pension (MgT 2e p.53) — recalculate each time a career
-        # ends so the final value reflects total terms served so far.
-        # Pension is paid annually (Cr/yr) after the character retires.
-        old_pension = character.pension_per_year
-        terms_capped = min(character.total_terms, 8)  # 8+ all receive Cr16,000
-        character.pension_per_year = _PENSION_TABLE.get(terms_capped, 0)
+        # Retirement pension (MgT 2e p.53).
+        # Scout, Rogue, Prisoner, Drifter do not count toward pension eligibility.
+        # 9+ qualifying terms earn +Cr2,000 per term beyond 8 (no cap).
         pension_note = ""
-        if character.pension_per_year > 0 and character.pension_per_year != old_pension:
-            pension_note = (
-                f" Pension updated: Cr{character.pension_per_year:,}/year."
+        if term.career_id not in _PENSION_EXEMPT_CAREERS:
+            qualifying_terms = sum(
+                1 for h in character.term_history
+                if h.career_id not in _PENSION_EXEMPT_CAREERS
             )
+            new_pension = _pension_for_terms(qualifying_terms)
+            old_pension = character.pension_per_year
+            character.pension_per_year = new_pension
+            if new_pension > 0 and new_pension != old_pension:
+                pension_note = (
+                    f" Pension updated: Cr{new_pension:,}/year"
+                    f" ({qualifying_terms} qualifying terms)."
+                )
 
         # SolSec Monitor rank 3+: one extra benefit roll at final muster-out
         monitor_bonus_note = ""
@@ -5268,8 +5287,14 @@ def muster_out_roll(
             f"{career['name']} ({max_rolls} total including rank bonus)."
         )
 
-    # Gambler bonus on cash rolls
+    # Rank 5-6 bonus: DM+1 to ALL benefit rolls in this career (RAW p.53)
     dm = 0
+    rank_dm = 0
+    if career_rec.final_rank >= 5:
+        dm += 1
+        rank_dm = 1
+
+    # Gambler bonus on cash rolls
     if column == "cash":
         if any(s.name.lower() == "gambler" for s in character.skills):
             dm += 1
@@ -5323,6 +5348,7 @@ def muster_out_roll(
         "roll": r.to_dict(),
         "result": result_text,
         "remaining_rolls": character.pending_benefit_rolls,
+        "rank_dm": rank_dm,
         "good_fortune_used": good_fortune_used,
         "good_fortune_remaining": character.good_fortune_benefit_dm,
         "character": character.model_dump(),

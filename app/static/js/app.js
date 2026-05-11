@@ -726,12 +726,16 @@ function renderSheet() {
         <div class="credits-line">${character.ship_shares} × MCr1</div>
       </div>` : ''}
 
-      ${character.pension_per_year > 0 ? `
+      ${character.pension_per_year > 0 ? (() => {
+        const _ex = new Set(['scout','rogue','prisoner','drifter']);
+        const _qt = (character.term_history || []).filter(h => !_ex.has(h.career_id)).length;
+        return `
       <div class="sheet-section">
         <h3>Retirement Pension</h3>
         <div class="credits-line">Cr${character.pension_per_year.toLocaleString()}/year</div>
-        <p class="empty">Based on ${character.total_terms} terms served.</p>
-      </div>` : ''}
+        <p class="empty">${_qt} qualifying term${_qt === 1 ? '' : 's'} (Scout/Rogue/Prisoner/Drifter excluded).</p>
+      </div>`;
+      })() : ''}
 
       ${(character.dm_next_qualification || character.dm_next_advancement || character.dm_next_benefit) ? `
       <div class="sheet-section">
@@ -6612,6 +6616,11 @@ function renderMusterPhase() {
         <div class="phase-label">${colLabel} — ${lr.careerName || lr.careerId}</div>
         <h2 class="phase-title">${lr.column === 'cash' ? `Gained ${lr.result}` : `Benefit: ${lr.result}`}</h2>
         ${rollReadoutHTML(lr.data, { label: `${colLabel} (1D)`, showTarget: false })}
+        ${lr.rankDm ? `
+          <div class="dm-applied-box" style="margin-top:8px">
+            <span class="event-label">Rank 5-6 bonus</span>
+            <div class="dm-chip applied">DM+1 to all benefit rolls (highest rank reached 5-6)</div>
+          </div>` : ''}
         ${isWeaponChoice ? `
           <p class="phase-body" style="margin-top:12px">Choose your weapon type:</p>
           <div class="phase-actions">
@@ -6631,6 +6640,8 @@ function renderMusterPhase() {
   }
 
   if (rolls === 0) {
+    const _exemptIds = new Set(['scout','rogue','prisoner','drifter']);
+    const _qualTerms = (character.term_history || []).filter(h => !_exemptIds.has(h.career_id)).length;
     const pensionNote = character.pension_per_year > 0
       ? `<div style="margin-top:14px;padding:10px 14px;border:1px solid var(--amber-dim);border-radius:6px">
            <span style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">RETIREMENT PENSION</span>
@@ -6638,7 +6649,7 @@ function renderMusterPhase() {
              Cr${character.pension_per_year.toLocaleString()}/year
            </div>
            <p style="font-size:11px;color:var(--text-dim);margin:4px 0 0">
-             Earned after ${character.total_terms} terms of service.
+             ${_qualTerms} qualifying term${_qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter terms excluded).
            </p>
          </div>` : '';
     return `
@@ -6758,6 +6769,7 @@ function wireMusterPhase() {
           data: response.roll,
           result: response.result,
           remaining_rolls: response.remaining_rolls,
+          rankDm: response.rank_dm || 0,
           careerId,
           careerName: careerDef?.name || careerId,
         };
@@ -6788,6 +6800,7 @@ function wireMusterPhase() {
           data: response.roll,
           result: response.result,
           remaining_rolls: response.remaining_rolls,
+          rankDm: response.rank_dm || 0,
           good_fortune_used: response.good_fortune_used,
           careerId,
           careerName: careerDef?.name || careerId,
@@ -6950,6 +6963,20 @@ function renderDonePhase() {
           <button class="btn ghost" id="btn-add-connection">ADD CONNECTION</button>
         </div>
       </div>
+
+      ${(() => {
+          if (!character.pension_per_year) return '';
+          const exemptIds = new Set(['scout','rogue','prisoner','drifter']);
+          const qualTerms = (character.term_history || []).filter(h => !exemptIds.has(h.career_id)).length;
+          return `
+            <div class="done-card">
+              <h3 class="done-card-title">Retirement Pension</h3>
+              <div style="font-size:22px;font-family:var(--font-mono);color:var(--accent);margin:6px 0 4px">
+                Cr${character.pension_per_year.toLocaleString()}/year
+              </div>
+              <p class="empty">Paid annually at any Class A or B starport. Based on ${qualTerms} qualifying term${qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter terms do not count).</p>
+            </div>`;
+        })()}
 
       ${renderPsionicsCard()}
 
