@@ -4149,6 +4149,7 @@ def advancement_roll(character: Character) -> dict:
     term.advanced = bool(r.succeeded)
 
     monitor_rank_up = False
+    rank_bonus_log = None
     if r.succeeded:
         term.rank += 1
         term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
@@ -4192,6 +4193,7 @@ def advancement_roll(character: Character) -> dict:
         "advanced": r.succeeded,
         "new_rank": term.rank,
         "new_rank_title": term.rank_title,
+        "rank_bonus": rank_bonus_log,
         "monitor_dm": monitor_dm,
         "monitor_rank_up": monitor_rank_up,
         "monitor_rank": character.solsec_monitor_rank,

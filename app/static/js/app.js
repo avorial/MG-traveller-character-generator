@@ -326,22 +326,28 @@ function loadCharacter() {
 
 async function freshCharacter() {
   const res = await fetch('/api/character/new', { method: 'POST' });
+  if (!res.ok) throw new Error(`Server error ${res.status} creating new character`);
   const data = await res.json();
+  if (!data.character) throw new Error('Server returned no character data');
   character = data.character;
+  const keepGm   = uiState.gmMode;
+  const keepTheme = uiState.themeLight;
   uiState = { selectedSpecies: null, selectedBgSkills: new Set(), selectedPreCareerSkills: new Set(),
               selectedCareer: null, selectedAssignment: null, selectedCoverCareer: null, lastRoll: null,
               swapPick: null, swapA: 'EDU', swapB: 'STR',
               subPhase: null, pendingAge: false,
               agingResult: null, agingNextAction: null, agingSelectedStats: [],
               anagathicsPhaseDone: false, pendingNextTermAction: null,
-              gmMode: uiState.gmMode,
+              gmMode: keepGm,
+              themeLight: keepTheme,
               connectionsDone: false, connections: [],
               basicTrainingSkills: null,
               skillPackageApplied: false,
               pendingCareerSpecialty: null,
               bgExpandedCascade: null,
               pendingSkillGrant: null,
-              lastCapsule: null, psionicsOpen: false, gmLastRolls: [] };
+              lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
+              mobileTab: 'stage' };
   saveCharacter();
 }
 
@@ -3946,6 +3952,7 @@ function wireCareerPhase() {
           outcome: response.advanced ? 'pass' : 'fail',
           newRank: response.new_rank,
           newRankTitle: response.new_rank_title,
+          rankBonus: response.rank_bonus || null,
           forcedFromCareer: response.forced_from_career || false,
         };
         uiState.lastRoll = advRoll;
@@ -6449,6 +6456,11 @@ function renderAdvanceStep() {
           ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
           : 'No Advancement This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
+        ${(advanced && lr.rankBonus) ? `
+          <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:10px">
+            <span class="event-label" style="color:var(--success,#7fd87f)">RANK BONUS APPLIED</span>
+            ${escapeHTML(lr.rankBonus)}
+          </div>` : ''}
         ${lr.advancementSkillGained ? `
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:10px">
             <span class="event-label" style="color:var(--success,#7fd87f)">BONUS SKILL GAINED</span>
@@ -7113,9 +7125,14 @@ function renderDeadStage() {
 }
 
 function wireDeadStage() {
-  document.getElementById('btn-new-char').addEventListener('click', () => {
+  document.getElementById('btn-new-char').addEventListener('click', async () => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    window.location.href = '/';
+    try {
+      await freshCharacter();
+      renderAll();
+    } catch (e) {
+      alert('Failed to create new character: ' + e.message);
+    }
   });
 
   const btnCheatDeath = document.getElementById('btn-cheat-death');
@@ -7277,10 +7294,15 @@ async function bootstrap() {
     if (e.target.files[0]) importCharacter(e.target.files[0]);
   });
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
+  document.getElementById('btn-reset').addEventListener('click', async () => {
     if (!confirm('Start a new character? This will wipe the current character and log.')) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    window.location.href = '/';
+    try {
+      await freshCharacter();
+      renderAll();
+    } catch (e) {
+      alert('Failed to create new character: ' + e.message);
+    }
   });
 
   document.getElementById('btn-make-npc').addEventListener('click', async () => {
