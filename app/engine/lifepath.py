@@ -1971,7 +1971,9 @@ def pre_career_choose_skills(
             f"Chose {len(chosen_skills)} skills but only {remaining} picks left."
         )
     for s in chosen_skills:
-        if s not in pool:
+        # Accept "Skill (Specialty)" when the pool contains the base "Skill"
+        base = s.split(" (")[0].strip()
+        if s not in pool and base not in pool:
             raise ValueError(f"'{s}' not in this track's skill pool.")
         sn, spec = _split_skill_speciality(s)
         character.add_skill(sn, level=skill_level, speciality=spec)
@@ -2056,7 +2058,8 @@ def pre_career_event10_skill(character: Character, skill_text: str) -> dict:
     text = (skill_text or "").strip()
     if not text:
         raise ValueError("No skill specified.")
-    if pool and text not in pool:
+    base_text = text.split(" (")[0].strip()
+    if pool and text not in pool and base_text not in pool:
         raise ValueError(f"'{text}' is not in the education skill pool for this track.")
 
     r = dice.roll("2D", target=9)

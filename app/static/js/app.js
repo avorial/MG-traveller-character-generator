@@ -1004,7 +1004,7 @@ function renderStage() {
       <div class="stage-content">
         <div class="phase-label">Cascade Skill — ${escapeHTML(skillName)}</div>
         <h2 class="phase-title">${escapeHTML(skillName)} requires a specialty</h2>
-        <p class="phase-body">Pick one specialty to gain at level ${level}:</p>
+        <p class="phase-body">Pick one specialty to gain at level ${level}${level === 0 ? ' (background skill)' : ''}:</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
           ${specs.map(s => `<button class="btn ghost specialty-chip" data-grant-specialty="${escapeHTML(s)}">${escapeHTML(s)}</button>`).join('')}
         </div>
@@ -1776,16 +1776,21 @@ function wireBackgroundPhase() {
         // Remove any previously selected variant of this cascade skill
         const existing = [...uiState.selectedBgSkills].find(s => s === skill || s.startsWith(skill + ' ('));
         if (existing) {
-          // Already selected a specialty — deselect it and collapse
+          // Already selected — deselect and re-render
           uiState.selectedBgSkills.delete(existing);
-          uiState.bgExpandedCascade = null;
-        } else if (uiState.bgExpandedCascade === skill) {
-          // Already expanded — collapse without selecting
-          uiState.bgExpandedCascade = null;
-        } else {
-          // Expand specialty sub-picker
-          uiState.bgExpandedCascade = skill;
+          renderStage();
+          return;
         }
+        // Show the full-screen specialty overlay (same as career event cascade picks)
+        uiState.pendingSkillGrant = { skillName: skill, level: 0 };
+        _skillGrantCallback = (fullText) => {
+          // fullText = "Electronics (Computers) 0" — strip the trailing level digit
+          const nameOnly = fullText.replace(/\s+\d+\s*$/, '').trim();
+          uiState.selectedBgSkills.add(nameOnly);
+          renderStage();
+        };
+        renderStage();
+        return;
       } else {
         if (uiState.selectedBgSkills.has(skill)) {
           uiState.selectedBgSkills.delete(skill);
