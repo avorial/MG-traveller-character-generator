@@ -5259,10 +5259,11 @@ def muster_out_roll(
     )
     if career_rec is None:
         raise ValueError(f"You have no completed terms in {career['name']}")
-    if career_rec.benefit_rolls_used >= career_rec.terms_served:
+    max_rolls = career_rec.benefit_rolls_earned or career_rec.terms_served
+    if career_rec.benefit_rolls_used >= max_rolls:
         raise ValueError(
-            f"Already used all {career_rec.terms_served} benefit roll(s) for "
-            f"{career['name']} (1 roll per term served)."
+            f"Already used all {max_rolls} benefit roll(s) for "
+            f"{career['name']} ({max_rolls} total including rank bonus)."
         )
 
     # Gambler bonus on cash rolls
