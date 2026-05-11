@@ -6678,9 +6678,10 @@ function renderMusterPhase() {
       ${uiState.selectedCareer ? (() => {
         const selDef = CAREERS.find(x => x.id === uiState.selectedCareer);
         const selRec = careers.find(x => x.career_id === uiState.selectedCareer);
-        const selRollsLeft = selRec ? (selRec.terms_served - (selRec.benefit_rolls_used || 0)) : 0;
+        const selMaxRolls = selRec ? (selRec.benefit_rolls_earned || selRec.terms_served) : 0;
+        const selRollsLeft = selMaxRolls - (selRec?.benefit_rolls_used || 0);
         return `
-          ${musterTableHTML(selDef, selRec?.terms_served, selRec?.benefit_rolls_used || 0)}
+          ${musterTableHTML(selDef, selMaxRolls, selRec?.benefit_rolls_used || 0)}
           ${(character.good_fortune_benefit_dm || 0) > 0 ? `
             <div class="dm-applied-box" style="margin-top:12px">
               <span class="event-label">Good Fortune</span>
