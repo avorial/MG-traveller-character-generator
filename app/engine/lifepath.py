@@ -839,9 +839,12 @@ def set_background_skills(character: Character, chosen: list[str]) -> dict:
 
     valid = set(rules.background_skills()["skills"])
     for skill_name in chosen:
-        if skill_name not in valid:
+        # Accept "Skill (Specialty)" when the base skill is in the valid list
+        base = skill_name.split(" (")[0].strip()
+        if skill_name not in valid and base not in valid:
             raise ValueError(f"Not a background skill: {skill_name}")
-        character.add_skill(skill_name, level=0)
+        sn, spec = _split_skill_speciality(skill_name)
+        character.add_skill(sn, level=0, speciality=spec)
 
     character.log(f"Gained {len(chosen)} background skill(s): {', '.join(chosen) or '(none)'}")
     character.phase = "pre_career"

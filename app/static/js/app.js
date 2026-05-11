@@ -1823,9 +1823,11 @@ function wireBackgroundPhase() {
   });
   document.getElementById('btn-confirm-bg').addEventListener('click', async () => {
     const chosen = Array.from(uiState.selectedBgSkills);
-    const response = await apiCall('/api/character/background-skills', { chosen });
-    await applyResponse(response);
-    renderAll();
+    try {
+      const response = await apiCall('/api/character/background-skills', { chosen });
+      await applyResponse(response);
+      renderAll();
+    } catch (e) { alert(e.message); }
   });
   const skipBtn = document.getElementById('btn-skip-bg');
   if (skipBtn) {
