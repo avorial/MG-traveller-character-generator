@@ -367,6 +367,144 @@ async function freshCharacter() {
 }
 
 // ------------------------------------------------------------
+// Character save slots  (5 max, stored separately from active char)
+// ------------------------------------------------------------
+
+const SAVE_SLOT_PREFIX = 'traveller-save-slot-';
+const MAX_SAVE_SLOTS   = 5;
+
+function _saveSlotKey(idx) { return SAVE_SLOT_PREFIX + idx; }
+
+function readSaveSlot(idx) {
+  try {
+    const raw = localStorage.getItem(_saveSlotKey(idx));
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function writeSaveSlot(idx, charObj) {
+  const entry = {
+    character: charObj,
+    name: charObj.name || '(unnamed)',
+    age: charObj.age || 18,
+    phase: charObj.phase || 'characteristics',
+    savedAt: new Date().toISOString(),
+  };
+  localStorage.setItem(_saveSlotKey(idx), JSON.stringify(entry));
+}
+
+function deleteSaveSlot(idx) {
+  localStorage.removeItem(_saveSlotKey(idx));
+}
+
+function renderSavesModal() {
+  const body = document.getElementById('saves-modal-body');
+  if (!body) return;
+
+  const fmtDate = iso => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' })
+      + ' ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+  };
+
+  let html = `<p class="empty" style="margin-bottom:14px">Save your current character to one of 5 slots, or load a previously saved character. Loading will replace your current character.</p>`;
+  html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+
+  for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
+    const slot = readSaveSlot(i);
+    const label = slot
+      ? `<div style="font-weight:700;color:var(--accent)">${escapeHTML(slot.name)} · Age ${slot.age}</div>
+         <div style="font-size:11px;color:var(--text-dim)">${escapeHTML(fmtDate(slot.savedAt))} · phase: ${escapeHTML(slot.phase)}</div>`
+      : `<div style="color:var(--text-dim);font-style:italic">— empty —</div>`;
+
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.02)">
+      <div style="min-width:60px;font-size:11px;letter-spacing:1px;color:var(--text-dim)">SLOT ${i + 1}</div>
+      <div style="flex:1">${label}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn" data-save-idx="${i}" style="padding:4px 10px;font-size:11px">SAVE</button>
+        <button class="btn primary" data-load-idx="${i}" style="padding:4px 10px;font-size:11px" ${slot ? '' : 'disabled'}>LOAD</button>
+        <button class="btn danger" data-del-idx="${i}" style="padding:4px 10px;font-size:11px" ${slot ? '' : 'disabled'}>DEL</button>
+      </div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  body.innerHTML = html;
+
+  // Wire buttons
+  body.querySelectorAll('[data-save-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.saveIdx, 10);
+      const existing = readSaveSlot(idx);
+      if (existing) {
+        if (!confirm(`Overwrite slot ${idx + 1} (${existing.name})?`)) return;
+      }
+      writeSaveSlot(idx, character);
+      renderSavesModal();
+    });
+  });
+
+  body.querySelectorAll('[data-load-idx]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.dataset.loadIdx, 10);
+      const slot = readSaveSlot(idx);
+      if (!slot) return;
+      if (!confirm(`Load "${slot.name}"? This will replace your current character.`)) return;
+      character = slot.character;
+      saveCharacter();
+      // Reset transient UI state but keep theme/GM
+      const keepGm    = uiState.gmMode;
+      const keepTheme = uiState.themeLight;
+      uiState = {
+        selectedSpecies: null,
+        selectedBgSkills: new Set(),
+        selectedPreCareerSkills: new Set(),
+        selectedCareer: null,
+        selectedAssignment: null,
+        selectedCoverCareer: null,
+        lastRoll: null,
+        swapPick: null, swapA: 'EDU', swapB: 'STR',
+        subPhase: null, pendingAge: false,
+        agingResult: null, agingNextAction: null, agingSelectedStats: [],
+        anagathicsPhaseDone: false, pendingNextTermAction: null,
+        gmMode: keepGm,
+        themeLight: keepTheme,
+        connectionsDone: false, connections: [],
+        basicTrainingSkills: null,
+        skillPackageApplied: false,
+        extraStatsEnabled: false,
+        extraStatsSelected: new Set(),
+        extraStatsRolls: {},
+        heroicRoll: false,
+        pcSkillSpecialtyPick: null,
+        pendingAdvancementSkill: false,
+        lastAdvanceRoll: null,
+        pendingCareerSpecialty: null,
+        bgExpandedCascade: null,
+        pendingSkillGrant: null,
+        pendingMishapNoEject: false,
+        lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
+        mobileTab: 'stage',
+      };
+      document.getElementById('saves-modal').hidden = true;
+      renderAll();
+    });
+  });
+
+  body.querySelectorAll('[data-del-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.delIdx, 10);
+      const slot = readSaveSlot(idx);
+      if (!slot) return;
+      if (!confirm(`Delete slot ${idx + 1} (${slot.name})?`)) return;
+      deleteSaveSlot(idx);
+      renderSavesModal();
+    });
+  });
+}
+
+// ------------------------------------------------------------
 // API helpers
 // ------------------------------------------------------------
 
@@ -7470,6 +7608,23 @@ async function bootstrap() {
     fairClose.addEventListener('click', () => { fairModal.hidden = true; });
     fairModal.addEventListener('click', (e) => {
       if (e.target === fairModal) fairModal.hidden = true;
+    });
+  }
+
+  // Save/Load slots modal
+  const savesBtn   = document.getElementById('btn-saves');
+  const savesModal = document.getElementById('saves-modal');
+  const savesClose = document.getElementById('btn-close-saves');
+  if (savesBtn && savesModal) {
+    savesBtn.addEventListener('click', () => {
+      renderSavesModal();
+      savesModal.hidden = false;
+    });
+  }
+  if (savesClose && savesModal) {
+    savesClose.addEventListener('click', () => { savesModal.hidden = true; });
+    savesModal.addEventListener('click', (e) => {
+      if (e.target === savesModal) savesModal.hidden = true;
     });
   }
 }
