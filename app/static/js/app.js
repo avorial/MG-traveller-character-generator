@@ -370,31 +370,46 @@ async function freshCharacter() {
 // Character save slots  (5 max, stored separately from active char)
 // ------------------------------------------------------------
 
-const SAVE_SLOT_PREFIX = 'traveller-save-slot-';
-const MAX_SAVE_SLOTS   = 5;
+const SAVE_SLOT_PREFIX      = 'traveller-save-slot-';
+const SAVE_SLOT_META_SUFFIX = '-meta';
+const MAX_SAVE_SLOTS        = 5;
 
-function _saveSlotKey(idx) { return SAVE_SLOT_PREFIX + idx; }
+function _saveSlotKey(idx)     { return SAVE_SLOT_PREFIX + idx; }
+function _saveSlotMetaKey(idx) { return SAVE_SLOT_PREFIX + idx + SAVE_SLOT_META_SUFFIX; }
 
+/**
+ * Returns { character, savedAt } or null.
+ * The character object is the raw export-format JSON (same as EXPORT JSON).
+ * Metadata (savedAt) is stored in a parallel key so the character JSON stays clean.
+ */
 function readSaveSlot(idx) {
   try {
     const raw = localStorage.getItem(_saveSlotKey(idx));
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const charObj = JSON.parse(raw);
+    let savedAt = null;
+    try {
+      const meta = localStorage.getItem(_saveSlotMetaKey(idx));
+      if (meta) savedAt = JSON.parse(meta).savedAt || null;
+    } catch (e) { /* ignore bad meta */ }
+    return { character: charObj, savedAt };
   } catch (e) { return null; }
 }
 
+/**
+ * Saves charObj verbatim (raw export format) into slot idx.
+ * Date goes into the parallel meta key.
+ */
 function writeSaveSlot(idx, charObj) {
-  const entry = {
-    character: charObj,
-    name: charObj.name || '(unnamed)',
-    age: charObj.age || 18,
-    phase: charObj.phase || 'characteristics',
-    savedAt: new Date().toISOString(),
-  };
-  localStorage.setItem(_saveSlotKey(idx), JSON.stringify(entry));
+  // Store raw character — identical format to EXPORT JSON / the file the user downloads
+  localStorage.setItem(_saveSlotKey(idx), JSON.stringify(charObj, null, 2));
+  // Store just the timestamp separately so the slot picker can show it
+  localStorage.setItem(_saveSlotMetaKey(idx), JSON.stringify({ savedAt: new Date().toISOString() }));
 }
 
 function deleteSaveSlot(idx) {
   localStorage.removeItem(_saveSlotKey(idx));
+  localStorage.removeItem(_saveSlotMetaKey(idx));
 }
 
 function renderSavesModal() {
@@ -414,8 +429,8 @@ function renderSavesModal() {
   for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
     const slot = readSaveSlot(i);
     const label = slot
-      ? `<div style="font-weight:700;color:var(--accent)">${escapeHTML(slot.name)} · Age ${slot.age}</div>
-         <div style="font-size:11px;color:var(--text-dim)">${escapeHTML(fmtDate(slot.savedAt))} · phase: ${escapeHTML(slot.phase)}</div>`
+      ? `<div style="font-weight:700;color:var(--accent)">${escapeHTML(slot.character.name || '(unnamed)')} · Age ${slot.character.age || 18}</div>
+         <div style="font-size:11px;color:var(--text-dim)">${escapeHTML(fmtDate(slot.savedAt))} · phase: ${escapeHTML(slot.character.phase || '?')}</div>`
       : `<div style="color:var(--text-dim);font-style:italic">— empty —</div>`;
 
     html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.02)">
@@ -438,7 +453,8 @@ function renderSavesModal() {
       const idx = parseInt(btn.dataset.saveIdx, 10);
       const existing = readSaveSlot(idx);
       if (existing) {
-        if (!confirm(`Overwrite slot ${idx + 1} (${existing.name})?`)) return;
+        const existName = existing.character.name || '(unnamed)';
+        if (!confirm(`Overwrite slot ${idx + 1} (${existName})?`)) return;
       }
       writeSaveSlot(idx, character);
       renderSavesModal();
@@ -450,7 +466,8 @@ function renderSavesModal() {
       const idx = parseInt(btn.dataset.loadIdx, 10);
       const slot = readSaveSlot(idx);
       if (!slot) return;
-      if (!confirm(`Load "${slot.name}"? This will replace your current character.`)) return;
+      const slotName = slot.character.name || '(unnamed)';
+      if (!confirm(`Load "${slotName}"? This will replace your current character.`)) return;
       character = slot.character;
       saveCharacter();
       // Reset transient UI state but keep theme/GM
@@ -497,7 +514,8 @@ function renderSavesModal() {
       const idx = parseInt(btn.dataset.delIdx, 10);
       const slot = readSaveSlot(idx);
       if (!slot) return;
-      if (!confirm(`Delete slot ${idx + 1} (${slot.name})?`)) return;
+      const delName = slot.character.name || '(unnamed)';
+      if (!confirm(`Delete slot ${idx + 1} (${delName})?`)) return;
       deleteSaveSlot(idx);
       renderSavesModal();
     });
