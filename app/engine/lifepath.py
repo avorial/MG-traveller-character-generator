@@ -5108,9 +5108,14 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         character.pending_benefit_rolls += earned
         character.current_term = None
 
-        # Retirement pension (MgT 2e p.53).
+        # Retirement pension (MgT 2e p.53 / Solomani Conf. p.XX).
         # Scout, Rogue, Prisoner, Drifter do not count toward pension eligibility.
         # 9+ qualifying terms earn +Cr2,000 per term beyond 8 (no cap).
+        #
+        # Solomani Confederation rule: pension is HALF the Imperial rate unless the
+        # character served at least one term in the Solomani Party or SolSec, which
+        # restores the full pension.
+        _SOLOMANI_FULL_PENSION_CAREERS: frozenset[str] = frozenset({"party", "solsec"})
         pension_note = ""
         if term.career_id not in _PENSION_EXEMPT_CAREERS:
             qualifying_terms = sum(
@@ -5118,6 +5123,15 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                 if h.career_id not in _PENSION_EXEMPT_CAREERS
             )
             new_pension = _pension_for_terms(qualifying_terms)
+            # Apply Solomani half-pension rule
+            if character.society_id == "solomani_confederation" and new_pension > 0:
+                has_full_pension_career = any(
+                    h.career_id in _SOLOMANI_FULL_PENSION_CAREERS
+                    for h in character.term_history
+                    if h.career_id not in _PENSION_EXEMPT_CAREERS
+                )
+                if not has_full_pension_career:
+                    new_pension = new_pension // 2
             old_pension = character.pension_per_year
             character.pension_per_year = new_pension
             if new_pension > 0 and new_pension != old_pension:

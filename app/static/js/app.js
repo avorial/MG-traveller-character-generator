@@ -907,11 +907,17 @@ function renderSheet() {
       ${character.pension_per_year > 0 ? (() => {
         const _ex = new Set(['scout','rogue','prisoner','drifter']);
         const _qt = (character.term_history || []).filter(h => !_ex.has(h.career_id)).length;
+        const _isSol = character.society_id === 'solomani_confederation';
+        const _hasFullCareer = _isSol && (character.term_history || []).some(h => h.career_id === 'party' || h.career_id === 'solsec');
+        const _pensionNote = _isSol
+          ? (_hasFullCareer ? 'Full rate (Party/SolSec service). Collectible at Class A–B starports in the Confederation; SolSec also at Class C.'
+                            : 'Solomani Confederation rate (½ Imperial). Collectible at Class A–B starports in the Confederation.')
+          : `${_qt} qualifying term${_qt === 1 ? '' : 's'} (Scout/Rogue/Prisoner/Drifter excluded).`;
         return `
       <div class="sheet-section">
         <h3>Retirement Pension</h3>
         <div class="credits-line">Cr${character.pension_per_year.toLocaleString()}/year</div>
-        <p class="empty">${_qt} qualifying term${_qt === 1 ? '' : 's'} (Scout/Rogue/Prisoner/Drifter excluded).</p>
+        <p class="empty">${_pensionNote}</p>
       </div>`;
       })() : ''}
 
@@ -6854,15 +6860,20 @@ function renderMusterPhase() {
   if (rolls === 0) {
     const _exemptIds = new Set(['scout','rogue','prisoner','drifter']);
     const _qualTerms = (character.term_history || []).filter(h => !_exemptIds.has(h.career_id)).length;
+    const _isSol = character.society_id === 'solomani_confederation';
+    const _hasFullCareer = _isSol && (character.term_history || []).some(h => h.career_id === 'party' || h.career_id === 'solsec');
+    const _pensionSub = _isSol
+      ? (_hasFullCareer
+          ? `${_qualTerms} qualifying term${_qualTerms===1?'':'s'}. Full rate (Party or SolSec service). Collectible at Class A–B starports in the Confederation; SolSec also at Class C.`
+          : `${_qualTerms} qualifying term${_qualTerms===1?'':'s'}. Solomani Confederation rate — half the Imperial pension. Collectible at Class A–B starports within the Confederation.`)
+      : `${_qualTerms} qualifying term${_qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter excluded).`;
     const pensionNote = character.pension_per_year > 0
       ? `<div style="margin-top:14px;padding:10px 14px;border:1px solid var(--amber-dim);border-radius:6px">
            <span style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">RETIREMENT PENSION</span>
            <div style="font-size:18px;font-family:var(--font-mono);color:var(--accent);margin-top:4px">
              Cr${character.pension_per_year.toLocaleString()}/year
            </div>
-           <p style="font-size:11px;color:var(--text-dim);margin:4px 0 0">
-             ${_qualTerms} qualifying term${_qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter terms excluded).
-           </p>
+           <p style="font-size:11px;color:var(--text-dim);margin:4px 0 0">${_pensionSub}</p>
          </div>` : '';
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
@@ -7180,13 +7191,28 @@ function renderDonePhase() {
           if (!character.pension_per_year) return '';
           const exemptIds = new Set(['scout','rogue','prisoner','drifter']);
           const qualTerms = (character.term_history || []).filter(h => !exemptIds.has(h.career_id)).length;
+          const isSol = character.society_id === 'solomani_confederation';
+          const hasFullCareer = isSol && (character.term_history || []).some(h => h.career_id === 'party' || h.career_id === 'solsec');
+          let collectionNote, rateNote;
+          if (isSol) {
+            collectionNote = hasFullCareer
+              ? 'Collectible at Class A–B starports within the Solomani Confederation. SolSec officers may also collect at Class C starports.'
+              : 'Collectible at Class A–B starports within the Solomani Confederation only.';
+            rateNote = hasFullCareer
+              ? 'Full Imperial rate — Party or SolSec service.'
+              : 'Solomani Confederation rate (½ Imperial pension).';
+          } else {
+            collectionNote = 'Paid annually at any Class A or B starport.';
+            rateNote = `${qualTerms} qualifying term${qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter excluded).`;
+          }
           return `
             <div class="done-card">
               <h3 class="done-card-title">Retirement Pension</h3>
               <div style="font-size:22px;font-family:var(--font-mono);color:var(--accent);margin:6px 0 4px">
                 Cr${character.pension_per_year.toLocaleString()}/year
               </div>
-              <p class="empty">Paid annually at any Class A or B starport. Based on ${qualTerms} qualifying term${qualTerms === 1 ? '' : 's'} of service (Scout, Rogue, Prisoner, and Drifter terms do not count).</p>
+              <p class="empty">${rateNote}</p>
+              <p class="empty">${collectionNote}</p>
             </div>`;
         })()}
 
