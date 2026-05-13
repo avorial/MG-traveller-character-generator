@@ -4412,7 +4412,13 @@ def stop_anagathics(character: "Character") -> dict:
 # ============================================================
 
 # Careers that bar Home Forces enrollment
-_HOME_FORCES_BARRED_CAREERS = frozenset({"drifter"})
+# Full-time Solomani military careers are ineligible for the parallel Home Forces Reserves.
+_HOME_FORCES_BARRED_CAREERS = frozenset({
+    "drifter",
+    "solomani_marine",
+    "confederation_army",
+    "confederation_navy",
+})
 # Rogue pirate assignment is also barred (checked separately)
 # Naval component: Merchant marine / free trader assignments, or ex-Navy
 _NAVAL_MERCHANT_ASSIGNMENTS = frozenset({"merchant_marine", "free_trader"})
@@ -4494,7 +4500,7 @@ def enroll_home_forces(character: "Character", career_id: Optional[str] = None) 
     if not _home_forces_eligible(character, career_id=career_id):
         eligible_reason = (
             "Not a Solomani Confederation character." if character.society_id != "solomani_confederation"
-            else "Career is barred from Home Forces (Drifter, Rogue/Pirate, or SolSec)."
+            else "Career is barred from Home Forces (full-time Solomani military, Drifter, Rogue/Pirate, or SolSec)."
         )
         raise ValueError(f"Not eligible for Home Forces Reserves — {eligible_reason}")
 
@@ -5120,10 +5126,16 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                     f" ({qualifying_terms} qualifying terms)."
                 )
 
-        # SolSec Monitor rank 3+: one extra benefit roll at final muster-out
+        # SolSec Monitor rank 3+: one extra benefit roll at final muster-out.
+        # IMPORTANT: also credit it to the most recent CareerRecord so the muster-out
+        # picker can consume it from that career's table — without this the roll
+        # increments pending_benefit_rolls but no career has slots left for it, which
+        # permanently blocks the "All Benefits Claimed" screen (and the pension display).
         monitor_bonus_note = ""
         if character.solsec_monitor and character.solsec_monitor_rank >= 3:
             character.pending_benefit_rolls += 1
+            if character.completed_careers:
+                character.completed_careers[-1].benefit_rolls_earned += 1
             monitor_bonus_note = " SolSec Monitor (rank 3+): +1 extra Benefit roll."
 
         character.log(

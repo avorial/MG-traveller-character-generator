@@ -4789,9 +4789,13 @@ function renderAssignmentPicker(career) {
 
   // ---- Solomani parallel service panels ----
   const isSolomani = (character.society_id === 'solomani_confederation');
+  // Home Forces Reserves is a PARALLEL civilian reserve — full-time military careers are ineligible.
   const isBarredFromHF = (career.id === 'drifter')
     || (career.id === 'rogue' && uiState.selectedAssignment === 'pirate')
-    || (career.id === 'solsec');
+    || (career.id === 'solsec')
+    || (career.id === 'solomani_marine')
+    || (career.id === 'confederation_army')
+    || (career.id === 'confederation_navy');
   const showHomeForces = isSolomani && !isBarredFromHF;
   const showMonitor = isSolomani && career.id !== 'solsec';
 
