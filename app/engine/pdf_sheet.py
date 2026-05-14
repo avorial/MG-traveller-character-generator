@@ -34,28 +34,31 @@ PW = 792.0   # page width  (landscape)
 PH = 612.0   # page height (landscape)
 
 # Palette
-BG         = Color(0.67, 0.72, 0.83)   # steel blue-gray background
+BG         = Color(1.0,  1.0,  1.0)   # white background
 PANEL      = Color(1.0,  1.0,  1.0)   # white section panels
-HDR_BG     = Color(0.0,  0.0,  0.0)   # black header bars
-HDR_FG     = white
-SIDEBAR_BG = Color(0.0,  0.0,  0.0)   # black stat sidebar
-SIDEBAR_FG = white
-ROW_RED    = Color(0.9,  0.0,  0.0)   # red training-row bar
+HDR_BG     = Color(0.08, 0.08, 0.08)  # near-black header bars
+HDR_FG     = Color(1.0,  0.55, 0.0)   # orange header text
+SIDEBAR_BG = Color(0.08, 0.08, 0.08)  # near-black stat sidebar
+SIDEBAR_FG = Color(1.0,  0.55, 0.0)   # orange sidebar labels
+ROW_RED    = Color(0.9,  0.0,  0.0)   # red (kept for compatibility)
 HEX_FILL   = Color(1.0,  1.0,  1.0)   # white hex interior
-HEX_STR    = Color(0.0,  0.0,  0.0)   # hex border
-ROW_ALT    = Color(0.93, 0.94, 0.97)  # subtle alternating row tint
-STAT_AREA  = Color(0.94, 0.95, 0.98)  # stat panel tint
-LABEL_COL  = Color(0.4,  0.4,  0.4)   # muted label text
+HEX_STR    = Color(0.2,  0.2,  0.2)   # dark hex border
+ROW_ALT    = Color(0.92, 0.92, 0.92)  # subtle alternating row tint
+STAT_AREA  = Color(0.88, 0.88, 0.88)  # stat panel tint
+LABEL_COL  = Color(0.35, 0.35, 0.35)  # muted label text
 BODY_COL   = Color(0.08, 0.08, 0.08)  # near-black body text
-RULE_COL   = Color(0.72, 0.74, 0.80)  # field rule lines
+RULE_COL   = Color(0.65, 0.65, 0.65)  # field rule lines
 FIELD_BG   = Color(0.96, 0.97, 1.0)   # fillable field background
 FIELD_BDR  = Color(0.50, 0.55, 0.65)  # fillable field border
+COL_HDR_BG = Color(0.22, 0.22, 0.22)  # dark column-header row background
+COL_HDR_FG = Color(0.82, 0.82, 0.82)  # light column-header text
 
 # Fonts
-F_REG  = "Helvetica"
-F_BOLD = "Helvetica-Bold"
-F_OBOL = "Helvetica-BoldOblique"
-F_OBL  = "Helvetica-Oblique"
+F_HDR  = "Helvetica-Bold"       # section header title
+F_REG  = "Courier"              # body text
+F_BOLD = "Courier-Bold"         # bold body
+F_OBOL = "Courier-BoldOblique"  # bold italic body
+F_OBL  = "Courier-Oblique"      # italic body
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -157,7 +160,7 @@ def get_stat(char: Character, code: str) -> int:
     if code == "EDU": return ch.EDU
     if code == "SOC": return ch.SOC
     if code == "PSI": return char.psi
-    return 0  # MOR, LCK, SAN, CHA — not in model
+    return 0  # MOR, LCK, SAN, CHA, WLT — not tracked in model
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -234,31 +237,15 @@ def draw_hex(c, cx, cy_d, hw, hh,
 
 
 def section_header(c, x0, x1, y_top_d, height=18.0, title="",
-                   font_size=7.0, notch_w=10.0, notch_h=7.0):
-    """
-    Black bar from x0→x1 with a diagonal notch cut from the bottom-right.
-    Returns y_d just below the bar (= y_top_d + height).
-    """
+                   font_size=8.5, **_kwargs):
+    """Dark header bar with orange title. Returns y_d just below the bar."""
     y_bot_d = y_top_d + height
-    pts = [
-        (x0,           dy(y_top_d)),
-        (x1,           dy(y_top_d)),
-        (x1,           dy(y_bot_d) + notch_h),
-        (x1 - notch_w, dy(y_bot_d)),
-        (x0,           dy(y_bot_d)),
-    ]
-    p = c.beginPath()
-    p.moveTo(*pts[0])
-    for pt in pts[1:]:
-        p.lineTo(*pt)
-    p.close()
     c.setFillColor(HDR_BG)
     c.setLineWidth(0)
-    c.drawPath(p, fill=1, stroke=0)
-
+    c.rect(x0, dy(y_top_d + height), x1 - x0, height, fill=1, stroke=0)
     if title:
         c.setFillColor(HDR_FG)
-        c.setFont(F_BOLD, font_size)
+        c.setFont(F_HDR, font_size)
         c.drawString(x0 + 4.0,
                      dy(y_top_d + height * 0.5) - font_size * 0.30,
                      title)
@@ -289,23 +276,22 @@ SBAR_X0 = 24.0   # sidebar left
 SBAR_X1 = 40.0   # sidebar right  (= hex-area left)
 STAT_X1 = 106.0  # stat strip right edge
 
-LARGE_CX = 59.0;  LARGE_HW = 10.2;  LARGE_HH = 12.0
-SMALL_CX = 84.0;  SMALL_HW = 8.5;   SMALL_HH = 10.0
+STAT_CX = 65.0;  STAT_HW = 11.0;  STAT_HH = 12.0   # single hex per stat
 
-CORE_TOP_D  = 24.0;   CORE_BOT_D  = 296.0
-OTHER_TOP_D = 310.0;  OTHER_BOT_D = 548.0
+CORE_TOP_D  = 24.0;   CORE_BOT_D  = 297.0
+OTHER_TOP_D = 310.0;  OTHER_BOT_D = 552.0
 
-CORE_CENTERS  = [59.17, 101.5, 143.8, 186.2, 228.5, 270.8]
-OTHER_CENTERS = [342.3, 379.0, 415.7, 452.3, 489.0]
+CORE_CENTERS  = [47.0, 92.0, 138.0, 183.0, 229.0, 274.0]
+OTHER_CENTERS = [330.0, 370.0, 411.0, 451.0, 491.0, 531.0]
 
-CORE_STATS  = [("STR","Strength"), ("DEX","Dexterity"), ("END","Endurance"),
-               ("INT","Intellect"), ("EDU","Education"), ("SOC","Social")]
-OTHER_STATS = [("MOR","Morale"), ("LCK","Luck"), ("SAN","Sanity"),
-               ("CHA","Charisma"), ("PSI","Psionic")]
+CORE_STATS  = [("STR","STRENGTH"), ("DEX","DEXTERITY"), ("END","ENDURANCE"),
+               ("INT","INTELLECT"), ("EDU","EDUCATION"), ("SOC","SOCIAL")]
+OTHER_STATS = [("MOR","MORALE"), ("LCK","LUCK"), ("SAN","SANITY"),
+               ("CHA","CHARM"), ("PSI","PSI"), ("WLT","WEALTH")]
 
 
 def draw_stat_block(c, char, stats, centers_d, sec_top_d, sec_bot_d, label):
-    """Draw one stat section: sidebar + hex cells."""
+    """Draw one stat section: sidebar + single hex per stat."""
     # Sidebar
     fill_rect(c, SBAR_X0, sec_top_d, SBAR_X1 - SBAR_X0,
               sec_bot_d - sec_top_d, SIDEBAR_BG)
@@ -313,7 +299,7 @@ def draw_stat_block(c, char, stats, centers_d, sec_top_d, sec_bot_d, label):
     fill_rect(c, SBAR_X1, sec_top_d, STAT_X1 - SBAR_X1,
               sec_bot_d - sec_top_d, STAT_AREA)
 
-    # Rotated label in sidebar
+    # Rotated section label in sidebar
     c.saveState()
     c.setFillColor(SIDEBAR_FG)
     c.setFont(F_BOLD, 4.5)
@@ -323,39 +309,32 @@ def draw_stat_block(c, char, stats, centers_d, sec_top_d, sec_bot_d, label):
     c.drawCentredString(0, 0, label)
     c.restoreState()
 
-    for i, ((code, _), ctr_d) in enumerate(zip(stats, centers_d)):
+    for i, ((code, name), ctr_d) in enumerate(zip(stats, centers_d)):
         val = get_stat(char, code)
-        tens, units = stat_digits(val)
-        dm = char_dm(val)
+        dm  = char_dm(val)
 
         # Divider above each row (skip first)
         if i > 0:
             prev_d = centers_d[i - 1]
             hline(c, SBAR_X1, STAT_X1, (prev_d + ctr_d) / 2)
 
-        # Stat code label (above hexes)
-        draw_text(c, SBAR_X1 + 1.5, ctr_d - 13.5, code, F_OBOL, 4.0, LABEL_COL)
+        # "DM" label above hex
+        draw_text(c, STAT_CX, ctr_d - 17.0, "DM",
+                  F_BOLD, 4.5, LABEL_COL, align="center")
 
-        # Large hex (tens digit)
-        draw_hex(c, LARGE_CX, ctr_d, LARGE_HW, LARGE_HH)
+        # Single hex with full stat value
+        draw_hex(c, STAT_CX, ctr_d - 3.0, STAT_HW, STAT_HH)
         c.setFillColor(BODY_COL)
         c.setFont(F_BOLD, 9.0)
-        c.drawCentredString(LARGE_CX, dy(ctr_d) - 3.2, tens)
+        c.drawCentredString(STAT_CX, dy(ctr_d - 3.0) - 3.2, str(max(0, int(val or 0))))
 
-        # Small hex (units digit)
-        draw_hex(c, SMALL_CX, ctr_d, SMALL_HW, SMALL_HH)
-        c.setFillColor(BODY_COL)
-        c.setFont(F_BOLD, 7.5)
-        c.drawCentredString(SMALL_CX, dy(ctr_d) - 2.8, units)
+        # DM modifier below hex
+        draw_text(c, STAT_CX, ctr_d + 12.0, fmt_dm(dm),
+                  F_REG, 6.5, BODY_COL, align="center")
 
-        # DM label + value (right of hexes)
-        c.setFillColor(LABEL_COL)
-        c.setFont(F_BOLD, 3.5)
-        c.drawString(95.5, dy(ctr_d - 5.5), "DM")
-        dm_str = fmt_dm(dm)
-        c.setFillColor(BODY_COL)
-        c.setFont(F_REG, 6.5)
-        c.drawCentredString(98.5, dy(ctr_d + 2.5), dm_str)
+        # Stat name at bottom of cell
+        draw_text(c, SBAR_X1 + 2.0, ctr_d + 19.0, name,
+                  F_OBOL, 3.8, LABEL_COL)
 
 
 def draw_stat_column(c, char):
@@ -364,11 +343,6 @@ def draw_stat_column(c, char):
                     CORE_TOP_D, CORE_BOT_D, "CORE CHARACTERISTICS")
     draw_stat_block(c, char, OTHER_STATS, OTHER_CENTERS,
                     OTHER_TOP_D, OTHER_BOT_D, "OTHER CHARACTERISTICS")
-    # Wealth strip (below OTHER, simple label)
-    wt = OTHER_BOT_D + 2
-    fill_rect(c, SBAR_X0, wt, STAT_X1 - SBAR_X0, 18.0, STAT_AREA)
-    draw_text(c, SBAR_X0 + 3.0, wt + 5.5, "WEALTH", F_BOLD, 4.5, LABEL_COL)
-    draw_text(c, SBAR_X0 + 3.0, wt + 13.5, f"Cr{char.credits:,}", F_BOLD, 6.5, BODY_COL)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -506,41 +480,57 @@ def draw_p1_careers(c, char):
     y = section_header(c, LM_X0, LM_X1, sec_top, title="CAREERS")
     rh = 9.0
 
+    col_terms_x = LM_X1 - 76.0
+    col_rank_x  = LM_X1 - 48.0
+
+    # Column header row
+    fill_rect(c, LM_X0, y, LM_W, rh, COL_HDR_BG)
+    draw_text(c, LM_X0 + 3.0,       y + rh * 0.52, "CAREER", F_OBL, 5.5, COL_HDR_FG)
+    draw_text(c, col_terms_x + 2.0,  y + rh * 0.52, "TERMS",  F_OBL, 5.5, COL_HDR_FG)
+    draw_text(c, col_rank_x + 2.0,   y + rh * 0.52, "RANK",   F_OBL, 5.5, COL_HDR_FG)
+    hline(c, LM_X0, LM_X1, y + rh);  y += rh
+
     careers = char.completed_careers
     if not careers:
         draw_text(c, LM_X0 + 4.0, y + 8.0, "No careers completed.",
                   F_OBL, 6.5, LABEL_COL)
         return
 
-    for i, cr in enumerate(careers[:10]):  # cap to fit panel
-        label = career_label(cr.career_id, cr.assignment_id)
-        rank_s = cr.final_rank_title or f"Rank {cr.final_rank}"
-        alt = (i % 2 == 1)
+    for i, cr in enumerate(careers[:9]):
+        label  = career_label(cr.career_id, cr.assignment_id)
+        rank_s = cr.final_rank_title or (f"Rank {cr.final_rank}" if cr.final_rank else "")
+        alt    = (i % 2 == 1)
         if alt:
             fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
-
-        # Career name on upper line, rank on lower line; terms right-aligned
-        draw_text(c, LM_X0 + 3.0, y + rh * 0.35, label,
-                  F_BOLD, 6.5, BODY_COL, max_w=LM_W - 40.0)
-        draw_text(c, LM_X1 - 3.0, y + rh * 0.35,
-                  f"{cr.terms_served}t", F_BOLD, 6.5, BODY_COL, align="right")
-        draw_text(c, LM_X0 + 10.0, y + rh * 0.75, rank_s,
-                  F_OBL, 5.0, LABEL_COL, max_w=LM_W - 14.0)
+        draw_text(c, LM_X0 + 3.0,      y + rh * 0.52, label,
+                  F_REG, 6.5, BODY_COL, max_w=col_terms_x - LM_X0 - 6.0)
+        draw_text(c, col_terms_x + 2.0, y + rh * 0.52, str(cr.terms_served),
+                  F_BOLD, 6.5, BODY_COL)
+        if rank_s:
+            draw_text(c, col_rank_x + 2.0, y + rh * 0.52, rank_s,
+                      F_REG, 6.0, BODY_COL, max_w=LM_X1 - col_rank_x - 4.0)
         hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
 
 def draw_p1_skills(c, char):
-    """SKILLS panel (with red Training Row), page 1 left column."""
+    """SKILLS panel, page 1 left column."""
     sec_top = 242.0;  sec_bot = 530.0
     fill_rect(c, LM_X0, sec_top, LM_W, sec_bot - sec_top, PANEL)
     y = section_header(c, LM_X0, LM_X1, sec_top, title="SKILLS")
 
-    # Red training row
-    train_h = 14.0
-    fill_rect(c, LM_X0, y, LM_W, train_h, ROW_RED)
-    draw_text(c, LM_X0 + 3.0, y + train_h * 0.52,
-              "TRAINING / EDUCATION", F_BOLD, 5.0, white)
-    y += train_h
+    # Training header rows (reference style)
+    th = 10.0
+    fill_rect(c, LM_X0, y, LM_W, th, COL_HDR_BG)
+    draw_text(c, LM_X0 + 3.0, y + th * 0.52,
+              "TRAINING IN SKILL:", F_OBL, 5.0, COL_HDR_FG)
+    draw_text(c, LM_X0 + LM_W * 0.65, y + th * 0.52,
+              "WEEKS:", F_OBL, 5.0, COL_HDR_FG)
+    hline(c, LM_X0, LM_X1, y + th);  y += th
+
+    fill_rect(c, LM_X0, y, LM_W, th, COL_HDR_BG)
+    draw_text(c, LM_X0 + 3.0, y + th * 0.52,
+              "TRAINING PERIOD COMPLETE:", F_OBL, 5.0, COL_HDR_FG)
+    hline(c, LM_X0, LM_X1, y + th);  y += th
 
     rh = 9.5
     skills = sorted(char.skills or [], key=lambda s: (s.name, s.speciality or ""))
@@ -552,13 +542,20 @@ def draw_p1_skills(c, char):
         return
 
     for i, sk in enumerate(skills[:max_rows]):
-        label = f"{sk.name} ({sk.speciality})" if sk.speciality else sk.name
-        skill_row(c, LM_X0, LM_X1, y, rh, label, sk.level, alt=(i % 2 == 1))
+        spec   = f"({sk.speciality})" if sk.speciality else ""
+        label  = f"{sk.name}{spec}-{sk.level}"
+        if i % 2 == 1:
+            fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
+        draw_text(c, LM_X0 + 3.0, y + rh * 0.52, label,
+                  F_REG, 6.5, BODY_COL, max_w=LM_W - 8.0)
+        hline(c, LM_X0, LM_X1, y + rh)
         y += rh
         if y + rh > sec_bot:
-            draw_text(c, LM_X0 + 4.0, y + 4.0,
-                      f"+ {len(skills) - i - 1} more skills…",
-                      F_OBL, 5.5, LABEL_COL)
+            remaining = len(skills) - i - 1
+            if remaining > 0:
+                draw_text(c, LM_X0 + 4.0, y + 4.0,
+                          f"+ {remaining} more...",
+                          F_OBL, 5.5, LABEL_COL)
             break
 
 
@@ -567,40 +564,38 @@ def draw_p1_finances(c, char):
     sec_top = 24.0;  sec_bot = 94.0
     fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
     y = section_header(c, RM_X0, RM_X1, sec_top, title="FINANCES")
-    rh = 9.0;  lw = 85.0
+    rh = 10.0
     mid = RM_X0 + RM_W / 2
 
+    # Row 1: MONTHLY SHIP PAYMENTS (full width)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "MONTHLY SHIP PAYMENTS:",
+              F_OBL, 5.5, LABEL_COL)
+    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, "Cr.",
+              F_BOLD, 6.5, BODY_COL, align="right")
+    hline(c, RM_X0, RM_X1, y + rh);  y += rh
+
+    # Row 2: PENSION left | CASH ON HAND right
     fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "CASH", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, RM_X0 + lw,  y + rh * 0.52, f"Cr {char.credits:,}",
-              F_BOLD, 7.0, BODY_COL)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "PENSION:", F_OBL, 5.5, LABEL_COL)
+    pension_s = f"Cr. {char.pension_per_year:,}" if char.pension_per_year else "Cr. 0"
+    draw_text(c, RM_X0 + 52.0, y + rh * 0.52, pension_s, F_BOLD, 6.5, BODY_COL)
     vline(c, mid, y, y + rh)
-    draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, mid + lw,  y + rh * 0.52, str(char.ship_shares or 0),
-              F_BOLD, 7.0, BODY_COL)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "CASH ON HAND:", F_OBL, 5.5, LABEL_COL)
+    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, f"Cr. {char.credits:,}",
+              F_BOLD, 6.5, BODY_COL, align="right")
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
-    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "PENSION/YR", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, RM_X0 + lw,  y + rh * 0.52,
-              f"Cr {char.pension_per_year:,}" if char.pension_per_year else "—",
-              F_REG, 7.0, BODY_COL)
+    # Row 3: DEBT left | LIVING COST right
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "DEBT:", F_OBL, 5.5, LABEL_COL)
+    debt_col  = Color(0.8, 0.1, 0.1) if char.medical_debt > 0 else BODY_COL
+    draw_text(c, RM_X0 + 52.0, y + rh * 0.52,
+              f"Cr. {char.medical_debt:,}" if char.medical_debt else "Cr. 0",
+              F_BOLD, 6.5, debt_col)
     vline(c, mid, y, y + rh)
-    draw_text(c, mid + 3.0, y + rh * 0.52, "MEDICAL DEBT", F_BOLD, 5.0, LABEL_COL)
-    debt_col = Color(0.8, 0.1, 0.1) if char.medical_debt > 0 else BODY_COL
-    draw_text(c, mid + lw, y + rh * 0.52,
-              f"Cr {char.medical_debt:,}" if char.medical_debt else "—",
-              F_BOLD, 7.0, debt_col)
-    hline(c, RM_X0, RM_X1, y + rh);  y += rh
-
-    # Benefit rows (blank lines to fill the panel)
-    for i in range(3):
-        alt = (i % 2 == 0)
-        if alt:
-            fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        lbl_idx = i + 1
-        draw_text(c, RM_X0 + 3.0, y + rh * 0.52,
-                  f"BENEFIT {lbl_idx}", F_BOLD, 5.0, LABEL_COL)
-        hline(c, RM_X0, RM_X1, y + rh);  y += rh
+    draw_text(c, mid + 3.0, y + rh * 0.52, "LIVING COST:", F_OBL, 5.5, LABEL_COL)
+    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, "Cr. 0",
+              F_BOLD, 6.5, BODY_COL, align="right")
+    hline(c, RM_X0, RM_X1, y + rh)
 
 
 def draw_p1_armour(c, char):
@@ -612,22 +607,23 @@ def draw_p1_armour(c, char):
     col_w = RM_W / 4
 
     # Header mini-row
-    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-    hdrs = ["NAME", "TL", "PROTECTION", "OTHER"]
-    for i, h in enumerate(hdrs):
-        draw_text(c, RM_X0 + i * col_w + 3.0, y + rh * 0.52,
-                  h, F_BOLD, 4.5, LABEL_COL)
+    fill_rect(c, RM_X0, y, RM_W, rh, COL_HDR_BG)
+    hdrs = ["TYPE", "RAD", "PROTECTION", "KG", "OPTIONS"]
+    col_fracs = [0.0, 0.28, 0.44, 0.64, 0.76]
+    for i, (h, frac) in enumerate(zip(hdrs, col_fracs)):
+        cx_ = RM_X0 + RM_W * frac
         if i:
-            vline(c, RM_X0 + i * col_w, y, y + rh)
+            vline(c, cx_, y, y + rh)
+        draw_text(c, cx_ + 3.0, y + rh * 0.52, h, F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
-    # Blank rows for recording armour
+    # Blank rows for recording armour (5 columns)
     for i in range(8):
         alt = (i % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        for j in range(1, 4):
-            vline(c, RM_X0 + j * col_w, y, y + rh)
+        for frac in col_fracs[1:]:
+            vline(c, RM_X0 + RM_W * frac, y, y + rh)
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
 
@@ -639,15 +635,14 @@ def draw_p1_weapons(c, char):
     rh = 9.0
 
     # Column headers
-    cols = [("NAME", 0.0, 0.36), ("TL", 0.36, 0.10), ("SKILL", 0.46, 0.14),
-            ("RANGE", 0.60, 0.12), ("DAMAGE", 0.72, 0.16), ("OTHER", 0.88, 0.12)]
-    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-    prev_x = RM_X0
-    for lbl, frac, _ in cols:
+    wcols = [("WEAPON", 0.0), ("TL", 0.36), ("RANGE", 0.46),
+             ("DAMAGE", 0.60), ("KG", 0.76), ("MAGAZINE", 0.86)]
+    fill_rect(c, RM_X0, y, RM_W, rh, COL_HDR_BG)
+    for lbl, frac in wcols:
         cx_ = RM_X0 + RM_W * frac
         if frac > 0:
             vline(c, cx_, y, y + rh)
-        draw_text(c, cx_ + 3.0, y + rh * 0.52, lbl, F_BOLD, 4.5, LABEL_COL)
+        draw_text(c, cx_ + 3.0, y + rh * 0.52, lbl, F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
     # Blank weapon rows
@@ -655,7 +650,7 @@ def draw_p1_weapons(c, char):
         alt = (i % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        for _, frac, _ in cols[1:]:
+        for _, frac in wcols[1:]:
             vline(c, RM_X0 + RM_W * frac, y, y + rh)
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
@@ -666,20 +661,24 @@ def draw_p1_augments(c, char):
     fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
     y = section_header(c, RM_X0, RM_X1, sec_top, title="AUGMENTS")
     rh = 9.0
-    mid = RM_X0 + RM_W * 0.55
 
-    # Col headers
-    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "AUGMENT", F_BOLD, 4.5, LABEL_COL)
-    vline(c, mid, y, y + rh)
-    draw_text(c, mid + 3.0, y + rh * 0.52, "EFFECT", F_BOLD, 4.5, LABEL_COL)
+    # Col headers: TYPE | TL | IMPROVEMENT
+    tl_x = RM_X0 + RM_W * 0.45
+    imp_x = RM_X0 + RM_W * 0.58
+    fill_rect(c, RM_X0, y, RM_W, rh, COL_HDR_BG)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "TYPE",        F_OBL, 5.0, COL_HDR_FG)
+    vline(c, tl_x,  y, y + rh)
+    draw_text(c, tl_x + 3.0,  y + rh * 0.52, "TL",          F_OBL, 5.0, COL_HDR_FG)
+    vline(c, imp_x, y, y + rh)
+    draw_text(c, imp_x + 3.0, y + rh * 0.52, "IMPROVEMENT",  F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
     for i in range(6):
         alt = (i % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        vline(c, mid, y, y + rh)
+        vline(c, tl_x,  y, y + rh)
+        vline(c, imp_x, y, y + rh)
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
 
@@ -689,13 +688,13 @@ def draw_p1_equipment(c, char):
     fill_rect(c, RM_X0, sec_top, RM_W, sec_bot - sec_top, PANEL)
     y = section_header(c, RM_X0, RM_X1, sec_top, title="EQUIPMENT")
     rh = 9.0
-    mid = RM_X0 + RM_W * 0.55
 
-    # Col headers
-    fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "ITEM", F_BOLD, 4.5, LABEL_COL)
-    vline(c, mid, y, y + rh)
-    draw_text(c, mid + 3.0, y + rh * 0.52, "NOTES / QTY", F_BOLD, 4.5, LABEL_COL)
+    # Col headers: TYPE | MASS (ref style), items fill TYPE col
+    mass_x = RM_X0 + RM_W * 0.78
+    fill_rect(c, RM_X0, y, RM_W, rh, COL_HDR_BG)
+    draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "TYPE",  F_OBL, 5.0, COL_HDR_FG)
+    vline(c, mass_x, y, y + rh)
+    draw_text(c, mass_x + 3.0, y + rh * 0.52, "MASS", F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
     equipment = char.equipment or []
@@ -706,12 +705,12 @@ def draw_p1_equipment(c, char):
         alt = (shown % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        draw_text(c, RM_X0 + 3.0, y + rh * 0.52, eq.name,
-                  F_REG, 6.5, BODY_COL, max_w=mid - RM_X0 - 6.0)
-        vline(c, mid, y, y + rh)
-        note = (eq.notes or "") + (f"  ×{eq.quantity}" if eq.quantity > 1 else "")
-        draw_text(c, mid + 3.0, y + rh * 0.52, note,
-                  F_REG, 6.5, BODY_COL, max_w=RM_X1 - mid - 6.0)
+        name_s = eq.name
+        if eq.quantity > 1:
+            name_s += f" x{eq.quantity}"
+        draw_text(c, RM_X0 + 3.0, y + rh * 0.52, name_s,
+                  F_REG, 6.5, BODY_COL, max_w=mass_x - RM_X0 - 6.0)
+        vline(c, mass_x, y, y + rh)
         hline(c, RM_X0, RM_X1, y + rh)
         y += rh;  shown += 1
 
@@ -721,7 +720,7 @@ def draw_p1_equipment(c, char):
         alt = (i % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
-        vline(c, mid, y, y + rh)
+        vline(c, mass_x, y, y + rh)
         hline(c, RM_X0, RM_X1, y + rh)
         y += rh;  i += 1
 

@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
-from .engine import pdf_export
+from .engine import pdf_export, pdf_sheet
 
 
 BASE_DIR = Path(__file__).parent
@@ -888,7 +888,7 @@ async def api_export_pdf(action: CharacterAction):
     """Generate and return a PDF character sheet."""
     character = action.character.model_copy(deep=True)
     try:
-        pdf_bytes = pdf_export.generate_pdf(character)
+        pdf_bytes = pdf_sheet.generate_character_pdf(character)
     except Exception as e:
         raise HTTPException(500, f"PDF generation failed: {e}")
     name = (character.name or "traveller").replace(" ", "_")
