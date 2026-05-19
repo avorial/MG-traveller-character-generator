@@ -5960,11 +5960,16 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
     """Parse and apply a rank-bonus string to the character.
 
     Handles:
-      - "STAT +N"            e.g. "SOC +2"
-      - "SkillName N"        e.g. "Gun Combat 1"
-      - "Skill (spec) N"     e.g. "Tactics (military) 1"
-      - "SOC 10 or SOC +1, whichever is higher"
-      - Plain skill name     e.g. "Jack-of-All-Trades" (treated as level 1)
+      - "STAT +N"                         e.g. "SOC +2"
+      - "STAT N"                          e.g. "SOC 15"  (raise to floor)
+      - "STAT N or STAT +M"               e.g. "SOC 10 or SOC +1" (floor-or-increment)
+      - "STAT N or STAT +M, whichever is higher"
+      - "SkillName N"                     e.g. "Gun Combat 1"
+      - "Skill (spec) N"                  e.g. "Tactics (military) 1"
+      - "Skill N and STAT M"              e.g. "Admin 1 and SOC 10"  (compound)
+      - "Skill N and STAT M or STAT +P"   e.g. "Leadership 1 and SOC 8 or SOC +1"
+      - "Skill N or Skill2 M"             e.g. "Advocate 1 or Science 1" (auto-pick first)
+      - Plain skill name                  e.g. "Jack-of-All-Trades" (treated as level 1)
 
     Returns a human-readable log string.
     """
@@ -5972,7 +5977,29 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         return "no bonus"
     text = bonus_str.strip()
 
-    # Complex SOC-style: "SOC 10 or SOC +1, whichever is higher"
+    # --- Compound "X and Y" bonuses (e.g. "Admin 1 and SOC 10") ---
+    # Split on " and " only when it appears outside parentheses.
+    and_pos = -1
+    depth = 0
+    i = 0
+    while i < len(text) - 4:
+        ch = text[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif depth == 0 and text[i: i + 5] == " and ":
+            and_pos = i
+            break
+        i += 1
+    if and_pos >= 0:
+        part1 = text[:and_pos].strip()
+        part2 = text[and_pos + 5:].strip()
+        log1 = _apply_rank_bonus(character, part1)
+        log2 = _apply_rank_bonus(character, part2)
+        return f"{log1}; {log2}"
+
+    # "STAT N or STAT +M" — floor-or-increment (with optional trailing text)
     m_complex = re.match(
         r"^(SOC|STR|DEX|END|INT|EDU|PSI)\s+(\d+)\s+or\s+\1\s*\+(\d+)",
         text, re.IGNORECASE
@@ -6005,6 +6032,35 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         new_val = min(max_stat, current + n)
         character.characteristics.set(stat, new_val)
         return f"{stat} {current}→{new_val} (rank bonus)"
+
+    # "STAT N" — raise stat to floor value (e.g. "SOC 15")
+    m_stat_floor = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s+(\d+)$", text, re.IGNORECASE)
+    if m_stat_floor:
+        stat = m_stat_floor.group(1).upper()
+        floor_val = int(m_stat_floor.group(2))
+        current = character.characteristics.get(stat)
+        new_val = max(floor_val, current)
+        character.characteristics.set(stat, new_val)
+        return f"{stat} {current}→{new_val} (floor {floor_val})"
+
+    # "Skill N or Skill2 M" — player choice; auto-pick the first option
+    # Only trigger when "or" appears outside parentheses and neither side is a handled stat pattern.
+    or_pos = -1
+    depth = 0
+    i = 0
+    while i < len(text) - 3:
+        ch = text[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif depth == 0 and text[i: i + 4] == " or ":
+            or_pos = i
+            break
+        i += 1
+    if or_pos >= 0:
+        first_choice = text[:or_pos].strip()
+        return _apply_rank_bonus(character, first_choice) + " (auto-picked)"
 
     # "Skill (spec) N" or "Skill N" or plain "Skill"
     # Try to strip a trailing digit as the level
