@@ -2569,7 +2569,7 @@ body.gm-mode #btn-gm-mode {
 }
 .bg-pkg-stats {
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--muted);
   letter-spacing: 0.06em;
   margin-bottom: 5px;
   font-family: var(--font-mono);
@@ -2582,7 +2582,7 @@ body.gm-mode #btn-gm-mode {
 }
 .bg-pkg-zero {
   font-size: 9.5px;
-  color: var(--text-dim);
+  color: var(--muted);
   margin-bottom: 4px;
 }
 .bg-pkg-benefits {
@@ -2614,7 +2614,7 @@ body.gm-mode #btn-gm-mode {
 }
 .pkg-spec-label {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--muted);
   min-width: 140px;
   font-family: var(--font-mono);
 }
@@ -2666,7 +2666,7 @@ body.gm-mode #btn-gm-mode {
 .cp-banner-text {
   flex: 1;
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--muted);
   min-width: 180px;
 }
 .cp-banner-text strong {
@@ -2689,6 +2689,8 @@ body.gm-mode #btn-gm-mode {
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   position: relative;
+  color: inherit;
+  font-family: inherit;
 }
 .cp-card:hover:not(.cp-card-locked) {
   border-color: var(--amber-dim);
@@ -2719,13 +2721,13 @@ body.gm-mode #btn-gm-mode {
 }
 .cp-card-desc {
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--muted);
   line-height: 1.4;
   margin-bottom: 4px;
 }
 .cp-card-benefits {
   font-size: 9px;
-  color: var(--text-muted);
+  color: var(--amber-deep);
   font-family: var(--font-mono);
 }
 .cp-card-lock {
@@ -2784,7 +2786,7 @@ body.gm-mode #btn-gm-mode {
 }
 .cp-fin-desc {
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--muted);
   margin-top: 3px;
   padding-left: 20px;
 }
