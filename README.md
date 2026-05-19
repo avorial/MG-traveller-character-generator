@@ -1,10 +1,10 @@
 # Traveller Character Creator
 
-A web app for generating Mongoose Traveller 2e characters through the complete lifepath system — characteristics, species, pre-career education, careers (qualify, survive, events, mishaps, advancement, aging), mustering out, psionics, and a final character sheet with capsule description.
+A web app for generating Mongoose Traveller 2e characters through the complete lifepath system — characteristics, species, pre-career education, careers (qualify, survive, events, mishaps, advancement, aging), mustering out, psionics, and a final character sheet with capsule description. Supports background packages and career packages as streamlined one-step alternatives to the traditional lifepath phases.
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-11.5-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-14.0-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -34,9 +34,9 @@ uvicorn app.main:app --reload
 1. **Characteristics** — Roll 2D×6 for all six stats, with optional stat swaps. Heroic mode rolls 4×2D normally and 2×3D6 drop-lowest for the highest two. Optional extra characteristics (PSI, WLT, LCK, MRL, STY, TER) can be toggled on and rolled separately with the same heroic option.
 2. **Society of Origin** — Choose the polity where your character was raised (Third Imperium, Solomani Confederation, Aslan Hierate, Hiver Federation, Zhodani Consulate, Two Thousand Worlds, Vargr Extents, or Other/Far Domains). Filters the species picker and career list to only show options relevant to that society.
 3. **Species** — Pick a species from those available in your chosen society; modifiers and traits are applied automatically. Noble titles granted to high-SOC Third Imperium characters. Solomani characters roll a Heritage Roll (2D) to determine sub-type. Cetacean species (Dolphin, Orca) set a species-specific starting age.
-4. **Background skills** — Skill picks gated by EDU DM.
+4. **Background skills** — Skill picks gated by EDU DM, or take a **Background Package** (see below) for a curated skill bundle in lieu of individual picks.
 5. **Pre-career education** — Optional phase before the career loop (see below).
-6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics offer → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses.
+6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics offer → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses. On the **first** career pick only, a **Career Package** can be chosen instead (see below) — skips the loop entirely and goes straight to finalization.
 7. **Mustering out** — Cash and benefit rolls per career. Each career's roll allowance is terms served + rank bonus (ranks 1–2: +1, ranks 3–4: +2, ranks 5+: +3). Retirement pension calculated automatically for 5+ terms served.
 8. **Skill packages** — Optional package pick at the end of mustering out.
 9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
@@ -55,6 +55,65 @@ uvicorn app.main:app --reload
 | **Psionic Community** | PSI 8+ after test | 3 years | Tests PSI on enrolment; psionic talent training; graduate for PSI+1 and permanent Psion career auto-entry |
 
 Ineligible tracks are visible in the picker as greyed-out cards explaining the requirement.
+
+### Background Packages (alternative to background skills)
+
+At the background phase the player may choose a **Background Package** instead of picking individual background skills. Each package represents a specific upbringing and grants a curated set of skills, starting credits, and (for some packages) stat adjustments — no EDU gating, no individual picks required.
+
+| Package | Highlights |
+|---|---|
+| **Belter** | Vacc Suit, Zero-G, Mechanic, Astrogation 0; Cr2,000 |
+| **Criminal** | Stealth, Streetwise, Deception; Cr1,000 |
+| **Drifter** | Survival, Recon, Athletics (endurance); Cr500 |
+| **Farmer** | Animals, Survival, Athletics (endurance); Cr2,000 |
+| **Merchant Family** | Broker, Persuade, Admin; Cr3,000 |
+| **Military Family** | Athletics, Gun Combat 0, Melee 0, Discipline; Cr1,000 |
+| **Noble Birth** | Admin, Carouse, Diplomat, Persuade; SOC+1; Cr5,000 — requires SOC 10+ |
+| **Primitive** | Survival, Animals, Recon; STR+1, END+1, EDU−1; Cr200 |
+| **Scholar Family** | Science 0, Electronics (computers), Investigate; Cr2,000 |
+| **Spacer** | Vacc Suit, Mechanic, Pilot (small craft); Cr1,500 |
+| **Street Kid** | Streetwise, Stealth, Athletics (dexterity); Cr500 |
+| **Technical** | Mechanic, Electronics 0, Engineer 0; Cr2,500 |
+
+Choosing a background package is recorded in `pre_career_status.track = "background_package"` and appears in the career narrative capsule.
+
+### Career Packages (alternative to the career loop)
+
+On the **first** career pick only, a **Career Package** button appears in the career picker. Choosing it bypasses the qualify/survive/advance loop entirely. The player:
+
+1. Selects one of 17 packages representing a complete pre-defined career.
+2. Rolls d3 and adds the result to their age.
+3. Picks one option from each of three finalising categories:
+
+| Category | Choices |
+|---|---|
+| **CAREER** | Boost one skill to level 4 · Boost three skills by +1 each · Take rank 4 only |
+| **TRAVELLER SKILLS** | One of 12 pairs of useful traveller skills (e.g. Vacc Suit + Steward, Pilot (any) + Astrogation, …) |
+| **BENEFITS** | 1 Ship Share · Cr100,000 cash · Combat Implant · 1 Ally + 2 Contacts · TAS Membership · SOC +1 |
+
+The character goes directly to finalization (skill package phase) — no further careers can be added.
+
+| Package | Rank | Notes |
+|---|---|---|
+| **Barbarian** | 2 | STR+1, END+1; Survival, Melee, Recon |
+| **Bounty Hunter** | — | Gun Combat, Investigate, Deception, Pilot |
+| **Corsair** | 2 | SOC−2; Gunner, Melee, Pilot, Astrogation; 1 Ship Share base |
+| **Corporate Executive** | 4 | EDU+1, SOC+1; Admin, Advocate, Broker, Leadership |
+| **Doctor** | — | EDU+1; Medic 3, Science, Admin |
+| **Drifter** | — | Survival, Streetwise, Recon, Mechanic |
+| **Explorer** | 3 | Recon, Survival, Pilot, Astrogation, Navigation |
+| **Merchant Captain** | 4 | Pilot, Broker, Admin, Astrogation; 2 Ship Shares base |
+| **Military Officer** | 4 | Gun Combat 2, Leadership 2, Tactics; END+1 |
+| **Noble** | 4 | SOC+2 (min SOC 10); Admin, Advocate, Carouse, Diplomat |
+| **Pilot** | 2 | Pilot 3, Astrogation, Mechanic, Vacc Suit |
+| **Rogue** | 2 | Gun Combat, Stealth, Deception, Streetwise |
+| **Scholar** | — | EDU+1; Science 3, Science 1, Investigate, Computer |
+| **Scout** | 3 | Astrogation 2, Pilot, Recon, Survival, Vacc Suit |
+| **Soldier** | 3 | END+1; Gun Combat 2, Melee, Heavy Weapons, Athletics |
+| **Technician** | — | Mechanic 2, Electronics 2, Engineer; EDU+1 |
+| **Wanderer** | — | Survival, Recon, Stealth, Streetwise |
+
+Career package choices are stored in `career_package_id` and `career_package_taken` on the character. The capsule narrative describes the package career in place of the normal career-loop paragraphs.
 
 ### Careers (22 fully encoded)
 
@@ -144,7 +203,7 @@ Military careers (Army, Marine, Navy, Confederation equivalents) display the cor
 - **Noble titles** — SOC 10–15 grants an Imperial title shown on the character sheet.
 - **Connections Rule** — Links this Traveller to another PC or NPC; each connection can grant +1 in any skill per GM approval.
 - **GM Mode** — Toggle to set any dice roll result manually.
-- **NPC generator** — One click produces a complete NPC via `/api/character/generate-npc`.
+- **NPC generator** — One click produces a complete NPC via `GET /api/character/generate-npc`. The generator rolls characteristics, applies a randomly chosen background package, then applies a randomly chosen career package (Noble filtered out if SOC < 10), with all finalising choices made randomly. Returns a fully fleshed character ready for use at the table.
 
 ### UI features
 
@@ -234,7 +293,9 @@ traveller-creator/
 │   │   ├── careers/                # 22 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
+│   │       ├── background_packages.json    # 12 background packages (alternative to skill picks)
 │   │       ├── background_skills.json
+│   │       ├── career_packages.json        # 17 career packages + finalising tables
 │   │       ├── education.json          # Pre-career track definitions
 │   │       ├── injury.json
 │   │       ├── life_events.json
@@ -344,7 +405,9 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/tables/education` | Pre-career education data |
 | `/api/tables/psionics` | Psionic talents table |
 | `/api/tables/skills` | Canonical skill list |
-| `/api/character/generate-npc` | Quick NPC stat block (GET) |
+| `/api/tables/background-packages` | Background package definitions |
+| `/api/tables/career-packages` | Career package definitions + finalising tables |
+| `/api/character/generate-npc` | Quick NPC stat block — background + career package, all random |
 
 ### Character creation (POST)
 
@@ -357,6 +420,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/apply-species` | Apply species modifiers and traits |
 | `/api/character/racial-background-roll` | Heritage Roll (2D) for Solomani sub-type |
 | `/api/character/background-skills` | Grant background skills at level 0 |
+| `/api/character/background-package` | Apply a background package in lieu of individual skill picks |
 | `/api/character/apply-skill-package` | Apply a skill package at finalization |
 
 ### Pre-career education (POST)
@@ -377,6 +441,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | Endpoint | Purpose |
 |---|---|
 | `/api/character/qualify` | Career qualification roll |
+| `/api/character/career-package` | Apply a career package (first career only; skips loop, goes to finalization) |
 | `/api/character/draft` | Draft roll after failed qualification |
 | `/api/character/start-term` | Begin a new term |
 | `/api/character/survive` | Survival roll |
@@ -439,7 +504,7 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `species_id` | Resolved species (after Heritage Roll for Solomani) |
 | `homeworld` / `homeworld_uwp` | Free-text homeworld name and UWP; shown in narrative and mission log |
 | `extra_characteristics` | Optional rolled stats (PSI, WLT, LCK, MRL, STY, TER) if the player chose to add them |
-| `pre_career_status` | Transient state during pre-career enrollment |
+| `pre_career_status` | Transient state during pre-career enrollment. When `track == "background_package"`, `outcome` holds the chosen package ID. |
 | `pre_career_permanent_dms` | Permanent DMs granted by pre-career education |
 | `current_term` | In-progress career term (includes `cover_career_id` for SolSec Secret Agent; `frozen_watch` for cryo terms) |
 | `term_history` | Every completed term with skills gained, events, survival, advancement |
@@ -458,6 +523,8 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `forced_next_career_id` | Set by events/education that mandate a specific next career |
 | `pending_transfer_career_id` | Career transfer offer from an event |
 | `banned_career_ids` | Careers permanently closed |
+| `career_package_id` | ID of the chosen career package, if one was taken instead of the normal career loop |
+| `career_package_taken` | `true` once a career package has been applied; prevents any further careers |
 | `good_fortune_benefit_dm` | DM tokens from Life Event 10, usable on benefit rolls |
 
 ---
