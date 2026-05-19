@@ -6338,6 +6338,50 @@ def convert_associate(character: Character, index: int, to_kind: str) -> dict:
 # NPC Auto-generation
 # ============================================================
 
+# Random specialty pools for cascade skills used in packages.
+_NPC_CASCADE_SPECS: dict[str, list[str]] = {
+    "Animals":       ["handling", "training", "veterinary"],
+    "Art":           ["performer", "holography", "write", "visual media", "instrument"],
+    "Athletics":     ["dexterity", "endurance", "strength"],
+    "Drive":         ["wheeled", "walker", "tracked", "hover", "mole"],
+    "Electronics":   ["computers", "comms", "sensors", "remote ops"],
+    "Engineer":      ["j-drive", "m-drive", "power", "life support"],
+    "Flyer":         ["grav", "ornithopter", "rotor", "winged"],
+    "Gun Combat":    ["slug", "archaic", "energy"],
+    "Gunner":        ["turret", "ortillery", "capital", "screens"],
+    "Heavy Weapons": ["man-portable", "vehicle", "artillery"],
+    "Language":      ["anglic", "vilani", "zdetl"],
+    "Melee":         ["blade", "bludgeon", "unarmed"],
+    "Pilot":         ["small craft", "spacecraft", "capital ships"],
+    "Profession":    ["merchant", "farmer", "hunter", "belter", "colonist"],
+    "Science":       ["physics", "chemistry", "biology", "robotics", "genetics", "xenology"],
+    "Seafarer":      ["ocean ships", "personal", "sail", "submarine"],
+    "Tactics":       ["military", "naval"],
+}
+
+
+def _npc_random_spec(skill_name: str, exclude: list[str] | None = None) -> str:
+    """Return a random specialty for a cascade skill, avoiding `exclude` entries."""
+    pool = [s for s in _NPC_CASCADE_SPECS.get(skill_name, ["general"])
+            if not exclude or s not in exclude]
+    return random.choice(pool) if pool else "general"
+
+
+def _npc_random_skill_choices(pkg: dict) -> dict[str, str]:
+    """Build random skill_choices dict for all 'any' skills in a package."""
+    choices: dict[str, str] = {}
+    used_per_name: dict[str, list[str]] = {}
+    for sk in pkg.get("skills", []):
+        if sk.get("any") and sk["level"] >= 1:
+            name = sk["name"]
+            key  = sk.get("key", name)
+            exclude = used_per_name.get(name, [])
+            spec = _npc_random_spec(name, exclude=exclude)
+            choices[key] = spec
+            used_per_name.setdefault(name, []).append(spec)
+    return choices
+
+
 def _npc_pick_career(character: "Character") -> str:
     """Score each complete career by the character's DM for its qualification stat."""
     all_careers = rules.careers()
@@ -6383,187 +6427,119 @@ def _npc_best_assignment(career: dict, character: "Character") -> str:
 
 
 def generate_npc() -> dict:
-    """Generate a complete NPC character automatically.
+    """Generate a complete NPC character automatically using background + career packages.
 
-    Rolls characteristics, picks the most suitable career, runs 2-4 terms,
-    then mustering out — all server-side with no player interaction.
+    1. Rolls characteristics.
+    2. Applies a random background package (filters Noble for low SOC).
+    3. Applies a random career package with random finalising choices.
+    4. Sets phase = 'done'.
     """
     char = Character()
 
-    # ── Characteristics
+    # ── Characteristics ───────────────────────────────────────────────────
     for stat, val in dice.roll_characteristics().items():
         setattr(char.characteristics, stat, val)
 
-    # ── Species: Imperial Human (no modifiers, but apply traits)
+    # ── Species: Imperial Human ───────────────────────────────────────────
     sp = rules.species().get("imperial_human", {})
     char.species_id = "imperial_human"
-    char.traits = sp.get("traits", [])
-    char.phase = "background"
+    char.traits     = sp.get("traits", [])
+    char.phase      = "background"
 
-    # ── Background skills (3 + EDU DM, min 1)
-    edu_dm = dice.characteristic_dm(char.characteristics.EDU)
-    bg_count = max(1, 3 + edu_dm)
-    bg = rules.background_skills()
-    for sk in list(bg.get("skills", []))[:bg_count]:
-        char.add_skill(sk, level=0)
+    # ── Background package (random) ───────────────────────────────────────
+    bg_packages = rules.background_packages()
+    eligible_bg = [
+        pkg for pkg in bg_packages.values()
+        if not (pkg.get("min_soc") and char.characteristics.SOC < pkg["min_soc"])
+    ]
+    bg_pkg = random.choice(eligible_bg)
+    bg_skill_choices = _npc_random_skill_choices(bg_pkg)
 
-    char.phase = "career"
+    # apply_background_package expects phase == "background"
+    apply_background_package(char, bg_pkg["id"], skill_choices=bg_skill_choices)
+    # phase is now "career"
 
-    # ── Career selection
-    career_id = _npc_pick_career(char)
-    career = rules.careers()[career_id]
-    assignment_id = _npc_best_assignment(career, char)
-    char.log(f"NPC: Selected {career['name']} / {assignment_id}")
+    # ── Career package (random, weighted by stat fit) ─────────────────────
+    cp_data   = rules.career_packages()
+    cp_pkgs   = cp_data.get("packages", {})
+    cp_fin    = cp_data.get("finalising", {})
 
-    # ── Basic training: all service skills at level 0
-    # Grant all service skills at level 0 (basic training).
-    service_table = career.get("skill_tables", {}).get("service_skills", {})
-    for i in range(1, 7):
-        sk = service_table.get(str(i), "").split(" or ")[0].strip()
-        if sk and not re.match(r"^(STR|DEX|END|INT|EDU|SOC)\s*[+-]", sk):
-            sn, spec = _split_skill_speciality(sk)
-            char.add_skill(sn, level=0, speciality=spec)
+    eligible_cp = [
+        pkg for pkg in cp_pkgs.values()
+        if not (pkg.get("min_soc") and char.characteristics.SOC < pkg["min_soc"])
+    ]
+    cp_pkg = random.choice(eligible_cp)
+    cp_skill_choices = _npc_random_skill_choices(cp_pkg)
 
-    # ── Run terms
-    num_terms = random.randint(2, 4)
-    assignment = career["assignments"][assignment_id]
-    surv_cfg = assignment["survival"]
-    adv_cfg = assignment["advancement"]
+    # ── Finalising — CAREER choice (random) ──────────────────────────────
+    career_choices = [opt["id"] for opt in cp_fin.get("career", [])]
+    career_choice  = random.choice(career_choices) if career_choices else "rank_4_only"
 
-    for term_num in range(1, num_terms + 1):
-        overall_num = char.total_terms + 1
-        term = CareerTerm(
-            career_id=career_id,
-            assignment_id=assignment_id,
-            term_number=term_num,
-            overall_term_number=overall_num,
-        )
-        char.current_term = term
+    career_skill           = None
+    career_skill_speciality = None
+    career_3skills: list[dict] = []
 
-        # One service skill roll
-        r = dice.roll("1D")
-        sk_result = service_table.get(str(r.total), "")
-        if sk_result:
-            applied = _apply_skill_result(char, sk_result)
-            term.skills_gained.append(f"Service: {sk_result}")
-
-        # Survival
-        surv_dm = dice.characteristic_dm(
-            getattr(char.characteristics, surv_cfg["characteristic"], 7)
-        )
-        surv_roll = dice.roll("2D", modifier=surv_dm, target=surv_cfg["target"])
-        term.survived = bool(surv_roll.succeeded)
-        term.survival_roll_total = surv_roll.total
-
-        if not surv_roll.succeeded:
-            # Mishap — auto-apply safe effects, end career
-            mishap_r = dice.roll("1D")
-            mishap_num = mishap_r.total
-            mishap_text = career.get("mishaps", {}).get(str(mishap_num), "Mishap.")
-            term.mishap = mishap_text
-            char.log(f"NPC Mishap [1D={mishap_num}]: {mishap_text}")
-            effects = _MISHAP_EFFECTS.get(career_id, {}).get(mishap_num, [])
-            for eff in effects:
-                if eff["type"] in ("enemy", "rival", "contact", "ally", "stat", "skill",
-                                   "forfeit_benefit", "debt", "d_associates"):
-                    _apply_mishap_effect(char, eff, term)
-            # Light auto-injury for result 1/6 mishaps
-            if any(e["type"] in ("injury", "injury_severity_choice") for e in effects):
-                inj = _apply_injury_for_result(char, 5)  # result 5 = lose 1 physical
-                if char.pending_injury_choice:
-                    resolve_injury_choice(char, char.pending_injury_choice["choices"][0])
-                # NPC always takes the stat loss (no medical debt negotiation)
-                if char.pending_injury_treatment_choice:
-                    resolve_injury_payment(char, pay=False)
-            # End career via mishap
-            char.age += 4
-            char.total_terms += 1
-            char.term_history.append(term)
-            char.current_term = None
-            terms_in_career = sum(1 for h in char.term_history if h.career_id == career_id)
-            rank_bonus = _benefit_rolls_from_rank(term.rank)
-            earned = max(0, terms_in_career + rank_bonus - (1 if term.benefit_forfeited else 0))
-            char.pending_benefit_rolls += earned
-            char.completed_careers.append(CareerRecord(
-                career_id=career_id, assignment_id=assignment_id,
-                terms_served=terms_in_career, final_rank=term.rank,
-                final_rank_title=term.rank_title, left_due_to="mishap",
-            ))
-            break
-
-        # Event (auto-apply safe effects only)
-        events_table = career.get("events", {})
-        ev_r = dice.roll("2D")
-        ev_text = events_table.get(str(ev_r.total), "")
-        if ev_text:
-            term.events.append(ev_text)
-            _apply_event_dms(char, ev_text)
-            _apply_event_stat_bonuses(char, ev_text)
-            _apply_event_auto_promotion(char, ev_text)
-            # Life event sub-roll — route to career-appropriate table.
-            if ev_text.lower().startswith("life event"):
-                life_r = dice.roll("2D")
-                life_table_data = rules.life_events_for_career(term.career_id)
-                life_data = life_table_data["entries"].get(str(life_r.total))
-                if life_data:
-                    term.events[-1] += f" — {life_data['title']}: {life_data['text']}"
-
-        # Advancement
-        adv_dm = dice.characteristic_dm(
-            getattr(char.characteristics, adv_cfg["characteristic"], 7)
-        )
-        adv_dm += char.dm_next_advancement
-        char.dm_next_advancement = 0
-        adv_roll = dice.roll("2D", modifier=adv_dm, target=adv_cfg["target"])
-        term.advanced = bool(adv_roll.succeeded)
-        if adv_roll.succeeded:
-            term.rank += 1
-            term.rank_title = _rank_title(career, assignment_id, term.rank, commissioned=term.commissioned)
-            rd = _rank_data(career, assignment_id, term.rank, commissioned=term.commissioned)
-            if rd and rd.get("bonus"):
-                _apply_skill_result(char, rd["bonus"])
-                term.skills_gained.append(f"Rank bonus: {rd['bonus']}")
-
-        # End term
-        char.age += 4
-        char.total_terms += 1
-        char.term_history.append(term)
-        char.current_term = None
-
-    # ── Finalise career (if not already ended by mishap)
-    if not char.completed_careers:
-        terms_in_career = sum(1 for h in char.term_history if h.career_id == career_id)
-        rank_bonus = _benefit_rolls_from_rank(
-            char.term_history[-1].rank if char.term_history else 0
-        )
-        char.pending_benefit_rolls += terms_in_career + rank_bonus
-        final_term = char.term_history[-1] if char.term_history else None
-        char.completed_careers.append(CareerRecord(
-            career_id=career_id, assignment_id=assignment_id,
-            terms_served=terms_in_career,
-            final_rank=final_term.rank if final_term else 0,
-            final_rank_title=final_term.rank_title if final_term else None,
-            left_due_to="voluntary",
-        ))
-
-    # ── Muster out: roll all pending benefit rolls (max 3 cash rolls)
-    muster_table = career.get("mustering_out", {})
-    max_entries = len(muster_table)
-    while char.pending_benefit_rolls > 0:
-        char.pending_benefit_rolls -= 1
-        r = min(dice.roll("1D").total, max_entries)
-        entry = muster_table.get(str(r), {})
-        if isinstance(entry, dict):
-            if char.cash_rolls_used < 3:
-                char.credits += entry.get("cash", 0)
-                char.cash_rolls_used += 1
+    if career_choice == "boost_one_to_4":
+        # Pick a random skill from the package at level 1+
+        eligible_boost = [sk for sk in cp_pkg["skills"] if sk["level"] >= 1]
+        if eligible_boost:
+            pick = random.choice(eligible_boost)
+            career_skill = pick["name"]
+            # Resolve the speciality that was actually assigned
+            if pick.get("any"):
+                key = pick.get("key", pick["name"])
+                career_skill_speciality = cp_skill_choices.get(key)
             else:
-                benefit = entry.get("benefit", "")
-                if benefit:
-                    _apply_skill_result(char, benefit)
+                career_skill_speciality = pick.get("speciality")
+
+    elif career_choice == "boost_three_by_1":
+        # Pick 3 distinct skills from the package
+        pool = list(cp_pkg["skills"])
+        random.shuffle(pool)
+        for pick in pool[:3]:
+            spec = None
+            if pick.get("any"):
+                key  = pick.get("key", pick["name"])
+                spec = cp_skill_choices.get(key)
+            else:
+                spec = pick.get("speciality")
+            career_3skills.append({"name": pick["name"], "speciality": spec})
+
+    # ── Finalising — TRAVELLER SKILLS (random) ────────────────────────────
+    ts_pairs = cp_fin.get("traveller_skills", [])
+    ts_pair  = random.choice(ts_pairs) if ts_pairs else {"id": 1, "skills": []}
+    traveller_pair_id = ts_pair["id"]
+    traveller_specialties: dict[str, str] = {}
+    for ts_sk in ts_pair.get("skills", []):
+        if ts_sk.get("any"):
+            key  = ts_sk.get("key", ts_sk["name"])
+            spec = _npc_random_spec(ts_sk["name"])
+            traveller_specialties[key] = spec
+
+    # ── Finalising — BENEFIT (random) ─────────────────────────────────────
+    benefits = cp_fin.get("benefits", [])
+    benefit_id = random.choice(benefits)["id"] if benefits else 1
+
+    # ── Apply career package ──────────────────────────────────────────────
+    apply_career_package(
+        char,
+        package_id=cp_pkg["id"],
+        skill_choices=cp_skill_choices,
+        career_choice=career_choice,
+        career_skill=career_skill,
+        career_skill_speciality=career_skill_speciality,
+        career_3skills=career_3skills,
+        traveller_pair_id=traveller_pair_id,
+        traveller_specialties=traveller_specialties,
+        benefit_id=benefit_id,
+    )
+    # phase is now "skill_package" — skip it for NPC
 
     char.phase = "done"
-    char.log(f"NPC generation complete. Age {char.age}, {char.total_terms} terms.")
+    char.log(
+        f"NPC generation complete — background: {bg_pkg['name']}, "
+        f"career: {cp_pkg['name']}, age {char.age}."
+    )
     return {"character": char.model_dump()}
 
 
