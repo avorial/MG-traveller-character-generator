@@ -1,0 +1,169 @@
+{
+  "packages": {
+    "belter": {
+      "id": "belter",
+      "name": "Belter",
+      "description": "Early years in a belter community, remote outpost on a gas giant moon, or undeveloped rockball planet.",
+      "stat_mods": { "STR": -1, "DEX": 1 },
+      "skills": [
+        { "name": "Profession",         "speciality": "belter",  "level": 2 },
+        { "name": "Jack-of-All-Trades",                          "level": 1 },
+        { "name": "Vacc Suit",                                   "level": 1 },
+        { "name": "Astrogation",                                 "level": 0 },
+        { "name": "Carouse",                                     "level": 0 },
+        { "name": "Electronics",                                 "level": 0 },
+        { "name": "Mechanic",                                    "level": 0 },
+        { "name": "Medic",                                       "level": 0 },
+        { "name": "Recon",                                       "level": 0 },
+        { "name": "Science",                                     "level": 0 }
+      ],
+      "credits": 2500,
+      "equipment": ["Vacc Suit"]
+    },
+
+    "colonist": {
+      "id": "colonist",
+      "name": "Colonist",
+      "description": "Hailing from a frontier world or underdeveloped region. Tough and resourceful, relying on themselves in a harsh environment.",
+      "stat_mods": { "END": 1, "EDU": -1 },
+      "skills": [
+        { "name": "Survival",                                    "level": 2 },
+        { "name": "Athletics",           "speciality": "strength","level": 1 },
+        { "name": "Jack-of-All-Trades",                          "level": 1 },
+        { "name": "Gun Combat",          "speciality": "slug",    "level": 1 },
+        { "name": "Drive",                                       "level": 0 },
+        { "name": "Mechanic",                                    "level": 0 },
+        { "name": "Medic",                                       "level": 0 },
+        { "name": "Navigation",                                  "level": 0 },
+        { "name": "Profession",                                  "level": 0 },
+        { "name": "Recon",                                       "level": 0 }
+      ],
+      "credits": 5000,
+      "equipment": ["Rifle or Carbine"]
+    },
+
+    "developed_world": {
+      "id": "developed_world",
+      "name": "Developed World",
+      "description": "Grew up in a relatively civilised environment such as a city on a mid- or high-tech world.",
+      "stat_mods": { "EDU": 1 },
+      "skills": [
+        { "name": "Admin",                                                       "level": 1 },
+        { "name": "Electronics", "any": true, "options": ["Comms","Computers"], "level": 1 },
+        { "name": "Profession",  "any": true,                                   "level": 1 },
+        { "name": "Drive",       "speciality": "wheel",                         "level": 1 },
+        { "name": "Science",     "any": true,                                   "level": 1 },
+        { "name": "Art",                                                         "level": 0 },
+        { "name": "Advocate",                                                    "level": 0 },
+        { "name": "Diplomat",                                                    "level": 0 },
+        { "name": "Flyer",                                                       "level": 0 },
+        { "name": "Streetwise",                                                  "level": 0 }
+      ],
+      "credits": 10000,
+      "equipment": ["Portable Computer"]
+    },
+
+    "fringe": {
+      "id": "fringe",
+      "name": "Fringe",
+      "description": "Grew up on the fringes of a mid- or high-tech society where crime and violence are common.",
+      "stat_mods": { "DEX": 1, "EDU": -2, "SOC": -2 },
+      "skills": [
+        { "name": "Streetwise",                                  "level": 2 },
+        { "name": "Athletics",  "speciality": "dexterity",       "level": 1 },
+        { "name": "Deception",                                   "level": 1 },
+        { "name": "Melee",      "speciality": "unarmed",         "level": 1 },
+        { "name": "Gambler",                                     "level": 0 },
+        { "name": "Gun Combat",                                  "level": 0 },
+        { "name": "Recon",                                       "level": 0 },
+        { "name": "Stealth",                                     "level": 0 }
+      ],
+      "credits": 1000,
+      "equipment": ["Blade"]
+    },
+
+    "low_tech": {
+      "id": "low_tech",
+      "name": "Low-Tech",
+      "description": "Grew up in a TL3 or lower society. Tough and resilient, unlikely to have received a formal education.",
+      "stat_mods": { "END": 2, "EDU": -3 },
+      "skills": [
+        { "name": "Language",   "speciality": "local dialect",   "level": 2 },
+        { "name": "Profession", "any": true,                     "level": 2 },
+        { "name": "Survival",                                    "level": 1 },
+        { "name": "Animals",    "any": true,                     "level": 1 },
+        { "name": "Athletics",                                   "level": 0 },
+        { "name": "Carouse",                                     "level": 0 },
+        { "name": "Gun Combat", "speciality": "archaic",         "level": 1 },
+        { "name": "Melee",      "any": true, "options": ["Blade","Bludgeon","Natural","Unarmed"], "level": 1 },
+        { "name": "Navigation",                                  "level": 0 },
+        { "name": "Recon",                                       "level": 0 },
+        { "name": "Steward",                                     "level": 0 },
+        { "name": "Streetwise",                                  "level": 0 }
+      ],
+      "credits": 5000,
+      "equipment": ["Blade, Club or Dagger (choose one)"]
+    },
+
+    "metropolis": {
+      "id": "metropolis",
+      "name": "Metropolis",
+      "description": "Grew up in a high population density environment. Better educated but less physically fit.",
+      "stat_mods": { "STR": -1, "EDU": 2, "END": -1 },
+      "skills": [
+        { "name": "Profession",  "any": true,                                   "level": 2 },
+        { "name": "Admin",                                                       "level": 1 },
+        { "name": "Diplomat",                                                    "level": 1 },
+        { "name": "Electronics", "any": true, "options": ["Comms","Computers"], "level": 1 },
+        { "name": "Streetwise",                                                  "level": 1 },
+        { "name": "Advocate",                                                    "level": 0 },
+        { "name": "Broker",                                                      "level": 0 },
+        { "name": "Carouse",                                                     "level": 0 },
+        { "name": "Drive",                                                       "level": 0 }
+      ],
+      "credits": 10000,
+      "equipment": ["Portable Computer"]
+    },
+
+    "space_habitat": {
+      "id": "space_habitat",
+      "name": "Space Habitat",
+      "description": "Grew up in an orbital city, aboard a starship, or at a highport.",
+      "stat_mods": { "DEX": 1, "EDU": 1, "END": -1 },
+      "skills": [
+        { "name": "Athletics",   "speciality": "dexterity",      "level": 1 },
+        { "name": "Electronics", "any": true,                    "level": 1 },
+        { "name": "Engineer",    "speciality": "life support",   "level": 1 },
+        { "name": "Profession",  "any": true,                    "level": 1 },
+        { "name": "Admin",                                        "level": 0 },
+        { "name": "Astrogation",                                  "level": 0 },
+        { "name": "Mechanic",                                     "level": 0 },
+        { "name": "Science",                                      "level": 0 },
+        { "name": "Steward",                                      "level": 0 },
+        { "name": "Vacc Suit",                                    "level": 0 }
+      ],
+      "credits": 5000,
+      "equipment": ["Vacc Suit"]
+    },
+
+    "water_world": {
+      "id": "water_world",
+      "name": "Water World",
+      "description": "Grew up on a very wet world (Hydrographics 9–A), in contact with its natural maritime environment.",
+      "stat_mods": { "END": 1 },
+      "skills": [
+        { "name": "Seafarer",   "any": true,                     "level": 2 },
+        { "name": "Navigation",                                  "level": 1 },
+        { "name": "Profession", "any": true,                     "level": 1 },
+        { "name": "Recon",                                       "level": 1 },
+        { "name": "Admin",                                       "level": 0 },
+        { "name": "Athletics",                                   "level": 0 },
+        { "name": "Carouse",                                     "level": 0 },
+        { "name": "Electronics",                                 "level": 0 },
+        { "name": "Survival",                                    "level": 0 }
+      ],
+      "credits": 5000,
+      "equipment": []
+    }
+  }
+}

@@ -230,6 +230,7 @@ const CASCADE_SKILLS = {
 const STORAGE_KEY = 'traveller-character-v1';
 
 let SKILL_PACKAGES = {};
+let BG_PACKAGES = {};   // background_packages.json — loaded async in bootstrap
 let CAREER_DATA = {};  // full career JSON (loaded async in bootstrap)
 
 let character = null;
@@ -266,6 +267,10 @@ let uiState = {
   basicTrainingSkills: null,
   // Skill package selection (post mustering-out).
   skillPackageApplied: false,
+  // Background package picker
+  bgPackageMode: false,         // true → show package picker instead of skill chips
+  selectedBgPackage: null,      // package id currently highlighted
+  bgPackageSkillChoices: {},    // { skillName: chosenSpeciality }  for "any" skills
   // Optional extra characteristics panel
   extraStatsEnabled: false,
   extraStatsSelected: new Set(),   // which ids are checked
@@ -1889,6 +1894,8 @@ function wireSpeciesPhase() {
 // ============================================================
 
 function renderBackgroundPhase() {
+  if (uiState.bgPackageMode) return renderBgPackagePicker();
+
   const eduDm = charDM(character.characteristics.EDU);
   const allowed = Math.max(0, eduDm + 3);
   const selected = uiState.selectedBgSkills;
@@ -1956,11 +1963,23 @@ function renderBackgroundPhase() {
           SKIP (NO SKILLS)
         </button>
       </div>
+
+      <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">
+        <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
+          — OR —<br>
+          Replace education skills <em>and</em> pre-career education entirely with a <strong style="color:var(--amber)">Background Package</strong>.
+          Your age advances to 22 and you proceed directly to careers.
+        </p>
+        <button class="btn btn-use-package" id="btn-use-bg-package">
+          USE BACKGROUND PACKAGE INSTEAD
+        </button>
+      </div>
     </div>
   `;
 }
 
 function wireBackgroundPhase() {
+  if (uiState.bgPackageMode) { wireBgPackagePicker(); return; }
   document.querySelectorAll('[data-skill]').forEach(chip => {
     chip.addEventListener('click', () => {
       const skill = chip.dataset.skill;
@@ -2015,6 +2034,16 @@ function wireBackgroundPhase() {
     saveCharacter();
     renderAll();
   });
+
+  const usePkgBtn = document.getElementById('btn-use-bg-package');
+  if (usePkgBtn) {
+    usePkgBtn.addEventListener('click', () => {
+      uiState.bgPackageMode = true;
+      uiState.selectedBgPackage = null;
+      uiState.bgPackageSkillChoices = {};
+      renderStage();
+    });
+  }
   document.getElementById('btn-confirm-bg').addEventListener('click', async () => {
     const chosen = Array.from(uiState.selectedBgSkills);
     try {
@@ -2029,6 +2058,174 @@ function wireBackgroundPhase() {
       const response = await apiCall('/api/character/background-skills', { chosen: [] });
       await applyResponse(response);
       renderAll();
+    });
+  }
+}
+
+// ============================================================
+// Background Package Picker (alternative to background skills)
+// ============================================================
+
+function renderBgPackagePicker() {
+  const packages = Object.values(BG_PACKAGES);
+  const selId    = uiState.selectedBgPackage;
+  const choices  = uiState.bgPackageSkillChoices || {};
+
+  // Stat-mod badge helper
+  function fmtMods(mods) {
+    const parts = Object.entries(mods || {}).map(([s, v]) => `${s}${v > 0 ? '+' : ''}${v}`);
+    return parts.length ? parts.join('  ') : 'no stat changes';
+  }
+
+  const cards = packages.map(pkg => {
+    const isSelected = pkg.id === selId;
+    const leveledSkills = pkg.skills
+      .filter(sk => sk.level > 0)
+      .map(sk => {
+        let n = sk.name;
+        if (sk.speciality) n += ` (${sk.speciality})`;
+        else if (sk.any || sk.options) n += ' (any)';
+        return `${n}-${sk.level}`;
+      }).join(', ');
+    const zeroSkills = pkg.skills.filter(sk => sk.level === 0).map(sk => sk.name).join(', ');
+    const equip = (pkg.equipment || []).filter(Boolean).join(', ');
+
+    return `
+      <div class="bg-pkg-card ${isSelected ? 'selected' : ''}" data-pkg-id="${pkg.id}">
+        <div class="bg-pkg-name">${pkg.name}</div>
+        <div class="bg-pkg-stats">${fmtMods(pkg.stat_mods)}</div>
+        <div class="bg-pkg-skills">${leveledSkills || '—'}</div>
+        ${zeroSkills ? `<div class="bg-pkg-zero">Level 0: ${zeroSkills}</div>` : ''}
+        <div class="bg-pkg-benefits">Cr${(pkg.credits || 0).toLocaleString()}${equip ? ' · ' + equip : ''}</div>
+      </div>`;
+  }).join('');
+
+  // Specialty pickers for the selected package
+  let specialtySection = '';
+  if (selId && BG_PACKAGES[selId]) {
+    const anySkills = BG_PACKAGES[selId].skills.filter(sk => sk.any || (sk.options && sk.options.length));
+    if (anySkills.length > 0) {
+      const pickers = anySkills.map(sk => {
+        const cur = choices[sk.name] || '';
+        const opts = sk.options && sk.options.length ? sk.options : (CASCADE_SKILLS[sk.name] || []);
+        let inputHtml;
+        if (opts.length > 0) {
+          const btnRow = opts.map(o =>
+            `<button class="skill-chip ${cur.toLowerCase() === o.toLowerCase() ? 'selected' : ''}"
+               data-pkg-spec-skill="${escapeHTML(sk.name)}"
+               data-pkg-spec-value="${escapeHTML(o)}">${escapeHTML(o)}</button>`
+          ).join('');
+          inputHtml = `<div class="pkg-spec-chips">${btnRow}</div>`;
+        } else {
+          inputHtml = `<input class="pkg-spec-input" type="text"
+            placeholder="Enter speciality…"
+            data-pkg-spec-skill="${escapeHTML(sk.name)}"
+            value="${escapeHTML(cur)}">`;
+        }
+        return `<div class="pkg-spec-row">
+          <span class="pkg-spec-label">${escapeHTML(sk.name)}${sk.options ? ' (' + sk.options.join('/') + ')' : ' (any)'}:</span>
+          ${inputHtml}
+        </div>`;
+      }).join('');
+      specialtySection = `
+        <div class="pkg-specialty-section">
+          <h4>Choose specialities for this package</h4>
+          ${pickers}
+        </div>`;
+      // All choices made?
+      const allDone = anySkills.every(sk => (choices[sk.name] || '').trim());
+      if (!allDone) specialtySection += ''; // confirm button stays disabled
+    }
+  }
+
+  // Can we confirm?
+  const anySkillsForSel = selId && BG_PACKAGES[selId]
+    ? BG_PACKAGES[selId].skills.filter(sk => sk.any || (sk.options && sk.options.length))
+    : [];
+  const canConfirm = selId && anySkillsForSel.every(sk => (choices[sk.name] || '').trim());
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 03 — BACKGROUND PACKAGE</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Adolescence · Pre-Career</div>
+      <h2 class="phase-title">Background Package</h2>
+      <p class="phase-subtitle">Pick a package that matches your upbringing. Your age advances to <strong>22</strong> and pre-career education is skipped.</p>
+      <div class="bg-pkg-grid">${cards}</div>
+      ${specialtySection}
+      <div class="phase-actions">
+        <button class="btn ghost" id="btn-pkg-back">← BACK TO SKILLS</button>
+        <button class="btn primary" id="btn-pkg-confirm" ${canConfirm ? '' : 'disabled'}>
+          CONFIRM PACKAGE →
+        </button>
+      </div>
+    </div>`;
+}
+
+function wireBgPackagePicker() {
+  // Package card selection
+  document.querySelectorAll('[data-pkg-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.pkgId;
+      if (uiState.selectedBgPackage !== id) {
+        uiState.selectedBgPackage = id;
+        uiState.bgPackageSkillChoices = {};
+      }
+      renderStage();
+    });
+  });
+
+  // Specialty chip selection
+  document.querySelectorAll('[data-pkg-spec-skill][data-pkg-spec-value]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const skill = btn.dataset.pkgSpecSkill;
+      const val   = btn.dataset.pkgSpecValue;
+      uiState.bgPackageSkillChoices[skill] = val;
+      renderStage();
+    });
+  });
+
+  // Specialty free-text inputs
+  document.querySelectorAll('.pkg-spec-input[data-pkg-spec-skill]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      uiState.bgPackageSkillChoices[inp.dataset.pkgSpecSkill] = inp.value;
+    });
+    inp.addEventListener('change', () => renderStage());
+  });
+
+  // Back button
+  const backBtn = document.getElementById('btn-pkg-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      uiState.bgPackageMode = false;
+      uiState.selectedBgPackage = null;
+      uiState.bgPackageSkillChoices = {};
+      renderStage();
+    });
+  }
+
+  // Confirm button
+  const confirmBtn = document.getElementById('btn-pkg-confirm');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+      const pkgId   = uiState.selectedBgPackage;
+      const choices = uiState.bgPackageSkillChoices || {};
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'APPLYING…';
+      try {
+        const response = await apiCall('/api/character/background-package', {
+          package_id: pkgId,
+          skill_choices: choices,
+        });
+        uiState.bgPackageMode = false;
+        uiState.selectedBgPackage = null;
+        uiState.bgPackageSkillChoices = {};
+        await applyResponse(response);
+        renderAll();
+      } catch (e) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'CONFIRM PACKAGE →';
+        alert(e.message);
+      }
     });
   }
 }
@@ -7544,6 +7741,11 @@ async function bootstrap() {
       const pkgData = await pkgRes.json();
       SKILL_PACKAGES = pkgData.packages || {};
     }
+  } catch (e) { /* non-fatal */ }
+
+  try {
+    const bgPkgRes = await fetch('/api/tables/background-packages');
+    if (bgPkgRes.ok) BG_PACKAGES = await bgPkgRes.json();
   } catch (e) { /* non-fatal */ }
 
   // Apply saved theme before first paint

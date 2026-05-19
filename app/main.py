@@ -71,6 +71,11 @@ class BackgroundSkillsAction(CharacterAction):
     chosen: list[str]
 
 
+class BackgroundPackageAction(CharacterAction):
+    package_id: str
+    skill_choices: dict[str, str] = {}
+
+
 class SwapStatsAction(CharacterAction):
     stat_a: str
     stat_b: str
@@ -354,6 +359,22 @@ async def api_background_skills_set(action: BackgroundSkillsAction):
         return lifepath.set_background_skills(character, action.chosen)
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/background-package")
+async def api_background_package(action: BackgroundPackageAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.apply_background_package(
+            character, action.package_id, action.skill_choices
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/tables/background-packages")
+async def api_background_packages_table():
+    return rules.background_packages()
 
 
 @app.post("/api/character/apply-skill-package")

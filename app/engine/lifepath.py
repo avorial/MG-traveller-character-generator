@@ -885,6 +885,88 @@ def set_background_skills(character: Character, chosen: list[str]) -> dict:
     return {"allowed": allowed_count, "chosen": chosen, "character": character.model_dump()}
 
 
+def apply_background_package(
+    character: Character,
+    package_id: str,
+    skill_choices: dict[str, str] | None = None,
+) -> dict:
+    """
+    Apply a Traveller Companion background package instead of education skills
+    and pre-career education.  Sets age to 22, grants all package skills,
+    applies stat modifiers, adds starting credits and equipment, then
+    transitions directly to the career phase.
+
+    skill_choices maps skill name → chosen speciality for any skills marked
+    "any": true in the JSON (e.g. {"Profession": "merchant", "Science": "physics"}).
+    """
+    if character.phase != "background":
+        raise ValueError(f"Background packages can only be chosen during the background phase (currently: {character.phase})")
+
+    packages = rules.background_packages()
+    pkg = packages.get(package_id)
+    if pkg is None:
+        raise ValueError(f"Unknown background package: {package_id!r}")
+
+    if skill_choices is None:
+        skill_choices = {}
+
+    # ── Stat modifiers ────────────────────────────────────────────────────────
+    for stat, mod in pkg.get("stat_mods", {}).items():
+        current = getattr(character.characteristics, stat, 0)
+        setattr(character.characteristics, stat, max(1, current + mod))
+
+    # ── Skills ────────────────────────────────────────────────────────────────
+    for sk in pkg["skills"]:
+        name  = sk["name"]
+        level = sk["level"]
+        spec  = sk.get("speciality")
+
+        if sk.get("any"):
+            chosen_spec = skill_choices.get(name, "").strip()
+            if not chosen_spec:
+                raise ValueError(f"No speciality chosen for {name} (any) in package '{pkg['name']}'")
+            spec = chosen_spec.lower()
+        elif sk.get("options"):
+            chosen_spec = skill_choices.get(name, "").strip()
+            if not chosen_spec:
+                raise ValueError(f"No speciality chosen for {name} in package '{pkg['name']}'")
+            allowed = [o.lower() for o in sk["options"]]
+            if chosen_spec.lower() not in allowed:
+                raise ValueError(f"Invalid speciality '{chosen_spec}' for {name} — must be one of {sk['options']}")
+            spec = chosen_spec.lower()
+
+        character.add_skill(name, level=level, speciality=spec)
+
+    # ── Credits & equipment ───────────────────────────────────────────────────
+    credit_bonus = pkg.get("credits", 0)
+    character.credits += credit_bonus
+
+    for item_name in pkg.get("equipment", []):
+        if item_name:
+            character.equipment.append(Equipment(name=item_name))
+
+    # ── Age & phase ───────────────────────────────────────────────────────────
+    character.age = 22
+    character.pre_career_terms = 1          # counts as one pre-career block
+    character.pre_career_status = {
+        "track": "background_package",
+        "stage": "completed",
+        "outcome": package_id,
+    }
+
+    stat_parts = [
+        f"{s}{'+' if v > 0 else ''}{v}"
+        for s, v in pkg.get("stat_mods", {}).items()
+    ]
+    character.log(
+        f"Background Package — {pkg['name']}: "
+        f"{'  '.join(stat_parts) or 'no stat changes'}  |  Cr{credit_bonus:,} starting credits"
+    )
+    character.phase = "career"
+
+    return {"character": character.model_dump()}
+
+
 # ============================================================
 # Phase 1.5: Pre-career education (optional)
 # ============================================================
