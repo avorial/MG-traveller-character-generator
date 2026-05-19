@@ -2646,3 +2646,162 @@ body.gm-mode #btn-gm-mode {
 .btn-use-package:hover {
   background: color-mix(in srgb, var(--amber) 12%, transparent);
 }
+
+/* ============================================================
+   Career Package UI
+   ============================================================ */
+
+/* Banner on the career picker */
+.cp-banner {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--amber) 5%, transparent);
+}
+.cp-banner-text {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 180px;
+}
+.cp-banner-text strong {
+  color: var(--amber);
+}
+
+/* Package picker grid */
+.cp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.cp-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.cp-card:hover:not(.cp-card-locked) {
+  border-color: var(--amber-dim);
+  background: var(--bg-panel-alt);
+}
+.cp-card.selected {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 8%, var(--bg-panel));
+}
+.cp-card-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cp-card-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.cp-card-stats {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--amber-dim);
+  margin-bottom: 4px;
+}
+.cp-card-desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.cp-card-benefits {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.cp-card-lock {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 8px;
+  color: var(--danger);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+/* Finalising panels */
+.cp-fin-section {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 14px;
+  background: var(--bg-panel-alt);
+}
+.cp-fin-heading {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--amber);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cp-fin-option {
+  display: block;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--bg-panel);
+  transition: border-color 0.12s, background 0.12s;
+}
+.cp-fin-option:hover {
+  border-color: var(--amber-dim);
+}
+.cp-fin-option.selected {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 6%, var(--bg-panel));
+}
+.cp-fin-option input[type="radio"] {
+  margin-right: 8px;
+  accent-color: var(--amber);
+}
+.cp-fin-label {
+  display: inline;
+  font-size: 11px;
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+.cp-fin-desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  padding-left: 20px;
+}
+.cp-fin-select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+.cp-ts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px;
+}

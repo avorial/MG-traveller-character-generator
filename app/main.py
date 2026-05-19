@@ -76,6 +76,18 @@ class BackgroundPackageAction(CharacterAction):
     skill_choices: dict[str, str] = {}
 
 
+class CareerPackageAction(CharacterAction):
+    package_id: str
+    skill_choices: dict[str, str] = {}
+    career_choice: str = "rank_4_only"
+    career_skill: str | None = None
+    career_skill_speciality: str | None = None
+    career_3skills: list[dict] = []
+    traveller_pair_id: int = 1
+    traveller_specialties: dict[str, str] = {}
+    benefit_id: int = 1
+
+
 class SwapStatsAction(CharacterAction):
     stat_a: str
     stat_b: str
@@ -375,6 +387,31 @@ async def api_background_package(action: BackgroundPackageAction):
 @app.get("/api/tables/background-packages")
 async def api_background_packages_table():
     return rules.background_packages()
+
+
+@app.post("/api/character/career-package")
+async def api_career_package(action: CareerPackageAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.apply_career_package(
+            character,
+            package_id=action.package_id,
+            skill_choices=action.skill_choices,
+            career_choice=action.career_choice,
+            career_skill=action.career_skill,
+            career_skill_speciality=action.career_skill_speciality,
+            career_3skills=action.career_3skills,
+            traveller_pair_id=action.traveller_pair_id,
+            traveller_specialties=action.traveller_specialties,
+            benefit_id=action.benefit_id,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/tables/career-packages")
+async def api_career_packages_table():
+    return rules.career_packages()
 
 
 @app.post("/api/character/apply-skill-package")

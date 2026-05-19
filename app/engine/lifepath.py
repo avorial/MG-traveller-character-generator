@@ -532,11 +532,19 @@ def generate_capsule(character: Character) -> dict:
     terms = character.total_terms
     years = terms * 4
 
+    _cp_packages = (rules.career_packages().get("packages") or {}) if character.career_package_taken else {}
+
+    def _career_display_name(career_id: str) -> str:
+        """Resolve a career_id to a human-readable name, checking packages first."""
+        if career_id in _cp_packages:
+            return _cp_packages[career_id].get("name", career_id.replace("_", " ").title())
+        cd = rules.careers().get(career_id, {})
+        return cd.get("name", career_id.replace("_", " ").title())
+
     unique_career_names: list[str] = []
     seen: set[str] = set()
     for cc in character.completed_careers:
-        cd = rules.careers().get(cc.career_id, {})
-        cn = cd.get("name", cc.career_id)
+        cn = _career_display_name(cc.career_id)
         if cn not in seen:
             unique_career_names.append(cn)
             seen.add(cn)
@@ -558,12 +566,42 @@ def generate_capsule(character: Character) -> dict:
         f"({years} years) building {career_summary}."
     )
 
+    # ── Background package note ────────────────────────────────────────────
+    pre_status = character.pre_career_status or {}
+    if pre_status.get("track") == "background_package":
+        bp_id = pre_status.get("outcome", "")
+        bp_data = rules.background_packages().get(bp_id, {})
+        bp_name = bp_data.get("name", bp_id.replace("_", " ").title())
+        paragraphs.append(
+            f"Prior to their career, {name} chose the {bp_name} background package "
+            f"instead of traditional education, arriving at career age with specialised "
+            f"homeworld skills and Cr{bp_data.get('credits', 0):,} in starting funds."
+        )
+
+    # ── Career package note ────────────────────────────────────────────────
+    if character.career_package_taken and character.career_package_id:
+        cp_data = (rules.career_packages().get("packages") or {}).get(character.career_package_id, {})
+        cp_name = cp_data.get("name", character.career_package_id.replace("_", " ").title())
+        rank      = cp_data.get("rank", 0)
+        rank_title = cp_data.get("rank_title") or ""
+        rank_clause = f" at rank {rank}" + (f" ({rank_title})" if rank_title else "") if rank else ""
+        paragraphs.append(
+            f"{name} took a career package rather than following a traditional career path, "
+            f"spending their formative years as a {cp_name}{rank_clause}."
+        )
+
     # ── Per-term career narrative ──────────────────────────────────────────
     for term in character.term_history:
-        career_def = rules.careers().get(term.career_id, {})
-        career_name = career_def.get("name", term.career_id)
-        asgn = career_def.get("assignments", {}).get(term.assignment_id, {})
-        asgn_name = asgn.get("name", term.assignment_id)
+        career_def  = rules.careers().get(term.career_id, {})
+        career_name = _career_display_name(term.career_id)
+        asgn        = career_def.get("assignments", {}).get(term.assignment_id, {})
+        # For career packages the assignment_id == career_id, so avoid "Wanderer: Wanderer"
+        if asgn:
+            asgn_name = asgn.get("name", term.assignment_id)
+        elif term.career_id == term.assignment_id:
+            asgn_name = "Package"
+        else:
+            asgn_name = term.assignment_id.replace("_", " ").title()
 
         age_range = _cap_term_ages(term.overall_term_number)
 
@@ -965,6 +1003,300 @@ def apply_background_package(
     character.phase = "career"
 
     return {"character": character.model_dump()}
+
+
+# ============================================================
+# Phase 2 (alternate): Career Packages
+# ============================================================
+
+
+def apply_career_package(
+    character: Character,
+    package_id: str,
+    skill_choices: dict[str, str] | None = None,
+    career_choice: str = "rank_4_only",
+    career_skill: str | None = None,
+    career_skill_speciality: str | None = None,
+    career_3skills: list[dict] | None = None,
+    traveller_pair_id: int = 1,
+    traveller_specialties: dict[str, str] | None = None,
+    benefit_id: int = 1,
+) -> dict:
+    """
+    Apply a career package instead of normal careers.  Applies all package
+    skills/stats/benefits, processes the three finalising choices, rolls d3
+    for age, then transitions to skill_package phase.
+
+    career_choice:
+      "boost_one_to_4"  → career_skill + career_skill_speciality (optional)
+      "boost_three_by_1"→ career_3skills = [{"name":..., "speciality":...}, ...]
+      "rank_4_only"     → no extra input, just rank raised to 4
+
+    traveller_specialties maps skill key/name → chosen specialty for pair skills
+    with "any": true (e.g. {"Gunner": "turret", "Electronics_ts": "computers"}).
+    """
+    if character.phase != "career":
+        raise ValueError(
+            f"Career packages can only be chosen at the start of the career phase "
+            f"(currently: {character.phase})"
+        )
+    if character.total_terms != 0:
+        raise ValueError("Career packages can only be taken as your first and only career.")
+
+    cp_data = rules.career_packages()
+    packages = cp_data.get("packages", {})
+    pkg = packages.get(package_id)
+    if pkg is None:
+        raise ValueError(f"Unknown career package: {package_id!r}")
+
+    if skill_choices is None:
+        skill_choices = {}
+    if traveller_specialties is None:
+        traveller_specialties = {}
+    if career_3skills is None:
+        career_3skills = []
+
+    # ── SOC requirement (Noble only) ──────────────────────────────────────
+    min_soc = pkg.get("min_soc")
+    if min_soc is not None:
+        if character.characteristics.SOC < min_soc:
+            raise ValueError(
+                f"The {pkg['name']} package requires SOC {min_soc}+ "
+                f"(character has SOC {character.characteristics.SOC})."
+            )
+
+    # ── Stat modifiers ────────────────────────────────────────────────────
+    for stat, mod in pkg.get("stat_mods", {}).items():
+        current = getattr(character.characteristics, stat, 0)
+        new_val = current + mod
+        if mod > 0:
+            new_val = max(1, new_val)
+        setattr(character.characteristics, stat, max(0, new_val))
+
+    # ── Package skills ────────────────────────────────────────────────────
+    pkg_skill_results: list[str] = []
+    for sk in pkg["skills"]:
+        name  = sk["name"]
+        level = sk["level"]
+        spec  = sk.get("speciality")
+        key   = sk.get("key", name)
+
+        if sk.get("any"):
+            chosen_spec = skill_choices.get(key, skill_choices.get(name, "")).strip()
+            if level >= 1 and not chosen_spec:
+                raise ValueError(
+                    f"No speciality chosen for {name} ({key}) in package '{pkg['name']}'"
+                )
+            spec = chosen_spec.lower() if chosen_spec else None
+
+        msg = character.add_skill(name, level=level, speciality=spec)
+        pkg_skill_results.append(msg)
+
+    # ── Credits & equipment ───────────────────────────────────────────────
+    character.credits += pkg.get("credits", 0)
+    for item_name in pkg.get("equipment", []):
+        if item_name:
+            character.equipment.append(Equipment(name=item_name))
+
+    # ── Noble title ───────────────────────────────────────────────────────
+    noble_title = pkg.get("noble_title")
+    if noble_title:
+        character.equipment.append(Equipment(name=noble_title))
+
+    # ── Rank ──────────────────────────────────────────────────────────────
+    base_rank  = pkg.get("rank", 0)
+    rank_title = pkg.get("rank_title") or ""
+
+    # ── Contacts & allies from package ────────────────────────────────────
+    for _ in range(pkg.get("contacts", 0)):
+        character.associates.append(
+            Associate(kind="contact",
+                      description=f"Contact: {pkg.get('contact_description', 'career contact')}")
+        )
+    for _ in range(pkg.get("allies", 0)):
+        character.associates.append(
+            Associate(kind="ally",
+                      description=f"Ally: {pkg.get('ally_description', 'career ally')}")
+        )
+
+    # ── Age roll (d3) ─────────────────────────────────────────────────────
+    age_roll = random.randint(1, 3)
+    character.age += age_roll
+
+    # ── Finalising: CAREER choice ─────────────────────────────────────────
+    final_rank = base_rank
+
+    if career_choice == "rank_4_only":
+        final_rank = max(4, base_rank)
+
+    elif career_choice == "boost_one_to_4":
+        if not career_skill:
+            raise ValueError("boost_one_to_4 requires career_skill to be set.")
+        # Verify the skill is in the package at level 1+
+        eligible = [
+            s for s in pkg["skills"]
+            if s["name"] == career_skill and s["level"] >= 1
+        ]
+        if not eligible:
+            raise ValueError(
+                f"'{career_skill}' is not listed at level 1+ in the {pkg['name']} package."
+            )
+        # Find and boost the character's skill
+        boosted = False
+        for sk in character.skills:
+            match_name = sk.name == career_skill
+            match_spec = (
+                career_skill_speciality is None
+                or sk.speciality == career_skill_speciality
+                or (career_skill_speciality and sk.speciality and
+                    sk.speciality.lower() == career_skill_speciality.lower())
+            )
+            if match_name and match_spec and sk.level >= 1:
+                sk.level = 4
+                boosted = True
+                break
+        if not boosted:
+            # Fallback: boost any matching skill by name
+            for sk in character.skills:
+                if sk.name == career_skill:
+                    sk.level = 4
+                    boosted = True
+                    break
+        if not boosted:
+            raise ValueError(
+                f"Could not find skill '{career_skill}' on the character to boost to level 4."
+            )
+
+    elif career_choice == "boost_three_by_1":
+        if len(career_3skills) != 3:
+            raise ValueError("boost_three_by_1 requires exactly 3 skills.")
+        pkg_skill_names = {s["name"] for s in pkg["skills"]}
+        seen_boosts: set[str] = set()
+        for sk_ref in career_3skills:
+            sname = sk_ref.get("name", "")
+            sspec = sk_ref.get("speciality")
+            if sname not in pkg_skill_names:
+                raise ValueError(
+                    f"'{sname}' is not in the {pkg['name']} package skill list."
+                )
+            dedup_key = f"{sname}|{sspec}"
+            if dedup_key in seen_boosts:
+                raise ValueError(f"Cannot boost '{sname}' twice.")
+            seen_boosts.add(dedup_key)
+            # Find the skill and boost (max level 2)
+            for char_sk in character.skills:
+                match_name = char_sk.name == sname
+                match_spec = (
+                    sspec is None
+                    or char_sk.speciality == sspec
+                    or (sspec and char_sk.speciality and
+                        char_sk.speciality.lower() == sspec.lower())
+                )
+                if match_name and match_spec:
+                    char_sk.level = min(2, char_sk.level + 1)
+                    break
+            else:
+                # Skill not yet present (was level 0 cascade base) — add at level 1
+                spec = sspec.lower() if sspec else None
+                character.add_skill(sname, level=1, speciality=spec)
+
+    # ── Finalising: TRAVELLER SKILLS ──────────────────────────────────────
+    ts_table = cp_data.get("finalising", {}).get("traveller_skills", [])
+    ts_pair  = next((p for p in ts_table if p["id"] == traveller_pair_id), None)
+    if ts_pair is None:
+        raise ValueError(f"Unknown traveller_skills pair id: {traveller_pair_id}")
+
+    for ts_sk in ts_pair["skills"]:
+        ts_name = ts_sk["name"]
+        ts_key  = ts_sk.get("key", ts_name)
+        ts_spec: str | None = None
+        if ts_sk.get("any"):
+            ts_spec = traveller_specialties.get(ts_key, traveller_specialties.get(ts_name, "")).strip()
+            if not ts_spec:
+                raise ValueError(
+                    f"No speciality chosen for traveller_skills pair {traveller_pair_id} skill '{ts_name}'."
+                )
+            ts_spec = ts_spec.lower()
+        character.add_skill(ts_name, level=1, speciality=ts_spec)
+
+    # ── Finalising: BENEFIT ───────────────────────────────────────────────
+    benefits_table = cp_data.get("finalising", {}).get("benefits", [])
+    benefit_entry  = next((b for b in benefits_table if b["id"] == benefit_id), None)
+    if benefit_entry is None:
+        raise ValueError(f"Unknown benefit id: {benefit_id}")
+
+    btype = benefit_entry.get("type")
+    if btype == "ship_share":
+        character.ship_shares += benefit_entry.get("value", 1)
+    elif btype == "credits":
+        character.credits += benefit_entry.get("value", 0)
+    elif btype == "equipment":
+        character.equipment.append(Equipment(name=benefit_entry["value"]))
+    elif btype == "associates":
+        for _ in range(benefit_entry.get("allies", 0)):
+            character.associates.append(Associate(kind="ally", description="Career package ally"))
+        for _ in range(benefit_entry.get("contacts", 0)):
+            character.associates.append(Associate(kind="contact", description="Career package contact"))
+    elif btype == "stat_mod":
+        stat = benefit_entry.get("stat", "SOC")
+        val  = benefit_entry.get("value", 1)
+        setattr(character.characteristics, stat,
+                max(0, getattr(character.characteristics, stat, 0) + val))
+
+    # ── Record career history ─────────────────────────────────────────────
+    character.career_package_id   = package_id
+    character.career_package_taken = True
+    character.total_terms          = 1
+
+    career_rec = CareerRecord(
+        career_id=package_id,
+        assignment_id=package_id,
+        terms_served=1,
+        final_rank=final_rank,
+        final_rank_title=rank_title if career_choice == "rank_4_only" or base_rank == final_rank else rank_title,
+        left_due_to="voluntary",
+        benefit_rolls_used=0,
+        benefit_rolls_earned=0,
+    )
+    character.completed_careers.append(career_rec)
+
+    career_term = CareerTerm(
+        career_id=package_id,
+        assignment_id=package_id,
+        term_number=1,
+        overall_term_number=1,
+        rank=final_rank,
+        rank_title=rank_title or None,
+        events=[
+            f"Took the {pkg['name']} career package (d3 age roll: +{age_roll} years).",
+            f"Finalising bonus: {career_choice.replace('_', ' ')}.",
+            f"Traveller skills: {ts_pair['label']}.",
+            f"Benefit: {benefit_entry['label']}.",
+        ],
+        skills_gained=pkg_skill_results,
+    )
+    character.term_history.append(career_term)
+
+    # ── Log & phase ───────────────────────────────────────────────────────
+    stat_parts = [
+        f"{s}{'+' if v > 0 else ''}{v}"
+        for s, v in pkg.get("stat_mods", {}).items()
+    ]
+    character.log(
+        f"Career Package — {pkg['name']}: "
+        f"{'  '.join(stat_parts) or 'no stat changes'}  |  "
+        f"Cr{pkg.get('credits', 0):,}  |  Rank {final_rank}  |  "
+        f"Age +{age_roll} → {character.age}"
+    )
+
+    character.phase = "skill_package"
+
+    return {
+        "age_roll": age_roll,
+        "package_name": pkg["name"],
+        "final_rank": final_rank,
+        "character": character.model_dump(),
+    }
 
 
 # ============================================================

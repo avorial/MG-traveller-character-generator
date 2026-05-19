@@ -230,8 +230,9 @@ const CASCADE_SKILLS = {
 const STORAGE_KEY = 'traveller-character-v1';
 
 let SKILL_PACKAGES = {};
-let BG_PACKAGES = {};   // background_packages.json — loaded async in bootstrap
-let CAREER_DATA = {};  // full career JSON (loaded async in bootstrap)
+let BG_PACKAGES = {};      // background_packages.json — loaded async in bootstrap
+let CAREER_DATA = {};      // full career JSON (loaded async in bootstrap)
+let CAREER_PACKAGES = {};  // career_packages.json — loaded async in bootstrap
 
 let character = null;
 let uiState = {
@@ -271,6 +272,19 @@ let uiState = {
   bgPackageMode: false,         // true → show package picker instead of skill chips
   selectedBgPackage: null,      // package id currently highlighted
   bgPackageSkillChoices: {},    // { skillName: chosenSpeciality }  for "any" skills
+  // Career package picker
+  careerPackageMode: false,     // true → show career package picker instead of career grid
+  careerPackagePhase: 'picker', // 'picker' | 'finalising'
+  selectedCareerPackage: null,  // package id
+  careerPackageSkillChoices: {},// { key: chosenSpeciality } for "any" package skills
+  careerFinalising: {           // finalising panel state
+    careerChoice: null,         // 'boost_one_to_4' | 'boost_three_by_1' | 'rank_4_only'
+    careerSkill: null,          // for boost_one_to_4: { name, speciality }
+    career3Skills: [],          // for boost_three_by_1: [{ name, speciality }, ...]
+    travellerPairId: null,      // 1-12
+    travellerSpecialties: {},   // { key: specialty } for any-skills in chosen pair
+    benefitId: null,            // 1-6
+  },
   // Optional extra characteristics panel
   extraStatsEnabled: false,
   extraStatsSelected: new Set(),   // which ids are checked
@@ -3239,6 +3253,12 @@ function wirePreCareerPhase() {
 // ============================================================
 
 function renderCareerPhase() {
+  if (uiState.careerPackageMode) {
+    return uiState.careerPackagePhase === 'finalising'
+      ? renderCareerPackageFinalising()
+      : renderCareerPackagePicker();
+  }
+
   const term = character.current_term;
 
   // After clicking a career card we POST /api/character/qualify, which
@@ -3345,6 +3365,15 @@ function renderChooseCareer() {
     `;
   }).join('');
 
+  const careerPackageBanner = (character.total_terms === 0 && !forcedId && Object.keys(CAREER_PACKAGES).length > 0) ? `
+    <div class="cp-banner">
+      <div class="cp-banner-text">
+        <strong>Career Package available</strong> — skip normal careers and take a pre-built career package instead.
+        You will not be able to take any other jobs, but gain a complete set of skills and benefits in one step.
+      </div>
+      <button class="btn ghost btn-use-career-package">USE CAREER PACKAGE INSTEAD →</button>
+    </div>` : '';
+
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 04 — CAREER SELECTION</span></div>
     <div class="stage-content">
@@ -3364,6 +3393,8 @@ function renderChooseCareer() {
         encoded, but events/mishaps/skill tables are not yet filled in. See the README for how to complete them.
       </p>
 
+      ${careerPackageBanner}
+
       ${character.total_terms > 0 ? `
         <div class="phase-actions">
           <button class="btn" id="btn-finish-creation">FINISH CHARACTER CREATION →</button>
@@ -3373,7 +3404,521 @@ function renderChooseCareer() {
   `;
 }
 
+// ============================================================
+// Career Package — render helpers
+// ============================================================
+
+function _cpAnySkills(pkg) {
+  // Return package skills that require specialty input (level >= 1 and "any": true)
+  return (pkg.skills || []).filter(sk => sk.any && sk.level >= 1);
+}
+
+function _cpEligibleBoostSkills(pkg, forMax4) {
+  // Skills eligible for finalising boost options (level 1+ in package)
+  const minLevel = forMax4 ? 1 : 0;
+  return (pkg.skills || []).filter(sk => sk.level > minLevel || (!forMax4 && sk.level >= 0));
+}
+
+function _buildSkillLabel(sk, skillChoices) {
+  const key  = sk.key || sk.name;
+  const spec = sk.speciality || (sk.any ? skillChoices[key] : null);
+  return spec ? `${sk.name} (${spec}) ${sk.level}` : `${sk.name} ${sk.level}`;
+}
+
+function renderCareerPackagePicker() {
+  const packages = Object.values(CAREER_PACKAGES.packages || {});
+  const selId    = uiState.selectedCareerPackage;
+  const choices  = uiState.careerPackageSkillChoices;
+
+  const cards = packages.map(pkg => {
+    const isSel  = pkg.id === selId;
+    const minSoc = pkg.min_soc;
+    const socBlock = minSoc && character.characteristics.SOC < minSoc;
+    const statMods = Object.entries(pkg.stat_mods || {})
+      .map(([s, v]) => `${s}${v > 0 ? '+' : ''}${v}`).join('  ') || '—';
+    const rankStr = pkg.rank_title ? `Rank ${pkg.rank} · ${pkg.rank_title}` : (pkg.rank ? `Rank ${pkg.rank}` : '—');
+    const benefitBits = [];
+    if (pkg.rank) benefitBits.push(rankStr);
+    if (pkg.credits) benefitBits.push(`Cr${pkg.credits.toLocaleString()}`);
+    if (pkg.contacts) benefitBits.push(`${pkg.contacts} Contact${pkg.contacts > 1 ? 's' : ''}`);
+    if (pkg.allies)   benefitBits.push(`${pkg.allies} Ally${pkg.allies > 1 ? 'ies' : ''}`);
+    if (pkg.equipment && pkg.equipment.length) benefitBits.push(pkg.equipment.join(', '));
+    if (pkg.noble_title) benefitBits.push(pkg.noble_title);
+
+    return `
+      <button class="cp-card${isSel ? ' selected' : ''}${socBlock ? ' cp-card-locked' : ''}"
+              data-cp-id="${escapeHTML(pkg.id)}"
+              ${socBlock ? `title="Requires SOC ${minSoc}+ (you have ${character.characteristics.SOC})"` : ''}>
+        <div class="cp-card-name">${escapeHTML(pkg.name)}</div>
+        <div class="cp-card-stats">${escapeHTML(statMods)}</div>
+        <div class="cp-card-desc">${escapeHTML(pkg.description || '')}</div>
+        <div class="cp-card-benefits">${escapeHTML(benefitBits.join(' · '))}</div>
+        ${socBlock ? '<div class="cp-card-lock">SOC ' + minSoc + '+ REQUIRED</div>' : ''}
+      </button>`;
+  }).join('');
+
+  // Specialty pickers for the selected package
+  let specSection = '';
+  if (selId && CAREER_PACKAGES.packages && CAREER_PACKAGES.packages[selId]) {
+    const pkg     = CAREER_PACKAGES.packages[selId];
+    const anySkills = _cpAnySkills(pkg);
+    if (anySkills.length) {
+      const rows = anySkills.map(sk => {
+        const key   = sk.key || sk.name;
+        const val   = choices[key] || '';
+        const isCasc = CASCADE_SKILLS[sk.name];
+        let input;
+        if (isCasc) {
+          const chips = isCasc.map(spec =>
+            `<button class="chip${val === spec ? ' active' : ''}"
+                     data-cp-spec-key="${escapeHTML(key)}"
+                     data-cp-spec-val="${escapeHTML(spec)}">${escapeHTML(spec)}</button>`
+          ).join('');
+          input = `<div class="pkg-spec-chips">${chips}</div>`;
+        } else {
+          input = `<input class="pkg-spec-input" type="text" placeholder="speciality…"
+                          data-cp-spec-key="${escapeHTML(key)}"
+                          value="${escapeHTML(val)}">`;
+        }
+        const label = sk.key ? `${sk.name} (${sk.key}) ${sk.level}` : `${sk.name} ${sk.level}`;
+        return `<div class="pkg-spec-row">
+          <span class="pkg-spec-label">${escapeHTML(label)}</span>
+          ${input}
+        </div>`;
+      }).join('');
+      specSection = `
+        <div class="pkg-specialty-section">
+          <div class="pkg-spec-heading">Choose specialities for this package's flexible skills:</div>
+          ${rows}
+        </div>`;
+    }
+  }
+
+  // Enable NEXT only when all required specialties are filled
+  let nextEnabled = false;
+  if (selId && CAREER_PACKAGES.packages && CAREER_PACKAGES.packages[selId]) {
+    const pkg = CAREER_PACKAGES.packages[selId];
+    nextEnabled = _cpAnySkills(pkg).every(sk => {
+      const key = sk.key || sk.name;
+      return (choices[key] || '').trim().length > 0;
+    });
+    if (_cpAnySkills(pkg).length === 0) nextEnabled = true;
+  }
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>CAREER PACKAGE SELECTION</span></div>
+    <div class="stage-content">
+      <div class="phase-label">First Career · Age ${character.age}</div>
+      <h2 class="phase-title">Choose a Career Package</h2>
+      <p class="phase-subtitle">
+        A career package replaces all normal career generation and provides a fixed set of skills and benefits.
+        Only one package can be taken, and you cannot take any other careers afterwards.
+        Your age will increase by 1–3 years (d3 roll on confirm).
+      </p>
+      <div class="cp-grid">${cards}</div>
+      ${specSection}
+      <div class="phase-actions" style="margin-top:16px;gap:8px">
+        <button class="btn ghost" id="btn-cp-back">← BACK</button>
+        <button class="btn primary" id="btn-cp-next" ${nextEnabled ? '' : 'disabled'}>
+          NEXT: FINALISING OPTIONS →
+        </button>
+      </div>
+    </div>`;
+}
+
+function renderCareerPackageFinalising() {
+  const pkgId  = uiState.selectedCareerPackage;
+  const pkg    = CAREER_PACKAGES.packages && CAREER_PACKAGES.packages[pkgId];
+  if (!pkg) return '<div class="stage-content"><p>Error: no package selected.</p></div>';
+
+  const fin    = CAREER_PACKAGES.finalising || {};
+  const fc     = uiState.careerFinalising;
+  const choices = uiState.careerPackageSkillChoices;
+
+  // ── CAREER panel ────────────────────────────────────────────────────────
+  const careerOptions = (fin.career || []).map(opt => {
+    const isSel = fc.careerChoice === opt.id;
+    let extra = '';
+    if (isSel && opt.id === 'boost_one_to_4') {
+      // Show dropdown of package skills at level 1+
+      const eligible = (pkg.skills || []).filter(sk => sk.level >= 1);
+      const skillOptions = eligible.map(sk => {
+        const key  = sk.key || sk.name;
+        const spec = sk.speciality || (sk.any ? choices[key] : null);
+        const label = spec ? `${sk.name} (${spec})` : sk.name;
+        const selVal = fc.careerSkill
+          ? (fc.careerSkill.name === sk.name && (fc.careerSkill.speciality || '') === (spec || '') ? 'selected' : '')
+          : '';
+        return `<option value="${escapeHTML(sk.name)}|${escapeHTML(spec || '')}" ${selVal}>${escapeHTML(label)} ${sk.level}</option>`;
+      }).join('');
+      extra = `<select class="cp-fin-select" id="cp-boost1-select"><option value="">— pick skill —</option>${skillOptions}</select>`;
+    }
+    if (isSel && opt.id === 'boost_three_by_1') {
+      const allSkills = (pkg.skills || []);
+      const rows = [0, 1, 2].map(i => {
+        const cur = fc.career3Skills[i];
+        const skillOpts = allSkills.map(sk => {
+          const key  = sk.key || sk.name;
+          const spec = sk.speciality || (sk.any ? choices[key] : null);
+          const label = spec ? `${sk.name} (${spec})` : sk.name;
+          const selVal = cur && cur.name === sk.name && (cur.speciality || '') === (spec || '') ? 'selected' : '';
+          return `<option value="${escapeHTML(sk.name)}|${escapeHTML(spec || '')}" ${selVal}>${escapeHTML(label)}</option>`;
+        }).join('');
+        return `<select class="cp-fin-select cp-boost3-select" data-idx="${i}">
+          <option value="">— skill ${i + 1} —</option>${skillOpts}</select>`;
+      }).join('');
+      extra = `<div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">${rows}</div>`;
+    }
+    return `
+      <label class="cp-fin-option${isSel ? ' selected' : ''}">
+        <input type="radio" name="cp-career-choice" value="${escapeHTML(opt.id)}" ${isSel ? 'checked' : ''}>
+        <div class="cp-fin-label">${escapeHTML(opt.label)}</div>
+        <div class="cp-fin-desc">${escapeHTML(opt.description)}</div>
+        ${extra}
+      </label>`;
+  }).join('');
+
+  // ── TRAVELLER SKILLS panel ───────────────────────────────────────────────
+  const tsPairs = (fin.traveller_skills || []).map(pair => {
+    const isSel = fc.travellerPairId === pair.id;
+    let specInputs = '';
+    if (isSel) {
+      const anyS = (pair.skills || []).filter(s => s.any);
+      if (anyS.length) {
+        specInputs = anyS.map(sk => {
+          const key   = sk.key || sk.name;
+          const val   = fc.travellerSpecialties[key] || '';
+          const isCasc = CASCADE_SKILLS[sk.name];
+          let inp;
+          if (isCasc) {
+            const chips = isCasc.map(spec =>
+              `<button class="chip${val === spec ? ' active' : ''}"
+                       data-ts-spec-key="${escapeHTML(key)}"
+                       data-ts-spec-val="${escapeHTML(spec)}">${escapeHTML(spec)}</button>`
+            ).join('');
+            inp = `<div class="pkg-spec-chips">${chips}</div>`;
+          } else {
+            inp = `<input class="pkg-spec-input" type="text" placeholder="${escapeHTML(sk.name)} speciality…"
+                          data-ts-spec-key="${escapeHTML(key)}"
+                          value="${escapeHTML(val)}">`;
+          }
+          return `<div class="pkg-spec-row">
+            <span class="pkg-spec-label">${escapeHTML(sk.name)} specialty:</span>
+            ${inp}
+          </div>`;
+        }).join('');
+        specInputs = `<div class="pkg-specialty-section" style="margin-top:4px">${specInputs}</div>`;
+      }
+    }
+    return `
+      <label class="cp-fin-option${isSel ? ' selected' : ''}">
+        <input type="radio" name="cp-ts-choice" value="${pair.id}" ${isSel ? 'checked' : ''}>
+        <div class="cp-fin-label">${escapeHTML(pair.label)}</div>
+        ${specInputs}
+      </label>`;
+  }).join('');
+
+  // ── BENEFITS panel ───────────────────────────────────────────────────────
+  const benefitRows = (fin.benefits || []).map(b => {
+    const isSel = fc.benefitId === b.id;
+    return `
+      <label class="cp-fin-option${isSel ? ' selected' : ''}">
+        <input type="radio" name="cp-benefit-choice" value="${b.id}" ${isSel ? 'checked' : ''}>
+        <div class="cp-fin-label">${escapeHTML(b.label)}</div>
+      </label>`;
+  }).join('');
+
+  // Confirm enabled?
+  const tsOk = fc.travellerPairId !== null && (() => {
+    const pair = (fin.traveller_skills || []).find(p => p.id === fc.travellerPairId);
+    if (!pair) return false;
+    return (pair.skills || []).filter(s => s.any).every(sk => {
+      const key = sk.key || sk.name;
+      return (fc.travellerSpecialties[key] || '').trim().length > 0;
+    });
+  })();
+  const careerOk = fc.careerChoice !== null && (() => {
+    if (fc.careerChoice === 'boost_one_to_4') return fc.careerSkill !== null;
+    if (fc.careerChoice === 'boost_three_by_1') return fc.career3Skills.filter(Boolean).length === 3;
+    return true;
+  })();
+  const confirmEnabled = careerOk && tsOk && fc.benefitId !== null;
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>CAREER PACKAGE — FINALISING</span></div>
+    <div class="stage-content">
+      <div class="phase-label">${escapeHTML(pkg.name)} · Age ${character.age}</div>
+      <h2 class="phase-title">Finalising the Traveller</h2>
+      <p class="phase-subtitle">
+        Choose one option from each of the three categories below to tailor your Traveller.
+      </p>
+
+      <div class="cp-fin-section">
+        <div class="cp-fin-heading">CAREER</div>
+        <div class="cp-fin-desc" style="margin-bottom:8px">
+          <em>One option from career improvements:</em>
+        </div>
+        ${careerOptions}
+      </div>
+
+      <div class="cp-fin-section">
+        <div class="cp-fin-heading">TRAVELLER SKILLS</div>
+        <div class="cp-fin-desc" style="margin-bottom:8px">
+          <em>Choose one skill pair — both skills granted at level 1:</em>
+        </div>
+        <div class="cp-ts-grid">${tsPairs}</div>
+      </div>
+
+      <div class="cp-fin-section">
+        <div class="cp-fin-heading">BENEFITS</div>
+        <div class="cp-fin-desc" style="margin-bottom:8px">
+          <em>Choose one muster-out benefit:</em>
+        </div>
+        <div class="cp-ts-grid">${benefitRows}</div>
+      </div>
+
+      <div class="phase-actions" style="margin-top:16px;gap:8px">
+        <button class="btn ghost" id="btn-cp-fin-back">← BACK</button>
+        <button class="btn primary" id="btn-cp-confirm" ${confirmEnabled ? '' : 'disabled'}>
+          CONFIRM CAREER PACKAGE →
+        </button>
+      </div>
+    </div>`;
+}
+
+function wireCareerPackagePicker() {
+  // Package card selection
+  document.querySelectorAll('[data-cp-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const id  = card.dataset.cpId;
+      const pkg = CAREER_PACKAGES.packages && CAREER_PACKAGES.packages[id];
+      const minSoc = pkg && pkg.min_soc;
+      if (minSoc && character.characteristics.SOC < minSoc) return; // blocked
+      if (uiState.selectedCareerPackage === id) return;
+      uiState.selectedCareerPackage     = id;
+      uiState.careerPackageSkillChoices = {};
+      renderAll();
+    });
+  });
+
+  // Specialty chip clicks
+  document.querySelectorAll('[data-cp-spec-key]').forEach(chip => {
+    if (chip.tagName === 'BUTTON') {
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const key = chip.dataset.cpSpecKey;
+        const val = chip.dataset.cpSpecVal;
+        uiState.careerPackageSkillChoices[key] = val;
+        renderAll();
+      });
+    }
+  });
+
+  // Specialty text inputs
+  document.querySelectorAll('input[data-cp-spec-key]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      uiState.careerPackageSkillChoices[inp.dataset.cpSpecKey] = inp.value;
+      // Re-enable NEXT button without full re-render
+      const btn = document.getElementById('btn-cp-next');
+      if (btn) {
+        const pkgId = uiState.selectedCareerPackage;
+        const pkg   = CAREER_PACKAGES.packages && CAREER_PACKAGES.packages[pkgId];
+        if (pkg) {
+          const ok = _cpAnySkills(pkg).every(sk => {
+            const k = sk.key || sk.name;
+            return (uiState.careerPackageSkillChoices[k] || '').trim().length > 0;
+          });
+          btn.disabled = !ok;
+        }
+      }
+    });
+  });
+
+  // BACK button
+  const btnBack = document.getElementById('btn-cp-back');
+  if (btnBack) {
+    btnBack.addEventListener('click', () => {
+      uiState.careerPackageMode = false;
+      uiState.selectedCareerPackage = null;
+      renderAll();
+    });
+  }
+
+  // NEXT button → go to finalising
+  const btnNext = document.getElementById('btn-cp-next');
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      uiState.careerPackagePhase = 'finalising';
+      uiState.careerFinalising = {
+        careerChoice: null, careerSkill: null, career3Skills: [],
+        travellerPairId: null, travellerSpecialties: {}, benefitId: null,
+      };
+      renderAll();
+    });
+  }
+}
+
+function wireCareerPackageFinalising() {
+  // Career choice radio buttons
+  document.querySelectorAll('input[name="cp-career-choice"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      uiState.careerFinalising.careerChoice  = radio.value;
+      uiState.careerFinalising.careerSkill   = null;
+      uiState.careerFinalising.career3Skills = [];
+      renderAll();
+    });
+  });
+
+  // boost_one_to_4 skill dropdown
+  const boost1sel = document.getElementById('cp-boost1-select');
+  if (boost1sel) {
+    boost1sel.addEventListener('change', () => {
+      const [name, spec] = boost1sel.value.split('|');
+      uiState.careerFinalising.careerSkill = { name, speciality: spec || null };
+      renderAll();
+    });
+  }
+
+  // boost_three_by_1 skill dropdowns
+  document.querySelectorAll('.cp-boost3-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const idx  = parseInt(sel.dataset.idx);
+      const [name, spec] = sel.value.split('|');
+      const arr  = [...(uiState.careerFinalising.career3Skills || [])];
+      arr[idx]   = { name, speciality: spec || null };
+      uiState.careerFinalising.career3Skills = arr;
+      // refresh CONFIRM button state
+      const btn = document.getElementById('btn-cp-confirm');
+      if (btn) {
+        const fc = uiState.careerFinalising;
+        const fin = CAREER_PACKAGES.finalising || {};
+        const tsOk = fc.travellerPairId !== null && (() => {
+          const pair = (fin.traveller_skills || []).find(p => p.id === fc.travellerPairId);
+          if (!pair) return false;
+          return (pair.skills || []).filter(s => s.any).every(sk => {
+            const k = sk.key || sk.name;
+            return (fc.travellerSpecialties[k] || '').trim().length > 0;
+          });
+        })();
+        const careerOk = fc.careerChoice !== null && (() => {
+          if (fc.careerChoice === 'boost_one_to_4') return fc.careerSkill !== null;
+          if (fc.careerChoice === 'boost_three_by_1') return arr.filter(Boolean).length === 3 && arr.every(x => x && x.name);
+          return true;
+        })();
+        btn.disabled = !(careerOk && tsOk && fc.benefitId !== null);
+      }
+    });
+  });
+
+  // Traveller skills radio
+  document.querySelectorAll('input[name="cp-ts-choice"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      uiState.careerFinalising.travellerPairId    = parseInt(radio.value);
+      uiState.careerFinalising.travellerSpecialties = {};
+      renderAll();
+    });
+  });
+
+  // Traveller skills specialty chips
+  document.querySelectorAll('[data-ts-spec-key]').forEach(el => {
+    if (el.tagName === 'BUTTON') {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        uiState.careerFinalising.travellerSpecialties[el.dataset.tsSpecKey] = el.dataset.tsSpecVal;
+        renderAll();
+      });
+    } else if (el.tagName === 'INPUT') {
+      el.addEventListener('input', () => {
+        uiState.careerFinalising.travellerSpecialties[el.dataset.tsSpecKey] = el.value;
+      });
+    }
+  });
+
+  // Benefit radio
+  document.querySelectorAll('input[name="cp-benefit-choice"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      uiState.careerFinalising.benefitId = parseInt(radio.value);
+      renderAll();
+    });
+  });
+
+  // BACK button → back to package picker
+  const btnBack = document.getElementById('btn-cp-fin-back');
+  if (btnBack) {
+    btnBack.addEventListener('click', () => {
+      uiState.careerPackagePhase = 'picker';
+      renderAll();
+    });
+  }
+
+  // CONFIRM button → POST to backend
+  const btnConfirm = document.getElementById('btn-cp-confirm');
+  if (btnConfirm) {
+    btnConfirm.addEventListener('click', async () => {
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = 'APPLYING…';
+      const fc = uiState.careerFinalising;
+      try {
+        const payload = {
+          package_id:             uiState.selectedCareerPackage,
+          skill_choices:          uiState.careerPackageSkillChoices,
+          career_choice:          fc.careerChoice,
+          career_skill:           fc.careerSkill ? fc.careerSkill.name : null,
+          career_skill_speciality: fc.careerSkill ? (fc.careerSkill.speciality || null) : null,
+          career_3skills:         (fc.career3Skills || []).filter(Boolean).map(x => ({
+            name: x.name, speciality: x.speciality || null
+          })),
+          traveller_pair_id:      fc.travellerPairId,
+          traveller_specialties:  fc.travellerSpecialties || {},
+          benefit_id:             fc.benefitId,
+        };
+        const response = await apiCall('/api/character/career-package', payload);
+        await applyResponse(response);
+        // Reset career package UI state
+        uiState.careerPackageMode     = false;
+        uiState.careerPackagePhase    = 'picker';
+        uiState.selectedCareerPackage = null;
+        uiState.careerPackageSkillChoices = {};
+        uiState.careerFinalising = {
+          careerChoice: null, careerSkill: null, career3Skills: [],
+          travellerPairId: null, travellerSpecialties: {}, benefitId: null,
+        };
+        renderAll();
+      } catch (e) {
+        btnConfirm.disabled  = false;
+        btnConfirm.textContent = 'CONFIRM CAREER PACKAGE →';
+        alert(e.message || 'Failed to apply career package.');
+      }
+    });
+  }
+}
+
 function wireCareerPhase() {
+  if (uiState.careerPackageMode) {
+    if (uiState.careerPackagePhase === 'finalising') {
+      wireCareerPackageFinalising();
+    } else {
+      wireCareerPackagePicker();
+    }
+    return;
+  }
+
+  // "Use career package" button on the career picker
+  const btnCPkg = document.querySelector('.btn-use-career-package');
+  if (btnCPkg) {
+    btnCPkg.addEventListener('click', () => {
+      uiState.careerPackageMode  = true;
+      uiState.careerPackagePhase = 'picker';
+      uiState.selectedCareerPackage = null;
+      uiState.careerPackageSkillChoices = {};
+      uiState.careerFinalising = {
+        careerChoice: null, careerSkill: null, career3Skills: [],
+        travellerPairId: null, travellerSpecialties: {}, benefitId: null,
+      };
+      renderAll();
+    });
+  }
+
   // Choose career view
   document.querySelectorAll('[data-career]').forEach(card => {
     card.addEventListener('click', async () => {
@@ -7746,6 +8291,11 @@ async function bootstrap() {
   try {
     const bgPkgRes = await fetch('/api/tables/background-packages');
     if (bgPkgRes.ok) BG_PACKAGES = await bgPkgRes.json();
+  } catch (e) { /* non-fatal */ }
+
+  try {
+    const cpRes = await fetch('/api/tables/career-packages');
+    if (cpRes.ok) CAREER_PACKAGES = await cpRes.json();
   } catch (e) { /* non-fatal */ }
 
   // Apply saved theme before first paint

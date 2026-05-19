@@ -113,6 +113,11 @@ def background_packages() -> dict:
 
 
 @lru_cache(maxsize=1)
+def career_packages() -> dict:
+    return _load_file("tables/career_packages.json")
+
+
+@lru_cache(maxsize=1)
 def skill_packages() -> dict:
     return _load_file("tables/skill_packages.json")
 

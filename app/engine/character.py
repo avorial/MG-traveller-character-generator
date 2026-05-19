@@ -224,6 +224,10 @@ class Character(BaseModel):
     psi_tested: bool = False
     psi_trained_talents: list[str] = Field(default_factory=list)
 
+    # Career package (optional alternative to normal careers)
+    career_package_id: Optional[str] = None
+    career_package_taken: bool = False
+
     # Capsule description (generated in finalize phase, persisted for export)
     capsule_description: str = ""
 
