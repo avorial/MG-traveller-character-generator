@@ -3553,18 +3553,18 @@ def roll_aslan_ancestry(character: Character) -> dict:
     setup["past_deeds_rolls"] = past_rolls
     setup["phase"] = "family"
 
-    # SOC = Ancestral Territory (per rulebook p.17)
-    character.characteristics.set("SOC", territory)
+    # TER = Ancestral Territory (SOC is independent and unchanged)
+    character.extra_characteristics["TER"] = max(0, territory)
 
-    # SOC 10+ male: gain Leadership 1
+    # TER 10+ male: gain Leadership 1
     bonus_notes = []
     if character.gender == "male" and territory >= 10:
         character.add_skill("Leadership", level=1)
-        bonus_notes.append("SOC 10+ male: Leadership 1 gained")
+        bonus_notes.append("TER 10+ male: Leadership 1 gained")
 
     character.log(
         f"Ancestry: Ancestral Deeds 1D{dm_from_clan:+d}={r_ancestral.total} → {territory} Ancestral Territory. "
-        f"SOC set to {territory}."
+        f"TER set to {territory}."
     )
     return {
         "phase": "family",
@@ -3572,7 +3572,7 @@ def roll_aslan_ancestry(character: Character) -> dict:
         "ancestral_result": ancestral_result,
         "past_deeds_rolls": past_rolls,
         "ancestral_territory": territory,
-        "soc_set_to": territory,
+        "ter_set_to": territory,
         "bonus_notes": bonus_notes,
         "character": character.model_dump(),
     }
@@ -3595,26 +3595,26 @@ def roll_aslan_family(character: Character) -> dict:
     inherits = result.get("inherits_territory", False)
 
     # Only the first son/eldest daughter inherits full Ancestral Territory.
-    # All others start with SOC 0 (territory 0) unless first-born.
+    # Non-heirs have TER reset to 0. SOC is not affected.
     if not inherits:
-        # Non-heirs start with SOC 0
-        character.characteristics.set("SOC", 0)
+        character.extra_characteristics["TER"] = 0
         setup["ancestral_territory"] = 0
 
     setup["family_position"] = position
     setup["inherits_territory"] = inherits
     setup["phase"] = "rite"
 
+    ter = character.extra_characteristics.get("TER", 0)
     character.log(
         f"Family: 2D={r.total} → {position} ({'inherits' if inherits else 'does not inherit'} territory). "
-        f"SOC = {character.characteristics.SOC}."
+        f"TER = {ter}."
     )
     return {
         "phase": "rite",
         "roll": r.to_dict(),
         "family_position": position,
         "inherits_territory": inherits,
-        "soc": character.characteristics.SOC,
+        "ter": ter,
         "character": character.model_dump(),
     }
 

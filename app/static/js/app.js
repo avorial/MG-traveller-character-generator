@@ -3304,7 +3304,7 @@ function renderAslanSetupPhase() {
               ${typeof p.territory_change === 'number' && p.territory_change !== 0 ? ` (territory ${p.territory_change > 0 ? '+' : ''}${p.territory_change})` : ''}
               ${p.territory_change === 'lose_all' ? ' (lose all territory)' : ''}
             </div>`).join('')}
-          <div class="roll-result-label">→ Ancestral Territory: <strong>${res.ancestral_territory}</strong>. SOC set to <strong>${res.soc_set_to}</strong>.</div>
+          <div class="roll-result-label">→ Ancestral Territory: <strong>${res.ancestral_territory}</strong>. TER set to <strong>${res.ter_set_to}</strong>.</div>
           ${(res.bonus_notes || []).map(n => `<div class="roll-result-note">${n}</div>`).join('')}
         </div>`;
     } else if (res.type === 'family') {
@@ -3314,8 +3314,8 @@ function renderAslanSetupPhase() {
           <div class="roll-result-dice">2D = <strong>${r.total}</strong> (${r.dice.join(', ')})</div>
           <div class="roll-result-label">→ <strong>${res.family_position}</strong></div>
           <div class="roll-result-note">${res.inherits_territory
-            ? 'You inherit the Ancestral Territory. SOC = ' + res.soc
-            : 'You do not inherit territory. SOC reset to 0.'}</div>
+            ? 'You inherit the Ancestral Territory. TER = ' + res.ter
+            : 'You do not inherit territory. TER reset to 0.'}</div>
         </div>`;
     } else if (res.type === 'rite') {
       const r = res.roll;
@@ -3414,8 +3414,8 @@ function renderAslanSetupPhase() {
       <div class="stage-content">
         <div class="phase-label">Step 4 — Family Position</div>
         <div class="phase-title">Family Position</div>
-        <p class="phase-body">Ancestral Territory: <strong>${terr}</strong> (SOC set to ${terr}).</p>
-        <p class="phase-body">Roll 2D to determine your birth order. Only the first son / eldest daughter inherits the family's full Ancestral Territory. Others start with SOC 0 and must earn their own standing.</p>
+        <p class="phase-body">Ancestral Territory: <strong>${terr}</strong> (TER set to ${terr}).</p>
+        <p class="phase-body">Roll 2D to determine your birth order. Only the first son / eldest daughter inherits the family's full Ancestral Territory. Others have TER reset to 0 and must earn their own standing.</p>
         <div class="phase-actions">
           <button class="btn primary" id="btn-aslan-roll-family">ROLL FAMILY POSITION (2D)</button>
         </div>
@@ -3426,7 +3426,6 @@ function renderAslanSetupPhase() {
   if (setupPhase === 'rite') {
     const pos = setup.family_position || '?';
     const inherits = setup.inherits_territory;
-    const soc = character.characteristics ? character.characteristics.SOC : 0;
     const genderLabel = character.gender === 'male' ? 'male' : 'female';
     const riteDesc = character.gender === 'male'
       ? 'Roll 2D (= X). Count how many of STR, DEX, END, INT, EDU, SOC exceed X (= Y). Final score = X + Y.'
@@ -3436,7 +3435,7 @@ function renderAslanSetupPhase() {
       <div class="stage-content">
         <div class="phase-label">Step 5 — Rite of Passage</div>
         <div class="phase-title">Akhuaeuhrekhyeh</div>
-        <p class="phase-body">Birth order: <strong>${pos}</strong> ${inherits ? '(inherits territory)' : '(no inheritance)'}. SOC = ${soc}.</p>
+        <p class="phase-body">Birth order: <strong>${pos}</strong> ${inherits ? '(inherits territory)' : '(no inheritance)'}. TER = ${(character.extra_characteristics && character.extra_characteristics.TER != null) ? character.extra_characteristics.TER : 0}.</p>
         <p class="phase-body">At age 15, all Aslan undergo the Rite of Passage. As a ${genderLabel}: ${riteDesc}</p>
         <p class="phase-body">If doubles are rolled, a special Rite Event occurs. The resulting <strong>Rite Score</strong> is used as a DM for career qualification.</p>
         <div class="phase-actions">
