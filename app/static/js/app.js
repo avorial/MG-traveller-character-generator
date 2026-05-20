@@ -3419,9 +3419,6 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-clan', {});
       character = data.character;
       saveCharacter();
-      const clanType = data.clan_type;
-      const dm = data.dm_ancestral_deeds;
-      showToast(`Clan: ${clanType}${dm > 0 ? ` (DM+${dm} to Ancestral Deeds)` : ''}`);
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3432,11 +3429,6 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-ancestry', {});
       character = data.character;
       saveCharacter();
-      const terr = data.ancestral_territory;
-      const notes = data.bonus_notes || [];
-      let msg = `Ancestral Territory: ${terr}. SOC set to ${data.soc_set_to}.`;
-      if (notes.length) msg += ' ' + notes.join('. ');
-      showToast(msg);
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3447,9 +3439,6 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-family', {});
       character = data.character;
       saveCharacter();
-      const pos = data.family_position;
-      const inherits = data.inherits_territory;
-      showToast(`${pos} — ${inherits ? 'inherits Ancestral Territory' : 'does not inherit territory (SOC reset to 0)'}`);
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3460,12 +3449,6 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-rite', {});
       character = data.character;
       saveCharacter();
-      let msg = `Rite of Passage: 2D=${data.rite_total}. Score = ${data.rite_score}.`;
-      if (data.is_doubles && data.doubles_result) {
-        msg += ` Doubles! ${data.doubles_result.label}`;
-        if (data.doubles_result.bonus) msg += ` Bonus: ${data.doubles_result.bonus}.`;
-      }
-      showToast(msg);
       renderAll();
     } catch (e) { alert(e.message); }
   });
