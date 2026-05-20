@@ -3388,7 +3388,7 @@ function wireAslanSetupPhase() {
     const data = await apiCall('/api/character/aslan/begin-setup', {});
     if (data) {
       character = data.character;
-      renderPhase();
+      renderAll();
     }
   });
 
@@ -3399,7 +3399,7 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/choose-gender', { gender });
       if (data) {
         character = data.character;
-        renderPhase();
+        renderAll();
       }
     });
   });
@@ -3412,7 +3412,7 @@ function wireAslanSetupPhase() {
       const clanType = data.clan_type;
       const dm = data.dm_ancestral_deeds;
       showToast(`Clan: ${clanType}${dm > 0 ? ` (DM+${dm} to Ancestral Deeds)` : ''}`);
-      renderPhase();
+      renderAll();
     }
   });
 
@@ -3426,7 +3426,7 @@ function wireAslanSetupPhase() {
       let msg = `Ancestral Territory: ${terr}. SOC set to ${data.soc_set_to}.`;
       if (notes.length) msg += ' ' + notes.join('. ');
       showToast(msg);
-      renderPhase();
+      renderAll();
     }
   });
 
@@ -3438,7 +3438,7 @@ function wireAslanSetupPhase() {
       const pos = data.family_position;
       const inherits = data.inherits_territory;
       showToast(`${pos} — ${inherits ? 'inherits Ancestral Territory' : 'does not inherit territory (SOC reset to 0)'}`);
-      renderPhase();
+      renderAll();
     }
   });
 
@@ -3453,14 +3453,14 @@ function wireAslanSetupPhase() {
         if (data.doubles_result.bonus) msg += ` Bonus: ${data.doubles_result.bonus}.`;
       }
       showToast(msg);
-      renderPhase();
+      renderAll();
     }
   });
 
   // Continue (fallback if somehow at done state)
   document.getElementById('btn-aslan-continue')?.addEventListener('click', () => {
     character.phase = 'career';
-    renderPhase();
+    renderAll();
   });
 }
 
