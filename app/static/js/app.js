@@ -3279,12 +3279,13 @@ function renderAslanSetupPhase() {
   // If setup hasn't been initialised yet, show Begin Setup button
   if (!setupPhase) {
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND SETUP</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background Setup</div>
+        <div class="phase-label">Background Setup</div>
         <div class="phase-title">${spName}</div>
-        <p class="phase-subtitle">Aslan characters have a unique background process: clan, ancestry, family, and the Rite of Passage all shape who you are before careers begin.</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-begin">Begin Setup</button>
+        <p class="phase-body">Aslan characters have a unique background process: clan, ancestry, family, and the Rite of Passage all shape who you are before careers begin.</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-begin">BEGIN SETUP →</button>
         </div>
       </div>`;
   }
@@ -3292,28 +3293,30 @@ function renderAslanSetupPhase() {
   // Gender picker
   if (setupPhase === 'gender') {
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — GENDER</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background — Gender</div>
+        <div class="phase-label">Step 1 — Gender</div>
         <div class="phase-title">Choose Your Gender</div>
         <p class="phase-body">Aslan society is strongly gendered. Males are warriors, diplomats, and leaders; females are scientists, merchants, and administrators. Your gender determines which careers and assignments you may enter.</p>
         <p class="phase-body">By Aslan biology, approximately three females are born for every male. You may choose freely.</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-male" data-gender="male">♂ Male</button>
-          <button class="btn-secondary" id="btn-aslan-female" data-gender="female">♀ Female</button>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-male" data-gender="male">♂ MALE</button>
+          <button class="btn ghost" id="btn-aslan-female" data-gender="female">♀ FEMALE</button>
         </div>
       </div>`;
   }
 
-  // Clan roll result (waiting to proceed)
+  // Clan roll
   if (setupPhase === 'clan') {
     const genderLabel = character.gender === 'male' ? 'Male' : 'Female';
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — CLAN</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background — Clan</div>
+        <div class="phase-label">Step 2 — Clan Origin</div>
         <div class="phase-title">Clan Origin</div>
         <p class="phase-body">Gender: <strong>${genderLabel}</strong>. Now determine your clan. Roll 1D to find whether you come from a Minor Clan or one of the 29 Great Clans of the Tlaukhu (Major Clan, DM+1 to Ancestral Deeds).</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-roll-clan">Roll Clan (1D)</button>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-roll-clan">ROLL CLAN (1D)</button>
         </div>
       </div>`;
   }
@@ -3323,13 +3326,14 @@ function renderAslanSetupPhase() {
     const clanLabel = setup.clan_type || '?';
     const clanDm = setup.clan_dm_ancestral_deeds || 0;
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — ANCESTRY</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background — Ancestry</div>
+        <div class="phase-label">Step 3 — Ancestral Territory</div>
         <div class="phase-title">Ancestral Territory</div>
-        <p class="phase-body">Clan: <strong>${clanLabel}</strong> ${clanDm > 0 ? `(DM+${clanDm} to Ancestral Deeds)` : ''}.</p>
+        <p class="phase-body">Clan: <strong>${clanLabel}</strong>${clanDm > 0 ? ` (DM+${clanDm} to Ancestral Deeds)` : ''}.</p>
         <p class="phase-body">Roll 1D for Ancestral Deeds, then twice on Past Deeds (2D each: once for grandfather, once for father). The total becomes your Ancestral Territory, which sets your starting SOC.</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-roll-ancestry">Roll Ancestry (1D + 2×2D)</button>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-roll-ancestry">ROLL ANCESTRY (1D + 2×2D)</button>
         </div>
       </div>`;
   }
@@ -3338,13 +3342,14 @@ function renderAslanSetupPhase() {
   if (setupPhase === 'family') {
     const terr = setup.ancestral_territory || 0;
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — FAMILY</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background — Family</div>
+        <div class="phase-label">Step 4 — Family Position</div>
         <div class="phase-title">Family Position</div>
         <p class="phase-body">Ancestral Territory: <strong>${terr}</strong> (SOC set to ${terr}).</p>
         <p class="phase-body">Roll 2D to determine your birth order. Only the first son / eldest daughter inherits the family's full Ancestral Territory. Others start with SOC 0 and must earn their own standing.</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-roll-family">Roll Family Position (2D)</button>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-roll-family">ROLL FAMILY POSITION (2D)</button>
         </div>
       </div>`;
   }
@@ -3359,25 +3364,27 @@ function renderAslanSetupPhase() {
       ? 'Roll 2D; score +1 for each of STR, DEX, END, INT, EDU, SOC that exceeds the roll.'
       : 'Roll 2D; score +2 for each of INT, EDU, SOC that exceeds the roll.';
     return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — RITE OF PASSAGE</span></div>
       <div class="stage-content">
-        <div class="phase-label">Aslan Background — Rite of Passage</div>
+        <div class="phase-label">Step 5 — Rite of Passage</div>
         <div class="phase-title">Akhuaeuhrekhyeh</div>
         <p class="phase-body">Birth order: <strong>${pos}</strong> ${inherits ? '(inherits territory)' : '(no inheritance)'}. SOC = ${soc}.</p>
-        <p class="phase-body">At age 15 (Aslan years), all Aslan undergo the Rite of Passage. As a ${genderLabel}: ${riteDesc}</p>
+        <p class="phase-body">At age 15, all Aslan undergo the Rite of Passage. As a ${genderLabel}: ${riteDesc}</p>
         <p class="phase-body">If doubles are rolled, a special Rite Event occurs. The resulting <strong>Rite Score</strong> is used as a DM for career qualification.</p>
-        <div class="action-row">
-          <button class="btn-primary" id="btn-aslan-roll-rite">Roll Rite of Passage (2D)</button>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-roll-rite">ROLL RITE OF PASSAGE (2D)</button>
         </div>
       </div>`;
   }
 
   // Done — shouldn't normally render here (phase transitions to 'career')
   return `
+    <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — COMPLETE</span></div>
     <div class="stage-content">
-      <div class="phase-label">Aslan Background — Complete</div>
+      <div class="phase-label">Background Complete</div>
       <p class="phase-body">Background setup complete. Rite Score: <strong>${setup.rite_score || 0}</strong>.</p>
-      <div class="action-row">
-        <button class="btn-primary" id="btn-aslan-continue">Continue to Careers</button>
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-aslan-continue">CONTINUE TO CAREERS →</button>
       </div>
     </div>`;
 }
@@ -3385,68 +3392,74 @@ function renderAslanSetupPhase() {
 function wireAslanSetupPhase() {
   // Begin setup button
   document.getElementById('btn-aslan-begin')?.addEventListener('click', async () => {
-    const data = await apiCall('/api/character/aslan/begin-setup', {});
-    if (data) {
+    try {
+      const data = await apiCall('/api/character/aslan/begin-setup', {});
       character = data.character;
+      saveCharacter();
       renderAll();
-    }
+    } catch (e) { alert(e.message); }
   });
 
   // Gender buttons
   document.querySelectorAll('[data-gender]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const gender = btn.dataset.gender;
-      const data = await apiCall('/api/character/aslan/choose-gender', { gender });
-      if (data) {
+      try {
+        const gender = btn.dataset.gender;
+        const data = await apiCall('/api/character/aslan/choose-gender', { gender });
         character = data.character;
+        saveCharacter();
         renderAll();
-      }
+      } catch (e) { alert(e.message); }
     });
   });
 
   // Clan roll
   document.getElementById('btn-aslan-roll-clan')?.addEventListener('click', async () => {
-    const data = await apiCall('/api/character/aslan/roll-clan', {});
-    if (data) {
+    try {
+      const data = await apiCall('/api/character/aslan/roll-clan', {});
       character = data.character;
+      saveCharacter();
       const clanType = data.clan_type;
       const dm = data.dm_ancestral_deeds;
       showToast(`Clan: ${clanType}${dm > 0 ? ` (DM+${dm} to Ancestral Deeds)` : ''}`);
       renderAll();
-    }
+    } catch (e) { alert(e.message); }
   });
 
   // Ancestry roll
   document.getElementById('btn-aslan-roll-ancestry')?.addEventListener('click', async () => {
-    const data = await apiCall('/api/character/aslan/roll-ancestry', {});
-    if (data) {
+    try {
+      const data = await apiCall('/api/character/aslan/roll-ancestry', {});
       character = data.character;
+      saveCharacter();
       const terr = data.ancestral_territory;
       const notes = data.bonus_notes || [];
       let msg = `Ancestral Territory: ${terr}. SOC set to ${data.soc_set_to}.`;
       if (notes.length) msg += ' ' + notes.join('. ');
       showToast(msg);
       renderAll();
-    }
+    } catch (e) { alert(e.message); }
   });
 
   // Family roll
   document.getElementById('btn-aslan-roll-family')?.addEventListener('click', async () => {
-    const data = await apiCall('/api/character/aslan/roll-family', {});
-    if (data) {
+    try {
+      const data = await apiCall('/api/character/aslan/roll-family', {});
       character = data.character;
+      saveCharacter();
       const pos = data.family_position;
       const inherits = data.inherits_territory;
       showToast(`${pos} — ${inherits ? 'inherits Ancestral Territory' : 'does not inherit territory (SOC reset to 0)'}`);
       renderAll();
-    }
+    } catch (e) { alert(e.message); }
   });
 
   // Rite roll
   document.getElementById('btn-aslan-roll-rite')?.addEventListener('click', async () => {
-    const data = await apiCall('/api/character/aslan/roll-rite', {});
-    if (data) {
+    try {
+      const data = await apiCall('/api/character/aslan/roll-rite', {});
       character = data.character;
+      saveCharacter();
       let msg = `Rite of Passage: 2D=${data.rite_total}. Score = ${data.rite_score}.`;
       if (data.is_doubles && data.doubles_result) {
         msg += ` Doubles! ${data.doubles_result.label}`;
@@ -3454,12 +3467,13 @@ function wireAslanSetupPhase() {
       }
       showToast(msg);
       renderAll();
-    }
+    } catch (e) { alert(e.message); }
   });
 
   // Continue (fallback if somehow at done state)
   document.getElementById('btn-aslan-continue')?.addEventListener('click', () => {
     character.phase = 'career';
+    saveCharacter();
     renderAll();
   });
 }
