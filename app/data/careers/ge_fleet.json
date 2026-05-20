@@ -1,0 +1,176 @@
+{
+  "id": "ge_fleet",
+  "name": "Fleet",
+  "description": "You serve as crew aboard the interplanetary and interstellar spacecraft of the Grand Imperial Fleet. Males fly and fire; females maintain the machinery that keeps the ships alive.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 8
+  },
+  "assignments": {
+    "pilot": {
+      "name": "Pilot",
+      "description": "You fly anything from a swift courier to a massive capital ship.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "DEX", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 5 }
+    },
+    "gunner": {
+      "name": "Gunner",
+      "description": "You man a turret or other weapon, destroying enemy ships or disabling them so their crews can be enslaved.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "INT", "target": 7 },
+      "advancement": { "characteristic": "DEX", "target": 6 }
+    },
+    "engineer": {
+      "name": "Engineer",
+      "description": "You maintain the systems of a starship despite a scarcity of spare parts and constant need for damage control.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "END", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 5 }
+    },
+    "crew": {
+      "name": "Crew",
+      "description": "You serve as a shipboard labourer or deckhand.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "EDU", "target": 5 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "Carouse",
+      "4": "Jack-of-All-Trades",
+      "5": "Melee (natural)",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Gun Combat",
+      "3": "Pilot",
+      "4": "Athletics",
+      "5": "Vacc Suit",
+      "6": "Gunner"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Persuade",
+      "4": "Leadership",
+      "5": "Science",
+      "6": "Tactics (naval)"
+    },
+    "pilot": {
+      "name": "Pilot",
+      "1": "Pilot",
+      "2": "Tactics (naval)",
+      "3": "Gunner",
+      "4": "Electronics",
+      "5": "Vacc Suit",
+      "6": "Astrogation"
+    },
+    "gunner": {
+      "name": "Gunner",
+      "1": "Gunner",
+      "2": "Heavy Weapons",
+      "3": "Electronics",
+      "4": "Tactics (naval)",
+      "5": "Athletics",
+      "6": "Melee (natural)"
+    },
+    "engineer": {
+      "name": "Engineer",
+      "1": "Engineer",
+      "2": "Mechanic",
+      "3": "Electronics",
+      "4": "Vacc Suit",
+      "5": "Science",
+      "6": "Engineer"
+    },
+    "crew": {
+      "name": "Crew",
+      "1": "Vacc Suit",
+      "2": "Athletics",
+      "3": "Steward",
+      "4": "Mechanic",
+      "5": "Pilot",
+      "6": "Electronics"
+    }
+  },
+  "ranks": {
+    "pilot": {
+      "0": { "title": "Recruit", "bonus": null },
+      "1": { "title": "Spacehand", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Veteran Spacehand", "bonus": null },
+      "3": { "title": "Honoured Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Petty Officer", "bonus": null },
+      "5": { "title": "Veteran Petty Officer", "bonus": null },
+      "6": { "title": "Honoured Petty Officer", "bonus": "3 Clan Shares" }
+    },
+    "gunner": {
+      "0": { "title": "Recruit", "bonus": null },
+      "1": { "title": "Spacehand", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Veteran Spacehand", "bonus": null },
+      "3": { "title": "Honoured Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Petty Officer", "bonus": null },
+      "5": { "title": "Veteran Petty Officer", "bonus": null },
+      "6": { "title": "Honoured Petty Officer", "bonus": "3 Clan Shares" }
+    },
+    "engineer": {
+      "0": { "title": "Recruit", "bonus": null },
+      "1": { "title": "Spacehand", "bonus": "Mechanic 1" },
+      "2": { "title": "Veteran Spacehand", "bonus": null },
+      "3": { "title": "Honoured Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Petty Officer", "bonus": null },
+      "5": { "title": "Veteran Petty Officer", "bonus": null },
+      "6": { "title": "Honoured Petty Officer", "bonus": "3 Clan Shares" }
+    },
+    "crew": {
+      "0": { "title": "Recruit", "bonus": null },
+      "1": { "title": "Spacehand", "bonus": "Mechanic 1" },
+      "2": { "title": "Veteran Spacehand", "bonus": null },
+      "3": { "title": "Honoured Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Petty Officer", "bonus": null },
+      "5": { "title": "Veteran Petty Officer", "bonus": null },
+      "6": { "title": "Honoured Petty Officer", "bonus": "3 Clan Shares" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+    "2": "A superior officer has you demoted. Reduce Rank by −1 and gain a Rival. You are not ejected from this career.",
+    "3": "You are infected by an alien parasite. Roll END 8+; if you succeed, you do not lose any END; otherwise lose END −1. You are not ejected from this career.",
+    "4": "You are accused of smuggling illegal goods into Empire space. Lose SOC −2 and you are ejected from the career. You may only enter the Landless One or Outlaw career.",
+    "5": "You run afoul of your commanding officer. Lose SOC −1 and one Benefit roll. You are not ejected from the career.",
+    "6": "Injured. Roll on the Injury table. Receive a combat implant and return to service next term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your vessel is attacked by a Hierate clan ship. Roll either Pilot 8+, Gunner 8+, or Mechanic 8+. If you succeed, you drive off the attackers and gain DM+2 to your next Advancement roll. If you fail, the Hierate dogs damage your ship. Lose all Benefit rolls for this term.",
+    "4": "You are sent on an operation to retrieve black market goods from a Hierate port. Roll Admin or Deception 8+. Succeed and gain 3 Benefit rolls. Fail and suffer DM−3 to your next Advancement roll.",
+    "5": "You are considered for promotion to the officer caste. You may add the number of terms served in this career as a DM if you attempt to qualify for the Fleet Officer career next term.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You serve as a crewmember on a mercenary cruiser or commerce raider and are exposed to foreign worlds and cultures. Gain a level of Language, Streetwise or Tolerance.",
+    "9": "You are engaged in a series of vicious battles against the Hierate. You may demonstrate heroism or prudence in battle. If you demonstrate heroism, roll DEX 9+ to avoid rolling on the Injury table, and gain DM+2 to your next Advancement roll. If you cower, roll Stealth 8+ to avoid losing SOC −1.",
+    "10": "The captain sees you as a promising crewman and entrusts you with an important ceremonial duty. Either gain a level in Steward or DM+4 to any Advancement roll thanks to his aid.",
+    "11": "You serve under a hero of the Empire. Either gain a level in Tactics (naval) if male or Admin if female, or DM+4 to your next Advancement roll.",
+    "12": "Your efforts strike a great blow for the Empire. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": { "cash": 500,   "benefit": "1 Clan Share" },
+    "2": { "cash": 1000,  "benefit": "INT +1" },
+    "3": { "cash": 1000,  "benefit": "EDU +1" },
+    "4": { "cash": 5000,  "benefit": "Weapon or Augmentation" },
+    "5": { "cash": 5000,  "benefit": "Brotherhood of the Empire" },
+    "6": { "cash": 10000, "benefit": "2 Clan Shares" },
+    "7": { "cash": 20000, "benefit": "SOC +1" },
+    "8": { "cash": 30000, "benefit": "3 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+.",
+  "complete": true,
+  "societies": ["glorious_empire"]
+}

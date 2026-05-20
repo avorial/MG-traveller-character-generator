@@ -3284,13 +3284,22 @@ function renderAslanSetupPhase() {
     let resultHTML = '';
 
     if (res.type === 'clan') {
-      const r = res.roll;
-      resultHTML = `
-        <div class="roll-result-block">
-          <div class="roll-result-dice">1D = <strong>${r.raw_total}</strong></div>
-          <div class="roll-result-label">→ <strong>${res.clan_type}</strong></div>
-          ${res.dm_ancestral_deeds > 0 ? `<div class="roll-result-note">DM+${res.dm_ancestral_deeds} to Ancestral Deeds</div>` : ''}
-        </div>`;
+      if (res.fixed_clan) {
+        // Glorious Empire — no dice, auto-assigned
+        resultHTML = `
+          <div class="roll-result-block">
+            <div class="roll-result-label">→ <strong>${res.clan_type}</strong></div>
+            <div class="roll-result-note">All Glorious Empire Aslan are from the Tokouea'we clan (DM±0 to Ancestral Deeds).</div>
+          </div>`;
+      } else {
+        const r = res.roll;
+        resultHTML = `
+          <div class="roll-result-block">
+            <div class="roll-result-dice">1D = <strong>${r.raw_total}</strong></div>
+            <div class="roll-result-label">→ <strong>${res.clan_type}</strong></div>
+            ${res.dm_ancestral_deeds > 0 ? `<div class="roll-result-note">DM+${res.dm_ancestral_deeds} to Ancestral Deeds</div>` : ''}
+          </div>`;
+      }
     } else if (res.type === 'ancestry') {
       const ar = res.ancestral_roll;
       const dm = ar.modifier || 0;
@@ -3305,6 +3314,7 @@ function renderAslanSetupPhase() {
               ${p.territory_change === 'lose_all' ? ' (lose all territory)' : ''}
             </div>`).join('')}
           <div class="roll-result-label">→ Ancestral Territory: <strong>${res.ancestral_territory}</strong>. TER set to <strong>${res.ter_set_to}</strong>.</div>
+          ${res.stat_bonus_note ? `<div class="roll-result-note">${res.stat_bonus_note}</div>` : ''}
           ${(res.bonus_notes || []).map(n => `<div class="roll-result-note">${n}</div>`).join('')}
         </div>`;
     } else if (res.type === 'family') {
@@ -3377,6 +3387,20 @@ function renderAslanSetupPhase() {
   // Clan roll
   if (setupPhase === 'clan') {
     const genderLabel = character.gender === 'male' ? 'Male' : 'Female';
+    const isGE = character.species_id === 'glorious_empire_aslan';
+    if (isGE) {
+      return `
+        <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — CLAN</span></div>
+        <div class="stage-content">
+          <div class="phase-label">Step 2 — Clan Origin</div>
+          <div class="phase-title">Clan Origin</div>
+          <p class="phase-body">Gender: <strong>${genderLabel}</strong>. All Glorious Empire Aslan are from the <strong>Tokouea'we clan</strong> — no roll is required. The Tokouea'we gives no positive DM on Ancestral Deeds.</p>
+          <p class="phase-body">Instead, males with STR 10+ and females with INT 8+ receive DM+1 on the Ancestral Deeds roll.</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-aslan-roll-clan">ASSIGN CLAN →</button>
+          </div>
+        </div>`;
+    }
     return `
       <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — CLAN</span></div>
       <div class="stage-content">
@@ -3393,13 +3417,26 @@ function renderAslanSetupPhase() {
   if (setupPhase === 'ancestry') {
     const clanLabel = setup.clan_type || '?';
     const clanDm = setup.clan_dm_ancestral_deeds || 0;
+    const isGE = character.species_id === 'glorious_empire_aslan';
+    let dmNote = '';
+    if (isGE) {
+      const isMale = character.gender === 'male';
+      const statName = isMale ? 'STR' : 'INT';
+      const statMin  = isMale ? 10 : 8;
+      const statVal  = (character.characteristics || {})[statName] || 0;
+      const qualifies = statVal >= statMin;
+      dmNote = `<p class="phase-body">GE bonus: ${statName} ${statVal} ${qualifies ? `≥ ${statMin} — <strong>DM+1 applies</strong>` : `< ${statMin} — no bonus DM`}.</p>`;
+    } else if (clanDm > 0) {
+      dmNote = ``;
+    }
     return `
       <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — ANCESTRY</span></div>
       <div class="stage-content">
         <div class="phase-label">Step 3 — Ancestral Territory</div>
         <div class="phase-title">Ancestral Territory</div>
         <p class="phase-body">Clan: <strong>${clanLabel}</strong>${clanDm > 0 ? ` (DM+${clanDm} to Ancestral Deeds)` : ''}.</p>
-        <p class="phase-body">Roll 1D for Ancestral Deeds, then twice on Past Deeds (2D each: once for grandfather, once for father). The total becomes your Ancestral Territory, which sets your starting SOC.</p>
+        ${dmNote}
+        <p class="phase-body">Roll 1D for Ancestral Deeds, then twice on Past Deeds (2D each: once for grandfather, once for father). The total becomes your starting TER (Ancestral Territory).</p>
         <div class="phase-actions">
           <button class="btn primary" id="btn-aslan-roll-ancestry">ROLL ANCESTRY (1D + 2×2D)</button>
         </div>

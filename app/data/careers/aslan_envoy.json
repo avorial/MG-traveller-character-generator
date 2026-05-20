@@ -146,5 +146,5 @@
     "7": { "cash": 20000, "benefit": "3 Clan Shares" }
   },
   "complete": true,
-  "societies": ["aslan_hierate"]
+  "societies": ["aslan_hierate", "glorious_empire"]
 }

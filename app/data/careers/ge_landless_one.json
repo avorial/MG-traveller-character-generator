@@ -1,0 +1,166 @@
+{
+  "id": "ge_landless_one",
+  "name": "Landless One",
+  "description": "Aslan who fail to find their place in Glorious Empire society do not become Outcasts as they do in the Hierate. Instead, they become Landless Ones — looked down upon as the scum of society but filling several crucial roles in the Empire's underworld economy.",
+  "qualification": {
+    "characteristic": "AUTOMATIC",
+    "target": 0
+  },
+  "assignments": {
+    "labourer": {
+      "name": "Labourer",
+      "description": "You work in a dead-end job, often alongside human slaves.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 6 },
+      "advancement": { "characteristic": "STR", "target": 7 }
+    },
+    "wildcatter": {
+      "name": "Wildcatter",
+      "description": "You are a scavenger and resource hunter, retrieving derelict starships or mining asteroids, comets and gas giants.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "DEX", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    },
+    "trader": {
+      "name": "Trader",
+      "description": "You are a black marketeer, operating on the fringes of the Empire to supply goods it desperately needs.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "INT", "target": 8 },
+      "advancement": { "characteristic": "END", "target": 7 }
+    },
+    "slaver": {
+      "name": "Slaver",
+      "description": "You raid foreign star systems for human slaves.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Gun Combat",
+      "5": "Gambler",
+      "6": "Jack-of-All-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Independence (if male) or Admin (if female)",
+      "2": "Vacc Suit",
+      "3": "Streetwise",
+      "4": "Melee (natural)",
+      "5": "Mechanic",
+      "6": "Survival"
+    },
+    "labourer": {
+      "name": "Labourer",
+      "1": "Athletics",
+      "2": "Drive",
+      "3": "Streetwise",
+      "4": "Gun Combat",
+      "5": "END +1",
+      "6": "STR +1"
+    },
+    "wildcatter": {
+      "name": "Wildcatter",
+      "1": "Mechanic",
+      "2": "Profession (miner or belter)",
+      "3": "Vacc Suit",
+      "4": "Survival",
+      "5": "Astrogation",
+      "6": "Pilot"
+    },
+    "trader": {
+      "name": "Trader",
+      "1": "Broker",
+      "2": "Streetwise",
+      "3": "Admin",
+      "4": "Deception",
+      "5": "Persuade",
+      "6": "Gun Combat"
+    },
+    "slaver": {
+      "name": "Slaver",
+      "1": "Melee",
+      "2": "Stealth",
+      "3": "Deception",
+      "4": "Recon",
+      "5": "Astrogation",
+      "6": "Pilot or Flyer"
+    }
+  },
+  "ranks": {
+    "labourer": {
+      "0": { "title": "Awkhea", "bonus": null },
+      "1": { "title": "Labourer", "bonus": "Independence 1" },
+      "2": { "title": "Experienced Labourer", "bonus": null },
+      "3": { "title": "Foreman", "bonus": "Streetwise 1" },
+      "4": { "title": "Senior Foreman", "bonus": null },
+      "5": { "title": "Overseer", "bonus": null },
+      "6": { "title": "Master Overseer", "bonus": null }
+    },
+    "wildcatter": {
+      "0": { "title": "Scavenger", "bonus": null },
+      "1": { "title": "Finder", "bonus": "Profession (miner or belter) 1" },
+      "2": { "title": "Experienced Finder", "bonus": null },
+      "3": { "title": "Surveyor", "bonus": "Mechanic 1" },
+      "4": { "title": "Senior Surveyor", "bonus": null },
+      "5": { "title": "Seeker", "bonus": "Jack-of-All-Trades 1" },
+      "6": { "title": "Master Seeker", "bonus": null }
+    },
+    "trader": {
+      "0": { "title": "Nobody", "bonus": null },
+      "1": { "title": "Fence", "bonus": "Independence 1 (male) or Admin 1 (female)" },
+      "2": { "title": "Trader", "bonus": null },
+      "3": { "title": "Operator", "bonus": "Broker 1" },
+      "4": { "title": "Senior Operator", "bonus": null },
+      "5": { "title": "Source", "bonus": "INT +1" },
+      "6": { "title": "Master Broker", "bonus": null }
+    },
+    "slaver": {
+      "0": { "title": "Recruit", "bonus": null },
+      "1": { "title": "Slaver", "bonus": "Melee 1" },
+      "2": { "title": "Huntsman", "bonus": null },
+      "3": { "title": "Sergeant", "bonus": "Recon 1" },
+      "4": { "title": "First Officer", "bonus": null },
+      "5": { "title": "Captain", "bonus": "Deception 1 or Streetwise 1" },
+      "6": { "title": "Slaver Lord", "bonus": null }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+    "2": "Your friends desert you. Lose an Ally or Contact. If you have none, lose all Benefits for this term.",
+    "3": "Your ship crashes on a hostile world. Gain any one of Survival 1, Mechanic 1, Animals 1 or Recon 1.",
+    "4": "You suffer a life-threatening disease or starvation and lose END −1.",
+    "5": "A rival sabotages your ship. Gain Mechanic from the experience of fixing it and gain him as a Rival.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You find a cache of valuable supplies and make a tidy profit on the black market. Gain 1D Benefit rolls, Streetwise 1 or Broker 1.",
+    "4": "Without help or available spare parts, you learn to do it yourself. Gain Jack-of-All-Trades.",
+    "5": "You cross the border into Hierate or human space for a job and get to know the locals. Gain Tolerance and one of the following: Persuade 1, Deception 1, Independence 1 or a Contact.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill except Jack-of-All-Trades.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You pick up some useful shipboard skills. Gain one of Pilot (spacecraft), Gunner (turret), Engineer or Mechanic.",
+    "9": "You have to recruit to fill positions in your crew. Gain Carouse, Streetwise or Persuade and an additional roll on the Cash Benefits table.",
+    "10": "You come into conflict with a rival team. Roll Melee 8+ or Deception 8+. If you succeed, gain an Ally from your crew. If you fail, lose your Benefit roll for this term and gain an Enemy.",
+    "11": "Your clan offers you a chance at redemption. You may restore your SOC to its original value and attempt to qualify for another career next term, but you owe a great debt to a clan elder, whom you gain as a Contact.",
+    "12": "You are conscripted to fight as a warrior grunt in the battles of the Empire. You automatically qualify for the Warrior career and must serve at least one term."
+  },
+  "mustering_out": {
+    "1": { "cash": 0,     "benefit": "INT +1" },
+    "2": { "cash": 500,   "benefit": "END +1" },
+    "3": { "cash": 500,   "benefit": "Weapon" },
+    "4": { "cash": 1000,  "benefit": "Independence or Streetwise" },
+    "5": { "cash": 10000, "benefit": "Contact" },
+    "6": { "cash": 30000, "benefit": "EDU +1" },
+    "7": { "cash": 50000, "benefit": "END +1 and EDU +1" }
+  },
+  "mustering_dm_notes": "DM+1 if male.",
+  "complete": true,
+  "societies": ["glorious_empire"]
+}

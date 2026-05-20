@@ -1,0 +1,188 @@
+{
+  "id": "ge_slave",
+  "name": "Slave",
+  "description": "You are a slave of the Glorious Empire — a labourer, servant to a noble household, skilled technician, or Dog Soldier, the spearhead of the Empire's military forces. The lives of slaves are often nasty, brutish and short, but you are a survivor, biding your time as the Empire collapses around you.",
+  "qualification": {
+    "characteristic": "AUTOMATIC",
+    "target": 0
+  },
+  "assignments": {
+    "labourer": {
+      "name": "Labourer",
+      "description": "You do the tough, back-breaking work of building the Empire. Prerequisites: STR and END 5+.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 7 },
+      "advancement": { "characteristic": "STR", "target": 6 }
+    },
+    "servant": {
+      "name": "Servant",
+      "description": "You serve a noble as a caretaker or steward. Prerequisites: DEX and EDU 5+.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "INT", "target": 6 },
+      "advancement": { "characteristic": "DEX", "target": 6 }
+    },
+    "technician": {
+      "name": "Technician",
+      "description": "You keep the Empire's technology running. Prerequisites: INT and EDU 5+.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "INT", "target": 6 },
+      "advancement": { "characteristic": "EDU", "target": 6 }
+    },
+    "dog_soldier": {
+      "name": "Dog Soldier",
+      "description": "You are the cannon fodder that leads the Empire's armies into battle. Prerequisites: DEX and END 6+.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 9 },
+      "advancement": { "characteristic": "DEX", "target": 6 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "Gambler",
+      "6": "Carouse"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Deception",
+      "2": "Athletics",
+      "3": "Melee",
+      "4": "Streetwise",
+      "5": "Persuade",
+      "6": "Mechanic"
+    },
+    "labourer": {
+      "name": "Labourer",
+      "1": "Navigation",
+      "2": "Electronics",
+      "3": "Jack-of-All-Trades",
+      "4": "Mechanic",
+      "5": "Stealth",
+      "6": "Profession"
+    },
+    "servant": {
+      "name": "Servant",
+      "1": "Steward",
+      "2": "Medic",
+      "3": "Electronics",
+      "4": "Admin",
+      "5": "Profession (teacher)",
+      "6": "Steward"
+    },
+    "technician": {
+      "name": "Technician",
+      "1": "Mechanic",
+      "2": "Electronics",
+      "3": "Engineer",
+      "4": "Science",
+      "5": "Jack-of-All-Trades",
+      "6": "Deception"
+    },
+    "dog_soldier": {
+      "name": "Dog Soldier",
+      "1": "Vacc Suit",
+      "2": "Athletics",
+      "3": "Gun Combat",
+      "4": "Melee",
+      "5": "Heavy Weapons",
+      "6": "Survival"
+    }
+  },
+  "ranks": {
+    "labourer": {
+      "0": { "title": "Slave", "bonus": null },
+      "1": { "title": "Labourer", "bonus": "Profession 1" },
+      "2": { "title": "Worker", "bonus": null },
+      "3": { "title": "Skilled Worker", "bonus": "Drive 1 or Vacc Suit 1" },
+      "4": { "title": "Senior Worker", "bonus": null },
+      "5": { "title": "Saihlea (Slave Chief)", "bonus": "Leadership 1" },
+      "6": { "title": "Awkhea (Landless Serf)", "bonus": null }
+    },
+    "servant": {
+      "0": { "title": "Slave", "bonus": null },
+      "1": { "title": "Servant", "bonus": "Profession 1" },
+      "2": { "title": "Trusted Servant", "bonus": null },
+      "3": { "title": "Senior Servant", "bonus": "Drive 1 or Vacc Suit 1" },
+      "4": { "title": "Household Manager", "bonus": null },
+      "5": { "title": "Saihlea (Slave Chief)", "bonus": "Leadership 1" },
+      "6": { "title": "Awkhea (Landless Serf)", "bonus": null }
+    },
+    "technician": {
+      "0": { "title": "Slave", "bonus": null },
+      "1": { "title": "Technician", "bonus": "Profession 1" },
+      "2": { "title": "Skilled Technician", "bonus": null },
+      "3": { "title": "Senior Technician", "bonus": "Drive 1 or Vacc Suit 1" },
+      "4": { "title": "Master Technician", "bonus": null },
+      "5": { "title": "Saihlea (Slave Chief)", "bonus": "Leadership 1" },
+      "6": { "title": "Awkhea (Landless Serf)", "bonus": null }
+    },
+    "dog_soldier": {
+      "0": { "title": "Fodder", "bonus": null },
+      "1": { "title": "Chaff", "bonus": "Gun Combat 1" },
+      "2": { "title": "Brunt", "bonus": null },
+      "3": { "title": "Boss", "bonus": "Vacc Suit 1" },
+      "4": { "title": "Fore", "bonus": null },
+      "5": { "title": "Gunny", "bonus": "END +1" },
+      "6": { "title": "Old Salt", "bonus": null }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result. Resume your career next term.",
+    "2": "You are exiled from your slave community by a rival. Gain an Enemy and select a new Assignment in the following term.",
+    "3": "You are subjected to brutal treatment by your Aslan master or exposed to a dangerous environment. Lose END −1.",
+    "4": "You have the opportunity to report an impending slave revolt to your Aslan masters. If you choose to do so, you are automatically promoted but gain the leader of the revolt as an Enemy. If you allow the revolt to go on as planned, roll once on the Injury table and be reassigned to either the Prisoner career or Dog Soldier assignment next term.",
+    "5": "You are captured by the Hierate along with your Empire masters. Serve one term in the Prisoner career. Roll Stealth or Persuade 8+ to avoid prison and escape to enter a career from the Traveller Core Rulebook.",
+    "6": "End of the line. Your perceived uselessness or insolence has prompted your Aslan master to send you away. Resume your career as a Dog Soldier in the next term."
+  },
+  "mishaps_dog_soldier": {
+    "1": "You die in combat. Alternatively, roll three times on the Injury table and you are ejected from the service. You may resume your career in another Assignment.",
+    "2": "Severely injured. Roll twice on the Injury table and take the lower result. Receive a combat implant and return to service.",
+    "3": "You are seen as unfit for duty and relegated to another Assignment in the next term.",
+    "4": "You are defeated in battle, taken prisoner and then freed. Roll once on the Injury table and gain the foe who defeated you as an Ally. Enter a suitable career from the Traveller Core Rulebook.",
+    "5": "You are captured by a Hierate clan but are returned to the Empire in an exchange of prisoners. Serve one term in the Prisoner career and then resume your Slave career in the Empire.",
+    "6": "Injured. Roll on the Injury table. Receive a combat implant and return to service."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You have the opportunity to serve your Aslan master. Gain DM+2 on your next Advancement roll.",
+    "4": "You pick up a few handy skills. Gain Jack-of-All-Trades 1.",
+    "5": "You are taken from your family to another world. Gain Deception 1, Mechanic 1 or Streetwise 1.",
+    "6": "You show an aptitude for learning and are given training in a specialist field. Roll EDU 8+ to gain a level in any skill you already have.",
+    "7": "Life Event. Roll on the Traveller Core Rulebook Life Events table.",
+    "8": "You are attacked by thieves and ruffians. Roll Melee 8+ to defend yourself or Stealth 8+ to escape. If you fail, lose all Benefit rolls from this term. If you succeed, gain an additional Benefit.",
+    "9": "An Aslan from another ahriy notices your handiwork and acquires your services. Gain him as a Contact and DM+2 to any one Benefit roll.",
+    "10": "You grow spiritually by worshipping with your fellow slaves at the human shrine. Gain an Ally and one level of Carouse, Art or Language.",
+    "11": "You become a respected member of the slave community by resolving a dispute. Gain a level of Leadership, Admin or Diplomat.",
+    "12": "The saihlea of your slave clan recognises your potential. You are automatically promoted."
+  },
+  "events_dog_soldier": {
+    "2": "Disaster! Roll on the Mishap table. You are not ejected from this career.",
+    "3": "You survive a series of frontal assaults. Well done, Chaff! Gain Survival, Recon or Athletics.",
+    "4": "You are taken under the wing of an Old Salt who shows you the ropes. Gain DM+1 on your next Survival roll and an Ally.",
+    "5": "You fight against the Hierate on a hostile environment world and are outfitted with special gear. Gain Electronics, Vacc Suit or Survival.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Traveller Core Rulebook Life Events table.",
+    "8": "You show your worth to your Aslan commanders and are outfitted with a combat implant.",
+    "9": "You save the life of an Aslan warrior. Roll once on the Injury table and gain an Ally.",
+    "10": "You are challenged to a duel by a rival dog soldier. If you refuse, you are demoted one rank and lose SOC −1. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next Advancement roll.",
+    "11": "Your Aslan masters recognise your value and assign you to a more useful role. Gain Tactics (military) and DM+2 to your next survival roll.",
+    "12": "Your unit bugs out after losing a battle. You can escape to freedom but must leave your fellow dog soldiers behind. Leave and you may start a new career outside Empire space but gain 1D Enemies. Stay and automatically qualify as a Warrior for your next term."
+  },
+  "mustering_out": {
+    "1": { "cash": 0,    "benefit": "Blade" },
+    "2": { "cash": 0,    "benefit": "END +1" },
+    "3": { "cash": 250,  "benefit": "INT +1" },
+    "4": { "cash": 500,  "benefit": "Gun" },
+    "5": { "cash": 1000, "benefit": "Aslan Contact" },
+    "6": { "cash": 5000, "benefit": "External or Aslan Ally" },
+    "7": { "cash": 10000,"benefit": "Freedom" }
+  },
+  "mustering_dm_notes": "DM+1 if Rank 5+.",
+  "complete": true,
+  "societies": ["glorious_empire"],
+  "notes": "Human characters only. SOC is 0 for all slaves but may rise to 1 or 2 if freed after serving two or more terms in a military career. When mustering out from any career other than Slave, human Travellers may only take the Cash Benefit once."
+}

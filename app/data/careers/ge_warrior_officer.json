@@ -1,0 +1,152 @@
+{
+  "id": "ge_warrior_officer",
+  "name": "Warrior Officer",
+  "description": "The Imperial Guard officer caste are the most highly regarded fteirle in the Glorious Empire. Assassins conduct ritualised warfare between rival ahriya and cross enemy lines to exact revenge on enemies of the state.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 9
+  },
+  "assignments": {
+    "leader": {
+      "name": "Leader",
+      "description": "You command Aslan warriors in defence against the Hierate aggressors.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "END", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    },
+    "executive_officer": {
+      "name": "Executive Officer",
+      "description": "You advise male officers on technical and administrative matters.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "END", "target": 7 },
+      "advancement": { "characteristic": "EDU", "target": 7 }
+    },
+    "assassin": {
+      "name": "Assassin",
+      "description": "You are a hidden agent of vengeance for the Empire.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "END", "target": 8 },
+      "advancement": { "characteristic": "DEX", "target": 6 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Independence (if male) or Admin (if female)",
+      "2": "STR +1",
+      "3": "DEX +1",
+      "4": "END +1",
+      "5": "INT +1",
+      "6": "Athletics"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Tactics (military)",
+      "2": "Drive or Flyer",
+      "3": "Gun Combat",
+      "4": "Melee (natural)",
+      "5": "Leadership",
+      "6": "Vacc Suit"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Navigation",
+      "2": "Electronics",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Tactics (military)",
+      "6": "Survival"
+    },
+    "leader": {
+      "name": "Leader",
+      "1": "Tactics (military)",
+      "2": "Recon",
+      "3": "Melee",
+      "4": "Leadership",
+      "5": "Gun Combat",
+      "6": "Heavy Weapons"
+    },
+    "executive_officer": {
+      "name": "Executive Officer",
+      "1": "Admin",
+      "2": "Medic",
+      "3": "Electronics",
+      "4": "Profession",
+      "5": "Advocate",
+      "6": "Navigation"
+    },
+    "assassin": {
+      "name": "Assassin",
+      "1": "Melee",
+      "2": "Stealth",
+      "3": "Streetwise",
+      "4": "Recon",
+      "5": "Deception",
+      "6": "Athletics"
+    }
+  },
+  "ranks": {
+    "leader": {
+      "0": { "title": "Probationary Lieutenant", "bonus": null },
+      "1": { "title": "Junior Lieutenant", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Captain", "bonus": "Leadership 1" },
+      "4": { "title": "Commandant", "bonus": null },
+      "5": { "title": "Division General", "bonus": null },
+      "6": { "title": "General", "bonus": "TER +2 and SOC 10" }
+    },
+    "executive_officer": {
+      "0": { "title": "Probationary Lieutenant", "bonus": null },
+      "1": { "title": "Junior Lieutenant", "bonus": "Electronics 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Captain", "bonus": "Admin 1" },
+      "4": { "title": "Executive Major", "bonus": null },
+      "5": { "title": "Division Chief of Staff", "bonus": null },
+      "6": { "title": "Chief of Staff", "bonus": "3 Clan Shares" }
+    },
+    "assassin": {
+      "0": { "title": "Agent", "bonus": null },
+      "1": { "title": "Shadow Agent", "bonus": "Stealth 1" },
+      "2": { "title": "Hunter", "bonus": null },
+      "3": { "title": "Assassin", "bonus": "Deception 1" },
+      "4": { "title": "Master Assassin", "bonus": null },
+      "5": { "title": "Imperial Blade", "bonus": null },
+      "6": { "title": "Fist of the Empire", "bonus": "END +1" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result. Receive a combat implant and return to service.",
+    "2": "A failing on your part causes a catastrophic loss for your clan. You are injured and lose SOC −1.",
+    "3": "A shift in the ahriy hierarchy causes a loss of face for you and your clan. You are demoted one Rank and lose SOC −2. You are not ejected from this career.",
+    "4": "You are defeated in battle. Roll once on the Injury table and gain the foe who defeated you as a Rival. You are not ejected from this career.",
+    "5": "You are captured by a Hierate clan but will be returned to the Empire in a prisoner exchange. The disgrace ends your career. You may return to the Empire but must select the Landless One or Outlaw career if you continue. If you remain in the Hierate, gain a Contact there but your SOC is reduced to 2.",
+    "6": "Injured. Roll on the Injury table. Receive a combat implant and return to service."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You lead a host of warriors in a brutal ground war. Gain Recon, Heavy Weapons, Vacc Suit or Drive.",
+    "4": "You are assigned to attaché duty at the Empire capital on Syoakh. Gain an Ally and a level in one of the following skills: Independence (if male), Admin (if female), Diplomat, Streetwise or Deception.",
+    "5": "Your efforts strike a great blow for the Empire. You are automatically promoted and gain SOC +1.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You are awarded a fief on a world of the Empire. Gain TER +2.",
+    "9": "After a battle, you capture an enemy commander. You may ransom him back and gain TER +1, or free him and gain him as an Ally.",
+    "10": "You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next Advancement roll.",
+    "11": "Mercenary Event. You perform flawlessly as a mercenary leader, fighting in foreign wars along the Dustbelt. Either gain Tactics (military) if male or Electronics if female, or DM+3 to your next Advancement roll.",
+    "12": "Mercenary Event. You are assigned to a mercenary unit and fight outside the Empire. Gain one level of Gun Combat, Melee (natural), Independence (if male) or Vacc Suit, then make a task check on that skill. On an 8+, your unit is victorious and you gain either SOC +1 or DM+2 to your next Advancement roll."
+  },
+  "mustering_out": {
+    "1": { "cash": 500,    "benefit": "1 Clan Share" },
+    "2": { "cash": 1000,   "benefit": "END +1" },
+    "3": { "cash": 5000,   "benefit": "EDU +1" },
+    "4": { "cash": 10000,  "benefit": "Weapon or Combat Implant" },
+    "5": { "cash": 20000,  "benefit": "Secret School" },
+    "6": { "cash": 30000,  "benefit": "TER +2" },
+    "7": { "cash": 50000,  "benefit": "SOC +1" },
+    "8": { "cash": 100000, "benefit": "5 Clan Shares" },
+    "9": { "cash": 200000, "benefit": "Transport" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 if male. DM+1 if one or more terms included a Mercenary Event.",
+  "complete": true,
+  "societies": ["glorious_empire"]
+}

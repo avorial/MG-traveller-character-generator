@@ -3484,11 +3484,40 @@ def choose_aslan_gender(character: Character, gender: str) -> dict:
 
 
 def roll_aslan_clan(character: Character) -> dict:
-    """Roll on the Clan table (1D) to determine minor or major clan."""
+    """Determine clan membership.
+
+    For Glorious Empire Aslan the clan is fixed (Tokouea'we, DM 0) — no dice
+    are rolled.  For all other Hierate Aslan a 1D roll determines Minor or
+    Major clan.
+    """
     setup = character.aslan_setup_status
     if setup is None or setup.get("phase") != "clan":
         raise ValueError("Not in clan phase")
 
+    sp_data = rules.species().get(character.species_id or "", {})
+    fixed = sp_data.get("clan_determination") == "fixed"
+
+    if fixed:
+        # Glorious Empire: always Tokouea'we, no roll, DM 0
+        clan_name = sp_data.get("fixed_clan_name", "Tokouea'we")
+        clan_dm = int(sp_data.get("fixed_clan_dm", 0))
+        setup["clan_type"] = clan_name
+        setup["clan_dm_ancestral_deeds"] = clan_dm
+        setup["phase"] = "ancestry"
+        character.log(
+            f"Clan: {clan_name} (all Glorious Empire Aslan are Tokouea'we; "
+            f"DM{clan_dm:+d} to Ancestral Deeds)"
+        )
+        return {
+            "phase": "ancestry",
+            "roll": None,
+            "clan_type": clan_name,
+            "dm_ancestral_deeds": clan_dm,
+            "fixed_clan": True,
+            "character": character.model_dump(),
+        }
+
+    # Normal Hierate: roll 1D
     r = dice.roll("1D")
     tables = rules.aslan_background_tables()
     clan_results = tables["clan"]["results"]
@@ -3504,6 +3533,7 @@ def roll_aslan_clan(character: Character) -> dict:
         "roll": r.to_dict(),
         "clan_type": result["label"],
         "dm_ancestral_deeds": result["dm_ancestral_deeds"],
+        "fixed_clan": False,
         "character": character.model_dump(),
     }
 
@@ -3511,7 +3541,10 @@ def roll_aslan_clan(character: Character) -> dict:
 def roll_aslan_ancestry(character: Character) -> dict:
     """Roll Ancestral Deeds (1D) and twice on Past Deeds (2D).
 
-    Calculates the starting Ancestral Territory (which becomes SOC).
+    Calculates the starting Ancestral Territory (TER).
+
+    For Glorious Empire Aslan the clan DM is always 0, but males with STR 10+
+    and females with INT 8+ receive DM+1 on the Ancestral Deeds roll instead.
     """
     setup = character.aslan_setup_status
     if setup is None or setup.get("phase") != "ancestry":
@@ -3520,8 +3553,25 @@ def roll_aslan_ancestry(character: Character) -> dict:
     tables = rules.aslan_background_tables()
     dm_from_clan = setup.get("clan_dm_ancestral_deeds", 0)
 
-    # Ancestral Deeds roll (1D + clan DM, min 1 max 7)
-    r_ancestral = dice.roll("1D", modifier=dm_from_clan)
+    # Glorious Empire stat-based DM bonus (overrides or supplements clan DM)
+    sp_data = rules.species().get(character.species_id or "", {})
+    stat_bonus_cfg = sp_data.get("ancestry_stat_bonus")
+    dm_from_stat = 0
+    stat_bonus_note = ""
+    if stat_bonus_cfg:
+        gender = character.gender or "male"
+        cond = stat_bonus_cfg.get(gender, {})
+        stat_name = cond.get("characteristic", "")
+        stat_min = int(cond.get("min", 99))
+        char_val = character.characteristics.get(stat_name, 0) if stat_name else 0
+        if char_val >= stat_min:
+            dm_from_stat = 1
+            stat_bonus_note = f"{stat_name} {char_val} ≥ {stat_min}: DM+1 to Ancestral Deeds"
+
+    total_dm = dm_from_clan + dm_from_stat
+
+    # Ancestral Deeds roll (1D + total DM, min 1 max 7)
+    r_ancestral = dice.roll("1D", modifier=total_dm)
     key_a = str(max(1, min(7, r_ancestral.total)))
     ancestral_result = tables["ancestral_deeds"]["results"][key_a]
     territory = ancestral_result["territory"]
@@ -3562,10 +3612,14 @@ def roll_aslan_ancestry(character: Character) -> dict:
         character.add_skill("Leadership", level=1)
         bonus_notes.append("TER 10+ male: Leadership 1 gained")
 
-    character.log(
-        f"Ancestry: Ancestral Deeds 1D{dm_from_clan:+d}={r_ancestral.total} → {territory} Ancestral Territory. "
-        f"TER set to {territory}."
-    )
+    dm_note = f"DM{total_dm:+d}" if total_dm != 0 else "no DM"
+    log_parts = [
+        f"Ancestry: Ancestral Deeds 1D ({dm_note})={r_ancestral.total} → {territory} Ancestral Territory.",
+        f"TER set to {territory}.",
+    ]
+    if stat_bonus_note:
+        log_parts.append(stat_bonus_note)
+    character.log(" ".join(log_parts))
     return {
         "phase": "family",
         "ancestral_roll": r_ancestral.to_dict(),
@@ -3574,6 +3628,7 @@ def roll_aslan_ancestry(character: Character) -> dict:
         "ancestral_territory": territory,
         "ter_set_to": territory,
         "bonus_notes": bonus_notes,
+        "stat_bonus_note": stat_bonus_note,
         "character": character.model_dump(),
     }
 

@@ -1,0 +1,51 @@
+{
+    "id":  "glorious_empire_aslan",
+    "name":  "Aslan (Glorious Empire)",
+    "description":  "Aslan of the Glorious Empire share their biology with Hierate Aslan but were raised under the brutal, expansionist culture of the Empire — a rival Aslan state in the Trojan Reach. Life is hard in the Empire; prospects are limited and hazards are constant. All characters are from the Tokouea'we clan.",
+    "characteristic_modifiers":  {
+                                     "STR":  2,
+                                     "DEX":  -2,
+                                     "END":  0,
+                                     "INT":  0,
+                                     "EDU":  0,
+                                     "SOC":  0
+                                 },
+    "characteristic_maximum":  15,
+    "sort_order":  301,
+    "traits":  [
+                   {
+                       "name":  "Dewclaw",
+                       "description":  "All Aslan have a dewclaw which can be extended to make for a vicious close combat weapon. The dewclaw uses the Melee (natural) skill and does 1D+2 damage."
+                   },
+                   {
+                       "name":  "Heightened Senses",
+                       "description":  "Aslan have better night vision, hearing and sense of smell than humans. All Aslan receive DM+1 to any Recon and Survival checks they have to make."
+                   },
+                   {
+                       "name":  "Honour Bound",
+                       "description":  "Aslan raised in the Empire operate under a strict code of honour. They cannot back down from a direct challenge without suffering a loss of face (SOC−1 for the remainder of the encounter)."
+                   },
+                   {
+                       "name":  "Land Sense",
+                       "description":  "The Aslan drive to acquire and hold territory is biological, not merely cultural. An Aslan who owns property gains DM+1 on all Morale-equivalent checks while on their own ground."
+                   },
+                   {
+                       "name":  "Intolerant",
+                       "description":  "Aslan of the Glorious Empire are exceedingly intolerant. Whenever the Tolerance skill is rolled during character creation, the result must be rerolled. Only if Tolerance is rolled a second time may the Traveller take a level in it. If any event awards Tolerance, the Traveller may alternatively take Diplomat instead. Possession of Tolerance is seen as a weakness in Empire society."
+                   }
+               ],
+    "aliases":  [],
+    "source":  "Aliens of Charted Space Vol. 1; The Glorious Empire, Mongoose Publishing",
+    "starting_age": 14,
+    "aging_starts_term": 6,
+    "aging_dm_multiplier": 2,
+    "extra_characteristics_required": ["TER"],
+    "uses_clan_shares": true,
+    "clan_determination": "fixed",
+    "fixed_clan_name": "Tokouea'we",
+    "fixed_clan_dm": 0,
+    "ancestry_stat_bonus": {
+        "male":   { "characteristic": "STR", "min": 10 },
+        "female": { "characteristic": "INT", "min": 8 }
+    }
+}

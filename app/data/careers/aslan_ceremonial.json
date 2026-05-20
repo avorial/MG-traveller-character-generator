@@ -149,5 +149,5 @@
   },
   "mustering_dm_notes": "DM+1 if SOC 9+",
   "complete": true,
-  "societies": ["aslan_hierate"]
+  "societies": ["aslan_hierate", "glorious_empire"]
 }

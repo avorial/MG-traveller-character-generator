@@ -1,0 +1,151 @@
+{
+  "id": "ge_fleet_officer",
+  "name": "Fleet Officer",
+  "description": "You serve as an officer in the Grand Fleet. As a member of the officer caste, it is forbidden for you to fraternise with the enlisted ranks. Males command; females advise and navigate.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 9
+  },
+  "assignments": {
+    "commander": {
+      "name": "Commander",
+      "description": "You command a starship of the Grand Fleet.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "SOC", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 5 }
+    },
+    "shipmaster": {
+      "name": "Shipmaster",
+      "description": "You advise the captain on technical matters and administer a ship.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "EDU", "target": 7 },
+      "advancement": { "characteristic": "EDU", "target": 6 }
+    },
+    "navigator": {
+      "name": "Navigator",
+      "description": "You manage your ship's passage through jump space.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "INT", "target": 7 },
+      "advancement": { "characteristic": "SOC", "target": 7 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "Carouse",
+      "4": "Jack-of-All-Trades",
+      "5": "Melee (natural)",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Gun Combat",
+      "3": "Pilot",
+      "4": "Athletics",
+      "5": "Vacc Suit",
+      "6": "Gunner"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Persuade",
+      "4": "Leadership",
+      "5": "Science",
+      "6": "Tactics (naval)"
+    },
+    "commander": {
+      "name": "Commander",
+      "1": "Tactics (naval)",
+      "2": "Diplomat",
+      "3": "Leadership",
+      "4": "Pilot",
+      "5": "Gunner",
+      "6": "Tactics (naval)"
+    },
+    "shipmaster": {
+      "name": "Shipmaster",
+      "1": "Admin",
+      "2": "Engineer",
+      "3": "Electronics",
+      "4": "Deception",
+      "5": "Mechanic",
+      "6": "Broker"
+    },
+    "navigator": {
+      "name": "Navigator",
+      "1": "Astrogation",
+      "2": "Pilot",
+      "3": "Engineer (j-drive)",
+      "4": "Electronics",
+      "5": "Leadership",
+      "6": "Astrogation"
+    }
+  },
+  "ranks": {
+    "commander": {
+      "0": { "title": "Probationary Intendant", "bonus": null },
+      "1": { "title": "Intendant", "bonus": "Leadership 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Senior Lieutenant", "bonus": null },
+      "4": { "title": "Commander", "bonus": "Tactics (naval) 1" },
+      "5": { "title": "Captain", "bonus": null },
+      "6": { "title": "Admiral", "bonus": "TER +2 and SOC 10" }
+    },
+    "shipmaster": {
+      "0": { "title": "Probationary Intendant", "bonus": null },
+      "1": { "title": "Intendant", "bonus": "Admin 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Senior Lieutenant", "bonus": "Advocate 1" },
+      "4": { "title": "Executive", "bonus": null },
+      "5": { "title": "Senior Executive", "bonus": null },
+      "6": { "title": "Chief Shipmaster", "bonus": "3 Clan Shares" }
+    },
+    "navigator": {
+      "0": { "title": "Trainee", "bonus": null },
+      "1": { "title": "Junior Navigator", "bonus": "Astrogation 1" },
+      "2": { "title": "Navigator", "bonus": null },
+      "3": { "title": "Senior Navigator", "bonus": "Electronics (computers) 1" },
+      "4": { "title": "Master Navigator", "bonus": null },
+      "5": { "title": "Fleet Navigator", "bonus": null },
+      "6": { "title": "Senior Navigator", "bonus": "2 Clan Shares" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+    "2": "Your ship is crippled in battle with the Hierate and you are blamed. Roll Advocate 8+ or Melee 8+ to challenge this decision. If you fail, lose all Benefit rolls for this term.",
+    "3": "A shift in clan politics damages your reputation. You are demoted one Rank and lose SOC −2. You are not ejected from this career. Gain an Enemy.",
+    "4": "Your vessel is destroyed in battle with the Hierate. Gain the foe who defeated you as a Rival. You are not ejected from this career.",
+    "5": "You are captured by a Hierate clan but returned to the Empire in a prisoner exchange. The disgrace ends your career. Your SOC and TER are reduced to 0. You may return to the Empire but may only continue in the Landless One or Outlaw careers. If you remain in the Hierate, gain a Contact but your SOC is reduced to 2.",
+    "6": "Injured. Roll on the Injury table. Receive a combat implant and return to service next term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your ship is attacked by Hierate corsairs. Roll Tactics 8+ or Engineer 8+. If you succeed, you drive off the attackers and gain DM+2 to your next Advancement roll. If you fail, the corsairs steal your cargo. Lose all Benefit rolls from this term and gain the Hierate corsair captain as an Enemy.",
+    "4": "You commerce raid Hierate star systems and have the opportunity to skim some profits off the top. If you choose to do so, roll Deception 8+ or Admin 8+. Succeed and gain 1D Benefit rolls. Fail and you are ejected from this career, drop to SOC 2 and may only continue in the Landless One or Outlaw careers.",
+    "5": "You spend time in alien space. Gain one level of Tolerance, Diplomat, Language or Science.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You are awarded a fiefdom on a world of the Empire. Gain TER +2.",
+    "9": "After a battle, you capture an enemy commander. You may ransom them back and gain TER +2, or free them and gain them as an Ally.",
+    "10": "You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next Advancement roll and a level of Melee (natural).",
+    "11": "You befriend an admiral and are assigned to his fleet. Gain Tactics (naval) if male or Admin if female, or DM+4 to your next Advancement roll.",
+    "12": "Your efforts strike a great blow for the Empire. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": { "cash": 1000,  "benefit": "3 Clan Shares" },
+    "2": { "cash": 5000,  "benefit": "INT +1" },
+    "3": { "cash": 5000,  "benefit": "EDU +2" },
+    "4": { "cash": 10000, "benefit": "5 Clan Shares" },
+    "5": { "cash": 20000, "benefit": "TER +2" },
+    "6": { "cash": 50000, "benefit": "Brotherhood of the Empire" },
+    "7": { "cash": 50000, "benefit": "SOC +2" },
+    "8": { "cash": 50000, "benefit": "Courier" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 if male.",
+  "complete": true,
+  "societies": ["glorious_empire"]
+}

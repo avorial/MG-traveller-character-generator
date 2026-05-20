@@ -1,7 +1,7 @@
 {
     "id":  "hierate_aslan",
-    "name":  "Aslan (Hierate / Glorious Empire)",
-    "description":  "Same biology as Imperial Aslan, different upbringing. Hierate Aslan follow clan law, honor duels, and territorial acquisition more rigidly.",
+    "name":  "Aslan (Hierate)",
+    "description":  "Same biology as Imperial Aslan but raised within the Aslan Hierate — a confederation of powerful clans governed by ancient codes of honor, biological land-hunger, and strict gender-defined roles. Clan law, honor duels, and territorial acquisition define every aspect of life.",
     "characteristic_modifiers":  {
                                      "STR":  2,
                                      "DEX":  -2,
