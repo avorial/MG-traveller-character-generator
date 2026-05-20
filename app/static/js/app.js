@@ -5202,6 +5202,18 @@ function wireCareerPhase() {
   const btnIntRefuse = document.getElementById('btn-mishap-interrogation-refuse');
   if (btnIntRefuse) btnIntRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
 
+  // Aslan brave/refuse choice (military mishap 5)
+  const btnBraveFight = document.getElementById('btn-mishap-brave-fight');
+  if (btnBraveFight) btnBraveFight.addEventListener('click', () => resolveMishapChoice({ option_id: 'fight' }));
+  const btnBraveRefuse = document.getElementById('btn-mishap-brave-refuse');
+  if (btnBraveRefuse) btnBraveRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
+
+  // Aslan management accused choice (management mishap 2)
+  const btnMgmtGuilty = document.getElementById('btn-mishap-mgmt-guilty');
+  if (btnMgmtGuilty) btnMgmtGuilty.addEventListener('click', () => resolveMishapChoice({ option_id: 'guilty' }));
+  const btnMgmtInnocent = document.getElementById('btn-mishap-mgmt-innocent');
+  if (btnMgmtInnocent) btnMgmtInnocent.addEventListener('click', () => resolveMishapChoice({ option_id: 'innocent' }));
+
   // Mishap victim buttons
   document.querySelectorAll('[id^="btn-mishap-victim-"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -7540,6 +7552,24 @@ function renderMishapStep() {
               <div class="phase-actions" style="margin-top:8px">
                 <button class="btn danger" id="btn-mishap-interrogation-submit">SUBMIT TO INTERROGATION</button>
                 <button class="btn" id="btn-mishap-interrogation-refuse">REFUSE — ROLL END 8+</button>
+              </div>
+            </div>`;
+        } else if (pid === 'aslan_brave_fight') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn primary" id="btn-mishap-brave-fight">FIGHT BRAVELY</button>
+                <button class="btn danger" id="btn-mishap-brave-refuse">REFUSE — END CAREER</button>
+              </div>
+            </div>`;
+        } else if (pid === 'aslan_mgmt_accused') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn danger" id="btn-mishap-mgmt-guilty">YES, I STOLE IT</button>
+                <button class="btn primary" id="btn-mishap-mgmt-innocent">I'M INNOCENT — ROLL ADVOCATE</button>
               </div>
             </div>`;
         } else if (pid === 'mishap_victim') {

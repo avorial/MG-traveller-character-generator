@@ -4452,6 +4452,14 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             msgs.append("This term's benefit roll forfeited")
             character.log("Mishap: benefit roll forfeited (political purge)")
 
+    elif etype == "career_continues":
+        # Skill check passed → override the mishap; character stays in career
+        if term is not None:
+            term.survived = True
+            term.mishap = None
+        msgs.append("Career continues — not ejected from this career")
+        character.log("Mishap skill check passed — character stays in career")
+
     return msgs, set_pending
 
 
@@ -4687,6 +4695,45 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "on_fail": [{"type": "forfeit_benefit"}],
                     "prompt": "Refused SolSec interrogation — roll END 8+ to keep your Benefit roll",
                 }
+
+        elif choice_id == "aslan_brave_fight":
+            if selected == "fight":
+                # Chain into skill check — player chose to fight bravely
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Gun Combat"}, {"name": "Athletics"}],
+                    "target": 8,
+                    "on_nat2": [{"type": "injury"}],
+                    "on_pass": [{"type": "career_continues"}],
+                    "on_fail": [{"type": "injury"}],
+                    "prompt": "Fighting bravely — Roll Gun Combat or Athletics 8+ to survive and stay",
+                }
+                auto_applied.append("Chose to fight bravely — must now roll Gun Combat or Athletics 8+")
+            else:  # refuse — career simply ends (no further effects)
+                character.pending_career_mishap_choice = None
+                auto_applied.append("Refused to fight bravely — career ends")
+                character.log("Mishap: refused to fight bravely, career ends")
+
+        elif choice_id == "aslan_mgmt_accused":
+            if selected == "guilty":
+                # Stole: SOC reduced to 2, forced into Outcast next
+                old_soc = character.characteristics.get("SOC")
+                character.characteristics.set("SOC", min(old_soc, 2))
+                character.forced_next_career_id = "aslan_outcast"
+                character.pending_career_mishap_choice = None
+                auto_applied.append(f"Admitted guilt — SOC reduced to 2 (was {old_soc}), must take Outcast career next")
+                character.log("Mishap: admitted theft — SOC→2, forced into Outcast")
+            else:  # innocent — chain into Advocate skill check
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Advocate"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "career_continues"}],
+                    "on_fail": [],
+                    "prompt": "Protesting innocence — Roll Advocate 8+ to defend yourself and stay in the career",
+                }
+                auto_applied.append("Claiming innocence — must now roll Advocate 8+")
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -5567,6 +5614,129 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         3: [{"type": "stat_choice", "options": ["INT", "SOC"], "amount": -1}],
         4: [{"type": "contact", "desc": "Contact [Fellow Prisoner]"}, {"type": "enemy", "desc": "Enemy [Captors]"}],
         5: [{"type": "rival", "desc": "Rival [Commander]"}],
+        6: [{"type": "injury"}],
+    },
+    # ---- Aslan Hierate / Glorious Empire careers ----
+    "aslan_ceremonial": {
+        1: [{"type": "injury"}],
+        4: [{"type": "skill_check", "skills": [{"name": "Melee (natural)"}], "target": 8,
+             "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Roll Melee 8+ — win the duel (SOC +1) or suffer injury"}],
+        5: [{"type": "skill_check", "skills": [{"name": "Advocate"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [],
+             "prompt": "Roll Advocate 8+ to stay in the career"}],
+        6: [{"type": "rival", "desc": "Rival [Career-Ending Official]"}],
+    },
+    "aslan_envoy": {
+        1: [{"type": "injury"}],
+        4: [{"type": "skill_check",
+             "skills": [{"name": "Melee (natural)"}, {"name": "Recon"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Roll Melee (natural) or Recon 8+ to evade the assassin"}],
+        6: [{"type": "skill_check", "skills": [{"name": "Tolerance"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [{"type": "enemy", "desc": "Enemy [Human Ambassador's Ally]"}],
+             "prompt": "Roll Tolerance 8+ — pass to stay in the career, fail to gain an Enemy"}],
+    },
+    "aslan_military": {
+        1: [{"type": "injury_severity_choice"}],
+        5: [{"type": "pending_choice", "id": "aslan_brave_fight",
+             "prompt": "Fight bravely (roll Gun Combat or Athletics 8+ to stay) or refuse and leave?",
+             "options": [
+                 {"id": "fight",  "label": "Fight bravely — roll Gun Combat or Athletics 8+"},
+                 {"id": "refuse", "label": "Refuse — accept career ending"},
+             ]}],
+        6: [{"type": "injury"}],
+    },
+    "aslan_military_officer": {
+        1: [{"type": "injury_severity_choice"}],
+        6: [{"type": "injury"}],
+    },
+    "aslan_spacer": {
+        1: [{"type": "injury_severity_choice"}],
+        3: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
+             "prompt": "Roll END 8+ — fail and lose END -1 from the alien parasite"}],
+        5: [{"type": "skill_check", "skills": [{"name": "Tolerance"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}, {"type": "forfeit_benefit"}],
+             "on_fail": [],
+             "prompt": "Roll Tolerance 8+ to stay (losing this term's benefit roll) or be ejected"}],
+        6: [{"type": "injury"}],
+    },
+    "aslan_space_officer": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "skill_check",
+             "skills": [{"name": "Advocate"}, {"name": "Melee (natural)"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Roll Advocate or Melee 8+ to challenge — pass keeps your Benefit rolls"}],
+        6: [{"type": "injury"}],
+    },
+    "aslan_management": {
+        1: [{"type": "injury"}],
+        2: [{"type": "pending_choice", "id": "aslan_mgmt_accused",
+             "prompt": "You are accused of stealing from your employer. Is this true?",
+             "options": [
+                 {"id": "guilty",   "label": "Yes, I stole — gain 3 Benefit rolls, become Outcast (SOC 2)"},
+                 {"id": "innocent", "label": "I'm innocent — Roll Advocate 8+ to defend yourself"},
+             ]}],
+    },
+    "aslan_scientist": {
+        1: [{"type": "injury"}],
+        5: [{"type": "skill_check", "skills": [{"name": "Melee (natural)"}], "target": 8,
+             "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1},
+                         {"type": "career_continues"}],
+             "on_fail": [{"type": "stat", "stat": "SOC", "amount": -2}],
+             "prompt": "Roll Melee (natural) 8+ to challenge the elder — pass: SOC +1, stay; fail: SOC -2, leave"}],
+    },
+    "aslan_wanderer": {
+        1: [{"type": "injury_severity_choice"}],
+        4: [{"type": "skill_check", "skills": [{"name": "Pilot"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Roll Pilot 8+ to avoid rolling on the Injury table"}],
+        6: [{"type": "injury"}],
+    },
+    # GE Aslan careers use same mishap logic as Hierate equivalents
+    "ge_fleet": {
+        1: [{"type": "injury_severity_choice"}],
+        3: [{"type": "skill_check",
+             "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
+             "prompt": "Roll END 8+ — fail and lose END -1 from the alien parasite"}],
+        6: [{"type": "injury"}],
+    },
+    "ge_fleet_officer": {
+        1: [{"type": "injury_severity_choice"}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "stat", "stat": "TER", "amount": -2},
+            {"type": "enemy", "desc": "Enemy [Hierate Captor]"}],
+        6: [{"type": "injury"}],
+    },
+    "ge_warrior": {
+        1: [{"type": "injury_severity_choice"}],
+        5: [{"type": "pending_choice", "id": "aslan_brave_fight",
+             "prompt": "Fight bravely (roll Gun Combat or Athletics 8+ to stay) or refuse and leave?",
+             "options": [
+                 {"id": "fight",  "label": "Fight bravely — roll Gun Combat or Athletics 8+"},
+                 {"id": "refuse", "label": "Refuse — accept career ending"},
+             ]}],
+        6: [{"type": "injury"}],
+    },
+    "ge_warrior_officer": {
+        1: [{"type": "injury_severity_choice"}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "enemy", "desc": "Enemy [Hierate Captor]"}],
+        6: [{"type": "injury"}],
+    },
+    "ge_landless_one": {
+        1: [{"type": "injury_severity_choice"}],
+        4: [{"type": "stat", "stat": "END", "amount": -1}],
         6: [{"type": "injury"}],
     },
 }
