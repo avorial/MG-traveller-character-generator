@@ -6074,6 +6074,14 @@ function parseEventSkillOptions(text) {
     if (parts.length >= 2) return parts;
   }
 
+  // Pattern 4d: "increase any one of the following skills you already possess by
+  // one level: X, Y or Z" (bounty_hunter[6])
+  m = text.match(/increase\s+any\s+one\s+of\s+(?:the\s+)?following\s+skills[^:]*:\s*([^.]+?)(?:\.|if\s+you|$)/i);
+  if (m) {
+    const parts = splitToParts(m[1].trim());
+    if (parts.length >= 1) return parts;
+  }
+
   // Pattern 4c: "pick up X 1, Y 1, or Z 1" (prisoner[5])
   m = text.match(/pick\s+up\s+([^.]+?)(?:\.|$)/i);
   if (m) {
