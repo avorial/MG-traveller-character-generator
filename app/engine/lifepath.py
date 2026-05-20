@@ -4772,8 +4772,14 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         # Apply consequences
         consequences = on_nat2 if nat2 else (on_pass if passed else on_fail)
         for sub_effect in consequences:
-            msgs, was_pending = _apply_mishap_effect(character, sub_effect, term)
-            auto_applied.extend(msgs)
+            if sub_effect.get("type") == "injury":
+                # injury must be applied directly — _apply_mishap_effect only does `pass` for it
+                inj = apply_injury(character)
+                if inj:
+                    auto_applied.append(f"Injury: {inj.get('description', 'injured')}")
+            else:
+                msgs, was_pending = _apply_mishap_effect(character, sub_effect, term)
+                auto_applied.extend(msgs)
 
         character.pending_career_mishap_choice = None
 
