@@ -3563,7 +3563,7 @@ def roll_aslan_ancestry(character: Character) -> dict:
         cond = stat_bonus_cfg.get(gender, {})
         stat_name = cond.get("characteristic", "")
         stat_min = int(cond.get("min", 99))
-        char_val = character.characteristics.get(stat_name, 0) if stat_name else 0
+        char_val = character.characteristics.get(stat_name) if stat_name else 0
         if char_val >= stat_min:
             dm_from_stat = 1
             stat_bonus_note = f"{stat_name} {char_val} ≥ {stat_min}: DM+1 to Ancestral Deeds"
