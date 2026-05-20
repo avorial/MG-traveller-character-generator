@@ -3649,7 +3649,8 @@ function renderChooseCareer() {
         // Aslan: only show careers whitelisted for this Aslan society tag
         if (isAslan && !(c.societies && c.societies.includes(aslanSocietyTag))) return false;
         // "societies" = whitelist: only show for these societies
-        if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
+        // (Aslan characters are already filtered by aslanSocietyTag above — skip the generic check)
+        if (!isAslan && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
         if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
         // "allowed_species" = species whitelist: only show for these species
