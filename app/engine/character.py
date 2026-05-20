@@ -161,6 +161,11 @@ class Character(BaseModel):
     # "skill_choice", "pending_choice", "skill_check", "free_skill_choice"
     pending_career_mishap_choice: Optional[dict] = None
 
+    # Pending interactive choice from a career event roll. Same shape as
+    # pending_career_mishap_choice. Cleared once resolved via
+    # /api/character/career-event-choice.
+    pending_career_event_choice: Optional[dict] = None
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

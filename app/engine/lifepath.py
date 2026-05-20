@@ -4286,12 +4286,22 @@ def event_roll(character: Character) -> dict:
             f" ({auto_promotion.get('rank_title') or '—'})."
         )
 
+    # Apply structured event effects from _EVENT_EFFECTS (skill grants, choices, etc.)
+    event_effects_applied, disaster_mishap = _apply_event_effects(
+        character, term.career_id, r.total, term
+    )
+    for msg in event_effects_applied:
+        character.log(f"  → Event effect: {msg}")
+
     return {
         "roll": r.to_dict(),
         "event": event_text,
         "dm_grants": dm_grants,
         "stat_bonuses": stat_bonuses,
         "auto_promotion": auto_promotion,
+        "event_effects": event_effects_applied,
+        "disaster_mishap": disaster_mishap,
+        "pending_event_choice": character.pending_career_event_choice,
         "character": character.model_dump(),
     }
 
@@ -4373,6 +4383,18 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             term.benefit_forfeited = True
         msgs.append("This term's benefit roll forfeited")
         character.log("Mishap: benefit roll forfeited")
+
+    elif etype == "extra_benefit":
+        n = effect.get("amount", 1)
+        character.pending_benefit_rolls += n
+        msgs.append(f"Extra benefit roll{'s' if n > 1 else ''} gained (+{n})")
+        character.log(f"Event: +{n} benefit roll(s) added")
+
+    elif etype == "dm_advancement":
+        amount = effect.get("amount", 0)
+        character.dm_next_advancement += amount
+        msgs.append(f"DM{amount:+d} to next Advancement roll")
+        character.log(f"Event: dm_next_advancement {amount:+d}")
 
     elif etype == "debt":
         amount = effect["amount"]
@@ -4545,6 +4567,60 @@ def mishap_roll(character: Character) -> dict:
         "frozen_watch": bool(term and term.frozen_watch),
         "character": character.model_dump(),
     }
+
+
+def _apply_event_effects(character: "Character", career_id: str, event_num: int,
+                          term) -> tuple[list[str], dict | None]:
+    """Apply structured effects from _EVENT_EFFECTS for the given career/event.
+
+    Returns (auto_applied_msgs, disaster_mishap_result).
+    disaster_mishap_result is non-None if a trigger_disaster_mishap effect fired.
+    """
+    effects = _EVENT_EFFECTS.get(career_id, {}).get(event_num, [])
+    if not effects:
+        return [], None
+
+    auto_applied: list[str] = []
+    disaster_result = None
+    pending_set = False
+
+    for effect in effects:
+        etype = effect.get("type", "")
+
+        if etype == "trigger_disaster_mishap":
+            # Roll on the career's own mishap table; career is NOT ended.
+            try:
+                disaster_result = mishap_roll(character)
+                # Override: career continues despite mishap
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                auto_applied.append("Disaster! Rolled on mishap table — career continues")
+            except Exception as ex:
+                auto_applied.append(f"Disaster mishap error: {ex}")
+            continue
+
+        if etype == "injury":
+            inj = apply_injury(character)
+            if inj:
+                auto_applied.append(f"Injury: {inj.get('description', 'injured')}")
+            continue
+
+        if etype in ("skill_choice", "stat_choice", "pending_choice", "skill_check",
+                     "free_skill_choice", "injury_severity_choice") and pending_set:
+            continue  # only one pending at a time
+
+        msgs, was_pending = _apply_mishap_effect(character, effect, term)
+        # Redirect pending to event choice field instead of mishap choice field
+        if was_pending and character.pending_career_mishap_choice is not None:
+            character.pending_career_event_choice = character.pending_career_mishap_choice
+            character.pending_career_mishap_choice = None
+            pending_set = True
+        auto_applied.extend(msgs)
+        if was_pending:
+            pending_set = True
+
+    return auto_applied, disaster_result
 
 
 def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> dict:
@@ -4847,6 +4923,48 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.log("Mishap: allowed revolt — injury + forced Prisoner")
             character.pending_career_mishap_choice = None
 
+        elif choice_id == "event_ter_or_dm4":
+            if selected == "ter":
+                ter_val = character.extra_characteristics.get("TER", 0)
+                new_ter = ter_val + 2
+                character.extra_characteristics["TER"] = new_ter
+                auto_applied.append(f"TER {ter_val}→{new_ter} (+2)")
+                character.log("Event choice: TER +2")
+            else:
+                character.dm_next_advancement += 4
+                auto_applied.append("DM+4 to next Advancement roll")
+                character.log("Event choice: DM+4 to next advancement")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_skill_or_dm4":
+            if selected == "skill":
+                skill_name = pending.get("skill_option", "")
+                if skill_name:
+                    msg = character.add_skill(skill_name, level=1)
+                    auto_applied.append(msg)
+            else:
+                dm = 4  # default DM+4; some events use DM+3
+                auto_applied.append(f"DM+{dm} to next Advancement roll")
+                character.dm_next_advancement += dm
+                character.log(f"Event choice: DM+{dm} to next advancement")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_ransom_or_free":
+            if selected == "ransom":
+                ter_amount = pending.get("ransom_ter_amount", 2)
+                ter_val = character.extra_characteristics.get("TER", 0)
+                new_ter = ter_val + ter_amount
+                character.extra_characteristics["TER"] = new_ter
+                auto_applied.append(f"TER +{ter_amount}: {ter_val}→{new_ter}")
+                character.log(f"Event choice: ransomed commander for TER +{ter_amount}")
+            else:
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Freed Enemy Commander]")
+                )
+                auto_applied.append("Gained Ally [Freed Enemy Commander]")
+                character.log("Event choice: freed commander, gained Ally")
+            character.pending_career_mishap_choice = None
+
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
 
@@ -4930,6 +5048,31 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         "injury_data": injury_data,
         "character": character.model_dump(),
     }
+
+
+def resolve_career_event_choice(character: "Character", choice_data: dict) -> dict:
+    """Resolve a pending career event interactive choice.
+
+    Uses the same effect types as mishap choices but reads/writes
+    pending_career_event_choice instead of pending_career_mishap_choice.
+    """
+    pending = character.pending_career_event_choice
+    if pending is None:
+        raise ValueError("No pending career event choice to resolve")
+
+    # Temporarily move event choice into mishap slot so we can reuse
+    # resolve_career_mishap_choice's full logic
+    character.pending_career_mishap_choice = pending
+    character.pending_career_event_choice = None
+
+    result = resolve_career_mishap_choice(character, choice_data)
+
+    # If a new pending was created, move it back to event choice slot
+    if character.pending_career_mishap_choice is not None:
+        character.pending_career_event_choice = character.pending_career_mishap_choice
+        character.pending_career_mishap_choice = None
+
+    return result
 
 
 def cross_career_event_or_mishap(character: "Character", career_id: str, table: str) -> dict:
@@ -5529,6 +5672,333 @@ def toggle_solsec_monitor(character: "Character", active: bool) -> dict:
         "solsec_monitor_rank": character.solsec_monitor_rank,
         "character": character.model_dump(),
     }
+
+
+# ============================================================
+# Event effects table (Aslan careers)
+# ============================================================
+
+_EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
+    # ---- Aslan Hierate careers ----
+    "aslan_ceremonial": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill_choice", "options": ["Melee (natural)", "Athletics (strength)", "Carouse", "Medic"]}],
+        5:  [{"type": "skill_check", "skills": [{"name": "Art"}, {"name": "Investigate"}, {"name": "Persuade"}],
+              "target": 8,
+              "on_pass": [{"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "dm_advancement", "amount": -2}],
+              "prompt": "Roll Art, Investigate or Persuade 8+ — pass: DM+2 to next advancement; fail: DM-2"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_choice", "options": ["Carouse", "Survival", "Admin", "Independence"]}],
+        9:  [{"type": "skill_choice", "options": ["Admin", "Advocate", "Art", "Diplomat", "Persuade"]}],
+        11: [{"type": "pending_choice", "id": "event_ter_or_dm4",
+              "prompt": "Trusted by the great lords — choose your reward:",
+              "options": [
+                  {"id": "ter",  "label": "Gain TER +2"},
+                  {"id": "dm4",  "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "aslan_envoy": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill_choice", "options": ["Animals (training)", "Survival", "Stealth", "Athletics (dexterity)"]}],
+        5:  [{"type": "contact", "desc": "Contact [Clan Council Member]"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "Carouse"}, {"name": "Persuade"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Diplomatic Circles]"}],
+              "on_fail": [{"type": "rival", "desc": "Rival [Diplomatic Circles]"}],
+              "prompt": "Roll Carouse or Persuade 8+ — pass: Ally; fail: Rival"}],
+        11: [{"type": "pending_choice", "id": "event_ter_or_dm4",
+              "prompt": "Trusted by the great lords — choose your reward:",
+              "options": [
+                  {"id": "ter",  "label": "Gain TER +2"},
+                  {"id": "dm4",  "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "aslan_military": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Recon"}, {"name": "Gun Combat"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Roll Recon or Gun Combat 8+ — fail: roll on Injury table"},
+             {"type": "skill_choice", "options": ["Stealth", "Medic", "Heavy Weapons", "Leadership"]}],
+        4:  [{"type": "skill_choice", "options": ["Streetwise", "Electronics (comms)", "Mechanic"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_choice", "options": ["Gun Combat", "Language", "Melee", "Recon", "Survival"]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Hero of the clan aids you — choose your reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (military) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (military)"}],
+    },
+    "aslan_military_officer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice", "options": ["Stealth", "Heavy Weapons", "Vacc Suit", "Drive"]}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Persuade"}, {"name": "Melee (natural)"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Junior Officer]"}],
+              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1},
+                          {"type": "rival", "desc": "Rival [Disobedient Junior Officer]"}],
+              "prompt": "Roll Persuade or Melee (natural) 8+ — pass: Ally; fail: SOC-1 + Rival"}],
+        5:  [{"type": "skill_choice", "options": ["Carouse", "Streetwise", "Independence", "Survival"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        9:  [{"type": "pending_choice", "id": "event_ransom_or_free",
+              "prompt": "You captured an enemy commander — ransom them (TER +2) or free them (gain as Ally)?",
+              "options": [
+                  {"id": "ransom", "label": "Ransom them — gain TER +2"},
+                  {"id": "free",   "label": "Free them — gain as a trusted Ally"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Your deeds are legend — choose your reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (military) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (military)"}],
+    },
+    "aslan_spacer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
+              "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
+                          {"type": "forfeit_benefit"}],
+              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+        6:  [{"type": "skill_choice", "options": ["Survival", "Streetwise", "Science", "Tolerance"]}],
+        8:  [{"type": "contact", "desc": "Contact [Aslan Colonist]"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Captain entrusts you with an important duty — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Steward 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Steward"}],
+    },
+    "aslan_space_officer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
+                          {"type": "forfeit_benefit"}],
+              "prompt": "Roll Tactics or Engineer 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+        5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        9:  [{"type": "pending_choice", "id": "event_ransom_or_free",
+              "prompt": "You captured an enemy commander — ransom them (TER +2) or free them (gain as Ally)?",
+              "options": [
+                  {"id": "ransom", "label": "Ransom them — gain TER +2"},
+                  {"id": "free",   "label": "Free them — gain as a trusted Ally"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "You befriend an old admiral — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (naval) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (naval)"}],
+    },
+    "aslan_management": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Melee (natural)"}, {"name": "Stealth"}, {"name": "Gun Combat"}],
+              "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Survived the assault — gain any skill at level 1"}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Roll Melee, Stealth or Gun Combat 8+ — pass: gain any skill; fail: Injury"}],
+        4:  [{"type": "skill_choice", "options": ["Pilot", "Mechanic", "Electronics", "Drive"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_choice", "options": ["Broker", "Profession", "Streetwise"]}],
+        9:  [{"type": "skill_check", "skills": [{"name": "Diplomat"}, {"name": "Admin"}], "target": 8,
+              "on_pass": [{"type": "rival", "desc": "Rival [Foolish Clan Member]"}],
+              "on_fail": [],
+              "prompt": "Roll Diplomat or Admin 8+ to fix the damage — pass: Rival; fail: DM-2 advancement (auto-parsed)"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "You trade with aliens — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tolerance 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tolerance"}],
+    },
+    "aslan_scientist": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice", "options": ["Carouse", "Survival", "Streetwise"]}],
+        4:  [{"type": "skill_choice", "options": ["Science", "Engineer", "Gunner", "Gun Combat"]}],
+        5:  [{"type": "skill", "name": "Tolerance", "level": 1},
+             {"type": "contact", "desc": "Contact [Alien Scientist]"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_choice", "options": ["Admin", "Art", "Science"]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "You study at a great university — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Investigate 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Investigate"}],
+    },
+    "aslan_wanderer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill", "name": "Tolerance", "level": 1},
+             {"type": "skill_choice", "options": ["Broker", "Diplomat", "Independence"]}],
+        5:  [{"type": "skill_check", "skills": [{"name": "Independence"}], "target": 8,
+              "on_pass": [{"type": "extra_benefit", "amount": 1}],
+              "on_fail": [], "prompt": "Roll Independence 8+ — pass: gain an extra Benefit roll"}],
+        6:  [{"type": "contact", "desc": "Contact [Distant Spaceport Trader]"}],
+        8:  [{"type": "skill_choice", "options": ["Pilot (spacecraft)", "Gunner (turret)", "Engineer", "Mechanic"]}],
+        9:  [{"type": "skill_check", "skills": [{"name": "Carouse"}, {"name": "Streetwise"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Loyal Crew Member]"}],
+              "on_fail": [{"type": "forfeit_benefit"},
+                          {"type": "enemy", "desc": "Enemy [Thieving New Crew]"}],
+              "prompt": "Roll Carouse or Streetwise 8+ for new crew — pass: Ally; fail: forfeit benefit + Enemy"}],
+    },
+    # ---- GE Aslan careers ----
+    "ge_fleet": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
+              "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "forfeit_benefit"}],
+              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs Hierate attack — fail: forfeit Benefit rolls"}],
+        8:  [{"type": "skill_choice", "options": ["Language", "Streetwise", "Tolerance"]}],
+        10: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Captain entrusts you with a ceremonial duty — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Steward 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Steward"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "You serve under a hero of the Empire — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (naval) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (naval)"}],
+    },
+    "ge_fleet_officer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Hierate Corsair Captain]"},
+                          {"type": "forfeit_benefit"}],
+              "prompt": "Roll Tactics or Engineer 8+ vs Hierate corsairs — fail: Enemy + forfeit benefit"}],
+        5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase a skill"}],
+        9:  [{"type": "pending_choice", "id": "event_ransom_or_free",
+              "prompt": "You captured an enemy commander — ransom them (TER +2) or free them (gain as Ally)?",
+              "options": [
+                  {"id": "ransom", "label": "Ransom them — gain TER +2"},
+                  {"id": "free",   "label": "Free them — gain as a trusted Ally"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "You befriend an admiral — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (naval) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (naval)"}],
+    },
+    "ge_warrior": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check", "skills": [{"name": "Recon"}, {"name": "Gun Combat"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Roll Recon or Gun Combat 8+ — fail: roll on Injury table"},
+             {"type": "skill_choice", "options": ["Stealth", "Medic", "Explosives"]}],
+        4:  [{"type": "skill_choice", "options": ["Melee (natural)", "Electronics", "Mechanic"]},
+             {"type": "contact", "desc": "Contact [Clan Outpost]"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase a skill"}],
+        8:  [{"type": "skill_choice", "options": ["Language", "Tolerance"]}],
+        9:  [{"type": "skill_check", "skills": [{"name": "Melee (natural)"}], "target": 8,
+              "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
+              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+              "prompt": "Roll Melee (natural) 8+ to defend the ahriy's honour — pass: SOC+1; fail: SOC-1"},
+             {"type": "rival", "desc": "Rival [Rival Who Questioned Your Honour]"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Mercenary event — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (military) 1"},
+                  {"id": "dm4",   "label": "DM+3 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (military)"}],
+    },
+    "ge_warrior_officer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice", "options": ["Recon", "Heavy Weapons", "Vacc Suit", "Drive"]}],
+        4:  [{"type": "skill_choice", "options": ["Independence", "Admin", "Diplomat", "Streetwise", "Deception"]},
+             {"type": "ally", "desc": "Ally [Empire Capital Contact]"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase a skill"}],
+        9:  [{"type": "pending_choice", "id": "event_ransom_or_free",
+              "prompt": "You captured an enemy commander — ransom them (TER +1) or free them (gain as Ally)?",
+              "options": [
+                  {"id": "ransom", "label": "Ransom them — gain TER +1"},
+                  {"id": "free",   "label": "Free them — gain as an Ally"},
+              ],
+              "ransom_ter_amount": 1}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Mercenary event — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain Tactics (military) 1"},
+                  {"id": "dm4",   "label": "DM+3 to next Advancement roll"},
+              ],
+              "skill_option": "Tactics (military)"}],
+    },
+    "ge_landless_one": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "extra_benefit", "amount": 1},
+             {"type": "skill_choice", "options": ["Streetwise", "Broker"]}],
+        4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
+        5:  [{"type": "skill", "name": "Tolerance", "level": 1},
+             {"type": "skill_choice", "options": ["Persuade", "Deception", "Independence"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill (except Jack-of-All-Trades) at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
+        8:  [{"type": "skill_choice", "options": ["Pilot (spacecraft)", "Gunner (turret)", "Engineer", "Mechanic"]}],
+        9:  [{"type": "skill_choice", "options": ["Carouse", "Streetwise", "Persuade"]},
+             {"type": "extra_benefit", "amount": 1}],
+        10: [{"type": "skill_check", "skills": [{"name": "Melee"}, {"name": "Deception"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Loyal Crew Member]"}],
+              "on_fail": [{"type": "forfeit_benefit"},
+                          {"type": "enemy", "desc": "Enemy [Rival Team]"}],
+              "prompt": "Roll Melee or Deception 8+ vs rival team — pass: Ally; fail: forfeit benefit + Enemy"}],
+        12: [{"type": "force_next_career", "career_id": "ge_warrior"}],
+    },
+    "ge_slave": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
+        5:  [{"type": "skill_choice", "options": ["Deception", "Mechanic", "Streetwise"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you already have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase a skill you have"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "Melee"}, {"name": "Stealth"}], "target": 8,
+              "on_pass": [{"type": "extra_benefit", "amount": 1}],
+              "on_fail": [{"type": "forfeit_benefit"}],
+              "prompt": "Roll Melee or Stealth 8+ vs attackers — pass: extra Benefit; fail: forfeit Benefit"}],
+        10: [{"type": "ally", "desc": "Ally [Fellow Slave / Shrine Community]"},
+             {"type": "skill_choice", "options": ["Carouse", "Art", "Language"]}],
+        11: [{"type": "skill_choice", "options": ["Leadership", "Admin", "Diplomat"]}],
+    },
+}
 
 
 # ============================================================

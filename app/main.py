@@ -228,6 +228,11 @@ class CareerMishapChoiceAction(CharacterAction):
     choice_data: dict = {}
 
 
+class CareerEventChoiceAction(BaseModel):
+    character: Character
+    choice_data: dict
+
+
 class CrossCareerRollAction(CharacterAction):
     career_id: str
     table: str  # "event" | "mishap"
@@ -681,6 +686,16 @@ async def api_career_mishap_choice(action: CareerMishapChoiceAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.resolve_career_mishap_choice(character, action.choice_data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/career-event-choice")
+async def api_career_event_choice(action: CareerEventChoiceAction):
+    """Resolve a pending interactive career event choice."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_career_event_choice(character, action.choice_data)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

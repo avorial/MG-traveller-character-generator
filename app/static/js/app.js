@@ -4601,6 +4601,9 @@ function wireCareerPhase() {
         statBonuses: response.stat_bonuses || [],
         autoPromotion: response.auto_promotion || null,
         associateOpsDone: [],
+        eventEffects: response.event_effects || [],
+        pendingEventChoice: response.pending_event_choice || null,
+        disasterMishap: response.disaster_mishap || null,
       };
 
       // Auto-add unambiguous single Ally grants without requiring the picker.
@@ -5089,6 +5092,19 @@ function wireCareerPhase() {
     });
   }
 
+  // Helper: call career-event-choice and refresh state
+  async function resolveEventChoice(choiceData) {
+    const response = await apiCall('/api/character/career-event-choice', { choice_data: choiceData });
+    await applyResponse(response);
+    if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
+      uiState.lastRoll.pendingEventChoice = response.pending_event_choice || null;
+      if (response.event_effects) {
+        uiState.lastRoll.eventEffects = (uiState.lastRoll.eventEffects || []).concat(response.event_effects);
+      }
+    }
+    renderAll();
+  }
+
   // Helper: call career-mishap-choice and refresh state
   async function resolveMishapChoice(choiceData) {
     const response = await apiCall('/api/character/career-mishap-choice', { choice_data: choiceData });
@@ -5266,6 +5282,52 @@ function wireCareerPhase() {
     btn.addEventListener('click', () => {
       const skillName = btn.getAttribute('data-skill');
       resolveMishapChoice({ skill_name: skillName });
+    });
+  });
+
+  // ---- Event choice buttons (pending_career_event_choice) ----
+
+  // skill_choice: pick one skill from a list
+  document.querySelectorAll('.event-choice-skill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const skill = btn.getAttribute('data-event-choice-skill');
+      resolveEventChoice({ skill }).then(() => {
+        if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+        renderAll();
+      });
+    });
+  });
+
+  // free_skill_choice: type a skill name
+  const btnEventFreeskillConfirm = document.getElementById('btn-event-freeskill-confirm');
+  if (btnEventFreeskillConfirm) {
+    btnEventFreeskillConfirm.addEventListener('click', async () => {
+      const input = document.getElementById('input-event-freeskill');
+      const skill = input ? input.value.trim() : '';
+      if (!skill) { alert('Enter a skill name.'); return; }
+      await resolveEventChoice({ skill });
+      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      renderAll();
+    });
+  }
+
+  // skill_check: pick skill and auto-roll
+  document.querySelectorAll('.event-choice-skillcheck').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const skillName = btn.getAttribute('data-skill-name');
+      await resolveEventChoice({ skill_name: skillName });
+      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      renderAll();
+    });
+  });
+
+  // pending_choice: pick an option by id
+  document.querySelectorAll('.event-choice-pending').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const optionId = btn.getAttribute('data-event-choice-option');
+      await resolveEventChoice({ option_id: optionId });
+      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      renderAll();
     });
   });
 
@@ -7329,10 +7391,81 @@ function renderEventStep() {
 
     const entertainerPending = isEntertainerEv5 && !lr.entertainerAssocDone;
     const citizenMishapPending = !!lr.citizenEv8SurvivalFailed;
+    const pendingEventChoice = lr.pendingEventChoice || null;
+
+    // Render structured event effects (auto-applied skill grants, associates, etc.)
+    const eventEffectsMsgs = Array.isArray(lr.eventEffects) ? lr.eventEffects : [];
+    const eventEffectsHTML = eventEffectsMsgs.length ? `
+      <div class="dm-applied-box">
+        <span class="event-label">Auto-applied event effects</span>
+        ${eventEffectsMsgs.map(m => `<div class="dm-chip applied">${escapeHTML(m)}</div>`).join('')}
+      </div>
+    ` : '';
+
+    // Render disaster mishap result (event 2 / trigger_disaster_mishap)
+    const dm = lr.disasterMishap;
+    const disasterMishapHTML = dm ? `
+      <div class="mishap-box">
+        <span class="event-label">Disaster! Mishap [1D=${dm.roll?.total ?? '?'}]</span>
+        <p style="margin:4px 0">${escapeHTML(dm.mishap || '')}</p>
+        ${dm.auto_applied && dm.auto_applied.length ? dm.auto_applied.map(m => `<div class="dm-chip applied">${escapeHTML(m)}</div>`).join('') : ''}
+      </div>
+    ` : '';
+
+    // Render pending event choice (skill_choice, free_skill_choice, skill_check, pending_choice)
+    let pendingEventChoiceHTML = '';
+    if (pendingEventChoice && !lr.eventChoiceResolved) {
+      const pec = pendingEventChoice;
+      const pecType = pec.type || '';
+      if (pecType === 'skill_choice') {
+        pendingEventChoiceHTML = `
+          <div class="event-skill-picker">
+            <span class="event-label">Choose a skill</span>
+            <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(pec.prompt || 'Pick one skill to gain at level 1:')}</em></p>
+            <div class="skill-picker">
+              ${(pec.options || []).map(sk => `<button class="skill-chip event-choice-skill" data-event-choice-skill="${escapeHTML(sk)}">+ ${escapeHTML(sk)} 1</button>`).join('')}
+            </div>
+          </div>`;
+      } else if (pecType === 'free_skill_choice') {
+        pendingEventChoiceHTML = `
+          <div class="event-skill-picker">
+            <span class="event-label">Free skill choice</span>
+            <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(pec.prompt || 'Enter any skill name:')}</em></p>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <input type="text" id="input-event-freeskill" style="background:var(--bg2);color:var(--fg);border:1px solid var(--border);padding:4px 8px;border-radius:4px" placeholder="Skill name" />
+              <button class="btn" id="btn-event-freeskill-confirm">CONFIRM</button>
+            </div>
+          </div>`;
+      } else if (pecType === 'skill_check') {
+        pendingEventChoiceHTML = `
+          <div class="event-skill-picker">
+            <span class="event-label">Skill check required</span>
+            <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(pec.prompt || 'Pick which skill to roll:')}</em></p>
+            <div class="skill-picker">
+              ${(pec.skills || []).map((sk, i) => {
+                const lvl = getSkillLevelFor(sk.name, sk.speciality);
+                const lvlStr = lvl >= 0 ? `+${lvl}` : `${lvl}`;
+                const label = sk.speciality ? `${sk.name} (${sk.speciality})` : sk.name;
+                return `<button class="skill-chip event-choice-skillcheck" data-event-choice-skillcheck="${i}" data-skill-name="${escapeHTML(sk.name)}">Roll ${escapeHTML(label)} ${pec.target || 8}+ (your DM ${lvlStr})</button>`;
+              }).join('')}
+            </div>
+          </div>`;
+      } else if (pecType === 'pending_choice') {
+        pendingEventChoiceHTML = `
+          <div class="event-skill-picker">
+            <span class="event-label">Choose your reward</span>
+            <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(pec.prompt || 'Pick one option:')}</em></p>
+            <div class="skill-picker">
+              ${(pec.options || []).map(opt => `<button class="skill-chip event-choice-pending" data-event-choice-option="${escapeHTML(opt.id)}">${escapeHTML(opt.label)}</button>`).join('')}
+            </div>
+          </div>`;
+      }
+    }
 
     const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
       || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen)
-      || entertainerPending || citizenMishapPending;
+      || entertainerPending || citizenMishapPending
+      || !!(pendingEventChoice && !lr.eventChoiceResolved);
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP
@@ -7399,7 +7532,10 @@ function renderEventStep() {
         ${citizenEv8HTML}
         ${prisonerParoleHTML}
         ${scoutBanHTML}
-        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
+        ${eventEffectsHTML}
+        ${disasterMishapHTML}
+        ${pendingEventChoiceHTML}
+        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 || eventEffectsMsgs.length || pendingEventChoice ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>
