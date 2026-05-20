@@ -1042,6 +1042,53 @@ body {
   padding: 2px 6px;
 }
 
+/* Rite-of-passage locked Aslan career cards */
+.card.rite-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  position: relative;
+}
+.card.rite-locked::after {
+  content: 'LOCKED';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--danger);
+  letter-spacing: 0.2em;
+  border: 1px solid var(--danger);
+  padding: 2px 6px;
+}
+
+/* Aslan setup phase: roll result display */
+.roll-result-block {
+  background: var(--panel-bg, #111);
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.roll-result-dice {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--amber-dim);
+}
+.roll-result-label {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--amber);
+}
+.roll-result-note {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
+
 /* ============ Dice rolls ============ */
 
 .roll-readout {

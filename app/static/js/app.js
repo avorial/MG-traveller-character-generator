@@ -306,6 +306,8 @@ let uiState = {
   bgExpandedCascade: null,
   // Shared cascade-skill specialty intercept (used by event/pre-career direct-API paths)
   pendingSkillGrant: null,
+  // Aslan setup: intermediate roll result display (cleared when player clicks Continue)
+  aslanRollResult: null,
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -3276,6 +3278,67 @@ function renderAslanSetupPhase() {
   const sp = SPECIES.find(s => s.id === character.species_id) || null;
   const spName = sp ? sp.name : 'Aslan';
 
+  // Intermediate result display — show roll outcome before advancing to next step
+  if (uiState.aslanRollResult) {
+    const res = uiState.aslanRollResult;
+    let resultHTML = '';
+
+    if (res.type === 'clan') {
+      const r = res.roll;
+      resultHTML = `
+        <div class="roll-result-block">
+          <div class="roll-result-dice">1D = <strong>${r.raw_total}</strong></div>
+          <div class="roll-result-label">→ <strong>${res.clan_type}</strong></div>
+          ${res.dm_ancestral_deeds > 0 ? `<div class="roll-result-note">DM+${res.dm_ancestral_deeds} to Ancestral Deeds</div>` : ''}
+        </div>`;
+    } else if (res.type === 'ancestry') {
+      const ar = res.ancestral_roll;
+      const dm = ar.modifier || 0;
+      resultHTML = `
+        <div class="roll-result-block">
+          <div class="roll-result-label">Ancestral Deeds</div>
+          <div class="roll-result-dice">1D${dm > 0 ? `+${dm}` : ''} = <strong>${ar.total}</strong> → ${res.ancestral_result.label || ''}</div>
+          ${(res.past_deeds_rolls || []).map(p => `
+            <div class="roll-result-dice">${p.who}: 2D = <strong>${p.roll.total}</strong>
+              → ${p.label}
+              ${typeof p.territory_change === 'number' && p.territory_change !== 0 ? ` (territory ${p.territory_change > 0 ? '+' : ''}${p.territory_change})` : ''}
+              ${p.territory_change === 'lose_all' ? ' (lose all territory)' : ''}
+            </div>`).join('')}
+          <div class="roll-result-label">→ Ancestral Territory: <strong>${res.ancestral_territory}</strong>. SOC set to <strong>${res.soc_set_to}</strong>.</div>
+          ${(res.bonus_notes || []).map(n => `<div class="roll-result-note">${n}</div>`).join('')}
+        </div>`;
+    } else if (res.type === 'family') {
+      const r = res.roll;
+      resultHTML = `
+        <div class="roll-result-block">
+          <div class="roll-result-dice">2D = <strong>${r.total}</strong> (${r.dice.join(', ')})</div>
+          <div class="roll-result-label">→ <strong>${res.family_position}</strong></div>
+          <div class="roll-result-note">${res.inherits_territory
+            ? 'You inherit the Ancestral Territory. SOC = ' + res.soc
+            : 'You do not inherit territory. SOC reset to 0.'}</div>
+        </div>`;
+    } else if (res.type === 'rite') {
+      const r = res.roll;
+      resultHTML = `
+        <div class="roll-result-block">
+          <div class="roll-result-dice">2D = <strong>${r.total}</strong> (${r.dice.join(', ')})</div>
+          <div class="roll-result-label">Rite Score: <strong>${res.rite_score}</strong></div>
+          ${res.is_doubles ? `<div class="roll-result-note">Doubles! Event: ${res.doubles_key}${res.doubles_result ? ' — ' + res.doubles_result.label : ''}</div>` : ''}
+        </div>`;
+    }
+
+    return `
+      <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — RESULT</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Roll Result</div>
+        <div class="phase-title">${res.title}</div>
+        ${resultHTML}
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-aslan-result-continue">CONTINUE →</button>
+        </div>
+      </div>`;
+  }
+
   // If setup hasn't been initialised yet, show Begin Setup button
   if (!setupPhase) {
     return `
@@ -3390,6 +3453,12 @@ function renderAslanSetupPhase() {
 }
 
 function wireAslanSetupPhase() {
+  // Result continue button (shown after each roll)
+  document.getElementById('btn-aslan-result-continue')?.addEventListener('click', () => {
+    uiState.aslanRollResult = null;
+    renderAll();
+  });
+
   // Begin setup button
   document.getElementById('btn-aslan-begin')?.addEventListener('click', async () => {
     try {
@@ -3419,6 +3488,7 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-clan', {});
       character = data.character;
       saveCharacter();
+      uiState.aslanRollResult = { type: 'clan', title: 'Clan Origin', ...data };
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3429,6 +3499,7 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-ancestry', {});
       character = data.character;
       saveCharacter();
+      uiState.aslanRollResult = { type: 'ancestry', title: 'Ancestral Territory', ...data };
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3439,6 +3510,7 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-family', {});
       character = data.character;
       saveCharacter();
+      uiState.aslanRollResult = { type: 'family', title: 'Family Position', ...data };
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3449,6 +3521,7 @@ function wireAslanSetupPhase() {
       const data = await apiCall('/api/character/aslan/roll-rite', {});
       character = data.character;
       saveCharacter();
+      uiState.aslanRollResult = { type: 'rite', title: 'Rite of Passage — Akhuaeuhrekhyeh', ...data };
       renderAll();
     } catch (e) { alert(e.message); }
   });
@@ -3561,6 +3634,12 @@ function renderChooseCareer() {
       Gain it through a cetacean career first, then core careers will unlock.
     </p>` : '';
 
+  // Aslan rite-of-passage gating: careers with RITE_OF_PASSAGE qualification
+  // are locked if character's rite score is below the target.
+  const riteScore = isAslan
+    ? ((character.aslan_setup_status || {}).rite_score || 0)
+    : null;
+
   const cards = careerList.map(c => {
     const isComplete = c.complete;
     const qual = c.qualification || {};
@@ -3569,15 +3648,33 @@ function renderChooseCareer() {
       qualText = 'AUTO';
     } else if (qual.characteristic === 'DEX_OR_INT') {
       qualText = `DEX or INT ${qual.target}+`;
+    } else if (qual.characteristic === 'RITE_OF_PASSAGE') {
+      qualText = `RITE ${qual.target}+`;
     } else {
       qualText = `${qual.characteristic} ${qual.target}+`;
     }
+
+    // Rite-lock: Aslan career needs RITE_OF_PASSAGE and character score is below target
+    const riteLocked = riteScore !== null
+      && qual.characteristic === 'RITE_OF_PASSAGE'
+      && riteScore < qual.target;
+
     const classes = ['card'];
     if (!isComplete) classes.push('partial');
+
+    if (riteLocked) {
+      return `
+        <div class="card rite-locked" title="Requires Rite Score ${qual.target}+ (yours: ${riteScore})">
+          <div class="card-title">${c.name}</div>
+          <div class="card-meta">RITE ${qual.target}+ · SCORE ${qual.target} REQUIRED (YOURS: ${riteScore})</div>
+          <div class="card-desc">${c.description}</div>
+        </div>
+      `;
+    }
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">
         <div class="card-title">${c.name}</div>
-        <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}</div>
+        <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}${riteScore !== null && qual.characteristic === 'RITE_OF_PASSAGE' ? ` · YOUR SCORE: ${riteScore}` : ''}</div>
         <div class="card-desc">${c.description}</div>
       </button>
     `;
