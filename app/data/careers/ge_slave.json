@@ -3,8 +3,7 @@
   "name": "Slave",
   "description": "You are a slave of the Glorious Empire — a labourer, servant to a noble household, skilled technician, or Dog Soldier, the spearhead of the Empire's military forces. The lives of slaves are often nasty, brutish and short, but you are a survivor, biding your time as the Empire collapses around you.",
   "qualification": {
-    "characteristic": "AUTOMATIC",
-    "target": 0
+    "automatic": true
   },
   "assignments": {
     "labourer": {

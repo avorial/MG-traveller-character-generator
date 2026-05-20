@@ -132,7 +132,7 @@ def _apply_event_dms(character: Character, event_text: str) -> list[dict]:
 # Only auto-applies unconditional grants; conditional/choice events are
 # surfaced but not applied.
 _STAT_BONUS_RE = re.compile(
-    r"\b(STR|DEX|END|INT|EDU|SOC)\s*([+-]\d+)\b",
+    r"\b(STR|DEX|END|INT|EDU|SOC|TER)\s*([+-]\d+)\b",
     re.IGNORECASE,
 )
 
@@ -4330,6 +4330,19 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
         character.log(f"Mishap: {stat} {old}→{new_val}")
 
+    elif etype == "stat_cap":
+        # Set stat to min(current, cap) — used for "SOC drops to 2" / "TER drops to 0" etc.
+        stat = effect["stat"]
+        cap = effect["cap"]
+        old = character.characteristics.get(stat)
+        new_val = min(old, cap)
+        if new_val != old:
+            character.characteristics.set(stat, new_val)
+            msgs.append(f"{stat} {old}→{new_val} (capped at {cap})")
+            character.log(f"Mishap: {stat} capped at {cap}: {old}→{new_val}")
+        else:
+            msgs.append(f"{stat} already ≤ {cap} (stays at {old})")
+
     elif etype == "stat_choice":
         if not character.pending_career_mishap_choice:
             character.pending_career_mishap_choice = {
@@ -4405,6 +4418,19 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                             "label": f"{assoc.kind.capitalize()}: {assoc.description or '(unnamed)'}",
                             "associate_index": i,
                         })
+                pending["options"] = opts
+            # Populate ge_lose_associate_or_forfeit from contacts/allies (or auto-forfeit)
+            elif choice_id == "ge_lose_associate_or_forfeit":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": f"associate_{i}",
+                            "label": f"Lose {assoc.kind.capitalize()}: {assoc.description or '(unnamed)'}",
+                        })
+                if not opts:
+                    opts = [{"id": "forfeit",
+                             "label": "No Allies or Contacts to lose — forfeit this term's Benefit roll"}]
                 pending["options"] = opts
             character.pending_career_mishap_choice = pending
             set_pending = True
@@ -4734,6 +4760,92 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "prompt": "Protesting innocence — Roll Advocate 8+ to defend yourself and stay in the career",
                 }
                 auto_applied.append("Claiming innocence — must now roll Advocate 8+")
+
+        elif choice_id == "aslan_scientist_leave":
+            if selected == "leave":
+                character.forced_next_career_id = "scholar"
+                auto_applied.append("Left for human space — auto-qualifies for Scholar career next term")
+                character.log("Mishap: scientist leaves for human space, Scholar auto-entry set")
+            else:
+                auto_applied.append("Accepted career end — no further effect")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "ge_forced_career_choice":
+            career_map = {"landless_one": "ge_landless_one", "outlaw": "aslan_outlaw"}
+            next_id = career_map.get(selected, "ge_landless_one")
+            character.forced_next_career_id = next_id
+            auto_applied.append(f"Must take {next_id.replace('_', ' ').title()} career next term")
+            character.log(f"Mishap: GE forced career choice — {next_id}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "ge_hierate_capture":
+            if selected == "return":
+                # Return to Empire — choose Landless One or Outlaw (give them one more choice)
+                character.pending_career_mishap_choice = {
+                    "type": "pending_choice",
+                    "id": "ge_forced_career_choice",
+                    "prompt": "Return to Empire — choose your next career:",
+                    "options": [
+                        {"id": "landless_one", "label": "Landless One"},
+                        {"id": "outlaw",       "label": "Outlaw"},
+                    ],
+                }
+                auto_applied.append("Returning to Empire — choose Landless One or Outlaw next")
+            else:
+                # Stay in Hierate — SOC 2, gain Contact
+                old_soc = character.characteristics.get("SOC")
+                character.characteristics.set("SOC", min(old_soc, 2))
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Hierate Clan Member]")
+                )
+                auto_applied.append(
+                    f"Stayed in Hierate — SOC {old_soc}→{min(old_soc, 2)}, gained Contact [Hierate Clan Member]"
+                )
+                character.log("Mishap: stayed in Hierate — SOC capped at 2, gained Contact")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "ge_lose_associate_or_forfeit":
+            if selected.startswith("associate_"):
+                try:
+                    idx = int(selected.split("_", 1)[1])
+                    if 0 <= idx < len(character.associates):
+                        removed = character.associates.pop(idx)
+                        auto_applied.append(
+                            f"Lost {removed.kind.capitalize()}: {removed.description or '(unnamed)'}"
+                        )
+                        character.log(f"Mishap: lost associate {removed.kind} — {removed.description}")
+                except (ValueError, IndexError):
+                    pass
+            else:  # forfeit
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Benefit roll forfeited (no Allies/Contacts to lose)")
+                character.log("Mishap: forfeit benefit — no associates")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "ge_slave_revolt":
+            if selected == "report":
+                # Auto-promote + Enemy [Revolt Leader]
+                if term is not None:
+                    old_rank = term.rank
+                    max_rank = max((int(k) for k in rules.careers().get(term.career_id, {})
+                                   .get("ranks", {}).get(term.assignment_id or "", {}).keys()),
+                                  default=6)
+                    term.rank = min(old_rank + 1, max_rank)
+                    auto_applied.append(f"Reported the revolt — auto-promoted: rank {old_rank}→{term.rank}")
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Slave Revolt Leader]")
+                )
+                auto_applied.append("Gained Enemy [Slave Revolt Leader]")
+                character.log("Mishap: reported revolt — promoted + enemy gained")
+            else:  # allow revolt
+                inj = apply_injury(character)
+                if inj:
+                    auto_applied.append(f"Revolt injury: {inj.get('description', 'injured')}")
+                character.forced_next_career_id = "prisoner"
+                auto_applied.append("Allowed revolt — roll on Injury table and must take Prisoner career next term")
+                character.log("Mishap: allowed revolt — injury + forced Prisoner")
+            character.pending_career_mishap_choice = None
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -5625,6 +5737,9 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ---- Aslan Hierate / Glorious Empire careers ----
     "aslan_ceremonial": {
         1: [{"type": "injury"}],
+        2: [{"type": "stat_cap", "stat": "SOC", "cap": 2},
+            {"type": "force_next_career", "career_id": "aslan_outcast"}],
+        3: [{"type": "skill_choice", "options": ["Survival", "Pilot", "Independence", "Streetwise"]}],
         4: [{"type": "skill_check", "skills": [{"name": "Melee (natural)"}], "target": 8,
              "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
              "on_fail": [{"type": "injury"}],
@@ -5637,11 +5752,15 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "aslan_envoy": {
         1: [{"type": "injury"}],
+        2: [{"type": "stat_cap", "stat": "SOC", "cap": 2},
+            {"type": "force_next_career", "career_id": "aslan_outcast"}],
+        3: [{"type": "rival", "desc": "Rival [Other Envoy]"}],
         4: [{"type": "skill_check",
              "skills": [{"name": "Melee (natural)"}, {"name": "Recon"}], "target": 8,
              "on_pass": [{"type": "career_continues"}],
              "on_fail": [{"type": "injury"}],
              "prompt": "Roll Melee (natural) or Recon 8+ to evade the assassin"}],
+        5: [{"type": "skill_choice", "options": ["Survival", "Pilot", "Carouse", "Independence"]}],
         6: [{"type": "skill_check", "skills": [{"name": "Tolerance"}], "target": 8,
              "on_pass": [{"type": "career_continues"}],
              "on_fail": [{"type": "enemy", "desc": "Enemy [Human Ambassador's Ally]"}],
@@ -5649,6 +5768,9 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "aslan_military": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rival", "desc": "Rival [Superior Officer]"}],
+        3: [{"type": "skill_choice", "options": ["Stealth", "Survival", "Streetwise", "Gun Combat"]}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -1}],
         5: [{"type": "pending_choice", "id": "aslan_brave_fight",
              "prompt": "Fight bravely (roll Gun Combat or Athletics 8+ to stay) or refuse and leave?",
              "options": [
@@ -5659,14 +5781,21 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "aslan_military_officer": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat_cap", "stat": "SOC", "cap": 2},
+            {"type": "force_next_career", "career_id": "aslan_outcast"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -2}],
+        4: [{"type": "rival", "desc": "Rival [Foe Who Defeated You]"}],
+        5: [{"type": "contact", "desc": "Contact [Rival Clan Member]"}],
         6: [{"type": "injury"}],
     },
     "aslan_spacer": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rival", "desc": "Rival [Superior Officer]"}],
         3: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
              "on_pass": [],
              "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
              "prompt": "Roll END 8+ — fail and lose END -1 from the alien parasite"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -2}],
         5: [{"type": "skill_check", "skills": [{"name": "Tolerance"}], "target": 8,
              "on_pass": [{"type": "career_continues"}, {"type": "forfeit_benefit"}],
              "on_fail": [],
@@ -5679,7 +5808,10 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "Advocate"}, {"name": "Melee (natural)"}], "target": 8,
              "on_pass": [],
              "on_fail": [{"type": "forfeit_benefit"}],
-             "prompt": "Roll Advocate or Melee 8+ to challenge — pass keeps your Benefit rolls"}],
+             "prompt": "Roll Advocate or Melee 8+ — pass keeps your Benefit rolls"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -2}],
+        4: [{"type": "rival", "desc": "Rival [Foe Who Destroyed Your Vessel]"}],
+        5: [{"type": "contact", "desc": "Contact [Rival Clan Member]"}],
         6: [{"type": "injury"}],
     },
     "aslan_management": {
@@ -5690,42 +5822,95 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                  {"id": "guilty",   "label": "Yes, I stole — gain 3 Benefit rolls, become Outcast (SOC 2)"},
                  {"id": "innocent", "label": "I'm innocent — Roll Advocate 8+ to defend yourself"},
              ]}],
+        3: [{"type": "contact", "desc": "Contact [Clan Member Who Stays in Touch]"}],
+        4: [{"type": "career_continues"}, {"type": "forfeit_benefit"}],
+        5: [{"type": "skill_choice", "options": ["Survival", "Flyer", "Profession", "Navigation"]}],
+        6: [{"type": "rival", "desc": "Rival [Clan Elder]"}],
     },
     "aslan_scientist": {
         1: [{"type": "injury"}],
+        2: [{"type": "stat", "stat": "END", "amount": -1}],
+        3: [{"type": "rival", "desc": "Rival [Other Researcher]"}, {"type": "career_continues"},
+            {"type": "forfeit_benefit"}],
+        4: [{"type": "skill_choice", "options": ["Survival", "Astrogation", "Mechanic", "Science"]}],
         5: [{"type": "skill_check", "skills": [{"name": "Melee (natural)"}], "target": 8,
              "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1},
                          {"type": "career_continues"}],
              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -2}],
              "prompt": "Roll Melee (natural) 8+ to challenge the elder — pass: SOC +1, stay; fail: SOC -2, leave"}],
+        6: [{"type": "pending_choice", "id": "aslan_scientist_leave",
+             "prompt": "Your research is cancelled. Leave for human space (auto-qualify for Scholar) or accept career end?",
+             "options": [
+                 {"id": "leave",  "label": "Leave for human space — auto-qualify for Scholar next term"},
+                 {"id": "accept", "label": "Accept career end"},
+             ]}],
     },
     "aslan_wanderer": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "skill_choice", "options": ["Survival", "Mechanic", "Animals", "Recon"]}],
+        3: [{"type": "stat", "stat": "END", "amount": -1}],
         4: [{"type": "skill_check", "skills": [{"name": "Pilot"}], "target": 8,
              "on_pass": [],
              "on_fail": [{"type": "injury"}],
              "prompt": "Roll Pilot 8+ to avoid rolling on the Injury table"}],
+        5: [{"type": "skill", "name": "Mechanic", "level": 1},
+            {"type": "rival", "desc": "Rival [Saboteur ihatei]"}],
         6: [{"type": "injury"}],
     },
-    # GE Aslan careers use same mishap logic as Hierate equivalents
+    # ---- GE Aslan careers ----
     "ge_fleet": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rank_loss", "amount": 1}, {"type": "rival", "desc": "Rival [Superior Officer]"},
+            {"type": "career_continues"}],
         3: [{"type": "skill_check",
              "skills": [{"name": "END", "is_stat": True}], "target": 8,
              "on_pass": [],
              "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
              "prompt": "Roll END 8+ — fail and lose END -1 from the alien parasite"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "pending_choice", "id": "ge_forced_career_choice",
+             "prompt": "Ejected for smuggling — you may only continue in one of these careers:",
+             "options": [
+                 {"id": "landless_one", "label": "Landless One"},
+                 {"id": "outlaw",       "label": "Outlaw"},
+             ]}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -1}, {"type": "forfeit_benefit"},
+            {"type": "career_continues"}],
         6: [{"type": "injury"}],
     },
     "ge_fleet_officer": {
         1: [{"type": "injury_severity_choice"}],
-        5: [{"type": "stat", "stat": "SOC", "amount": -2},
-            {"type": "stat", "stat": "TER", "amount": -2},
-            {"type": "enemy", "desc": "Enemy [Hierate Captor]"}],
+        2: [{"type": "skill_check",
+             "skills": [{"name": "Advocate"}, {"name": "Melee (natural)"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Roll Advocate or Melee 8+ — pass keeps your Benefit rolls"}],
+        3: [{"type": "rank_loss", "amount": 1}, {"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "enemy", "desc": "Enemy [Rival Officer]"}, {"type": "career_continues"}],
+        4: [{"type": "rival", "desc": "Rival [Hierate Foe]"}, {"type": "career_continues"}],
+        5: [{"type": "stat_cap", "stat": "SOC", "cap": 0},
+            {"type": "stat_cap", "stat": "TER", "cap": 0},
+            {"type": "pending_choice", "id": "ge_hierate_capture",
+             "prompt": "Captured and exchanged — return to Empire (Landless One/Outlaw) or stay in Hierate (SOC 2, Contact)?",
+             "options": [
+                 {"id": "return", "label": "Return to Empire — Landless One or Outlaw career only"},
+                 {"id": "stay",   "label": "Stay in Hierate — SOC set to 2, gain a Contact"},
+             ]}],
         6: [{"type": "injury"}],
     },
     "ge_warrior": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rank_loss", "amount": 1}, {"type": "rival", "desc": "Rival [Superior Officer]"},
+            {"type": "career_continues"}],
+        3: [{"type": "skill_choice", "options": ["Stealth", "Survival", "Streetwise", "Gun Combat"]},
+            {"type": "career_continues"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "pending_choice", "id": "ge_forced_career_choice",
+             "prompt": "Captured and ransomed — you may only continue in one of these careers:",
+             "options": [
+                 {"id": "landless_one", "label": "Landless One"},
+                 {"id": "outlaw",       "label": "Outlaw"},
+             ]}],
         5: [{"type": "pending_choice", "id": "aslan_brave_fight",
              "prompt": "Fight bravely (roll Gun Combat or Athletics 8+ to stay) or refuse and leave?",
              "options": [
@@ -5736,14 +5921,46 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "ge_warrior_officer": {
         1: [{"type": "injury_severity_choice"}],
-        5: [{"type": "stat", "stat": "SOC", "amount": -2},
-            {"type": "enemy", "desc": "Enemy [Hierate Captor]"}],
+        2: [{"type": "injury"}, {"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "rank_loss", "amount": 1}, {"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "career_continues"}],
+        4: [{"type": "injury"}, {"type": "rival", "desc": "Rival [Foe Who Defeated You]"},
+            {"type": "career_continues"}],
+        5: [{"type": "pending_choice", "id": "ge_hierate_capture",
+             "prompt": "Captured by Hierate — return to Empire (Landless One/Outlaw) or stay in Hierate (SOC 2, Contact)?",
+             "options": [
+                 {"id": "return", "label": "Return to Empire — Landless One or Outlaw only"},
+                 {"id": "stay",   "label": "Stay in Hierate — SOC set to 2, gain a Contact"},
+             ]}],
         6: [{"type": "injury"}],
     },
     "ge_landless_one": {
         1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "pending_choice", "id": "ge_lose_associate_or_forfeit",
+             "prompt": "Your friends desert you. Lose an Ally or Contact, or forfeit your Benefit roll if you have none.",
+             "options": []}],  # options populated dynamically
+        3: [{"type": "skill_choice", "options": ["Survival", "Mechanic", "Animals", "Recon"]}],
         4: [{"type": "stat", "stat": "END", "amount": -1}],
+        5: [{"type": "skill", "name": "Mechanic", "level": 1},
+            {"type": "rival", "desc": "Rival [Saboteur]"}],
         6: [{"type": "injury"}],
+    },
+    "ge_slave": {
+        1: [{"type": "injury_severity_choice"}, {"type": "career_continues"}],
+        2: [{"type": "enemy", "desc": "Enemy [Rival Slave]"}, {"type": "career_continues"}],
+        3: [{"type": "stat", "stat": "END", "amount": -1}],
+        4: [{"type": "pending_choice", "id": "ge_slave_revolt",
+             "prompt": "You discover an impending slave revolt. Do you report it to your Aslan masters?",
+             "options": [
+                 {"id": "report", "label": "Report — automatic promotion, gain Enemy [Revolt Leader]"},
+                 {"id": "allow",  "label": "Allow it — roll Injury, forced to Prisoner career"},
+             ]}],
+        5: [{"type": "skill_check",
+             "skills": [{"name": "Stealth"}, {"name": "Persuade"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [{"type": "force_next_career", "career_id": "prisoner"}],
+             "prompt": "Roll Stealth or Persuade 8+ to escape capture — pass: stay free; fail: Prisoner career next"}],
+        6: [{"type": "career_continues"}],
     },
 }
 

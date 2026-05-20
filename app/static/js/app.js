@@ -5219,6 +5219,35 @@ function wireCareerPhase() {
   const btnMgmtInnocent = document.getElementById('btn-mishap-mgmt-innocent');
   if (btnMgmtInnocent) btnMgmtInnocent.addEventListener('click', () => resolveMishapChoice({ option_id: 'innocent' }));
 
+  // Aslan scientist leave choice (scientist mishap 6)
+  const btnScientistLeave = document.getElementById('btn-mishap-scientist-leave');
+  if (btnScientistLeave) btnScientistLeave.addEventListener('click', () => resolveMishapChoice({ option_id: 'leave' }));
+  const btnScientistAccept = document.getElementById('btn-mishap-scientist-accept');
+  if (btnScientistAccept) btnScientistAccept.addEventListener('click', () => resolveMishapChoice({ option_id: 'accept' }));
+
+  // GE forced career choice (fleet mishap 4, warrior mishap 4)
+  const btnGELandless = document.getElementById('btn-mishap-ge-landless');
+  if (btnGELandless) btnGELandless.addEventListener('click', () => resolveMishapChoice({ option_id: 'landless_one' }));
+  const btnGEOutlaw = document.getElementById('btn-mishap-ge-outlaw');
+  if (btnGEOutlaw) btnGEOutlaw.addEventListener('click', () => resolveMishapChoice({ option_id: 'outlaw' }));
+
+  // GE Hierate capture choice (fleet officer mishap 5, warrior officer mishap 5)
+  const btnGEReturn = document.getElementById('btn-mishap-ge-return');
+  if (btnGEReturn) btnGEReturn.addEventListener('click', () => resolveMishapChoice({ option_id: 'return' }));
+  const btnGEStay = document.getElementById('btn-mishap-ge-stay');
+  if (btnGEStay) btnGEStay.addEventListener('click', () => resolveMishapChoice({ option_id: 'stay' }));
+
+  // GE Slave revolt choice (slave mishap 4)
+  const btnSlaveReport = document.getElementById('btn-mishap-slave-report');
+  if (btnSlaveReport) btnSlaveReport.addEventListener('click', () => resolveMishapChoice({ option_id: 'report' }));
+  const btnSlaveAllow = document.getElementById('btn-mishap-slave-allow');
+  if (btnSlaveAllow) btnSlaveAllow.addEventListener('click', () => resolveMishapChoice({ option_id: 'allow' }));
+
+  // GE Landless One lose-associate-or-forfeit dynamic buttons
+  document.querySelectorAll('[id^="btn-mishap-lose-assoc-"]').forEach(btn => {
+    btn.addEventListener('click', () => resolveMishapChoice({ option_id: btn.dataset.optionId }));
+  });
+
   // Mishap victim buttons
   document.querySelectorAll('[id^="btn-mishap-victim-"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -7597,6 +7626,52 @@ function renderMishapStep() {
                 <div class="phase-actions" style="margin-top:8px;flex-direction:column;align-items:flex-start">${btns}</div>
               </div>`;
           }
+        } else if (pid === 'ge_lose_associate_or_forfeit') {
+          const opts = (pending.options || []);
+          const btns = opts.map((o, i) => `
+            <button class="btn" id="btn-mishap-lose-assoc-${i}"
+              data-option-id="${escapeHTML(o.id)}">${escapeHTML(o.label)}</button>`).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px;flex-direction:column;align-items:flex-start">${btns}</div>
+            </div>`;
+        } else if (pid === 'aslan_scientist_leave') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn primary" id="btn-mishap-scientist-leave">LEAVE FOR HUMAN SPACE</button>
+                <button class="btn" id="btn-mishap-scientist-accept">ACCEPT CAREER END</button>
+              </div>
+            </div>`;
+        } else if (pid === 'ge_forced_career_choice') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-ge-landless">LANDLESS ONE</button>
+                <button class="btn" id="btn-mishap-ge-outlaw">OUTLAW</button>
+              </div>
+            </div>`;
+        } else if (pid === 'ge_hierate_capture') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-ge-return">RETURN TO EMPIRE</button>
+                <button class="btn primary" id="btn-mishap-ge-stay">STAY IN HIERATE</button>
+              </div>
+            </div>`;
+        } else if (pid === 'ge_slave_revolt') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn danger" id="btn-mishap-slave-report">REPORT THE REVOLT</button>
+                <button class="btn" id="btn-mishap-slave-allow">ALLOW IT</button>
+              </div>
+            </div>`;
         }
       } else if (ptype === 'skill_check') {
         const skills = (pending.skills || []).map(s => `

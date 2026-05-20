@@ -3,8 +3,7 @@
   "name": "Landless One",
   "description": "Aslan who fail to find their place in Glorious Empire society do not become Outcasts as they do in the Hierate. Instead, they become Landless Ones — looked down upon as the scum of society but filling several crucial roles in the Empire's underworld economy.",
   "qualification": {
-    "characteristic": "AUTOMATIC",
-    "target": 0
+    "automatic": true
   },
   "assignments": {
     "labourer": {
