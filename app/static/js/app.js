@@ -3635,15 +3635,19 @@ function renderChooseCareer() {
   const hasVaccSuit = (character.skills || []).some(s => (s.name || '').toLowerCase() === 'vacc suit' && s.level >= 1);
   const cetaceanBlockedCareers = new Set((speciesDef && speciesDef.blocked_careers) || []);
 
-  // Aslan characters (uses_clan_shares) must only see Aslan-specific careers
+  // Aslan characters (uses_clan_shares) must only see Aslan-specific careers.
+  // GE Aslan see careers tagged glorious_empire (and shared ones tagged aslan_hierate).
+  // Hierate Aslan see careers tagged aslan_hierate only.
   const isAslan = !!(speciesDef && speciesDef.uses_clan_shares);
+  const isGEAslan = speciesId === 'glorious_empire_aslan';
+  const aslanSocietyTag = isGEAslan ? 'glorious_empire' : 'aslan_hierate';
 
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
         if (banned.has(c.id)) return false;
-        // Aslan: only show careers whitelisted for aslan_hierate
-        if (isAslan && !(c.societies && c.societies.includes('aslan_hierate'))) return false;
+        // Aslan: only show careers whitelisted for this Aslan society tag
+        if (isAslan && !(c.societies && c.societies.includes(aslanSocietyTag))) return false;
         // "societies" = whitelist: only show for these societies
         if (c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
