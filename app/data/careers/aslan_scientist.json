@@ -1,0 +1,155 @@
+{
+  "id": "aslan_scientist",
+  "name": "Scientist",
+  "description": "Science is an almost exclusively female occupation among the Aslan. The exception is that of doctor — by ancient tradition, males are allowed to practise the art of the physician, dating back to when males fought on the battlefield.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 7,
+    "modifiers": [
+      { "description": "Males require Rite 10+", "type": "note", "dm": 0 }
+    ]
+  },
+  "male_target": 10,
+  "assignments": {
+    "healer": {
+      "name": "Healer",
+      "description": "You tend the sick and wounded.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 6 },
+      "advancement": { "characteristic": "SOC", "target": 8 }
+    },
+    "researcher": {
+      "name": "Researcher",
+      "description": "You develop new inventions and technologies for your clan.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "EDU", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    },
+    "explorer": {
+      "name": "Explorer",
+      "description": "You explore new worlds and catalogue useful resources.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "END", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "SOC +1",
+      "4": "Diplomat",
+      "5": "Tolerance",
+      "6": "Independence or Tolerance"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Science",
+      "3": "Science",
+      "4": "Science",
+      "5": "Investigate",
+      "6": "Admin"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Admin",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Electronics",
+      "5": "Advocate",
+      "6": "Medic"
+    },
+    "healer": {
+      "name": "Healer",
+      "1": "Medic",
+      "2": "Science",
+      "3": "Persuade",
+      "4": "Medic",
+      "5": "Electronics (sensors)",
+      "6": "Admin"
+    },
+    "researcher": {
+      "name": "Researcher",
+      "1": "Science",
+      "2": "Electronics",
+      "3": "Engineer",
+      "4": "Investigate",
+      "5": "Admin",
+      "6": "Recon"
+    },
+    "explorer": {
+      "name": "Explorer",
+      "1": "Navigation",
+      "2": "Pilot",
+      "3": "Science",
+      "4": "Recon",
+      "5": "Survival",
+      "6": "Drive or Flyer"
+    }
+  },
+  "ranks": {
+    "healer": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": "Revered Scholar", "bonus": "SOC +1" }
+    },
+    "researcher": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": "Revered Scholar", "bonus": "SOC +1" }
+    },
+    "explorer": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": "Revered Scholar", "bonus": "SOC +1" }
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "A lab accident exposes you to something dangerous. Lose END −1.",
+    "3": "Another researcher sabotages your work. Gain a Rival. You may continue in this career if you wish but gain no Benefit rolls from this term.",
+    "4": "A lab ship misjumps, stranding you on an alien world. Gain one of Survival 1, Astrogation 1, Mechanic 1 or Science 1.",
+    "5": "A clan elder challenges your work as being flawed. You may challenge the elder if you wish. If you challenge, roll Melee (natural) 8+. If you succeed, increase your SOC +1 and you may continue with this career. If you fail, reduce your SOC −2 and leave this career.",
+    "6": "Your clan cancels your line of research. You may, if you wish, leave to continue it in human space — you may automatically qualify for the Scholar career from the Traveller Core Rulebook next term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Spending all your time in the laboratory is never a good thing. Gain one of Carouse 1, Survival 1, Streetwise 1 or a Contact.",
+    "4": "You are assigned to work on weapons technology for your clan. Gain one of Science 1, Engineer 1, Gunner 1 or Gun Combat 1.",
+    "5": "You work closely with a scientist from another species. Gain Tolerance 1 and a Contact.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You teach the young cubs of your clan. Gain Admin 1, Art 1, Science 1 or a Contact.",
+    "9": "A researcher working for another clan is close to making a breakthrough you covet. You can try to complete your research first (roll Science 10+; fail = lose Benefit rolls, succeed = DM+2 next advancement), attempt to sabotage their work (roll Stealth or Deception 8+; fail = SOC −2, succeed = DM+2 next advancement), or do nothing. Either way, gain the researcher as a Rival or Enemy depending on the path.",
+    "10": "You obtain a rare alien artefact or life form to study. Roll any Science 8+. If you succeed, you uncover the subject's secrets and gain DM+2 to your next advancement roll. If you fail, suffer DM-2 to your next advancement roll.",
+    "11": "You study at one of the great universities or research facilities. Gain Investigate 1, or gain DM+4 to your next advancement roll.",
+    "12": "You make a scientific breakthrough. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 1000, "benefit": "Scientific Equipment" },
+    "2": { "cash": 5000, "benefit": "EDU +1" },
+    "3": { "cash": 5000, "benefit": "INT +1" },
+    "4": { "cash": 10000, "benefit": "Weapon or 1 Clan Share" },
+    "5": { "cash": 20000, "benefit": "Science Kinship" },
+    "6": { "cash": 40000, "benefit": "SOC +1 and 1 Clan Share" },
+    "7": { "cash": 70000, "benefit": "Scientific Equipment and 2 Clan Shares" },
+    "8": { "cash": 100000, "benefit": "3 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 when rolling on Benefits if Male.",
+  "complete": true,
+  "societies": ["aslan_hierate"]
+}

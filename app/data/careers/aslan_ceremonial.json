@@ -1,0 +1,153 @@
+{
+  "id": "aslan_ceremonial",
+  "name": "Ceremonial",
+  "description": "Those who follow this career uphold the ancient traditions and honour of the Aslan race. Only Aslan of high standing are normally admitted to these hallowed halls.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 10,
+    "modifiers": [
+      { "description": "DM+2 if SOC 9+", "type": "soc_minimum", "soc": 9, "dm": 2 }
+    ]
+  },
+  "assignments": {
+    "poet": {
+      "name": "Poet",
+      "description": "You study and compose epic poetry and maintain the history of your clan.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "EDU", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    },
+    "clan_agent": {
+      "name": "Clan Agent",
+      "description": "You enforce the will of your clan elders and investigate crimes.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "END", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    },
+    "priest": {
+      "name": "Priest",
+      "description": "You honour the ancestors, officiate at ceremonial occasions and arbitrate disputes.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "SOC", "target": 6 },
+      "advancement": { "characteristic": "EDU", "target": 8 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "INT +1",
+      "4": "EDU +1",
+      "5": "SOC +1",
+      "6": "Independence"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Diplomat",
+      "2": "Investigate",
+      "3": "Advocate",
+      "4": "Melee (natural)",
+      "5": "Science",
+      "6": "Persuade"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Art",
+      "2": "Electronics",
+      "3": "Language",
+      "4": "Tolerance",
+      "5": "Admin",
+      "6": "Science"
+    },
+    "poet": {
+      "name": "Poet",
+      "1": "Art",
+      "2": "Art",
+      "3": "Persuade",
+      "4": "Carouse",
+      "5": "Electronics",
+      "6": "Deception"
+    },
+    "clan_agent": {
+      "name": "Clan Agent",
+      "1": "Investigate",
+      "2": "Gun Combat",
+      "3": "Streetwise",
+      "4": "Stealth",
+      "5": "Electronics",
+      "6": "Deception"
+    },
+    "priest": {
+      "name": "Priest",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Diplomat",
+      "4": "Persuade",
+      "5": "Tolerance",
+      "6": "Melee (natural)"
+    }
+  },
+  "ranks": {
+    "poet": {
+      "0": { "title": "Supplicant", "bonus": null },
+      "1": { "title": "Acolyte", "bonus": null },
+      "2": { "title": "Initiate", "bonus": "SOC +1" },
+      "3": { "title": "Sojourner", "bonus": null },
+      "4": { "title": "Practitioner", "bonus": "SOC +1" },
+      "5": { "title": "Master", "bonus": null },
+      "6": { "title": "Grand Master", "bonus": "EDU +1" }
+    },
+    "clan_agent": {
+      "0": { "title": "Probationary", "bonus": null },
+      "1": { "title": "Agent", "bonus": "Investigate 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": null, "bonus": null },
+      "4": { "title": "Field Agent", "bonus": "Streetwise 1" },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": "Master Agent", "bonus": "Admin 1" }
+    },
+    "priest": {
+      "0": { "title": "Supplicant", "bonus": null },
+      "1": { "title": "Acolyte", "bonus": null },
+      "2": { "title": "Initiate", "bonus": "SOC +1" },
+      "3": { "title": "Sojourner", "bonus": null },
+      "4": { "title": "Practitioner", "bonus": "SOC +1" },
+      "5": { "title": "Master", "bonus": null },
+      "6": { "title": "Grand Master", "bonus": "EDU +1" }
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "You commit a grievous breach of protocol and are Outcast. Drop your SOC to 2 and you must take the Outcast or Outlaw career next term.",
+    "3": "You are exiled because of some political scandal. Gain one of Survival 1, Pilot 1, Independence 1 or Streetwise 1.",
+    "4": "You are wounded in a duel. Roll Melee 8+; if you succeed, you won the duel and gain SOC +1.",
+    "5": "You are accused of a crime you did not commit. Roll Advocate 8+ to stay in the career.",
+    "6": "You are embroiled in a rivalry with another official, who ends your career. Gain them as a Rival."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You uncover an embarrassing secret related to your clan or family. Either trade it for 1D Clan Shares or keep it in reserve. Whenever you use this secret, gain a clan elder as an Enemy.",
+    "4": "You witnessed one of the great duellists in action. Gain Melee (natural) 1, Athletics (strength) 1, Carouse 1 or Medic 1.",
+    "5": "You are assigned a challenging task. Roll Art, Investigate or Persuade 8+. If you succeed, gain DM+2 to your next advancement roll. If you fail, you suffer DM-2 to your next advancement roll.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "Your clan prospers and so do you. Gain Carouse 1, Survival 1, Admin 1 or Independence 1.",
+    "9": "You rise in influence in your clan. Gain TER +1 and any one skill.",
+    "10": "You discover that one of your kinfolk has acted dishonourably. If you cover up their failing, gain them as an Ally. If you expose them, they challenge you. Roll Melee 8+ to defeat them. If they win, gain them as a Rival and SOC -2. If you win, gain them as an Enemy, but also gain TER +2.",
+    "11": "You are trusted by the great lords of your clan. Gain TER +2, or gain DM+4 to your next advancement roll.",
+    "12": "You excel in your role. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 5000, "benefit": "1 Clan Share" },
+    "2": { "cash": 5000, "benefit": "INT +1" },
+    "3": { "cash": 10000, "benefit": "EDU +2" },
+    "4": { "cash": 20000, "benefit": "2 Clan Shares" },
+    "5": { "cash": 20000, "benefit": "Weapon" },
+    "6": { "cash": 40000, "benefit": "3 Clan Shares" },
+    "7": { "cash": 100000, "benefit": "10 Ship Shares or 5 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+",
+  "complete": true,
+  "societies": ["aslan_hierate"]
+}

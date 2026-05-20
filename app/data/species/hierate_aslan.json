@@ -30,8 +30,11 @@
                        "description":  "The Aslan drive to acquire and hold territory is biological, not merely cultural. An Aslan who owns property (a starship of their own, a land deed, a base of operations) gains DM+1 on all Morale-equivalent checks and checks to resist fear or intimidation while on their own ground. Landless Aslan are subtly restless and may develop the ihatei drive — the compulsion to seek new territory by striking out alone."
                    }
                ],
-    "aliases":  [
-
-                ],
-    "source":  "Traveller Core Rulebook; Aliens of Charted Space Vol. 1, Mongoose Publishing"
+    "aliases":  [],
+    "source":  "Traveller Core Rulebook; Aliens of Charted Space Vol. 1, Mongoose Publishing",
+    "starting_age": 14,
+    "aging_starts_term": 6,
+    "aging_dm_multiplier": 2,
+    "extra_characteristics_required": ["TER"],
+    "uses_clan_shares": true
 }

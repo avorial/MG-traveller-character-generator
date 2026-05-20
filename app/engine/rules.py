@@ -147,12 +147,31 @@ def asim_life_events() -> dict:
     return _load_file("tables/asim_life_events.json")
 
 
+@lru_cache(maxsize=1)
+def aslan_life_events() -> dict:
+    return _load_file("tables/aslan_life_events.json")
+
+
+@lru_cache(maxsize=1)
+def aslan_background_tables() -> dict:
+    return _load_file("tables/aslan_background.json")
+
+
 # Careers that use the Solomani Life Events table instead of the standard one.
 # (The five unique Confederation careers — any career that events reference
 # "Roll on the Solomani Life Events table".)
 SOLOMANI_CAREER_IDS: frozenset[str] = frozenset(
     {"party", "confederation_navy", "solsec", "confederation_army", "solomani_marine"}
 )
+
+# Aslan Hierate careers — use the Aslan Life Events table.
+ASLAN_CAREER_IDS: frozenset[str] = frozenset({
+    "aslan_ceremonial", "aslan_envoy", "aslan_management",
+    "aslan_military", "aslan_military_officer", "aslan_scientist",
+    "aslan_spacer", "aslan_space_officer", "aslan_wanderer",
+    "aslan_outlaw",
+    # aslan_outcast uses standard Core life events (page 44 RAW)
+})
 
 # Species that have their own homeworld life events tables (1D).
 # Maps species_id → loader function name (resolved in life_events_for_species).
@@ -164,7 +183,9 @@ SPECIES_LIFE_EVENTS_TABLE: dict[str, str] = {
 
 # Careers that have no qualification roll — Party Patronage and Mixed Heritage
 # penalties are irrelevant for these.
-CAREERS_WITHOUT_QUALIFICATION: frozenset[str] = frozenset({"drifter", "prisoner"})
+CAREERS_WITHOUT_QUALIFICATION: frozenset[str] = frozenset({
+    "drifter", "prisoner", "aslan_outcast"
+})
 
 
 def life_events_for_species(species_id: str) -> dict | None:
@@ -184,6 +205,8 @@ def life_events_for_career(career_id: str) -> dict:
     """Return the appropriate life-events table for a given career id."""
     if career_id in SOLOMANI_CAREER_IDS:
         return solomani_life_events()
+    if career_id in ASLAN_CAREER_IDS:
+        return aslan_life_events()
     return life_events()
 
 

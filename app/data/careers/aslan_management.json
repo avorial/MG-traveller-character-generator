@@ -1,0 +1,151 @@
+{
+  "id": "aslan_management",
+  "name": "Management",
+  "description": "You manage an Aslan corporation or serve in another bureaucracy. Many female Aslan opt to enter a business-oriented career, rather than pursuing marriage and family.",
+  "gender_restriction": "female",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 8
+  },
+  "assignments": {
+    "corporate": {
+      "name": "Corporate",
+      "description": "You work as an administrator or trader in one of the great Aslan corporations.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "INT", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    },
+    "clan_aide": {
+      "name": "Clan Aide",
+      "description": "You serve in the bureaucracy of your clan.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "EDU", "target": 8 },
+      "advancement": { "characteristic": "SOC", "target": 6 }
+    },
+    "governess": {
+      "name": "Governess",
+      "description": "You are the protector and teacher of a rich Aslan prince.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "SOC", "target": 6 },
+      "advancement": { "characteristic": "EDU", "target": 8 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "STR +1",
+      "3": "DEX +1",
+      "4": "END +1",
+      "5": "Tolerance",
+      "6": "Broker"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Advocate",
+      "2": "Broker",
+      "3": "Admin",
+      "4": "Gun Combat",
+      "5": "Tolerance",
+      "6": "Admin"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Advocate",
+      "2": "Electronics",
+      "3": "Language",
+      "4": "Science",
+      "5": "Tolerance",
+      "6": "Diplomat"
+    },
+    "corporate": {
+      "name": "Corporate",
+      "1": "Admin",
+      "2": "Broker",
+      "3": "Profession",
+      "4": "Deception",
+      "5": "Streetwise",
+      "6": "Electronics"
+    },
+    "clan_aide": {
+      "name": "Clan Aide",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Melee (natural)",
+      "4": "Medic",
+      "5": "Steward",
+      "6": "Tolerance"
+    },
+    "governess": {
+      "name": "Governess",
+      "1": "Admin",
+      "2": "Persuade",
+      "3": "Streetwise",
+      "4": "Broker",
+      "5": "Steward",
+      "6": "Steward"
+    }
+  },
+  "ranks": {
+    "corporate": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": null, "bonus": "Admin 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": null, "bonus": "Tolerance 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": null, "bonus": "SOC +1" }
+    },
+    "clan_aide": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": null, "bonus": "Admin 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": null, "bonus": "Tolerance 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": null, "bonus": "SOC +1" }
+    },
+    "governess": {
+      "0": { "title": null, "bonus": null },
+      "1": { "title": null, "bonus": "Admin 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": null, "bonus": "Tolerance 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": null, "bonus": "SOC +1" }
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "You are accused of stealing from your employer. If this is true, gain 3 Benefit rolls and become Outcast, dropping your SOC to 2. If it is false, roll Advocate 8+ to defend yourself. If you fail, you leave this career; if you succeed, you may remain in this career.",
+    "3": "A shift in clan politics leaves you shut out in the cold. Gain a Contact who stays in touch despite your new status.",
+    "4": "Your clan's fortunes decline. You may continue in this career if you wish but you will gain no Benefit rolls this term or the next.",
+    "5": "You are sent to a border world, where your career stagnates. Gain Survival 1, Flyer 1, Profession 1 or Navigation 1.",
+    "6": "A clan elder takes a dislike to you. Gain her as a Rival."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "A rival clan attacks and your place of work is targeted by an assault force. Roll Melee (natural), Stealth or Gun Combat 8+. If you succeed, gain any skill. If you fail, roll on the Injury table.",
+    "4": "You pick up some useful skills. Gain Pilot 1, Mechanic 1, Electronics 1 or Drive 1.",
+    "5": "You have the opportunity to take a risk in business. Wager up to three Benefit rolls and roll Broker 8+. If you succeed, gain an equal number of Benefit rolls to those you wagered. If you fail, lose any wagered Benefits.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You expand into new territories. Gain Broker 1, Profession 1, Streetwise 1 or a Contact.",
+    "9": "A foolish decision by a clan member threatens your business. Roll Diplomat or Admin 8+ to fix the damage. If you succeed, gain that clan member as a Rival. If you fail, you suffer DM-2 to your next advancement roll.",
+    "10": "Your clan thrives and prospers. Gain DM+2 to your next advancement roll.",
+    "11": "You trade with aliens and barbarians. Gain Tolerance 1, or gain DM+4 to your next advancement roll.",
+    "12": "You excel in your role. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 0, "benefit": "1 Clan Share" },
+    "2": { "cash": 0, "benefit": "Contact or 1 Clan Share" },
+    "3": { "cash": 0, "benefit": "Ceremonial Kinship" },
+    "4": { "cash": 5000, "benefit": "EDU +1" },
+    "5": { "cash": 5000, "benefit": "SOC +1" },
+    "6": { "cash": 10000, "benefit": "TER +2 or 4 Clan Shares" },
+    "7": { "cash": 20000, "benefit": "SOC +2 or 4 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+",
+  "complete": true,
+  "societies": ["aslan_hierate"]
+}

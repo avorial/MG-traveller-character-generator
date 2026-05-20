@@ -197,6 +197,16 @@ class Character(BaseModel):
     home_forces_rank: int = 0
     home_forces_trained: bool = False  # initial training roll done
 
+    # Aslan Hierate character generation
+    # gender: "male" | "female" | None (not yet chosen or not applicable)
+    gender: Optional[str] = None
+    # Clan Shares: Aslan equivalent of Ship Shares
+    clan_shares: int = 0
+    # Aslan background setup state: tracks clan, ancestry, family, rite
+    # Keys: phase, clan_type, clan_dm_ancestral_deeds, ancestral_territory,
+    #       family_position, rite_score, rite_doubles_roll, rite_doubles_result
+    aslan_setup_status: Optional[dict] = None
+
     # SolSec Monitor (Solomani informer role, parallel to any non-SolSec career)
     # DM+1 to advancement; nat-2 survival → SolSec mishap instead of career mishap;
     # nat-12 survival → SolSec event + SolSec Contact.

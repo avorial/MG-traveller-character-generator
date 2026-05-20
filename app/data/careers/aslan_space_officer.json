@@ -1,0 +1,154 @@
+{
+  "id": "aslan_space_officer",
+  "name": "Space Officer",
+  "description": "There is a sharp divide in Aslan society between officers and crewmen; the officers are clearly of a higher caste. Male Space Officers are pilots, gunners, and leaders; females are navigators, engineers, and staff advisors.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 10,
+    "modifiers": [
+      { "description": "DM+1 if SOC 9+", "type": "soc_minimum", "soc": 9, "dm": 1 }
+    ]
+  },
+  "assignments": {
+    "commander": {
+      "name": "Commander",
+      "description": "You command one of your clan's mighty starships.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "SOC", "target": 8 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    },
+    "shipmaster": {
+      "name": "Shipmaster",
+      "description": "You advise the captain on technical matters and administer a ship.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "EDU", "target": 7 },
+      "advancement": { "characteristic": "SOC", "target": 6 }
+    },
+    "navigator": {
+      "name": "Navigator",
+      "description": "You pilot a ship through jump space.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "INT", "target": 6 },
+      "advancement": { "characteristic": "SOC", "target": 8 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "Broker",
+      "4": "Jack-of-All-Trades",
+      "5": "Diplomat",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Tolerance",
+      "3": "Pilot",
+      "4": "Advocate",
+      "5": "Admin",
+      "6": "Gunner"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Admin",
+      "2": "Engineer",
+      "3": "Electronics",
+      "4": "Leadership",
+      "5": "Science",
+      "6": "Astrogation"
+    },
+    "commander": {
+      "name": "Commander",
+      "1": "Tactics (naval)",
+      "2": "Diplomat",
+      "3": "Leadership",
+      "4": "Pilot",
+      "5": "Gunner",
+      "6": "Tactics (naval)"
+    },
+    "shipmaster": {
+      "name": "Shipmaster",
+      "1": "Admin",
+      "2": "Engineer",
+      "3": "Electronics",
+      "4": "Engineer",
+      "5": "Diplomat",
+      "6": "Broker"
+    },
+    "navigator": {
+      "name": "Navigator",
+      "1": "Astrogation",
+      "2": "Pilot",
+      "3": "Engineer (j-drive)",
+      "4": "Electronics",
+      "5": "Leadership",
+      "6": "Astrogation"
+    }
+  },
+  "ranks": {
+    "commander": {
+      "0": { "title": "Probationary Intendant", "bonus": null },
+      "1": { "title": "Intendant", "bonus": "Leadership 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Senior Lieutenant", "bonus": null },
+      "4": { "title": "Commandant", "bonus": "Tactics (naval) 1" },
+      "5": { "title": "Captain", "bonus": null },
+      "6": { "title": "Admiral", "bonus": "TER +2" }
+    },
+    "shipmaster": {
+      "0": { "title": "Probationary Lieutenant", "bonus": null },
+      "1": { "title": "Intendant", "bonus": "Admin 1" },
+      "2": { "title": "Lieutenant", "bonus": null },
+      "3": { "title": "Senior Lieutenant", "bonus": "Advocate 1" },
+      "4": { "title": "Executive Lieutenant", "bonus": null },
+      "5": { "title": "Executive", "bonus": null },
+      "6": { "title": "Chief of Staff", "bonus": "2 Clan Shares" }
+    },
+    "navigator": {
+      "0": { "title": "Trainee Navigator", "bonus": null },
+      "1": { "title": "Junior Navigator", "bonus": "Astrogation 1" },
+      "2": { "title": null, "bonus": null },
+      "3": { "title": "Navigator", "bonus": "Electronics (computers) 1" },
+      "4": { "title": null, "bonus": null },
+      "5": { "title": null, "bonus": null },
+      "6": { "title": null, "bonus": "2 Clan Shares" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+    "2": "A disaster cripples your ship and you are blamed for this failing. Roll Advocate 8+ or Melee 8+ to challenge this decision. If you succeed, you may keep any Benefit rolls from this term.",
+    "3": "A shift in clan politics ruins your career. Lose SOC −2.",
+    "4": "Your vessel is destroyed in battle. Gain the foe who defeated you as a Rival.",
+    "5": "You are captured by a rival clan and ransomed back but the disgrace ends your career. Gain a Contact in the rival clan.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your ship is attacked by pirates. Roll Tactics 8+ or Engineer 8+. If you succeed, you drive off the attackers and gain DM+2 to your next advancement roll. If you fail, the pirates steal your cargo. Lose all Benefit rolls from this term and gain the pirate captain as an Enemy.",
+    "4": "You have the opportunity to smuggle illegal goods. If you accept, roll Deception 8+. Succeed and gain 6 Benefit rolls. Fail and you are ejected from this career and drop to SOC 2.",
+    "5": "You spend time in alien space. Gain one level of Tolerance 1, Diplomat 1, Language 1 or Science 1.",
+    "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "You have the opportunity to establish a landhold in your name. Gain TER +2.",
+    "9": "Your clan goes to war with another clan and your vessel attacks one of their worlds. If you drive the colonists offworld with vicious tactics, gain TER +2 but lose SOC −2.",
+    "10": "You are challenged to a duel by a rival. If you refuse, you lose SOC −1D. Accept, and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next advancement roll.",
+    "11": "You befriend an old Aslan admiral. Either gain Tactics (naval) 1 or DM+4 to any advancement roll thanks to their aid.",
+    "12": "Your efforts strike a great blow for your clan. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 1000, "benefit": "2 Clan Shares" },
+    "2": { "cash": 5000, "benefit": "INT +1" },
+    "3": { "cash": 5000, "benefit": "EDU +2" },
+    "4": { "cash": 10000, "benefit": "Independence or Tolerance" },
+    "5": { "cash": 20000, "benefit": "3 Clan Shares" },
+    "6": { "cash": 50000, "benefit": "Brotherhood of Stars" },
+    "7": { "cash": 50000, "benefit": "SOC +2" },
+    "8": { "cash": 50000, "benefit": "5 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 when rolling on Benefits if Male.",
+  "complete": true,
+  "societies": ["aslan_hierate"]
+}

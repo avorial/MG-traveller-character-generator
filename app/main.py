@@ -241,6 +241,10 @@ class SkillPackageAction(CharacterAction):
     package_id: str
 
 
+class AslanGenderAction(CharacterAction):
+    gender: str  # "male" | "female"
+
+
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
@@ -412,6 +416,67 @@ async def api_career_package(action: CareerPackageAction):
 @app.get("/api/tables/career-packages")
 async def api_career_packages_table():
     return rules.career_packages()
+
+
+# ---------------------------------------------------------------------------
+# Aslan Hierate background setup endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/api/character/aslan/begin-setup")
+async def api_aslan_begin_setup(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.begin_aslan_setup(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/aslan/choose-gender")
+async def api_aslan_choose_gender(action: AslanGenderAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.choose_aslan_gender(character, action.gender)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/aslan/roll-clan")
+async def api_aslan_roll_clan(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.roll_aslan_clan(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/aslan/roll-ancestry")
+async def api_aslan_roll_ancestry(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.roll_aslan_ancestry(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/aslan/roll-family")
+async def api_aslan_roll_family(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.roll_aslan_family(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/aslan/roll-rite")
+async def api_aslan_roll_rite(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.roll_aslan_rite(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# ---------------------------------------------------------------------------
 
 
 @app.post("/api/character/apply-skill-package")

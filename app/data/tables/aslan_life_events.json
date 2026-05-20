@@ -1,0 +1,32 @@
+{
+  "aslan_life_events": {
+    "name": "Aslan Life Events",
+    "dice": "2D",
+    "note": "Outcast Aslan use the standard Core Rulebook Life Events table instead.",
+    "results": {
+      "2": "Sickness or Injury: You are injured or become sick. Roll on the Injury table.",
+      "3": "Birth or Death: Someone close to you dies, like a friend or pride member. Alternatively, someone close to you gives birth (or is born!). You are involved in some fashion (father or mother, pridekin, honour guard).",
+      "4": "Territory Challenge: A rival attempts to claim some of your Territory (or your sire's or mate's Territory, if you have none of your own). Make a Diplomat, Broker, Melee (natural) or Gun Combat check and increase or decrease your TER (or SOC, if you have no Territory) by the Effect of the roll.",
+      "5": "Change in Marriage Status: If not married, you are now married (either to an existing Ally or Contact, another Traveller, or a mate arranged by your clan). If already married, roll 1D: on 1–4, another female is added to the pride. On a 5–6, your mate is slain.",
+      "6": "Clan Event: Roll on the Clan Event table.",
+      "7": "New Contact: You gain a new Contact.",
+      "8": "Clan Event: Roll on the Clan Event table.",
+      "9": "Travel: You move to another world. Gain DM+2 to your next qualification roll.",
+      "10": "Duel: You are challenged to a duel over a matter of family honour. If you refuse, lose SOC −1. If you accept, roll Melee (natural) 8+. If you succeed, gain SOC +1; otherwise, lose SOC −2.",
+      "11": "Dishonoured: You are accused of a crime. Roll Advocate 8+ or Melee (natural) 10+ to defend yourself (if you have any Contacts or Allies in the clan, you gain DM+2 to the Advocate roll). If you cannot defend yourself, you drop to SOC 2 and become Outcast.",
+      "12": "Unusual Event: Something weird. Roll 1D: 1=Psionic encounter (human psionic institute, Zhodani agent or telepathic plant). 2=Aliens: You travel extensively with non-Aslan; gain Tolerance. 3=Alien Artefact: You come into possession of a curious piece of alien technology or an archaeological relic. 4=Amnesia: There is a gap in your memory. 5=Contact with Clan Leaders: The elders of your clan entrust you with a mission or a secret. 6=Ancient Technology: You have an item that is older than the Aslan race."
+    }
+  },
+  "clan_events": {
+    "name": "Clan Events",
+    "dice": "1D",
+    "results": {
+      "1": "Prosperous Times: The clan acquires new Territories or trade routes. Gain an extra Benefit roll or DM+2 to your next advancement roll.",
+      "2": "Rising Fortunes: Your clan's political standing improves. Gain SOC +1.",
+      "3": "New Ally: A member of your clan rises to an influential position. Gain him or her as an Ally.",
+      "4": "Feud: Your family is now feuding with another Aslan family. Gain the enemy family as an Enemy.",
+      "5": "War: Your clan goes to war. If male, you suffer DM-2 to survival rolls next term. If female, lose one Benefit roll.",
+      "6": "Hard Times: Your clan suffers economic hardship. You suffer DM-4 to advancement rolls this term, and gain no Benefit rolls for it."
+    }
+  }
+}

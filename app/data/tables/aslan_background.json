@@ -1,0 +1,94 @@
+{
+  "clan": {
+    "name": "Clan",
+    "dice": "1D",
+    "description": "Determines whether the Traveller comes from a Minor or Major (Tlaukhu) clan.",
+    "results": {
+      "1": { "label": "Minor Clan", "dm_ancestral_deeds": 0 },
+      "2": { "label": "Minor Clan", "dm_ancestral_deeds": 0 },
+      "3": { "label": "Minor Clan", "dm_ancestral_deeds": 0 },
+      "4": { "label": "Major Clan", "dm_ancestral_deeds": 1 },
+      "5": { "label": "Major Clan", "dm_ancestral_deeds": 1 },
+      "6": { "label": "Major Clan", "dm_ancestral_deeds": 1 }
+    }
+  },
+  "ancestral_deeds": {
+    "name": "Ancestral Deeds",
+    "dice": "1D",
+    "description": "What Territory your clan ancestor acquired. DM+1 if Major Clan.",
+    "results": {
+      "1": { "label": "Your ancestor shamed the clan and you come from a branch long dishonoured.", "territory": 0 },
+      "2": { "label": "Your family's glory days are long gone, all that is left is the tales of great landholdings now lost to upstarts.", "territory": 0 },
+      "3": { "label": "Your family made its fortune in the great expansion after the discovery of jump drive; most family holdings are on distant worlds.", "territory": 1 },
+      "4": { "label": "Your family are the descendants of an ancient hero forgotten by most Aslan.", "territory": 1 },
+      "5": { "label": "Your family's ancestor was a trickster who deceived his enemies.", "territory": 2 },
+      "6": { "label": "Your ancestors were conquerors and great warriors.", "territory": 2 },
+      "7": { "label": "Your family is one of the most influential and wealthy in the Hierate.", "territory": 3 }
+    }
+  },
+  "past_deeds": {
+    "name": "Past Deeds",
+    "dice": "2D",
+    "description": "Roll twice — once for your grandfather's deeds, once for your father's deeds. Each modifies Ancestral Territory.",
+    "results": {
+      "2": {
+        "label": "Dishonoured! Your forebear committed some dishonourable act that caused the clan to strip your family of all territory.",
+        "territory": "lose_all",
+        "bonus_male": "Independence 0",
+        "bonus_female": "Profession 0"
+      },
+      "3": {
+        "label": "Your forebear was beset by many foes, one of whom conquered much of your land.",
+        "territory": -4,
+        "bonus": "Enemy and Gun Combat 0"
+      },
+      "4": {
+        "label": "Your forebear was a fool who gambled away much of your land.",
+        "territory": -3,
+        "bonus": "Gambler 0 or Carouse 0"
+      },
+      "5": {
+        "label": "Your forebear suffered from a degenerative genetic disease that you may have inherited.",
+        "territory": -2,
+        "bonus": "Medic 0"
+      },
+      "6": { "label": "Your forebear barely managed to hold onto your landhold.", "territory": -1 },
+      "7": { "label": "Your forebear held the family ground.", "territory": 1 },
+      "8": { "label": "Your forebear added to the family holdings.", "territory": 2 },
+      "9": { "label": "Your forebear was a notable warrior and leader.", "territory": 3 },
+      "10": { "label": "Your forebear was a great conqueror.", "territory": 4 },
+      "11": { "label": "Your forebear was one of the great heroes of the Hierate.", "territory": 5 },
+      "12": { "label": "Your forebear was legendary throughout the Hierate.", "territory": 6 }
+    }
+  },
+  "family_inheritance": {
+    "name": "Family Inheritance",
+    "dice": "2D",
+    "description": "Determines your birth order. Only the first son/eldest daughter inherits full Ancestral Territory.",
+    "results": {
+      "2": { "label_male": "First Son", "label_female": "Eldest Daughter", "inherits_territory": true },
+      "3": { "label_male": "First Son", "label_female": "Eldest Daughter", "inherits_territory": true },
+      "4": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "5": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "6": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "7": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "8": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "9": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "10": { "label_male": "Second Son", "label_female": "Middle Daughter", "inherits_territory": false },
+      "11": { "label_male": "Third Son", "label_female": "Youngest Daughter", "inherits_territory": false },
+      "12": { "label_male": "Third Son", "label_female": "Youngest Daughter", "inherits_territory": false }
+    }
+  },
+  "rite_of_passage_events": {
+    "name": "Rite of Passage Events",
+    "description": "Triggered when doubles are rolled during the Rite of Passage.",
+    "results": {
+      "1+1": { "label": "You are believed to have a great destiny, and the clan looks for great things from you. You must excel or disappoint your ancestors.", "bonus": "1D Clan Shares" },
+      "2+2": { "label": "Impressive Performance. You are given Cr5000 as a reward for your exemplary performance in the rite.", "bonus": "Cr5000" },
+      "3+3": { "label": "You befriend one of the other young Aslan undergoing the rite that day.", "bonus": "Contact" },
+      "4+4": { "label": "One of the other Aslan undergoing the rite tries to outdo you.", "bonus": "Rival" },
+      "5+5": { "label": "You are wounded in one of the tests, leaving a distinctive scar across your fur.", "bonus": null },
+      "6+6": { "label": "I Will Not Fail! Your rite tests you to the limit, but you are determined not to give in.", "bonus": "END +1" }
+    }
+  }
+}

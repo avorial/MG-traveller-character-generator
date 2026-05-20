@@ -1,0 +1,176 @@
+{
+  "id": "aslan_spacer",
+  "name": "Spacer",
+  "description": "This career embraces all forms of interplanetary and interstellar service that may be carried out by a clan, including operation of all forms of spacecraft. Males are primarily gunners and pilots; females are technicians or support personnel.",
+  "qualification": {
+    "characteristic": "RITE_OF_PASSAGE",
+    "target": 8
+  },
+  "assignments": {
+    "pilot": {
+      "name": "Pilot",
+      "description": "You fly one of the large Aslan vessels or the smaller shuttles and fighters that accompany them.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "DEX", "target": 7 },
+      "advancement": { "characteristic": "INT", "target": 5 }
+    },
+    "gunner": {
+      "name": "Gunner",
+      "description": "You man a turret or other weapon, slaughtering your foes with claws of laser-light.",
+      "allowed_genders": ["male"],
+      "survival": { "characteristic": "END", "target": 6 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    },
+    "engineer": {
+      "name": "Engineer",
+      "description": "You maintain the systems of a starship, despite the best efforts of the male crew to wreck it.",
+      "allowed_genders": ["female"],
+      "survival": { "characteristic": "END", "target": 6 },
+      "advancement": { "characteristic": "INT", "target": 6 }
+    },
+    "crew": {
+      "name": "Crew",
+      "description": "You serve as a general labourer and deckhand on board ship.",
+      "allowed_genders": ["male", "female"],
+      "survival": { "characteristic": "EDU", "target": 5 },
+      "advancement": { "characteristic": "INT", "target": 7 }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "Tolerance",
+      "3": "Independence (if male) or Broker (if female)",
+      "4": "INT +1",
+      "5": "Jack-of-All-Trades",
+      "6": "Vacc Suit"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Steward",
+      "2": "Flyer",
+      "3": "Mechanic",
+      "4": "Athletics",
+      "5": "Electronics",
+      "6": "Vacc Suit"
+    },
+    "advanced_education": {
+      "name": "Advanced Education (Min. EDU 8)",
+      "1": "Astrogation",
+      "2": "Broker",
+      "3": "Tactics (naval)",
+      "4": "Electronics",
+      "5": "Leadership",
+      "6": "Admin"
+    },
+    "pilot": {
+      "name": "Pilot",
+      "1": "Pilot (small craft)",
+      "2": "Pilot (spacecraft)",
+      "3": "Tactics (naval)",
+      "4": "Athletics (dexterity)",
+      "5": "Gunner (turret)",
+      "6": "DEX +1"
+    },
+    "gunner": {
+      "name": "Gunner",
+      "1": "Gunner (turret)",
+      "2": "Gunner (any)",
+      "3": "Tactics (naval)",
+      "4": "Athletics (dexterity)",
+      "5": "Electronics",
+      "6": "INT +1"
+    },
+    "engineer": {
+      "name": "Engineer",
+      "1": "Electronics",
+      "2": "Engineer (j-drive)",
+      "3": "Engineer (power)",
+      "4": "Engineer (m-drive)",
+      "5": "Engineer",
+      "6": "EDU +1"
+    },
+    "crew": {
+      "name": "Crew",
+      "1": "Mechanic",
+      "2": "Athletics",
+      "3": "Vacc Suit",
+      "4": "Mechanic",
+      "5": "Engineer",
+      "6": "END +1"
+    }
+  },
+  "ranks": {
+    "pilot": {
+      "0": { "title": "Raw Recruit", "bonus": null },
+      "1": { "title": "Recruit", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Spacehand", "bonus": null },
+      "3": { "title": "Veteran Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Honoured Spacehand", "bonus": null },
+      "5": { "title": "Petty Officer", "bonus": null },
+      "6": { "title": "Veteran Petty Officer", "bonus": "3 Clan Shares" }
+    },
+    "gunner": {
+      "0": { "title": "Raw Recruit", "bonus": null },
+      "1": { "title": "Recruit", "bonus": "Vacc Suit 1" },
+      "2": { "title": "Spacehand", "bonus": null },
+      "3": { "title": "Veteran Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Honoured Spacehand", "bonus": null },
+      "5": { "title": "Petty Officer", "bonus": null },
+      "6": { "title": "Veteran Petty Officer", "bonus": "3 Clan Shares" }
+    },
+    "engineer": {
+      "0": { "title": "Raw Recruit", "bonus": null },
+      "1": { "title": "Recruit", "bonus": "Mechanic 1" },
+      "2": { "title": "Spacehand", "bonus": null },
+      "3": { "title": "Veteran Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Honoured Spacehand", "bonus": null },
+      "5": { "title": "Petty Officer", "bonus": null },
+      "6": { "title": "Veteran Petty Officer", "bonus": "2 Clan Shares" }
+    },
+    "crew": {
+      "0": { "title": "Raw Recruit", "bonus": null },
+      "1": { "title": "Recruit", "bonus": "Mechanic 1" },
+      "2": { "title": "Spacehand", "bonus": null },
+      "3": { "title": "Veteran Spacehand", "bonus": "EDU +1" },
+      "4": { "title": "Honoured Spacehand", "bonus": null },
+      "5": { "title": "Petty Officer", "bonus": null },
+      "6": { "title": "Veteran Petty Officer", "bonus": "2 Clan Shares" }
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+    "2": "A superior officer has you drummed out of the service. Gain a Rival.",
+    "3": "You are infected by an alien parasite. Roll END 8+; if you succeed, you do not lose any END; otherwise lose END −1.",
+    "4": "You are accused of smuggling illegal goods into clan space. Lose SOC −2.",
+    "5": "You get into trouble on an alien world. Roll Tolerance 8+; if you succeed, you lose any Benefit rolls from this term but are not ejected from the career. Otherwise, you attack the alien and are punished by losing your place in the Space service.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your ship is attacked by pirates. Roll either Pilot 8+, Gunner 8+ or Mechanic 8+. If you succeed, you drive off the attackers — gain DM+2 to your next advancement roll. If you fail, the pirates steal your cargo. Lose all Benefit rolls from this term and gain the pirate captain as an Enemy.",
+    "4": "You have the opportunity to smuggle illegal goods. If you accept, roll Deception 8+. Succeed and gain 3 Benefit rolls. Fail and you suffer DM-6 to your next advancement check.",
+    "5": "You are considered for promotion in the officer caste. You may add the number of terms served in this career as a DM if you attempt to qualify for the Space Officer career next term, and may apply even if you have not served the minimum number of terms in this career.",
+    "6": "Your trading mission exposes you to many different worlds and cultures. Gain a level in either Survival 1, Streetwise 1, Science 1 or Tolerance 1.",
+    "7": "Life Event. Roll on the Aslan Life Events table.",
+    "8": "Your ship carries Aslan colonists to their new world. Gain a Contact from among their ranks.",
+    "9": "You are engaged in a series of vicious battles against enemies of your clan. You may demonstrate heroism or prudence. If you demonstrate heroism, roll END 9+ to avoid rolling on the Injury table and gain DM+2 to your next advancement roll. If you cower, roll Stealth 8+ to avoid losing SOC −1.",
+    "10": "You are considered for promotion in the officer caste. You may add the number of terms served in this career as a DM if you attempt to qualify for the Space Officer career next term, and may apply even if you have not served the minimum number of terms in this career.",
+    "11": "The captain sees you as a promising crewman, and entrusts you with an important ceremonial duty. Either gain a level in Steward 1 or DM+4 to any advancement roll thanks to their aid.",
+    "12": "Your efforts strike a great blow for your clan. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": { "cash": 500, "benefit": "1 Clan Share" },
+    "2": { "cash": 1000, "benefit": "INT +1" },
+    "3": { "cash": 1000, "benefit": "EDU +1" },
+    "4": { "cash": 5000, "benefit": "Weapon" },
+    "5": { "cash": 5000, "benefit": "2 Clan Shares" },
+    "6": { "cash": 10000, "benefit": "Brotherhood of Stars" },
+    "7": { "cash": 20000, "benefit": "SOC +1" },
+    "8": { "cash": 30000, "benefit": "3 Clan Shares" }
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 when rolling on Benefits if Male.",
+  "complete": true,
+  "societies": ["aslan_hierate"]
+}

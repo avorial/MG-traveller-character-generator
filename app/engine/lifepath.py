@@ -331,7 +331,14 @@ def _char_dm(character: "Character", char_key: str) -> int:
 _PENSION_TABLE: dict[int, int] = {5: 10_000, 6: 12_000, 7: 14_000, 8: 16_000}
 
 # Careers excluded from pension eligibility (RAW p.53).
-_PENSION_EXEMPT_CAREERS: frozenset[str] = frozenset({"scout", "rogue", "prisoner", "drifter"})
+# Aslan careers are all exempt — Aslan have no pension system (they use Clan Shares instead).
+_PENSION_EXEMPT_CAREERS: frozenset[str] = frozenset({
+    "scout", "rogue", "prisoner", "drifter",
+    "aslan_ceremonial", "aslan_envoy", "aslan_management",
+    "aslan_military", "aslan_military_officer", "aslan_scientist",
+    "aslan_spacer", "aslan_space_officer", "aslan_outcast",
+    "aslan_outlaw", "aslan_wanderer",
+})
 
 
 def _pension_for_terms(n: int) -> int:
@@ -859,7 +866,21 @@ def apply_species(character: Character, species_id: str) -> dict:
         character.log(f"Applied species: {species_data['name']} ({mods_str})")
     else:
         character.log(f"Applied species: {species_data['name']}")
-    return {"applied": applied, "traits": character.traits, "character": character.model_dump()}
+
+    # Aslan Hierate: skip background/pre_career phases; go directly to aslan_setup
+    needs_aslan_setup = species_data.get("uses_clan_shares", False)
+    if needs_aslan_setup:
+        character.phase = "aslan_setup"
+        # Ensure TER characteristic is present (start at 0; rolled during begin_aslan_setup)
+        if "TER" not in character.extra_characteristics:
+            character.extra_characteristics["TER"] = 0
+
+    return {
+        "applied": applied,
+        "traits": character.traits,
+        "needs_aslan_setup": needs_aslan_setup,
+        "character": character.model_dump(),
+    }
 
 
 def racial_background_roll(character: Character) -> dict:
@@ -3415,6 +3436,247 @@ def draft_into_service(character: Character) -> dict:
     }
 
 
+# ============================================================
+# Aslan Hierate Character Setup
+# ============================================================
+
+
+def begin_aslan_setup(character: Character) -> dict:
+    """Initialise the Aslan Hierate background setup phase.
+
+    Called when the player reaches the aslan_setup phase.
+    Sets up the aslan_setup_status state machine.
+    TER is already set to 0 by apply_species; it's populated from ancestry rolls.
+    """
+    sp_data = rules.species().get(character.species_id or "", {})
+    if not sp_data.get("uses_clan_shares"):
+        raise ValueError("begin_aslan_setup called for non-Aslan species")
+
+    character.aslan_setup_status = {
+        "phase": "gender",  # gender → clan → ancestry → family → rite → done
+        "clan_type": None,
+        "clan_dm_ancestral_deeds": 0,
+        "ancestral_territory": 0,
+        "past_deeds_rolls": [],
+        "family_position": None,
+        "inherits_territory": False,
+        "rite_roll": None,
+        "rite_score": 0,
+        "rite_doubles": False,
+        "rite_doubles_key": None,
+    }
+    character.log("Aslan background setup started. Choose gender.")
+    return {"phase": "gender", "character": character.model_dump()}
+
+
+def choose_aslan_gender(character: Character, gender: str) -> dict:
+    """Set the Aslan character's gender. gender must be 'male' or 'female'."""
+    if gender not in ("male", "female"):
+        raise ValueError("Gender must be 'male' or 'female'")
+    setup = character.aslan_setup_status
+    if setup is None or setup.get("phase") != "gender":
+        raise ValueError("Not in gender selection phase")
+
+    character.gender = gender
+    setup["phase"] = "clan"
+    character.log(f"Gender chosen: {gender}.")
+    return {"phase": "clan", "gender": gender, "character": character.model_dump()}
+
+
+def roll_aslan_clan(character: Character) -> dict:
+    """Roll on the Clan table (1D) to determine minor or major clan."""
+    setup = character.aslan_setup_status
+    if setup is None or setup.get("phase") != "clan":
+        raise ValueError("Not in clan phase")
+
+    r = dice.roll("1D")
+    tables = rules.aslan_background_tables()
+    clan_results = tables["clan"]["results"]
+    result = clan_results[str(r.total)]
+
+    setup["clan_type"] = result["label"]
+    setup["clan_dm_ancestral_deeds"] = result["dm_ancestral_deeds"]
+    setup["phase"] = "ancestry"
+
+    character.log(f"Clan roll: 1D={r.total} → {result['label']} (DM{result['dm_ancestral_deeds']:+d} to Ancestral Deeds)")
+    return {
+        "phase": "ancestry",
+        "roll": r.to_dict(),
+        "clan_type": result["label"],
+        "dm_ancestral_deeds": result["dm_ancestral_deeds"],
+        "character": character.model_dump(),
+    }
+
+
+def roll_aslan_ancestry(character: Character) -> dict:
+    """Roll Ancestral Deeds (1D) and twice on Past Deeds (2D).
+
+    Calculates the starting Ancestral Territory (which becomes SOC).
+    """
+    setup = character.aslan_setup_status
+    if setup is None or setup.get("phase") != "ancestry":
+        raise ValueError("Not in ancestry phase")
+
+    tables = rules.aslan_background_tables()
+    dm_from_clan = setup.get("clan_dm_ancestral_deeds", 0)
+
+    # Ancestral Deeds roll (1D + clan DM, min 1 max 7)
+    r_ancestral = dice.roll("1D", modifier=dm_from_clan)
+    key_a = str(max(1, min(7, r_ancestral.total)))
+    ancestral_result = tables["ancestral_deeds"]["results"][key_a]
+    territory = ancestral_result["territory"]
+
+    # Past Deeds — roll twice (grandfather then father)
+    past_rolls = []
+    for who in ("Grandfather's deeds", "Father's deeds"):
+        r_past = dice.roll("2D")
+        key_p = str(r_past.total)
+        past_result = tables["past_deeds"]["results"][key_p]
+        past_ter = past_result.get("territory", 0)
+        if past_ter == "lose_all":
+            territory = 0
+        else:
+            territory += int(past_ter)
+            territory = max(0, territory)
+        past_rolls.append({
+            "who": who,
+            "roll": r_past.to_dict(),
+            "key": key_p,
+            "label": past_result["label"],
+            "territory_change": past_ter,
+            "bonus": past_result.get("bonus") or past_result.get(
+                "bonus_male" if character.gender == "male" else "bonus_female"
+            ),
+        })
+
+    setup["ancestral_territory"] = territory
+    setup["past_deeds_rolls"] = past_rolls
+    setup["phase"] = "family"
+
+    # SOC = Ancestral Territory (per rulebook p.17)
+    character.characteristics.set("SOC", territory)
+
+    # SOC 10+ male: gain Leadership 1
+    bonus_notes = []
+    if character.gender == "male" and territory >= 10:
+        character.add_skill("Leadership", level=1)
+        bonus_notes.append("SOC 10+ male: Leadership 1 gained")
+
+    character.log(
+        f"Ancestry: Ancestral Deeds 1D{dm_from_clan:+d}={r_ancestral.total} → {territory} Ancestral Territory. "
+        f"SOC set to {territory}."
+    )
+    return {
+        "phase": "family",
+        "ancestral_roll": r_ancestral.to_dict(),
+        "ancestral_result": ancestral_result,
+        "past_deeds_rolls": past_rolls,
+        "ancestral_territory": territory,
+        "soc_set_to": territory,
+        "bonus_notes": bonus_notes,
+        "character": character.model_dump(),
+    }
+
+
+def roll_aslan_family(character: Character) -> dict:
+    """Roll on the Family Inheritance table (2D) to determine birth order."""
+    setup = character.aslan_setup_status
+    if setup is None or setup.get("phase") != "family":
+        raise ValueError("Not in family phase")
+
+    r = dice.roll("2D")
+    tables = rules.aslan_background_tables()
+    key = str(r.total)
+    result = tables["family_inheritance"]["results"][key]
+
+    gender = character.gender or "male"
+    label_key = f"label_{gender}"
+    position = result.get(label_key, result.get("label_male", "Unknown"))
+    inherits = result.get("inherits_territory", False)
+
+    # Only the first son/eldest daughter inherits full Ancestral Territory.
+    # All others start with SOC 0 (territory 0) unless first-born.
+    if not inherits:
+        # Non-heirs start with SOC 0
+        character.characteristics.set("SOC", 0)
+        setup["ancestral_territory"] = 0
+
+    setup["family_position"] = position
+    setup["inherits_territory"] = inherits
+    setup["phase"] = "rite"
+
+    character.log(
+        f"Family: 2D={r.total} → {position} ({'inherits' if inherits else 'does not inherit'} territory). "
+        f"SOC = {character.characteristics.SOC}."
+    )
+    return {
+        "phase": "rite",
+        "roll": r.to_dict(),
+        "family_position": position,
+        "inherits_territory": inherits,
+        "soc": character.characteristics.SOC,
+        "character": character.model_dump(),
+    }
+
+
+def roll_aslan_rite(character: Character) -> dict:
+    """Roll the Rite of Passage (2D). Calculate score. Handle doubles events."""
+    setup = character.aslan_setup_status
+    if setup is None or setup.get("phase") != "rite":
+        raise ValueError("Not in rite phase")
+
+    r = dice.roll("2D")
+    die1 = r.dice[0] if r.dice else 0
+    die2 = r.dice[1] if len(r.dice) > 1 else 0
+    is_doubles = die1 == die2
+
+    gender = character.gender or "male"
+    score = 0
+
+    if gender == "male":
+        # Male: +1 for each of STR/DEX/END/INT/EDU/SOC that exceeds the roll
+        for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
+            if character.characteristics.get(stat) > r.total:
+                score += 1
+    else:
+        # Female: +2 for each of INT/EDU/SOC that exceeds the roll
+        for stat in ("INT", "EDU", "SOC"):
+            if character.characteristics.get(stat) > r.total:
+                score += 2
+
+    # Doubles event
+    doubles_key = None
+    doubles_result = None
+    if is_doubles:
+        doubles_key = f"{die1}+{die2}"
+        tables = rules.aslan_background_tables()
+        doubles_result = tables.get("rite_of_passage_events", {}).get("results", {}).get(doubles_key)
+
+    setup["rite_roll"] = r.to_dict()
+    setup["rite_score"] = score
+    setup["rite_doubles"] = is_doubles
+    setup["rite_doubles_key"] = doubles_key
+    setup["phase"] = "done"
+
+    # Transition character to career phase
+    character.phase = "career"
+
+    character.log(
+        f"Rite of Passage: 2D={r.total} ({die1},{die2}). Score={score}. "
+        + (f"Doubles! Event: {doubles_key}" if is_doubles else "")
+    )
+    return {
+        "phase": "done",
+        "roll": r.to_dict(),
+        "rite_total": r.total,
+        "is_doubles": is_doubles,
+        "doubles_key": doubles_key,
+        "doubles_result": doubles_result,
+        "rite_score": score,
+        "character": character.model_dump(),
+    }
+
+
 def qualify_for_career(character: Character, career_id: str) -> dict:
     """Roll qualification for entering a career."""
     career = rules.careers().get(career_id)
@@ -3461,6 +3723,10 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     char_key = qual["characteristic"]
     target = qual["target"]
 
+    # Aslan: Scientist male_target override — males need a higher Rite score
+    if career.get("male_target") is not None and character.gender == "male":
+        target = career["male_target"]
+
     # Special case: DEX_OR_INT (Entertainer)
     if char_key == "DEX_OR_INT":
         dm = max(
@@ -3468,6 +3734,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             dice.characteristic_dm(character.characteristics.INT),
         )
         char_display = "DEX or INT (higher)"
+    elif char_key == "RITE_OF_PASSAGE":
+        # Aslan: Rite of Passage score is used as the DM directly (not characteristic DM)
+        rite_score = (character.aslan_setup_status or {}).get("rite_score", 0)
+        dm = rite_score
+        char_display = f"Rite of Passage ({rite_score})"
     else:
         dm = dice.characteristic_dm(character.characteristics.get(char_key))
         char_display = char_key
@@ -3484,6 +3755,10 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             # DM applies if the most recent completed career is in the list
             careers_list = mod.get("careers", [])
             if character.completed_careers and character.completed_careers[-1].career_id in careers_list:
+                dm += mod["dm"]
+        elif mod["type"] == "soc_minimum":
+            # DM if SOC meets or exceeds threshold
+            if character.characteristics.SOC >= mod.get("soc", 99):
                 dm += mod["dm"]
 
     # Apply permanent pre-career education DMs
@@ -3581,6 +3856,15 @@ def start_term(
         raise ValueError(f"Unknown career: {career_id}")
     if assignment_id not in career["assignments"]:
         raise ValueError(f"Unknown assignment '{assignment_id}' for {career['name']}")
+
+    # Validate gender restriction for Aslan assignments
+    assignment_data = career["assignments"][assignment_id]
+    allowed_genders = assignment_data.get("allowed_genders")
+    if allowed_genders and character.gender and character.gender not in allowed_genders:
+        raise ValueError(
+            f"Assignment '{assignment_data.get('name', assignment_id)}' is restricted to "
+            f"{'/'.join(allowed_genders)} characters. This character is {character.gender}."
+        )
 
     # Validate cover career for Secret Agent
     if cover_career_id and career_id == "solsec" and assignment_id == "secret_agent":
@@ -5593,15 +5877,18 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
 
 def _apply_aging(character: Character) -> dict:
-    """Roll on the aging table: 2D - total_terms + anagathics_bonus.
+    """Roll on the aging table: 2D - (multiplier × total_terms) + anagathics_bonus.
 
     Physical stat reductions are returned as ``pending_reductions`` for the
     player to choose which characteristics to reduce.  Mental reductions are
     applied automatically (random, per RAW).
 
     Anagathics positive DM: +anagathics_terms_used (RAW p.155).
+    Aslan: aging_dm_multiplier=2 → DM = −2 × total_terms (per Aliens of Charted Space 1 p.21).
     """
-    dm = -character.total_terms  # "the older you are, the heavier the effects"
+    _sp_data = rules.species().get(character.species_id or "", {})
+    _aging_mult = int(_sp_data.get("aging_dm_multiplier", 1))
+    dm = -(_aging_mult * character.total_terms)  # "the older you are, the heavier the effects"
     dm += max(0, character.anagathics_terms_used)
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
@@ -5730,6 +6017,22 @@ def muster_out_roll(
     if column == "cash" and character.cash_rolls_used >= 3:
         raise ValueError("Cash column maxed out (3 rolls total across all careers)")
 
+    # Aslan male cash restriction: can only consult cash column up to Independence skill level times
+    # and receive only half the cash amount.
+    _sp_data_muster = rules.species().get(character.species_id or "", {})
+    _is_aslan_male = (
+        _sp_data_muster.get("uses_clan_shares")
+        and character.gender == "male"
+    )
+    if column == "cash" and _is_aslan_male:
+        indep_skill = next((s for s in character.skills if s.name.lower() == "independence"), None)
+        indep_level = indep_skill.level if indep_skill else 0
+        if character.cash_rolls_used >= indep_level:
+            raise ValueError(
+                f"Aslan male cash limit: can only roll cash {indep_level} time(s) "
+                f"(Independence {indep_level}). Current used: {character.cash_rolls_used}."
+            )
+
     career = rules.careers().get(career_id)
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
@@ -5781,7 +6084,13 @@ def muster_out_roll(
         raise ValueError(f"No row for result {key}")
 
     if column == "cash":
-        cash = row["cash"]
+        gross_cash = row["cash"]
+        # Aslan male: receive only half the cash amount
+        aslan_half_note = ""
+        if _is_aslan_male:
+            gross_cash = gross_cash // 2
+            aslan_half_note = " (half, Aslan male)"
+        cash = gross_cash
         debt_paid = 0
         if character.medical_debt > 0:
             debt_paid = min(character.medical_debt, cash)
@@ -5795,9 +6104,10 @@ def muster_out_roll(
         character.cash_rolls_used += 1
         result_text = (
             f"Cr{cash:,}" + (f" (after Cr{debt_paid:,} medical)" if debt_paid else "")
+            + aslan_half_note
         )
         character.log(
-            f"Muster out (cash)[{r.total}]: gross Cr{row['cash']:,}, "
+            f"Muster out (cash)[{r.total}]: gross Cr{gross_cash:,}{aslan_half_note}, "
             f"medical Cr{debt_paid:,}, net Cr{cash:,}."
         )
     else:
@@ -5829,6 +6139,27 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         character.log(f"Muster benefit: REP increased to {character.reputation}.")
         return
 
+    # TER bonuses (Aslan Territory characteristic)
+    m_ter = re.match(r"^TER\s*\+(\d+)$", b, re.IGNORECASE)
+    if m_ter:
+        gain = int(m_ter.group(1))
+        current = character.extra_characteristics.get("TER", 0)
+        character.extra_characteristics["TER"] = current + gain
+        character.log(f"Muster benefit: TER +{gain} (now {current + gain}).")
+        return
+
+    # Clan Shares (Aslan — N Clan Shares)
+    m_cs = re.match(r"^(\d+)\s+Clan\s+Shares?$", b, re.IGNORECASE)
+    if m_cs:
+        gained = int(m_cs.group(1))
+        character.clan_shares += gained
+        character.log(f"Muster benefit: {gained} Clan Share(s) (total {character.clan_shares}).")
+        return
+    if re.match(r"^1\s+Clan\s+Share$", b, re.IGNORECASE):
+        character.clan_shares += 1
+        character.log(f"Muster benefit: 1 Clan Share (total {character.clan_shares}).")
+        return
+
     # Characteristic bonuses
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
         if b == f"{stat} +1":
@@ -5840,6 +6171,14 @@ def _apply_benefit(character: Character, benefit: str) -> None:
             else:
                 if stat == "SOC":
                     character.ship_shares += 1
+            return
+        if b == f"{stat} +2":
+            species_data = rules.species().get(character.species_id, {})
+            max_stat = species_data.get("characteristic_maximum", 15)
+            for _ in range(2):
+                current = character.characteristics.get(stat)
+                if current < max_stat:
+                    character.characteristics.set(stat, current + 1)
             return
 
     # Ship shares
