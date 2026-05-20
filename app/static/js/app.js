@@ -3384,7 +3384,7 @@ function renderAslanSetupPhase() {
 
 function wireAslanSetupPhase() {
   // Begin setup button
-  on('btn-aslan-begin', 'click', async () => {
+  document.getElementById('btn-aslan-begin')?.addEventListener('click', async () => {
     const data = await apiCall('/api/character/aslan/begin-setup', {});
     if (data) {
       character = data.character;
@@ -3405,7 +3405,7 @@ function wireAslanSetupPhase() {
   });
 
   // Clan roll
-  on('btn-aslan-roll-clan', 'click', async () => {
+  document.getElementById('btn-aslan-roll-clan')?.addEventListener('click', async () => {
     const data = await apiCall('/api/character/aslan/roll-clan', {});
     if (data) {
       character = data.character;
@@ -3417,7 +3417,7 @@ function wireAslanSetupPhase() {
   });
 
   // Ancestry roll
-  on('btn-aslan-roll-ancestry', 'click', async () => {
+  document.getElementById('btn-aslan-roll-ancestry')?.addEventListener('click', async () => {
     const data = await apiCall('/api/character/aslan/roll-ancestry', {});
     if (data) {
       character = data.character;
@@ -3431,7 +3431,7 @@ function wireAslanSetupPhase() {
   });
 
   // Family roll
-  on('btn-aslan-roll-family', 'click', async () => {
+  document.getElementById('btn-aslan-roll-family')?.addEventListener('click', async () => {
     const data = await apiCall('/api/character/aslan/roll-family', {});
     if (data) {
       character = data.character;
@@ -3443,7 +3443,7 @@ function wireAslanSetupPhase() {
   });
 
   // Rite roll
-  on('btn-aslan-roll-rite', 'click', async () => {
+  document.getElementById('btn-aslan-roll-rite')?.addEventListener('click', async () => {
     const data = await apiCall('/api/character/aslan/roll-rite', {});
     if (data) {
       character = data.character;
@@ -3458,7 +3458,7 @@ function wireAslanSetupPhase() {
   });
 
   // Continue (fallback if somehow at done state)
-  on('btn-aslan-continue', 'click', () => {
+  document.getElementById('btn-aslan-continue')?.addEventListener('click', () => {
     character.phase = 'career';
     renderPhase();
   });
