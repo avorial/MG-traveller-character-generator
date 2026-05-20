@@ -3319,11 +3319,16 @@ function renderAslanSetupPhase() {
         </div>`;
     } else if (res.type === 'rite') {
       const r = res.roll;
+      const doublesHTML = res.is_doubles && res.doubles_result ? `
+        <div class="roll-result-label" style="color:var(--danger)">⚡ DOUBLES — ${res.doubles_key}</div>
+        <div class="roll-result-note" style="font-style:normal;font-size:13px">${res.doubles_result.label}</div>
+        ${(res.doubles_applied || []).map(a => `<div class="roll-result-note" style="color:var(--amber)">→ ${a}</div>`).join('')}
+      ` : '';
       resultHTML = `
         <div class="roll-result-block">
           <div class="roll-result-dice">2D = <strong>${r.total}</strong> (${r.dice.join(', ')})</div>
           <div class="roll-result-label">Rite Score: <strong>${res.rite_score}</strong></div>
-          ${res.is_doubles ? `<div class="roll-result-note">Doubles! Event: ${res.doubles_key}${res.doubles_result ? ' — ' + res.doubles_result.label : ''}</div>` : ''}
+          ${doublesHTML}
         </div>`;
     }
 

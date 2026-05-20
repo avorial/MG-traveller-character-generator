@@ -3644,13 +3644,41 @@ def roll_aslan_rite(character: Character) -> dict:
             if character.characteristics.get(stat) > r.total:
                 score += 2
 
-    # Doubles event
+    # Doubles event — detect, apply, and record
     doubles_key = None
     doubles_result = None
+    doubles_applied: list[str] = []
     if is_doubles:
         doubles_key = f"{die1}+{die2}"
         tables = rules.aslan_background_tables()
         doubles_result = tables.get("rite_of_passage_events", {}).get("results", {}).get(doubles_key)
+
+        if doubles_result:
+            bonus = doubles_result.get("bonus")
+            if bonus == "1D Clan Shares":
+                cs_roll = dice.roll("1D")
+                character.clan_shares += cs_roll.total
+                doubles_applied.append(f"Gained {cs_roll.total} Clan Share{'s' if cs_roll.total != 1 else ''} (1D={cs_roll.total})")
+            elif bonus == "Cr5000":
+                character.credits += 5000
+                doubles_applied.append("Gained Cr5,000")
+            elif bonus == "Contact":
+                character.associates.append(
+                    Associate(kind="contact", description="Aslan met during the Rite of Passage")
+                )
+                doubles_applied.append("Gained a Contact (Aslan from the Rite)")
+            elif bonus == "Rival":
+                character.associates.append(
+                    Associate(kind="rival", description="Aslan rival from the Rite of Passage")
+                )
+                doubles_applied.append("Gained a Rival (Aslan from the Rite)")
+            elif bonus == "END +1":
+                current_end = character.characteristics.END
+                character.characteristics.set("END", current_end + 1)
+                doubles_applied.append(f"END +1 (now {character.characteristics.END})")
+            elif bonus is None:
+                # 5+5: scar — cosmetic only
+                doubles_applied.append("Distinctive scar across your fur (no mechanical effect)")
 
     setup["rite_roll"] = r.to_dict()
     setup["rite_score"] = score
@@ -3662,8 +3690,9 @@ def roll_aslan_rite(character: Character) -> dict:
     character.phase = "career"
 
     character.log(
-        f"Rite of Passage: 2D={r.total} ({die1},{die2}). Score={score}. "
-        + (f"Doubles! Event: {doubles_key}" if is_doubles else "")
+        f"Rite of Passage: 2D={r.total} ({die1},{die2}). Score={score}."
+        + (f" Doubles! Event {doubles_key}: {doubles_result['label'] if doubles_result else '?'}." if is_doubles else "")
+        + (f" {' '.join(doubles_applied)}" if doubles_applied else "")
     )
     return {
         "phase": "done",
@@ -3672,6 +3701,7 @@ def roll_aslan_rite(character: Character) -> dict:
         "is_doubles": is_doubles,
         "doubles_key": doubles_key,
         "doubles_result": doubles_result,
+        "doubles_applied": doubles_applied,
         "rite_score": score,
         "character": character.model_dump(),
     }
