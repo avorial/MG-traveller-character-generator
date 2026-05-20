@@ -3634,10 +3634,12 @@ def roll_aslan_rite(character: Character) -> dict:
     score = 0
 
     if gender == "male":
-        # Male: +1 for each of STR/DEX/END/INT/EDU/SOC that exceeds the roll
-        for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
-            if character.characteristics.get(stat) > r.total:
-                score += 1
+        # Male: score = X (the 2D roll) + Y (count of STR/DEX/END/INT/EDU/SOC that exceed X)
+        count_above = sum(
+            1 for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC")
+            if character.characteristics.get(stat) > r.total
+        )
+        score = r.total + count_above
     else:
         # Female: +2 for each of INT/EDU/SOC that exceeds the roll
         for stat in ("INT", "EDU", "SOC"):

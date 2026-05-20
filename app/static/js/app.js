@@ -3429,7 +3429,7 @@ function renderAslanSetupPhase() {
     const soc = character.characteristics ? character.characteristics.SOC : 0;
     const genderLabel = character.gender === 'male' ? 'male' : 'female';
     const riteDesc = character.gender === 'male'
-      ? 'Roll 2D; score +1 for each of STR, DEX, END, INT, EDU, SOC that exceeds the roll.'
+      ? 'Roll 2D (= X). Count how many of STR, DEX, END, INT, EDU, SOC exceed X (= Y). Final score = X + Y.'
       : 'Roll 2D; score +2 for each of INT, EDU, SOC that exceeds the roll.';
     return `
       <div class="panel-header"><span class="led"></span><span>ASLAN BACKGROUND — RITE OF PASSAGE</span></div>
