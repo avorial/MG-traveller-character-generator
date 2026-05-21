@@ -1011,6 +1011,17 @@ body {
   font-style: italic;
 }
 
+/* Hide card descriptions when toggle is active */
+body.hide-card-desc .card-desc { display: none !important; }
+
+/* Desc-toggle button — amber when active (descriptions hidden) */
+.gm-toggle.desc-active {
+  background: rgba(255, 176, 0, 0.12);
+  border-color: var(--amber-dim);
+  color: var(--amber);
+  box-shadow: 0 0 6px rgba(255, 176, 0, 0.25);
+}
+
 .card.locked {
   opacity: 0.4;
   cursor: not-allowed;

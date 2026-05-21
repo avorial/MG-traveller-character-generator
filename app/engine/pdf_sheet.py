@@ -120,9 +120,17 @@ def noble_title(char: Character) -> Optional[str]:
 def species_name(sid: str) -> str:
     m = {
         "imperial_human": "Imperial Human", "solomani_human": "Solomani Human",
-        "solomani_mixed": "Solomani Mixed", "frontier_human": "Frontier Human",
+        "solomani_mixed": "Solomani Mixed", "solomani_racial": "Solomani",
+        "frontier_human": "Frontier Human",
+        "confederation_human": "Confederation Human",
+        "drinax_palace_human": "Drinax (Palace)", "drinax_wasteland_human": "Drinax (Wasteland)",
+        "asim_human": "Asim Human",
+        "hiver_federation_human": "Hiver Federation Human",
+        "two_thousand_worlds_human": "Two Thousand Worlds Human",
         "imperial_aslan": "Imperial Aslan", "hierate_aslan": "Hierate Aslan",
+        "glorious_empire_aslan": "GE Aslan",
         "imperial_vargr": "Imperial Vargr", "extents_vargr": "Extents Vargr",
+        "kkree": "K'kree",
         "imperial_bwap": "Imperial Bwap", "sword_worlds_human": "Sword Worlds Human",
         "zhodani_human": "Zhodani Human", "luriani": "Luriani",
         "jonkeereen": "Jonkeereen", "dolphin": "Dolphin",
@@ -160,6 +168,10 @@ def get_stat(char: Character, code: str) -> int:
     if code == "EDU": return ch.EDU
     if code == "SOC": return ch.SOC
     if code == "PSI": return char.psi
+    # Extra characteristics (TER for Aslan, etc.)
+    extra = getattr(char, "extra_characteristics", {}) or {}
+    if code in extra:
+        return int(extra[code])
     return 0  # MOR, LCK, SAN, CHA, WLT — not tracked in model
 
 
@@ -341,7 +353,27 @@ def draw_stat_column(c, char):
     """Draw the full left characteristics strip on the current page."""
     draw_stat_block(c, char, CORE_STATS, CORE_CENTERS,
                     CORE_TOP_D, CORE_BOT_D, "CORE CHARACTERISTICS")
-    draw_stat_block(c, char, OTHER_STATS, OTHER_CENTERS,
+
+    # Build dynamic OTHER_STATS: show tracked stats only (PSI + extras),
+    # pad remaining slots with the standard placeholders.
+    extra = getattr(char, "extra_characteristics", {}) or {}
+    # Known non-tracked placeholders in order; we'll replace them with real stats
+    placeholders = [("MOR","MORALE"), ("LCK","LUCK"), ("SAN","SANITY"),
+                    ("CHA","CHARM"), ("WLT","WEALTH")]
+    known_tracked = [("PSI", "PSI")]
+    for code, val in sorted(extra.items()):
+        stat_label = {"TER": "TERRITORIAL"}.get(code, code)
+        known_tracked.append((code, stat_label))
+
+    # Fill 6 slots: tracked stats first, then placeholders
+    other_stats = known_tracked[:6]
+    for ph in placeholders:
+        if len(other_stats) >= 6:
+            break
+        if ph[0] not in [s[0] for s in other_stats]:
+            other_stats.append(ph)
+
+    draw_stat_block(c, char, other_stats[:6], OTHER_CENTERS,
                     OTHER_TOP_D, OTHER_BOT_D, "OTHER CHARACTERISTICS")
 
 
@@ -452,10 +484,16 @@ def draw_p1_personal_data(c, char):
     draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "CREDITS", F_BOLD, 5.0, LABEL_COL)
     draw_text(c, LM_X0 + 45.0, y + rh * 0.52, f"Cr {char.credits:,}",
               F_BOLD, 7.0, BODY_COL)
+    clan_shares = getattr(char, "clan_shares", 0)
     if char.ship_shares > 0:
         vline(c, mid, y, y + rh)
         draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
         draw_text(c, mid + 60.0, y + rh * 0.52, str(char.ship_shares),
+                  F_BOLD, 7.0, BODY_COL)
+    elif clan_shares > 0:
+        vline(c, mid, y, y + rh)
+        draw_text(c, mid + 3.0, y + rh * 0.52, "CLAN SHARES", F_BOLD, 5.0, LABEL_COL)
+        draw_text(c, mid + 60.0, y + rh * 0.52, str(clan_shares),
                   F_BOLD, 7.0, BODY_COL)
     hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
@@ -767,38 +805,56 @@ def draw_p2_notes(c, char):
 
 
 def draw_p2_associates(c, char):
-    """ALLIES / CONTACTS / RIVALS / ENEMIES panel, page 2 left column."""
+    """ALLIES / CONTACTS / RIVALS / ENEMIES (+ WIVES for K'kree) panel, page 2 left column."""
     sec_top = 134.0;  sec_bot = 356.0
     fill_rect(c, P2_L_X0, sec_top, P2_L_W, sec_bot - sec_top, PANEL)
-    y = section_header(c, P2_L_X0, P2_L_X1, sec_top,
-                       title="ALLIES / CONTACTS / RIVALS / ENEMIES")
-    rh = 9.5
 
-    # Four-column header
-    col_frac = [0.0, 0.25, 0.50, 0.75]
-    col_labels = ["ALLIES", "CONTACTS", "RIVALS", "ENEMIES"]
-    col_kinds  = ["ally",   "contact",  "rival",  "enemy"]
-    col_w = P2_L_W / 4
+    kkree_wives = getattr(char, "kkree_wives", 0)
+    is_kkree = "kkree" in (getattr(char, "species_id", "") or "").lower()
+
+    if is_kkree and kkree_wives:
+        title_str = "ALLIES / CONTACTS / RIVALS / ENEMIES / WIVES"
+        col_labels = ["ALLIES", "CONTACTS", "RIVALS", "ENEMIES", "WIVES"]
+        col_kinds  = ["ally",   "contact",  "rival",  "enemy",   "wife"]
+        num_cols   = 5
+    else:
+        title_str = "ALLIES / CONTACTS / RIVALS / ENEMIES"
+        col_labels = ["ALLIES", "CONTACTS", "RIVALS", "ENEMIES"]
+        col_kinds  = ["ally",   "contact",  "rival",  "enemy"]
+        num_cols   = 4
+
+    y = section_header(c, P2_L_X0, P2_L_X1, sec_top, title=title_str)
+    rh = 9.5
+    col_w = P2_L_W / num_cols
+
+    # Collect associates by kind
+    by_kind: dict = {k: [] for k in col_kinds}
+    for a in (char.associates or []):
+        if a.kind in by_kind:
+            by_kind[a.kind].append(a)
+    # K'kree wives as pseudo-associates
+    if is_kkree and kkree_wives:
+        fam = getattr(char, "kkree_family_members", []) or []
+        wife_objs = [type("W", (), {"description": m.get("description", "Wife")})()
+                     for m in fam if m.get("role") == "wife"]
+        if not wife_objs:
+            # generate placeholders
+            wife_objs = [type("W", (), {"description": f"Wife {i+1}"})()
+                         for i in range(kkree_wives)]
+        by_kind["wife"] = wife_objs[:kkree_wives]
 
     fill_rect(c, P2_L_X0, y, P2_L_W, rh, ROW_ALT)
     for i, (lbl, kind) in enumerate(zip(col_labels, col_kinds)):
         cx_ = P2_L_X0 + i * col_w
         if i:
             vline(c, cx_, y, sec_bot)
-        count = sum(1 for a in (char.associates or []) if a.kind == kind)
+        count = len(by_kind.get(kind, []))
         draw_text(c, cx_ + 3.0, y + rh * 0.52,
                   f"{lbl} ({count})", F_BOLD, 5.0, LABEL_COL)
     hline(c, P2_L_X0, P2_L_X1, y + rh);  y += rh
 
-    # Collect associates by kind
-    by_kind = {"ally": [], "contact": [], "rival": [], "enemy": []}
-    for a in (char.associates or []):
-        if a.kind in by_kind:
-            by_kind[a.kind].append(a)
-
     max_rows = int((sec_bot - y) / rh)
-    # Interleave across columns in the same row
-    max_in_col = max(len(lst) for lst in by_kind.values()) if by_kind else 0
+    max_in_col = max((len(lst) for lst in by_kind.values()), default=0)
     for row in range(min(max_in_col + 1, max_rows)):
         alt = (row % 2 == 1)
         if alt:
@@ -882,6 +938,25 @@ def draw_p2_personal_data(c, char):
     nt = noble_title(char)
     if nt:
         rows.insert(4, ("TITLE", nt))
+    if char.ship_shares > 0:
+        rows.append(("SHIP SHARES", str(char.ship_shares)))
+    clan_shares = getattr(char, "clan_shares", 0)
+    if clan_shares > 0:
+        rows.append(("CLAN SHARES", str(clan_shares)))
+    reputation = getattr(char, "reputation", 0)
+    if reputation:
+        rows.append(("REPUTATION", f"{reputation:+d}"))
+    # K'kree extras
+    if "kkree" in (getattr(char, "species_id", "") or "").lower():
+        rank = (getattr(char, "kkree_soc_rank_degree", "") or "").replace("_", " ").title()
+        if rank:
+            rows.append(("SOC RANK", rank))
+        area = getattr(char, "kkree_specialist_area", None)
+        if area:
+            rows.append(("SPECIALIST", area.replace("_", " ").title()))
+        wives = getattr(char, "kkree_wives", 0)
+        if wives:
+            rows.append(("WIVES", str(wives)))
 
     for i, (lbl, val) in enumerate(rows):
         if y + rh > sec_bot:
@@ -932,6 +1007,10 @@ def draw_p2_wounds(c, char):
         ("STR", ch.STR), ("DEX", ch.DEX), ("END", ch.END),
         ("INT", ch.INT), ("EDU", ch.EDU), ("SOC", ch.SOC),
     ]
+    # Extra characteristics (e.g. TER for Aslan)
+    extra = getattr(char, "extra_characteristics", {}) or {}
+    for code, val in sorted(extra.items()):
+        stat_entries.append((code, int(val)))
     if char.psi > 0:
         stat_entries.append(("PSI", char.psi))
 

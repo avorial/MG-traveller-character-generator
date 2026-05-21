@@ -172,5 +172,6 @@
   },
   "mustering_dm_notes": "DM+1 if SOC 9+.",
   "complete": true,
-  "societies": ["glorious_empire"]
+  "societies": ["glorious_empire"],
+  "blocked_species": ["imperial_human"]
 }

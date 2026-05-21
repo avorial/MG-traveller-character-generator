@@ -18,8 +18,8 @@
       "id": "aslan_hierate",
       "name": "Aslan Hierate / Glorious Empire",
       "subtitle": "Honor, clan, and the eternal drive for land",
-      "description": "The Aslan Hierate is one of the great powers of Charted Space — a confederation of powerful clans driven by an ancient code of honor, a biological imperative toward land ownership, and strict gender-defined social roles. The Glorious Empire is a rival Aslan state in the Trojan Reach — brutal, expansionist, and locked in permanent conflict with the Hierate. Both share Aslan biology and the Rite of Passage, but their cultures and careers differ sharply.",
-      "species_ids": ["hierate_aslan", "glorious_empire_aslan"]
+      "description": "The Aslan Hierate is one of the great powers of Charted Space — a confederation of powerful clans driven by an ancient code of honor, a biological imperative toward land ownership, and strict gender-defined social roles. The Glorious Empire is a rival Aslan state in the Trojan Reach — brutal, expansionist, and locked in permanent conflict with the Hierate. Both share Aslan biology and the Rite of Passage, but their cultures and careers differ sharply. Imperial humans who find themselves in Glorious Empire space are enslaved — they may only take the Slave career.",
+      "species_ids": ["hierate_aslan", "glorious_empire_aslan", "imperial_human"]
     },
     {
       "id": "hiver_federation",

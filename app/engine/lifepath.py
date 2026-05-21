@@ -2699,8 +2699,9 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                 clamp_stat(character, "SOC", -1)
                 auto_applied.append("Family Affairs (1-2): SOC-1 — title lost to succession")
             elif sub <= 4:
+                pending_choice = {"kind": "drinax_arranged_marriage"}
                 auto_applied.append(
-                    "Family Affairs (3-4): Arranged marriage — player may apply SOC+1 if accepted (apply manually)"
+                    "Family Affairs (3-4): Arranged marriage — choose whether to accept"
                 )
             else:
                 character.pending_benefit_rolls += 1
@@ -2751,9 +2752,13 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                     Associate(kind="rival", description="Rival [Cheating Duelling Opponent — Drinax Court]")
                 )
                 character.add_skill("Melee", level=1, speciality="Blade")
+                pending_choice = {
+                    "kind": "drinax_duel_penalty",
+                    "has_benefits": character.pending_benefit_rolls > 0,
+                }
                 auto_applied.append(
                     "Misfortune (5-6): Gained Rival [Duelling Opponent], Melee (Blade) +1 — "
-                    "also choose: lose 1 Benefit roll, 1 SOC, or 1 END (apply one manually)"
+                    "choose your additional penalty"
                 )
 
         elif total == 5:
@@ -2765,9 +2770,9 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                 character.credits += cash
                 auto_applied.append(f"Good Fortune (1-2): Gained Cr{cash:,} (1D={cash_roll}×Cr10,000) — family heirloom sold")
             elif sub <= 4:
+                pending_choice = {"kind": "drinax_star_guard"}
                 auto_applied.append(
-                    "Good Fortune (3-4): Star Guard commission — choose: sell for 1D×Cr10,000 "
-                    "OR automatically qualify for Navy + automatic promotion in first turn (apply manually)"
+                    "Good Fortune (3-4): Star Guard commission — choose: sell for cash OR take a Navy commission"
                 )
             else:
                 character.equipment.append(
@@ -2815,9 +2820,9 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
             sub = dice.roll("1D").total
             auto_applied.append(f"Family Affairs sub-roll: 1D={sub}")
             if sub <= 2:
+                pending_choice = {"kind": "drinax_child_crisis"}
                 auto_applied.append(
-                    "Family Affairs (1-2): Crisis — child born but tribe cannot feed them. "
-                    "Either child dies (narrative) or you must change career to Drifter or Rogue next term (apply manually)"
+                    "Family Affairs (1-2): Child born — tribe cannot feed them. Choose how to resolve."
                 )
             elif sub <= 4:
                 character.pending_benefit_rolls += 1
@@ -2877,8 +2882,9 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                 character.credits += cash
                 auto_applied.append(f"Good Fortune (1-2): Gained Cr{cash:,} (1D={cash_roll}×Cr10,000) — relic sold to Rachando")
             elif sub <= 4:
+                pending_choice = {"kind": "drinax_ship_berth"}
                 auto_applied.append(
-                    "Good Fortune (3-4): Ship berth offered — may automatically qualify for Rogue or Merchant career (apply manually)"
+                    "Good Fortune (3-4): Ship berth offered — choose your new career path"
                 )
             else:
                 character.pending_benefit_rolls += 1
@@ -2924,9 +2930,12 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                 )
                 auto_applied.append("Family Affairs (3-4): Gained Enemy [Drinaxi Noble — killed father]")
             else:
+                pending_choice = {
+                    "kind": "asim_family_aid",
+                    "has_benefits": character.pending_benefit_rolls > 0,
+                }
                 auto_applied.append(
-                    "Family Affairs (5-6): Impoverished family — you may lose 1 Benefit roll to relieve their suffering "
-                    "and gain DM+1 to your next Advancement roll (apply manually)"
+                    "Family Affairs (5-6): Impoverished family — choose whether to help them"
                 )
 
         elif total == 3:
@@ -2962,17 +2971,25 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
             sub = dice.roll("1D").total
             auto_applied.append(f"Misfortune sub-roll: 1D={sub}")
             if sub <= 2:
-                # Lose 1 benefit roll or a Contact/Ally — auto lose benefit if available
-                if character.pending_benefit_rolls > 0:
-                    character.pending_benefit_rolls -= 1
+                # Lose 1 benefit roll OR lose a Contact/Ally — player chooses
+                contacts_allies = [
+                    {"idx": i, "kind": a.kind, "description": a.description}
+                    for i, a in enumerate(character.associates)
+                    if a.kind in ("contact", "ally")
+                ]
+                has_benefits = character.pending_benefit_rolls > 0
+                if has_benefits or contacts_allies:
+                    pending_choice = {
+                        "kind": "asim_misfortune_choice",
+                        "has_benefits": has_benefits,
+                        "contacts_allies": contacts_allies,
+                    }
                     auto_applied.append(
-                        "Misfortune (1-2): Dangerous misunderstanding — lost 1 Benefit roll "
-                        "(alternatively, lose a Contact or Ally — apply manually if preferred)"
+                        "Misfortune (1-2): Dangerous misunderstanding — choose your penalty"
                     )
                 else:
                     auto_applied.append(
-                        "Misfortune (1-2): Dangerous misunderstanding — no Benefit rolls to lose; "
-                        "lose a Contact or Ally (apply manually)"
+                        "Misfortune (1-2): Dangerous misunderstanding — no Benefit rolls or associates to lose; narrative only"
                     )
             elif sub <= 4:
                 injury = apply_injury(character)
@@ -3281,6 +3298,109 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
             character.log("Life Event 11 (Crime): must take Prisoner career next term")
         else:
             raise ValueError(f"Unknown choice '{choice}' for crime_choice")
+
+    elif kind == "drinax_arranged_marriage":
+        if choice == "accept":
+            old_soc = character.characteristics.get("SOC")
+            character.characteristics.set("SOC", old_soc + 1)
+            character.log(f"Drinax Life Event — Arranged Marriage accepted: SOC {old_soc}→{character.characteristics.get('SOC')}")
+        elif choice == "decline":
+            character.log("Drinax Life Event — Arranged Marriage declined: no change")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for drinax_arranged_marriage")
+
+    elif kind == "drinax_star_guard":
+        if choice == "sell":
+            cash_roll = dice.roll("1D").total
+            cash = cash_roll * 10_000
+            character.credits += cash
+            character.log(f"Drinax Good Fortune — Star Guard commission sold: Cr{cash:,} (1D={cash_roll}×Cr10,000)")
+        elif choice == "commission":
+            character.pending_transfer_career_id = "navy"
+            character.dm_next_advancement += 12
+            character.log(
+                "Drinax Good Fortune — Star Guard commission accepted: auto-qualify Navy; "
+                "dm_next_advancement +12 (guaranteed promotion first term)"
+            )
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for drinax_star_guard")
+
+    elif kind == "drinax_duel_penalty":
+        if choice == "lose_benefit":
+            if character.pending_benefit_rolls <= 0:
+                raise ValueError("No benefit rolls remaining to lose.")
+            character.pending_benefit_rolls -= 1
+            character.log("Drinax Misfortune — Duel penalty: lost 1 Benefit roll")
+        elif choice == "lose_soc":
+            old_soc = character.characteristics.get("SOC")
+            character.characteristics.set("SOC", max(1, old_soc - 1))
+            character.log(f"Drinax Misfortune — Duel penalty: SOC {old_soc}→{character.characteristics.get('SOC')}")
+        elif choice == "lose_end":
+            old_end = character.characteristics.get("END")
+            character.characteristics.set("END", max(1, old_end - 1))
+            character.log(f"Drinax Misfortune — Duel penalty: END {old_end}→{character.characteristics.get('END')}")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for drinax_duel_penalty")
+
+    elif kind == "drinax_child_crisis":
+        if choice == "child_dies":
+            character.log("Drinax Wasteland Family Affairs — Child died: narrative outcome, no mechanical change")
+        elif choice == "drifter":
+            character.forced_next_career_id = "drifter"
+            character.log("Drinax Wasteland Family Affairs — Left career to care for child: next career must be Drifter")
+        elif choice == "rogue":
+            character.forced_next_career_id = "rogue"
+            character.log("Drinax Wasteland Family Affairs — Left career to care for child: next career must be Rogue")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for drinax_child_crisis")
+
+    elif kind == "drinax_ship_berth":
+        if choice == "rogue":
+            character.pending_transfer_career_id = "rogue"
+            character.log("Drinax Wasteland Good Fortune — Ship berth taken: auto-qualify for Rogue career")
+        elif choice == "merchant":
+            character.pending_transfer_career_id = "merchant"
+            character.log("Drinax Wasteland Good Fortune — Ship berth taken: auto-qualify for Merchant career")
+        elif choice == "decline":
+            character.log("Drinax Wasteland Good Fortune — Ship berth declined")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for drinax_ship_berth")
+
+    elif kind == "asim_family_aid":
+        if choice == "pay":
+            if character.pending_benefit_rolls <= 0:
+                raise ValueError("No benefit rolls remaining to lose.")
+            character.pending_benefit_rolls -= 1
+            character.dm_next_advancement += 1
+            character.log(
+                "Asim Family Affairs — Helped impoverished family: lost 1 Benefit roll, "
+                "gained DM+1 to next Advancement roll"
+            )
+        elif choice == "keep":
+            character.log("Asim Family Affairs — Did not help impoverished family: no change")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for asim_family_aid")
+
+    elif kind == "asim_misfortune_choice":
+        if choice == "lose_benefit":
+            if character.pending_benefit_rolls <= 0:
+                raise ValueError("No benefit rolls remaining to lose.")
+            character.pending_benefit_rolls -= 1
+            character.log("Asim Misfortune — Dangerous misunderstanding: lost 1 Benefit roll")
+        elif choice.startswith("lose_associate_"):
+            idx_str = choice[len("lose_associate_"):]
+            try:
+                idx = int(idx_str)
+            except ValueError:
+                raise ValueError(f"Invalid associate index in choice '{choice}'")
+            if idx < 0 or idx >= len(character.associates):
+                raise ValueError(f"Associate index {idx} out of range")
+            removed = character.associates.pop(idx)
+            character.log(
+                f"Asim Misfortune — Dangerous misunderstanding: lost {removed.kind} [{removed.description or 'unnamed'}]"
+            )
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for asim_misfortune_choice")
 
     else:
         raise ValueError(f"Unknown pending life event kind: {kind!r}")
@@ -4423,6 +4543,63 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"DM{amount:+d} to next Advancement roll")
         character.log(f"Event: dm_next_advancement {amount:+d}")
 
+    elif etype == "auto_advance":
+        character.dm_next_advancement += 12
+        msgs.append("Automatically promoted this term (DM+12 to Advancement roll)")
+        character.log("Event: auto_advance — dm_next_advancement +12")
+
+    elif etype == "equipment":
+        item_name = effect.get("name", "")
+        item_notes = effect.get("notes", "")
+        if item_name:
+            character.equipment.append(Equipment(name=item_name, notes=item_notes))
+            msgs.append(f"Equipment gained: {item_name}")
+            character.log(f"Event: equipment added — {item_name}")
+
+    elif etype == "d_stat":
+        # Roll a variable die and apply to a stat (always reduces for mishaps unless negative=False).
+        stat = effect["stat"]
+        dice_expr = effect.get("dice", "D3")
+        negative = effect.get("negative", True)
+        r_d = dice.roll(dice_expr)
+        amount = -r_d.total if negative else r_d.total
+        if stat == "REP":
+            old = character.reputation
+            character.reputation = max(0, old + amount)
+            msgs.append(f"REP {old}→{character.reputation} ({amount:+d}, rolled {r_d.total})")
+            character.log(f"Mishap d_stat REP {amount:+d} ({dice_expr}={r_d.total})")
+        elif stat == "TER":
+            old = character.extra_characteristics.get("TER", 0)
+            new_val = max(0, old + amount)
+            character.extra_characteristics["TER"] = new_val
+            msgs.append(f"TER {old}→{new_val} ({amount:+d}, rolled {r_d.total})")
+            character.log(f"Mishap d_stat TER {amount:+d} ({dice_expr}={r_d.total})")
+        else:
+            old = character.characteristics.get(stat)
+            if old is not None:
+                new_val = max(0, old + amount)
+                character.characteristics[stat] = new_val
+                msgs.append(f"{stat} {old}→{new_val} ({amount:+d}, rolled {r_d.total})")
+                character.log(f"Mishap d_stat {stat} {amount:+d} ({dice_expr}={r_d.total})")
+
+    elif etype == "kkree_wife_loss":
+        # Remove the most recently acquired wife from associates.
+        wife_indices = [i for i, a in enumerate(character.associates) if a.kind == "wife"]
+        if wife_indices:
+            removed = character.associates.pop(wife_indices[-1])
+            msgs.append(f"Lost a wife ({removed.description or 'Wife'})")
+            character.log(f"Mishap: wife lost — {removed.description or 'Wife'}")
+        else:
+            msgs.append("Lost a wife (none recorded in associates)")
+            character.log("Mishap: kkree_wife_loss — no wife associate found")
+
+    elif etype == "kkree_degree_reset":
+        # Revert SOC rank degree to servant-to-rankholder (caste demotion from mishap).
+        old_deg = character.kkree_soc_rank_degree
+        character.kkree_soc_rank_degree = "servant_of_rankholder"
+        msgs.append(f"SOC rank degree reverted to Servant-of-Rankholder (was {old_deg})")
+        character.log(f"Mishap: kkree_soc_rank_degree reset to servant_of_rankholder (was {old_deg})")
+
     elif etype == "debt":
         amount = effect["amount"]
         character.medical_debt += amount
@@ -4437,13 +4614,12 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
     elif etype == "d_associates":
         kind = effect["kind"]
         dice_str = effect["dice"]
-        if dice_str == "D3":
-            count = (dice.roll("1D").total + 1) // 2
-        else:
-            count = dice.roll(dice_str).total
-        for _ in range(count):
+        desc_prefix = effect.get("desc_prefix", "")
+        count = dice.roll(dice_str).total
+        for i in range(count):
+            desc = desc_prefix or ""
             character.associates.append(
-                Associate(kind=kind, description="")
+                Associate(kind=kind, description=desc)
             )
         msgs.append(f"Gained {count}× {kind.capitalize()}")
         character.log(f"Mishap: gained {count} {kind}(s)")
@@ -5579,6 +5755,54 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             else:
                 auto_applied.append("Did not denounce — ejected from career")
                 character.log("DolMil mishap 5: did not denounce, ejected")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "kkree_noble_mishap4":
+            # kkree_noble mishap 4: 1D sub-roll: 1-2 ejected (no further career), 3-4 ejected + Enemy, 5-6 Ally
+            sub_r = dice.roll("1D")
+            sub = sub_r.total
+            if sub <= 2:
+                auto_applied.append(
+                    f"Mishap 4 (1D={sub}, 1-2): Your fault — ejected; cannot begin another career. Apply manually."
+                )
+                character.log(f"K'kree Noble mishap 4: 1D={sub}, fault — ejected, no further career")
+            elif sub <= 4:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Superior — Blamed You]")
+                )
+                auto_applied.append(
+                    f"Mishap 4 (1D={sub}, 3-4): Blamed — ejected + Enemy [Superior]"
+                )
+                character.log(f"K'kree Noble mishap 4: 1D={sub}, blamed — ejected + enemy")
+            else:
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [K'kree — Outside Clan]")
+                )
+                auto_applied.append(
+                    f"Mishap 4 (1D={sub}, 5-6): Acclaim — gained Ally [K'kree — Outside Clan]; career continues"
+                )
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                character.log(f"K'kree Noble mishap 4: 1D={sub}, acclaim — ally, career continues")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "kkree_servant_mishap4":
+            # kkree_servant mishap 4: accept (SOC-1, gain Ally) or refuse (Enemy, gain Outsider 1)
+            if selected == "accept":
+                old_soc = character.characteristics.get("SOC", 0)
+                character.characteristics["SOC"] = max(0, old_soc - 1)
+                character.associates.append(Associate(kind="ally", description="Ally [K'kree — Showed Mercy]"))
+                auto_applied.append(
+                    f"Accepted humiliation — SOC {old_soc}→{character.characteristics['SOC']} (−1); "
+                    "gained Ally [K'kree — Showed Mercy]"
+                )
+                character.log("K'kree Servant mishap 4: accepted, SOC-1, ally")
+            else:
+                character.associates.append(Associate(kind="enemy", description="Enemy [K'kree — Chose Honour]"))
+                _apply_mishap_effect(character, {"type": "skill", "name": "Outsider", "level": 1}, msgs, term)
+                auto_applied.append("Refused humiliation — gained Enemy + Outsider 1")
+                character.log("K'kree Servant mishap 4: refused, enemy, outsider 1")
             character.pending_career_mishap_choice = None
 
         else:
@@ -6769,6 +6993,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Increase Investigate by one level"},
                   {"id": "dm4",  "label": "DM+4 to next Advancement roll"},
               ], "skill_option": "Investigate"}],
+        12: [{"type": "auto_advance"}],
     },
     "army": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -6796,6 +7021,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Engineer",       "label": "Engineer 1"},
                   {"id": "dm4",            "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
     "citizen": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -6913,6 +7139,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Tactics (military)", "label": "Tactics (military) 1"},
                   {"id": "dm4",                "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"},
+             {"type": "equipment", "name": "Imperial Service Medal",
+              "notes": "Awarded for actions in a critical operation"}],
     },
     "merchant": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -6986,6 +7215,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Increase any one skill you already have by one level"},
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"},
+             {"type": "equipment", "name": "Imperial Service Medal",
+              "notes": "Awarded for heroism in a major fleet action"}],
     },
     "noble": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7020,6 +7252,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Leadership 1"},
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ], "skill_option": "Leadership"}],
+        12: [{"type": "auto_advance"}],
     },
     "prisoner": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7169,6 +7402,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Diplomat 1"},
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ], "skill_option": "Diplomat"}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Bounty Hunter ----
@@ -7439,6 +7673,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Engineer",       "label": "Engineer 1"},
                   {"id": "dm4",            "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
     "confederation_navy": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7466,6 +7701,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Tactics (naval) 1"},
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ], "skill_option": "Tactics (naval)"}],
+        12: [{"type": "auto_advance"}],
     },
     "party": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7501,6 +7737,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Science (philosophy)", "label": "Science (philosophy) 1"},
                   {"id": "dm4",                  "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
     "solsec": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7548,6 +7785,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Science (psychology)", "label": "Science (psychology) 1"},
                   {"id": "dm4",                 "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
     "solomani_marine": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7578,6 +7816,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Tactics (military)", "label": "Tactics (military) 1"},
                   {"id": "dm4",                "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
 }
 
@@ -8019,8 +8258,11 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # Mishap 6 is standard ejection (no career_continues).
     "kkree_pastoral": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
-        2: [{"type": "career_continues"}],   # gain Outsider — noted in text
-        3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
+        2: [{"type": "skill", "name": "Outsider", "level": 1},
+            {"type": "career_continues"}],
+        3: [{"type": "kkree_wife_loss"},
+            {"type": "d_associates", "kind": "rival", "dice": "D3", "desc_prefix": "Rival [K'kree — Grief Offence]"},
+            {"type": "career_continues"}],
         4: [{"type": "enemy", "desc": "Enemy [Rival Herd]"}, {"type": "career_continues"}],
         5: [{"type": "skill_check", "skills": [{"name": "Melee"}], "target": 8,
              "on_pass": [],
@@ -8033,25 +8275,54 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         1: [{"type": "injury"}, {"type": "career_continues"}],
         2: [{"type": "career_continues"}],
         3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
-        4: [{"type": "career_continues"}],   # choice: accept SOC-1+Ally or refuse+Enemy+Outsider
+        4: [{"type": "pending_choice", "id": "kkree_servant_mishap4",
+             "prompt": "You are publicly humiliated. Accept with grace or refuse in honour?",
+             "options": [
+                 {"id": "accept", "label": "Accept — lose SOC −1, gain Ally [Showed Mercy]"},
+                 {"id": "refuse", "label": "Refuse — gain Enemy + Outsider 1"},
+             ]},
+            {"type": "career_continues"}],
         5: [{"type": "stat", "stat": "SOC", "amount": 1}, {"type": "career_continues"}],
         # 6: standard ejection
     },
     "kkree_merchant": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
-        2: [{"type": "career_continues"}],   # SOC lowered by D3 — noted in text
-        3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
+        2: [{"type": "d_stat", "stat": "SOC", "dice": "D3", "negative": True},
+            {"type": "career_continues"}],
+        3: [{"type": "kkree_wife_loss"},
+            {"type": "d_associates", "kind": "rival", "dice": "D3", "desc_prefix": "Rival [K'kree — Grief Offence]"},
+            {"type": "career_continues"}],
         4: [{"type": "forfeit_benefit"}, {"type": "rival", "desc": "Rival [Profited from Eclipse]"},
             {"type": "career_continues"}],
-        5: [{"type": "career_continues"}],   # family deaths + Patriarchy check — noted in text
+        5: [{"type": "skill_check", "skills": [{"name": "Patriarchy"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+             "prompt": "War kills family — Patriarchy 8+: pass marry quickly (no embarrassment); fail SOC −1"},
+            {"type": "career_continues"}],
         # 6: standard ejection
     },
     "kkree_noble": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
-        2: [{"type": "career_continues"}],   # Patriarchy check choice — noted in text
-        3: [{"type": "career_continues"}],   # Patriarchy check + enemies — noted in text
-        4: [{"type": "career_continues"}],   # 1D sub-result (1-4 eject, 5-6 ally) — noted in text
-        5: [{"type": "career_continues"}],   # family deaths + SOC loss — noted in text
+        2: [{"type": "skill_check", "skills": [{"name": "Patriarchy"}], "target": 10,
+             "on_pass": [{"type": "kkree_wife_loss"}],
+             "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1},
+                         {"type": "kkree_degree_reset"}],
+             "prompt": "Revolt in household — Patriarchy 10+: pass dismiss wife (Patriarchy −1 note); "
+                       "fail SOC −1 + revert to Servant-of-Rankholder"},
+            {"type": "career_continues"}],
+        3: [{"type": "skill_check", "skills": [{"name": "Patriarchy"}], "target": 8,
+             "on_pass": [{"type": "d_associates", "kind": "enemy", "dice": "D3",
+                          "desc_prefix": "Enemy [Vengeance Taken]"}],
+             "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1},
+                         {"type": "kkree_degree_reset"}],
+             "prompt": "Wife killed by enemies — Patriarchy 8+: pass earn respect via vengeance (D3 Enemies); "
+                       "fail SOC −1 + revert to Servant-of-Rankholder"},
+            {"type": "career_continues"}],
+        4: [{"type": "pending_choice", "id": "kkree_noble_mishap4",
+             "prompt": "Superior suffers a setback — click to roll 1D and resolve outcome automatically.",
+             "options": [{"id": "auto", "label": "Roll 1D to determine outcome"}]}],
+        5: [{"type": "d_stat", "stat": "SOC", "dice": "D3", "negative": True},
+            {"type": "career_continues"}],
         # 6: standard ejection
     },
 
@@ -8563,6 +8834,40 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
 
+    # ── K'kree wife acquisition roll (Average 8+ Patriarchy) ─────────────────
+    # Each term in a K'kree career the patriarch rolls Patriarchy 8+ to acquire
+    # a new wife. Success adds her as an Associate(kind="wife").
+    wife_roll_result: dict | None = None
+    _sp_data = rules.species().get(character.species_id or "", {})
+    if _sp_data.get("uses_kkree_family") and term is not None:
+        _pat_level = next(
+            (s.level for s in character.skills if s.name.lower() == "patriarchy"),
+            0,
+        )
+        _pat_dm = _pat_level  # Patriarchy is the skill DM directly
+        _wife_r = dice.roll("2D", modifier=_pat_dm, target=8)
+        _current_wives = sum(1 for a in character.associates if a.kind == "wife")
+        if _wife_r.succeeded:
+            _wife_label = f"Wife (acquired term {term.overall_term_number})"
+            character.associates.append(Associate(kind="wife", description=_wife_label))
+            _current_wives += 1
+            character.log(
+                f"K'kree wife acquisition — Patriarchy {_pat_dm:+d}: "
+                f"2D{_pat_dm:+d}={_wife_r.total} ≥ 8 — SUCCESS. "
+                f"Now {_current_wives} wife(s)."
+            )
+        else:
+            character.log(
+                f"K'kree wife acquisition — Patriarchy {_pat_dm:+d}: "
+                f"2D{_pat_dm:+d}={_wife_r.total} < 8 — no new wife this term. "
+                f"({_current_wives} wife(s) total)"
+            )
+        wife_roll_result = {
+            "roll": _wife_r.to_dict(),
+            "succeeded": _wife_r.succeeded,
+            "wives_total": _current_wives,
+        }
+
     return {
         "aging": aging_log,
         "anagathics_active": character.anagathics_active,
@@ -8572,6 +8877,7 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         "age": character.age,
         "total_terms": character.total_terms,
         "pending_benefit_rolls": character.pending_benefit_rolls,
+        "wife_roll": wife_roll_result,
         "character": character.model_dump(),
     }
 

@@ -187,6 +187,8 @@ def _draw_identity(c, char):
         chips.append((f"PENSION: Cr{char.pension_per_year:,}/yr", SUCCESS))
     if char.medical_debt:
         chips.append((f"MED DEBT: Cr{char.medical_debt:,}", DANGER))
+    if getattr(char, "reputation", 0):
+        chips.append((f"REP: {char.reputation:+d}", AMBER))
 
     x   = _ID_COL_X[0]   # = 36, matches ref
     fnt, fsz = "Courier-Bold", 7
@@ -236,10 +238,21 @@ def _draw_characteristics(c, char):
                  _dm_str(val), color=DIM, font="Courier", size=7, align="center")
 
     # PSI if tested
+    extra_row_y = INT_Y - 11
     if getattr(char, "psi", None):
-        _txt(c, COL_L_X + 4, INT_Y - 11,
+        _txt(c, COL_L_X + 4, extra_row_y,
              f"PSI  {char.psi}   DM {_dice.characteristic_dm(char.psi):+d}",
              color=PURPLE, size=7)
+        extra_row_y -= 11
+
+    # Extra characteristics (e.g. TER for Aslan)
+    for stat_code, stat_val in sorted((char.extra_characteristics or {}).items()):
+        if extra_row_y < SK_Y - (SK_Y - (NT_Y + NT_H)):  # don't overwrite skills header
+            break
+        _txt(c, COL_L_X + 4, extra_row_y,
+             f"{stat_code}  {stat_val}   DM {_dice.characteristic_dm(int(stat_val)):+d}",
+             color=DIM, size=7)
+        extra_row_y -= 11
 
 
 def _draw_skills(c, char):
@@ -377,7 +390,9 @@ class _RC:
         counts: dict[str, int] = {}
         for a in char.associates:
             counts[a.kind] = counts.get(a.kind, 0) + 1
-        if not counts:
+        kkree_wives = getattr(char, "kkree_wives", 0)
+        has_any = any(counts.values()) or kkree_wives
+        if not has_any:
             self._line("No associates", color=DIM)
             return
         colors = {"ally": SUCCESS, "contact": BODY, "rival": AMBER, "enemy": DANGER}
@@ -386,17 +401,25 @@ class _RC:
             if n:
                 self._row(kind.title() + ("s" if n != 1 else ""), str(n),
                           val_color=colors[kind])
+        if kkree_wives:
+            label = "Wives" if kkree_wives != 1 else "Wife"
+            self._row(label, str(kkree_wives), val_color=AMBER)
 
     def equipment(self, char):
         items       = char.equipment
         ship_shares = getattr(char, "ship_shares", 0)
-        if not items and not ship_shares:
+        clan_shares = getattr(char, "clan_shares", 0)
+        if not items and not ship_shares and not clan_shares:
             return
         if not self._hdr("EQUIPMENT"):
             return
         if ship_shares:
             n = ship_shares
             self._row(f"Ship Share{'s' if n != 1 else ''}", str(n),
+                      val_color=AMBER, dim_label=False)
+        if clan_shares:
+            n = clan_shares
+            self._row(f"Clan Share{'s' if n != 1 else ''}", str(n),
                       val_color=AMBER, dim_label=False)
         for eq in items[:12]:
             note = (eq.notes or "").strip() or "From mustering out"
@@ -466,6 +489,26 @@ class _RC:
             return
         self._row("Monitor Rank", str(char.solsec_monitor_rank))
 
+    def kkree_family(self, char):
+        sp_id = getattr(char, "species_id", "") or ""
+        if "kkree" not in sp_id.lower():
+            return
+        if not self._hdr("K'KREE FAMILY"):
+            return
+        rank = (getattr(char, "kkree_soc_rank_degree", "") or "").replace("_", " ").title()
+        if rank:
+            self._row("Social Rank", rank, dim_label=False)
+        area = getattr(char, "kkree_specialist_area", None)
+        if area:
+            self._row("Specialist Area", area.replace("_", " ").title(), dim_label=False)
+        wives = getattr(char, "kkree_wives", 0)
+        if wives:
+            label = "Wives" if wives != 1 else "Wife"
+            self._row(label, str(wives), val_color=AMBER, dim_label=False)
+        fam = getattr(char, "kkree_family_members", []) or []
+        if fam:
+            self._row("Family Members", str(len(fam)), dim_label=False)
+
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
@@ -504,6 +547,8 @@ def generate_pdf(char: "Character") -> bytes:
     rc.home_forces(char)
     rc._gap(4)
     rc.solsec(char)
+    rc._gap(4)
+    rc.kkree_family(char)
 
     c.save()
     return buf.getvalue()

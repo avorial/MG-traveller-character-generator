@@ -148,5 +148,6 @@
     "6": {"cash": 25000, "benefit": "SOC +1 or Combat Implant"},
     "7": {"cash": 50000, "benefit": "TAS Membership"}
   },
+  "blocked_societies": ["solomani_confederation"],
   "complete": true
 }

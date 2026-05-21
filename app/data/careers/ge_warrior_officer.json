@@ -148,5 +148,6 @@
   },
   "mustering_dm_notes": "DM+1 if SOC 9+. DM+1 if male. DM+1 if one or more terms included a Mercenary Event.",
   "complete": true,
-  "societies": ["glorious_empire"]
+  "societies": ["glorious_empire"],
+  "blocked_species": ["imperial_human"]
 }
