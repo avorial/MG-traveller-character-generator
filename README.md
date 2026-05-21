@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-18.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-18.8-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -115,7 +115,7 @@ The character goes directly to finalization (skill package phase) — no further
 
 Career package choices are stored in `career_package_id` and `career_package_taken` on the character. The capsule narrative describes the package career in place of the normal career-loop paragraphs.
 
-### Careers (44 fully encoded)
+### Careers (64 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -210,7 +210,41 @@ The Glorious Empire shares two careers with the Hierate (Ceremonial, Envoy) and 
 
 Career access depends on `kkree_soc_rank_degree` (rankholder / kinsman / servant of rankholder), which is derived from SOC at the start of the career loop.
 
-Careers with `societies` set are only shown for characters from that polity. Careers with `blocked_societies` are hidden for those characters.
+#### Zhodani Consulate (9)
+
+| Career | Assignments | Notes |
+|---|---|---|
+| **Agent (Zhodani)** | Tozjabr, Thought Police | SOC 10+ required; Thought Police requires PSI 9+ |
+| **Army (Zhodani)** | Cavalry, Infantry, Support | Enlisted + officer rank tracks; auto-commission if SOC 10+ |
+| **Entertainer (Zhodani)** | Artist, Author, Performer | |
+| **Government (Zhodani)** | Administrator, Diplomat | Proles and Intendants max rank 3 |
+| **Guard (Zhodani)** | Commandos, Ground Assault, Support | SOC 10+ required; all-commissioned; Commandos requires PSI 9+ |
+| **Merchant (Zhodani)** | Broker, Corporate, Free Trader | |
+| **Navy (Zhodani)** | Crew, Flight, Technical | Enlisted + officer rank tracks; auto-commission if SOC 10+ |
+| **Prole (Zhodani)** | Colonist, Corporate, Worker | SOC 9− only; uses standard Core life events table |
+| **Scholar (Zhodani)** | Field Researcher, Lab Scientist, Physician | |
+
+All Zhodani careers except Prole include a **Psionic Skills** table (SOC 10+ only). Army and Navy have the **Officer Skills** table (commissioned characters only). See Zhodani mechanics below.
+
+#### Vargr Extents (11)
+
+| Career | Assignments |
+|---|---|
+| **Army (Vargr)** | Infantry, Cavalry, Support |
+| **Citizen (Vargr)** | Corporate, Aide, Worker |
+| **Corsair** | Raider, Pilot, Reaver |
+| **Emissary** | Arbitrator, Diplomat, Negotiator |
+| **Law Enforcement (Vargr)** | Enforcer, Investigator, Security |
+| **Loner** | Hunter, Prospector, Explorer |
+| **Marines (Vargr)** | Marine, Special Ops, Support |
+| **Merchant (Vargr)** | Junk Dealer, Scrounger, Free Trader |
+| **Navy (Vargr)** | Pilot, Crew, Engineer |
+| **Psion (Vargr)** | Wild Talent, Mentored, Institute |
+| **Scientist (Vargr)** | Doctor, Researcher, Technician |
+
+See Vargr Extents mechanics below.
+
+---
 
 ### Events and mishaps — fully auto-applied
 
@@ -218,7 +252,7 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 - Skill gains, characteristic changes, DM bonuses, and associates (allies/contacts/rivals/enemies) are applied directly to the character.
 - **Dual-choice events** present a pick-one UI before continuing.
-- **Life Event sub-table** — careers use the standard 2D table; Solomani careers use a separate Solomani Life Events table; characters from Drinax (Floating Palace), Drinax (Wasteland), and Asim use homeworld-specific 1D tables with fully auto-applied effects.
+- **Life Event sub-table** — careers use the standard 2D table; Solomani careers use a separate Solomani Life Events table; Vargr Extents careers use the Vargr Life Events table (with Pack Events 1D sub-table); Zhodani Consulate careers (except Prole) use the Zhodani Life Events table (with Re-education Events 1D sub-table); characters from Drinax (Floating Palace), Drinax (Wasteland), and Asim use homeworld-specific 1D tables with fully auto-applied effects.
 - **Injury Table** — when a mishap calls for an injury, the player chooses which characteristic absorbs the damage. Medical debt is tracked.
 - **Forced careers** — if a life event, mishap, or anagathics roll mandates a specific next career (e.g. Prisoner), the Decide phase replaces the normal muster-out/continue buttons with a mandatory "Serve Your Sentence" path. Voluntary muster-out is also blocked at the API level.
 - **Career transfers** from events are tracked and honoured.
@@ -230,10 +264,11 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 - **Cascade skills** (Electronics, Science, Gun Combat, Melee, Pilot, Tactics, and 9 others) prompt for a specialty when rolled from a career table without one already specified.
 - Skill gains display as `+1 SkillName (level N)` or `+1 SkillName → now level N` so it is always clear the gain is an increment, not a target level.
 - Advancement bonus skills are shown immediately on the promotion result screen, not just in the log.
+- **Muster-out skill choices** — benefits of the form "Advocate 1 or Broker 1 or Profession 1" present buttons for each option; the chosen skill is applied immediately.
 
 ### Commission and rank titles
 
-Military careers (Army, Marine, Navy, Confederation equivalents) display the correct **officer** rank title after commissioning — "Ensign", "Lieutenant", etc. — rather than the enlisted track. Rank titles update on each promotion throughout the career.
+Military careers (Army, Marine, Navy, Confederation equivalents, Zhodani Army/Navy/Guard) display the correct **officer** rank title after commissioning. Rank titles update on each promotion throughout the career.
 
 ### Solomani Confederation mechanics
 
@@ -243,6 +278,21 @@ Military careers (Army, Marine, Navy, Confederation equivalents) display the cor
 - **Solomani Draft table** — separate table from the Imperial draft.
 - **Home Forces Reserves** — eligible Solomani characters may enlist alongside their main career for training rolls and parallel survival checks.
 - **SolSec Monitor** — non-SolSec Solomani may volunteer as an informer for advancement DMs and bonus benefit rolls.
+
+### Zhodani Consulate mechanics
+
+- **PSI roll at creation** — Zhodani characters roll 2D for PSI immediately after species selection, before any career begins.
+- **Social class** — Three classes based on SOC and PSI:
+  - *Prole* (SOC 9−) — no access to Psionic Skills tables; careers capped at certain ranks; uses standard Core life events
+  - *Intendant* (SOC 10) — Psionic Skills tables available; if PSI 9+ is rolled at creation, a Prole is automatically elevated to Intendant
+  - *Noble* (SOC 11+) — full career access; EDU raised to minimum 8 at creation
+- **Characteristic adjustments** — at creation: EDU cannot exceed SOC; if SOC 10+ and EDU < 8, EDU is raised to 8.
+- **No career-change penalty** — Zhodani characters do not accumulate the −1 DM per previously failed qualification that Imperial characters do.
+- **Psionic Skills table** — each non-Prole career includes a fourth specialist table usable by SOC 10+ characters only. Skills include Awareness, Clairvoyance, Telepathy, Telekinesis, Teleportation, and PSI+1.
+- **Officer Skills table** — Army and Navy include a commissioned-only specialist table with Admin, Advocate, Diplomat, Leadership, and Tactics.
+- **Re-education Events** — certain mishaps and the life event Crime (result 11) trigger a 1D Re-education Events sub-table. Results range from exoneration (extra benefit roll) to two-term re-education with mandatory career change and stat loss.
+- **Zhodani draft table** — failed qualification drafts into Army (Infantry), Merchant (Corporate), or Navy (Crew).
+- **Noble titles** — SOC 10–15 grants Zhodani titles: Intendant (−iepr), Aspirant (−atl), Wellborn (−stebr), Highborn (−tlas), Noble Born (−tlasche'), Princely Lord (−iashav).
 
 ### Aslan Hierate and Glorious Empire mechanics
 
@@ -264,15 +314,23 @@ Military careers (Army, Marine, Navy, Confederation equivalents) display the cor
 - **Specialist area** — At the start of the first career a specialty area is rolled (warrior / mercantile / technical / naval), stored in `kkree_specialist_area`. This biases assignment selection throughout the career loop.
 - **Claustrophobia and gregariousness** — K'kree traits are tracked on the character sheet and generate in-play notes; they do not add mechanical modifiers to the character builder itself, but are reflected in capsule narrative and the species traits panel.
 
+### Vargr Extents mechanics
+
+- **CHA replaces SOC** — Vargr SOC is labeled CHA (Charisma) in the UI. It is re-rolled as 1D+2 at species selection rather than using the standard 2D roll, reflecting how Vargr charisma is more volatile than Imperial social standing.
+- **No career-change penalty** — Vargr do not accumulate the −1 DM per previously failed qualification, representing the ease with which Vargr change employers and pack allegiances.
+- **Background skill** — All Vargr Extents characters start with Melee (Infighting) 0.
+- **Pack Events** — The Vargr Life Events table results 6 and 8 both trigger a 1D Pack Events sub-table. Results cover pack failure (SOC−1), leaving a pack (re-qualification roll), joining a pack, power struggles (ally or rival), success (SOC+1), and leadership challenges (Leadership or SOC 10+ to take charge).
+- **Vargr draft table** — failed qualification drafts into Army (Infantry), Marines, Navy (Crew), or Law Enforcement (Enforcer).
+
 ### Additional rules
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll. Officer rank titles replace enlisted titles on success.
-- **Draft** — Failed qualification offers a draft roll (1D → career assignment).
+- **Draft** — Failed qualification offers a draft roll (1D → career assignment). Draft table varies by society (Imperial, Solomani, Vargr, Zhodani).
 - **Aging** — Triggered at a species-specific term (default term 4; Dolphins term 2). Physical reductions are player-chosen; mental reductions auto-applied. Anagathics follow MgT2e RAW: opt-in at first career entry, roll SOC 10+ each term to secure supply, costs 1D×Cr25,000 added to medical debt, active treatment provides a positive aging DM equal to terms used, a natural 2 forces Prisoner career next term.
 - **Retirement pension** — 5 terms: Cr10,000/yr; 6→Cr12,000; 7→Cr14,000; 8+→Cr16,000/yr.
 - **Medical debt** — Injuries and anagathics shortfall add to a running debt; cash benefit rolls pay it off automatically.
 - **Muster-out benefit rolls** — each career grants 1 roll per term served plus a rank bonus (rank 1–2: +1, ranks 3–4: +2, ranks 5+: +3). Career cards show the full breakdown; exhausted careers are disabled so the UI never reaches a dead-end.
-- **Noble titles** — SOC 10–15 grants an Imperial title shown on the character sheet.
+- **Noble titles** — SOC 10–15 grants an Imperial title shown on the character sheet. Zhodani characters use Consulate titles instead.
 - **Connections Rule** — Links this Traveller to another PC or NPC; each connection can grant +1 in any skill per GM approval.
 - **GM Mode** — Toggle to set any dice roll result manually.
 - **NPC generator** — One click produces a complete NPC via `GET /api/character/generate-npc`. The generator rolls characteristics, applies a randomly chosen background package, then applies a randomly chosen career package (Noble filtered out if SOC < 10), with all finalising choices made randomly. Returns a fully fleshed character ready for use at the table.
@@ -334,12 +392,22 @@ Cetacean characters need Vacc Suit before most core careers become available; do
 | **Aslan (Hierate)** | STR +2, DEX −2 | Dewclaw · Heightened Senses · Honour Bound · Land Sense; starts age 14; aging from term 6; TER characteristic required; accumulates Clan Shares |
 | **Aslan (Glorious Empire)** | STR +2, DEX −2 | As Hierate plus Intolerant trait; fixed Tokouea'we clan; access to GE-exclusive careers |
 
-#### Other societies (5)
+#### Zhodani Consulate (1)
+
+| Species | Modifiers | Notes |
+|---|---|---|
+| **Zhodani** | — | Biologically human; PSI rolled 2D at creation; social class (Noble/Intendant/Prole) determined by SOC and PSI; characteristic adjustments applied at creation |
+
+#### Vargr Extents (1)
+
+| Species | Modifiers | Notes |
+|---|---|---|
+| **Vargr (Extents Raised)** | STR −2, DEX +1, END −1 | SOC replaced by CHA (re-rolled 1D+2); Melee (Infighting) 0 background skill; no career-change penalty |
+
+#### Two Thousand Worlds / K'kree (2)
 
 | Species | Society | Modifiers |
 |---|---|---|
-| **Zhodani Human** | Zhodani Consulate | INT +1, SOC +1 |
-| **Vargr (Extents Raised)** | Vargr Extents | STR −1, DEX +1, END −1 |
 | **Hiver Federation Human** | Hiver Federation | INT +1, EDU +1 |
 | **Two Thousand Worlds Human** | Two Thousand Worlds | END +1, SOC −1 |
 | **K'kree** | Two Thousand Worlds | STR +6, INT +2, EDU +2 |
@@ -371,24 +439,26 @@ traveller-creator/
 │   │   └── lifepath.py             # Rules engine (all phases)
 │   ├── data/
 │   │   ├── species/                # 34 species JSON files
-│   │   ├── careers/                # 44 career JSON files
+│   │   ├── careers/                # 64 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
-│   │       ├── background_packages.json    # 12 background packages (alternative to skill picks)
+│   │       ├── background_packages.json    # 12 background packages
 │   │       ├── background_skills.json
 │   │       ├── career_packages.json        # 17 career packages + finalising tables
-│   │       ├── education.json          # Pre-career track definitions
+│   │       ├── education.json              # Pre-career track definitions
 │   │       ├── injury.json
-│   │       ├── life_events.json
+│   │       ├── life_events.json            # Standard (Third Imperium) 2D table
 │   │       ├── solomani_life_events.json
+│   │       ├── vargr_extents_life_events.json   # Includes Pack Events 1D sub-table
+│   │       ├── zhodani_life_events.json         # Includes Re-education Events 1D sub-table
 │   │       ├── drinax_palace_life_events.json
 │   │       ├── drinax_wasteland_life_events.json
 │   │       ├── asim_life_events.json
 │   │       ├── mustering_benefits.json
 │   │       ├── psionics.json
 │   │       ├── skill_packages.json
-│   │       ├── skills.json             # Canonical skill list
-│   │       └── societies.json          # Society definitions and species whitelists
+│   │       ├── skills.json                 # Canonical skill list
+│   │       └── societies.json             # Society definitions and species whitelists
 │   ├── templates/
 │   │   └── index.html              # Single Jinja2 template
 │   └── static/
@@ -445,10 +515,13 @@ Optional fields:
 | `"military_academy_dm": 1` | DM applied to military academy qualification |
 | `"career_qualify_dms": {"scout": 1}` | Per-career qualification bonuses |
 | `"uses_clan_shares": true` | Aslan: accumulate Clan Shares from mustering-out instead of (or in addition to) Ship Shares |
-| `"extra_characteristics_required": ["TER"]` | Force one or more extra characteristics to be rolled during character creation (e.g. TER for all Aslan) |
-| `"aging_dm_multiplier": 2` | Multiplier applied to aging DMs (e.g. `2` for Aslan, who age differently) |
-| `"uses_kkree_family": true` | K'kree: enable family-patriarch mechanic; populates `kkree_wives` and `kkree_family_members` |
+| `"extra_characteristics_required": ["TER"]` | Force one or more extra characteristics to be rolled during character creation |
+| `"aging_dm_multiplier": 2` | Multiplier applied to aging DMs |
+| `"uses_kkree_family": true` | K'kree: enable family-patriarch mechanic |
 | `"background_skills": ["Melee 0", ...]` | Override the normal background-skills phase with a fixed species skill list |
+| `"uses_cha": true` | Replace SOC label with CHA; re-roll as 1D+2 at creation (Vargr Extents) |
+| `"no_career_change_penalty": true` | Skip the −1 DM per failed qualification penalty |
+| `"rolls_psi_at_start": true` | Roll 2D for PSI before career selection (Zhodani) |
 
 ### Adding or editing a career
 
@@ -548,6 +621,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/end-term` | Close term; trigger aging; update pension |
 | `/api/character/resolve-aging` | Apply player-chosen physical stat reductions |
 | `/api/character/muster-out` | Cash or benefit roll from mustering-out table |
+| `/api/character/muster-benefit-choice` | Resolve a skill-choice benefit (e.g. Advocate 1 or Broker 1) |
 | `/api/character/anagathics/interest` | Set one-time anagathics preference |
 | `/api/character/anagathics/attempt` | Roll SOC 10+ to start/continue anagathics |
 | `/api/character/anagathics/stop` | Stop anagathics; trigger immediate aging roll |
@@ -590,12 +664,14 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `species_id` | Resolved species (after Heritage Roll for Solomani) |
 | `homeworld` / `homeworld_uwp` | Free-text homeworld name and UWP; shown in narrative and mission log |
 | `extra_characteristics` | Optional rolled stats (PSI, WLT, LCK, MRL, STY, TER) if the player chose to add them |
-| `pre_career_status` | Transient state during pre-career enrollment. When `track == "background_package"`, `outcome` holds the chosen package ID. |
+| `psi` | PSI characteristic value; set by optional test or automatically for Zhodani |
+| `pre_career_status` | Transient state during pre-career enrollment |
 | `pre_career_permanent_dms` | Permanent DMs granted by pre-career education |
 | `current_term` | In-progress career term (includes `cover_career_id` for SolSec Secret Agent; `frozen_watch` for cryo terms) |
 | `term_history` | Every completed term with skills gained, events, survival, advancement |
-| `completed_careers` | Summary record per career, including `benefit_rolls_earned` (terms + rank bonus after any forfeit) and `benefit_rolls_used` |
+| `completed_careers` | Summary record per career, including `benefit_rolls_earned` and `benefit_rolls_used` |
 | `pending_benefit_rolls` | Rolls remaining in the muster-out phase |
+| `pending_muster_benefit_choice` | Set when a muster-out benefit requires a skill pick (e.g. "Advocate 1 or Broker 1") |
 | `pension_per_year` | Annual pension in Credits |
 | `medical_debt` | Outstanding injury/anagathics debt; auto-deducted from cash rolls |
 | `anagathics_interest` | `null` = not yet asked · `"yes"` = prompt each term · `"no"` = never |
@@ -616,9 +692,9 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `clan_shares` | Aslan equivalent of Ship Shares; accumulated at mustering out (Hierate and Glorious Empire only) |
 | `aslan_setup_status` | Tracks the Aslan background setup phases: clan type, ancestral deeds DM, territory type, family position, and rite score |
 | `kkree_wives` | Number of wives in the K'kree patriarch's family group |
-| `kkree_family_members` | List of family role entries (`{"role": "warrior"\|"specialist"\|"servant", "description": "..."}`) |
-| `kkree_soc_rank_degree` | K'kree social caste: `"servant_of_rankholder"` / `"kinsman_of_rankholder"` / `"rankholder"`; gates career access |
-| `kkree_specialist_area` | K'kree specialist area rolled at career start (`"warrior"` / `"mercantile"` / `"technical"` / `"naval"`) |
+| `kkree_family_members` | List of family role entries |
+| `kkree_soc_rank_degree` | K'kree social caste: `"servant_of_rankholder"` / `"kinsman_of_rankholder"` / `"rankholder"` |
+| `kkree_specialist_area` | K'kree specialist area rolled at career start |
 
 ---
 
