@@ -1,0 +1,139 @@
+{
+  "id": "zhodani_agent",
+  "name": "Agent (Zhodani)",
+  "description": "Mental health professionals and intelligence operatives who work for the health of the Consulate and oppose those who would threaten it.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [
+      {"type": "soc_minimum", "soc": 10, "dm": 0, "note": "SOC 10+ required to enlist"}
+    ]
+  },
+  "assignments": {
+    "tozjabr": {
+      "name": "Tozjabr",
+      "description": "You are a Consulate intelligence operative.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 5}
+    },
+    "thought_police": {
+      "name": "Thought Police",
+      "description": "You work with or for the civilian Thought Police.",
+      "note": "PSI 9+ required for this assignment.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "Athletics",
+      "5": "Gun Combat",
+      "6": "Melee"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Carouse",
+      "2": "Electronics",
+      "3": "Drive",
+      "4": "Gun Combat",
+      "5": "Investigate",
+      "6": "Recon"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Talent",
+      "3": "Electronics",
+      "4": "Diplomat",
+      "5": "Medic",
+      "6": "Science"
+    },
+    "tozjabr": {
+      "name": "Tozjabr",
+      "assignment_only": "tozjabr",
+      "1": "Electronics",
+      "2": "Deception",
+      "3": "Language",
+      "4": "Persuade",
+      "5": "Recon",
+      "6": "Streetwise"
+    },
+    "thought_police": {
+      "name": "Thought Police",
+      "assignment_only": "thought_police",
+      "1": "Advocate",
+      "2": "Investigate",
+      "3": "Melee",
+      "4": "Persuade",
+      "5": "Recon",
+      "6": "Stealth"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Clairvoyance",
+      "3": "Persuade",
+      "4": "Science (Psionicology)",
+      "5": "Talent",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "tozjabr": {
+      "0": {"title": "Analyst", "bonus": null},
+      "1": {"title": "Defender of 20", "bonus": "Persuade 1"},
+      "2": {"title": "Defender of 50", "bonus": "Investigate 1"},
+      "3": {"title": "Defender of 100", "bonus": null},
+      "4": {"title": "Defender of 500", "bonus": "Gun Combat 1"},
+      "5": {"title": "Defender of 1,000", "bonus": null},
+      "6": {"title": "Defender of 5,000", "bonus": null}
+    },
+    "thought_police": {
+      "0": {"title": "Observer", "bonus": null},
+      "1": {"title": "Guardian of 20", "bonus": "Persuade 1"},
+      "2": {"title": "Guardian of 50", "bonus": null},
+      "3": {"title": "Guardian of 100", "bonus": null},
+      "4": {"title": "Guardian of 500", "bonus": "Investigate 1"},
+      "5": {"title": "Guardian of 1,000", "bonus": "Admin 1"},
+      "6": {"title": "Guardian of 5,000", "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "An investigation goes critically wrong or leads to the top, ruining your career. Roll Advocate 8+. If successful, you may keep the Benefit roll from this term. If failed, roll on the Re-education Events table.",
+    "3": "A mission goes wrong and you are held responsible for it. You may accept your fate and leave this career with an extra Benefit roll as compensation or may contest the accusation. If contested, roll Advocate 8+. If successful, you may stay in this career. If failed, roll on the Re-education Events table.",
+    "4": "You suffer psychological stress and must leave this career. Roll on the Re-education Events table.",
+    "5": "You are injured in an act of sabotage. Roll on the Injury table but gain a Contact in the medical field.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+    "3": "You are given specialist training in vehicles. Gain one level of Drive, Flyer, Pilot or Seafarer.",
+    "4": "A natural disaster strikes. Roll 1D; on a 1, roll on the Injury table. Otherwise, gain one level of Survival or Medic.",
+    "5": "You complete a mission for your superiors and are suitably rewarded. Gain DM+1 to one Benefit roll.",
+    "6": "You establish a network of contacts. Gain D3 Contacts.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+    "9": "You go undercover to investigate an enemy. Roll Investigate 8+. If successful, roll immediately on the Prole Events table and make one roll on any Prole Specialist skills table. If failed, roll immediately on the Prole Mishaps table but you are not ejected from this career.",
+    "10": "You are re-assigned to a desk job. Gain one level of Admin, Electronics (Computers) or Electronics (Comms).",
+    "11": "Your superiors take an interest in your career. Gain an Ally and take DM+2 to your next Advancement roll.",
+    "12": "Your efforts uncover a major conspiracy. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 2000, "benefit": "Armour"},
+    "3": {"cash": 5000, "benefit": "Ship Share"},
+    "4": {"cash": 7500, "benefit": "EDU +1"},
+    "5": {"cash": 10000, "benefit": "INT +1"},
+    "6": {"cash": 25000, "benefit": "Nenj"},
+    "7": {"cash": 50000, "benefit": "SOC +1"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}

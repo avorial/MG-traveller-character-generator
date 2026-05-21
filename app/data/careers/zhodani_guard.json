@@ -1,0 +1,161 @@
+{
+  "id": "zhodani_guard",
+  "name": "Guard (Zhodani)",
+  "description": "Members of the elite Consular Guard, a psionic-only military formation representing the best armed forces chosen from throughout the Consulate.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 6,
+    "modifiers": [
+      {"type": "age", "age_threshold": 30, "dm": -2},
+      {"type": "soc_minimum", "soc": 10, "dm": 0, "note": "SOC 10+ required"}
+    ]
+  },
+  "all_commissioned": true,
+  "commission": {
+    "all": true
+  },
+  "assignments": {
+    "commandos": {
+      "name": "Commandos",
+      "description": "You serve in the famed Zhodani psionic commando units.",
+      "note": "PSI 9+ required for this assignment.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 5}
+    },
+    "ground_assault": {
+      "name": "Ground Assault",
+      "description": "You are dropped out of a craft in high orbit to capture planets.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "support": {
+      "name": "Support",
+      "description": "You serve in one of many ground support roles.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Athletics",
+      "5": "Carouse",
+      "6": "Melee"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Gun Combat",
+      "3": "Heavy Weapons",
+      "4": "Tactics (Military)",
+      "5": "Vacc Suit",
+      "6": "Recon"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Electronics",
+      "2": "Engineer",
+      "3": "Explosives",
+      "4": "Medic",
+      "5": "Pilot",
+      "6": "Survival"
+    },
+    "officer_skills": {
+      "name": "Officer Skills",
+      "commissioned_only": true,
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Talent",
+      "4": "Leadership",
+      "5": "Navigation",
+      "6": "Tactics (Military)"
+    },
+    "commandos": {
+      "name": "Commandos",
+      "assignment_only": "commandos",
+      "1": "Vacc Suit",
+      "2": "Gun Combat",
+      "3": "Heavy Weapons",
+      "4": "Melee",
+      "5": "Medic",
+      "6": "Talent"
+    },
+    "ground_assault": {
+      "name": "Ground Assault",
+      "assignment_only": "ground_assault",
+      "1": "Vacc Suit",
+      "2": "Flyer",
+      "3": "Gun Combat",
+      "4": "Gunner",
+      "5": "Heavy Weapons",
+      "6": "Athletics"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Electronics",
+      "2": "Flyer",
+      "3": "Gun Combat",
+      "4": "Heavy Weapons",
+      "5": "Mechanic",
+      "6": "Medic"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Awareness",
+      "3": "Persuade",
+      "4": "Science (Psionicology)",
+      "5": "Talent",
+      "6": "Teleportation"
+    }
+  },
+  "ranks": {
+    "officer": {
+      "0": {"title": "Waiting Officer", "bonus": "Vacc Suit 1"},
+      "1": {"title": "Specialist", "bonus": "Leadership 1"},
+      "2": {"title": "Officer of 50", "bonus": null},
+      "3": {"title": "Officer of 100", "bonus": "Tactics (Military) 1"},
+      "4": {"title": "Officer of 500", "bonus": null},
+      "5": {"title": "Officer of 1,000", "bonus": null},
+      "6": {"title": "Officer of 5,000", "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "The ship that you boarded is set to self-destruct; in the scramble to get out, soldiers are unnecessarily injured. Suffer DM-2 on the next Advancement roll and gain an Enemy.",
+    "3": "Your unit is dropped into an unpleasant and potentially hostile environment to battle local insurgents. Gain one level of Recon, Survival or Vacc Suit but also gain an Enemy.",
+    "4": "You are ordered to take part in a mission that goes against your conscience. If accepted, you stay with the Guards but gain the lone survivor as an Enemy. If refused, roll on the Re-education Events table.",
+    "5": "A mission goes wrong; you and several others are captured and mistreated by the enemy. Gain an Enemy, reduce STR and DEX by -1 each. While discharged from the service, keep all Benefit rolls from the term.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps Table but you are not ejected from this career.",
+    "3": "You are assigned to the security staff of a space station. Increase Vacc Suit or Athletics (Dexterity) by one level.",
+    "4": "You are on the front lines of a planetary assault and occupation. Gain one level in Recon, Gun Combat, Leadership or Electronics (Comms).",
+    "5": "You are sent to Thought Police training. Gain one level of Advocate, Investigate or Persuade. If you have SOC 10+, you may leave this career (mustering out as normal) and then automatically qualify for the Agent (Thought Police) career (with the same rank) in the next term.",
+    "6": "You are assigned to an assault on an enemy fortress. Roll Melee or Gun Combat 8+. If successful, gain Tactics (Military) or Leadership. If failed, you are injured; roll on the Injury table.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+    "9": "You have the opportunity to volunteer for a deadly rescue mission. If refused, nothing happens. If accepted, roll Survival or END 8+. If successful, you are granted DM+2 to your next Advancement roll and gain an extra Benefit roll. If failed, roll on the Injury table.",
+    "10": "A mission goes disastrously wrong due to your commander's error or incompetence but you survive. If you report your commanding officer for the failure, gain DM+2 to your next Advancement roll. If you report nothing and protect your commander, gain the commander as an Ally.",
+    "11": "Your commanding officer takes an interest in your career. Either gain one level of Leadership or Tactics (Military), or gain DM+2 to your next Advancement roll.",
+    "12": "You display heroism in battle. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "Weapon"},
+    "2": {"cash": 5000, "benefit": "Armour"},
+    "3": {"cash": 5000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "END +1"},
+    "5": {"cash": 20000, "benefit": "INT +1"},
+    "6": {"cash": 30000, "benefit": "Nenj"},
+    "7": {"cash": 40000, "benefit": "SOC +1"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}

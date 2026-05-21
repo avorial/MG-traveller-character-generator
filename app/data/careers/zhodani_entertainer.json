@@ -1,0 +1,161 @@
+{
+  "id": "zhodani_entertainer",
+  "name": "Entertainer (Zhodani)",
+  "description": "Arts and entertainment are viewed as important for communicating, stabilising and reinforcing social structures across the Consulate.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 5,
+    "modifiers": []
+  },
+  "assignments": {
+    "artist": {
+      "name": "Artist",
+      "description": "You are a sculptor, holographer or work in some other creative art.",
+      "survival": {"characteristic": "SOC", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "author": {
+      "name": "Author",
+      "description": "You write for a living, whether it is novels, poetry, plays, speeches, news reports or games.",
+      "survival": {"characteristic": "EDU", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 5}
+    },
+    "performer": {
+      "name": "Performer",
+      "description": "You are an actor, athlete, musician or some other type of public performer.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "DEX", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "INT +1",
+      "4": "EDU +1",
+      "5": "Carouse",
+      "6": "Stealth"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Art",
+      "2": "Carouse",
+      "3": "Diplomat",
+      "4": "Persuade",
+      "5": "Science",
+      "6": "Steward"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Talent",
+      "2": "Advocate",
+      "3": "Electronics",
+      "4": "Diplomat",
+      "5": "Language",
+      "6": "Science"
+    },
+    "artist": {
+      "name": "Artist",
+      "assignment_only": "artist",
+      "1": "Art (Holography)",
+      "2": "Carouse",
+      "3": "Electronics",
+      "4": "Persuade",
+      "5": "Science",
+      "6": "Profession"
+    },
+    "author": {
+      "name": "Author",
+      "assignment_only": "author",
+      "1": "Art (Writing)",
+      "2": "Electronics",
+      "3": "Admin",
+      "4": "Investigate",
+      "5": "Language",
+      "6": "Recon"
+    },
+    "performer": {
+      "name": "Performer",
+      "assignment_only": "performer",
+      "1": "Art (Instrument)",
+      "2": "Athletics (Dexterity)",
+      "3": "Carouse",
+      "4": "Leadership",
+      "5": "Melee",
+      "6": "Stealth"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Clairvoyance",
+      "3": "Persuade",
+      "4": "Science (Psionicology)",
+      "5": "Talent",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "artist": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Well-known", "bonus": "Art 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Renowned", "bonus": "Investigate 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Famous", "bonus": "SOC +1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "author": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Well-known", "bonus": "Investigate 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Renowned", "bonus": "Persuade 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Famous", "bonus": "SOC +1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "performer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Well-known", "bonus": "DEX +1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Renowned", "bonus": "STR +1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Famous", "bonus": "SOC +1"},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "Your art becomes the centre of a scandal. Gain one level of Carouse, Diplomat or Persuade. If SOC 10+, you are forced to move to another world. Roll on the Re-education Events table but you may remain in this career.",
+    "3": "You commit a grievous breach of protocol and public opinion turns against you, ruining your career. Roll Persuade 8+. If successful, you may keep the Benefit roll from this term. If failed, roll on the Re-education Events table.",
+    "4": "One of your Contacts or Allies betrays you, ending your career. That Contact or Ally becomes a Rival or Enemy. If you have no Contacts or Allies, gain a Rival or Enemy.",
+    "5": "An investigation, tour, project or expedition goes wrong, stranding you far from home and ending your career. Gain D3 Contacts as you return home.",
+    "6": "You are tormented by or quarrel with another Entertainer. If SOC 10+, you are forced out of the career and gain that Entertainer as a Rival. If SOC 9-, roll on the Re-education Events table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+    "3": "You are invited to take part in a controversial event or exhibition. If you refuse, nothing happens. If you accept, roll Art or Persuade 8+. If successful, gain an extra Benefit roll. If you fail, roll on the Mishaps table.",
+    "4": "You become part of the celebrity circle on your world of residence. Gain one level of Carouse, Persuade or Steward.",
+    "5": "One of your works is especially well received and popular, making you a minor celebrity. Gain an extra Benefit roll.",
+    "6": "You gain a patron in the arts and receive DM+2 to the next Advancement roll and an Ally.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You receive advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+    "9": "You go on a tour of the sector, visiting several worlds. Gain D3 Contacts.",
+    "10": "You attempt an extremely challenging task in your field. Roll Art or Persuade 8+. If successful, gain DM+2 to your next Advancement roll. If failed, suffer DM-2 to your next Advancement roll.",
+    "11": "You have the opportunity to criticise or bring down a questionable council leader. If you refuse and support the leader, gain DM+2 to your next Advancement roll. If you accept, gain an Enemy and roll Art or Persuade 8+. If successful, your next Advancement roll is automatically successful. If you fail, increase a skill you already possess by one level and roll on the Mishaps table.",
+    "12": "You win a prestigious prize for your work. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "Contact"},
+    "2": {"cash": 5000, "benefit": "Two Ship Shares"},
+    "3": {"cash": 10000, "benefit": "Ally"},
+    "4": {"cash": 10000, "benefit": "INT +1"},
+    "5": {"cash": 40000, "benefit": "EDU +1"},
+    "6": {"cash": 40000, "benefit": "Nenj"},
+    "7": {"cash": 80000, "benefit": "SOC +1"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}

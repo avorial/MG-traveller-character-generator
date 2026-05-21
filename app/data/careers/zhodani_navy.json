@@ -1,0 +1,167 @@
+{
+  "id": "zhodani_navy",
+  "name": "Navy (Zhodani)",
+  "description": "Members of the Zhodani Consulate Navy, responsible for the protection of the frontiers and interstellar trade routes from foreign powers.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [
+      {"type": "age", "age_threshold": 34, "dm": -2}
+    ]
+  },
+  "commission": {
+    "automatic_if_soc": 10
+  },
+  "assignments": {
+    "crew": {
+      "name": "Crew",
+      "description": "You serve as a general crewman or officer on a warship.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "flight": {
+      "name": "Flight",
+      "description": "You serve as the pilot of a fighter or shuttle.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 5}
+    },
+    "technical": {
+      "name": "Technical",
+      "description": "You serve as a specialist technician, such as an engineer or gunner.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "Athletics",
+      "6": "Carouse"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Gun Combat",
+      "3": "Gunner",
+      "4": "Pilot",
+      "5": "Vacc Suit",
+      "6": "Athletics"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Admin",
+      "2": "Astrogation",
+      "3": "Electronics",
+      "4": "Engineer",
+      "5": "Talent",
+      "6": "Science"
+    },
+    "officer_skills": {
+      "name": "Officer Skills",
+      "commissioned_only": true,
+      "1": "Admin",
+      "2": "Diplomat",
+      "3": "Leadership",
+      "4": "Melee (Blade)",
+      "5": "Pilot",
+      "6": "Tactics (Naval)"
+    },
+    "crew": {
+      "name": "Crew",
+      "assignment_only": "crew",
+      "1": "Electronics",
+      "2": "Gun Combat",
+      "3": "Mechanic",
+      "4": "Admin",
+      "5": "Steward",
+      "6": "Vacc Suit"
+    },
+    "flight": {
+      "name": "Flight",
+      "assignment_only": "flight",
+      "1": "Astrogation",
+      "2": "Flyer",
+      "3": "Gunner",
+      "4": "Pilot",
+      "5": "Recon",
+      "6": "Athletics"
+    },
+    "technical": {
+      "name": "Technical",
+      "assignment_only": "technical",
+      "1": "Electronics",
+      "2": "Engineer",
+      "3": "Gunner",
+      "4": "Mechanic",
+      "5": "Medic",
+      "6": "Vacc Suit"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Awareness",
+      "3": "Persuade",
+      "4": "Science (Psionicology)",
+      "5": "Talent",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "enlisted": {
+      "0": {"title": "Recruit", "bonus": null},
+      "1": {"title": "Trainee", "bonus": "Mechanic 1"},
+      "2": {"title": "Spacer", "bonus": "Vacc Suit 1"},
+      "3": {"title": "Section Leader", "bonus": null},
+      "4": {"title": "Compartment Leader", "bonus": "END +1"},
+      "5": {"title": "Deck Leader", "bonus": null},
+      "6": {"title": "Crew Leader", "bonus": null}
+    },
+    "officer": {
+      "0": {"title": "Waiting Officer", "bonus": null},
+      "1": {"title": "Watch Officer", "bonus": "Melee (Blade) 1"},
+      "2": {"title": "Deck Officer", "bonus": "Leadership 1"},
+      "3": {"title": "Destroyer Officer", "bonus": null},
+      "4": {"title": "Cruiser Officer", "bonus": "Tactics (Naval) 1"},
+      "5": {"title": "Battleship Officer", "bonus": "SOC +1"},
+      "6": {"title": "Fleet Officer", "bonus": "SOC +1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "You are placed in the frozen watch (cryogenically stored on board ship) and revived improperly. Roll on the Injury table. Roll SOC 8+ to remain in this career.",
+    "3": "You have problems working with an officer or fellow crewman. If SOC 10+, gain that officer as a Rival as he drives you out of the Navy. Otherwise, roll on the Re-education Events table.",
+    "4": "Your ship suffers heavy damage in battle and you are injured. Roll twice on the Injury table, taking the lower result. However your actions help save the lives of several colleagues, gaining you an additional Benefit roll.",
+    "5": "A serious accident occurs on your watch and you are blamed for it despite it being another crew member's negligence. If SOC 10+, suffer DM-2 to your next Advancement roll and gain an Enemy. Otherwise, roll on the Re-education Events table.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+    "3": "Your vessel participates in a diplomatic mission. Gain one level in Diplomat, Recon or Steward, or gain a Contact.",
+    "4": "Your vessel participates in a notable military engagement. Gain one level in Engineer, Gunner, Pilot or Electronics (Sensors).",
+    "5": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill you already possessed.",
+    "6": "You work helping with a refit of your ship. Gain one level in Engineer, Mechanic or Science.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You perform a tour of border worlds. Roll SOC 8+ to gain one level in Animals, Recon or Survival, or a Contact.",
+    "9": "You spend this term in the asteroid belts of a system, showing the navy's presence and deterring pirates. Gain one level in Athletics (Dexterity), Electronics (Sensors) or Vacc Suit.",
+    "10": "An explosion occurs in your section. Roll Mechanic or Engineer 8+ to help the damage control party. If failed, roll on the Injury table. If successful, gain DM+2 to your next Advancement roll.",
+    "11": "Your commanding officer takes an interest in your career. Gain him as an Ally and take DM+2 to your next Advancement roll.",
+    "12": "You display heroism in battle, saving the whole ship. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 5000, "benefit": "Ship Share"},
+    "3": {"cash": 5000, "benefit": "Two Ship Shares"},
+    "4": {"cash": 10000, "benefit": "EDU +1"},
+    "5": {"cash": 20000, "benefit": "INT +1"},
+    "6": {"cash": 50000, "benefit": "Nenj"},
+    "7": {"cash": 50000, "benefit": "SOC +1"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}

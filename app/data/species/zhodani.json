@@ -1,0 +1,61 @@
+{
+  "id": "zhodani",
+  "name": "Zhodani",
+  "description": "A branch of Humaniti raised on Zhdant, the Zhodani have integrated psionics into every aspect of their society. Tall, lithe and predominantly dark-complexioned, they are governed by a Noble class of trained psions. Their society divides into three classes — Nobles (SOC 11+), Intendants (SOC 10) and Proles (SOC 9-) — with the boundary defined entirely by psionic ability.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "rolls_psi_at_start": true,
+  "psi_roll": "2D",
+  "characteristic_adjustments": [
+    {
+      "condition": "psi_gte_9_and_soc_lte_9",
+      "effect": "soc_becomes_10",
+      "description": "If PSI 9+ and SOC 9-, raise SOC to 10 (Prole elevated to Intendant)"
+    },
+    {
+      "condition": "edu_gt_soc",
+      "effect": "edu_becomes_soc",
+      "description": "EDU cannot be higher than SOC; lower EDU to SOC value if greater"
+    },
+    {
+      "condition": "edu_lte_7_and_soc_gte_10",
+      "effect": "edu_becomes_8",
+      "description": "If EDU 7- and SOC 10+, increase EDU to 8"
+    }
+  ],
+  "no_career_change_penalty": true,
+  "psionic_training_at_start": true,
+  "noble_auto_advance": true,
+  "prole_soc_cap": 9,
+  "noble_titles": {
+    "10": "Intendant (-iepr)",
+    "11": "Aspirant (-atl)",
+    "12": "Wellborn (-stebr)",
+    "13": "Highborn (-tlas)",
+    "14": "Noble Born (-tlasche')",
+    "15": "Princely Lord (-iashav)"
+  },
+  "psionic_training_table": {
+    "note": "Nobles and Intendants undergo psionic training at the start of character creation. Each talent is attempted with a PSI check. Cumulative DM-1 per check attempted. On success, gain talent at level 0.",
+    "talents": [
+      {"name": "Awareness", "dm": 1},
+      {"name": "Clairvoyance", "dm": 3},
+      {"name": "Telekinesis", "dm": 2},
+      {"name": "Telepathy", "dm": 4},
+      {"name": "Teleportation", "dm": 0},
+      {"name": "Zhodani", "dm": -3}
+    ]
+  },
+  "traits": [],
+  "aliases": [],
+  "source": "Aliens of Charted Space Vol. 1, Mongoose Publishing",
+  "sort_order": 800,
+  "societies": ["zhodani_consulate"]
+}

@@ -889,6 +889,35 @@ def apply_species(character: Character, species_id: str) -> dict:
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
 
+    # Zhodani Consulate: roll 2D for PSI at the start of character creation.
+    if species_data.get("rolls_psi_at_start"):
+        psi_r = dice.roll("2D")
+        character.psi = psi_r.total
+        character.psi_tested = True
+        character.log(f"Zhodani: PSI rolled 2D = {psi_r.total}")
+        # Apply characteristic adjustments based on PSI / SOC / EDU interplay.
+        sp_max = int(species_data.get("characteristic_maximum", 15))
+        for adj in species_data.get("characteristic_adjustments", []):
+            cond = adj.get("condition", "")
+            psi_val = character.psi or 0
+            soc_val = character.characteristics.get("SOC")
+            edu_val = character.characteristics.get("EDU")
+            if cond == "psi_gte_9_and_soc_lte_9":
+                if psi_val >= 9 and soc_val <= 9:
+                    character.characteristics.set("SOC", 10)
+                    character.log(adj.get("description", "SOC raised to 10"))
+            elif cond == "edu_gt_soc":
+                soc_val = character.characteristics.get("SOC")  # may have been updated
+                if edu_val > soc_val:
+                    character.characteristics.set("EDU", soc_val)
+                    character.log(adj.get("description", f"EDU lowered to {soc_val}"))
+            elif cond == "edu_lte_7_and_soc_gte_10":
+                soc_val = character.characteristics.get("SOC")  # may have been updated
+                edu_val = character.characteristics.get("EDU")   # may have been updated
+                if edu_val <= 7 and soc_val >= 10:
+                    character.characteristics.set("EDU", 8)
+                    character.log(adj.get("description", "EDU raised to 8"))
+
     # Aslan Hierate: skip background/pre_career phases; go directly to aslan_setup
     needs_aslan_setup = species_data.get("uses_clan_shares", False)
     if needs_aslan_setup:
@@ -3198,6 +3227,7 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
 
     use_solomani = career_id in rules.SOLOMANI_CAREER_IDS
     use_vargr = career_id in rules.VARGR_CAREER_IDS
+    use_zhodani = career_id in rules.ZHODANI_CAREER_IDS
 
     r = dice.roll("2D")
     total = r.total
@@ -3300,7 +3330,29 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
             auto_applied.append("Good Fortune: DM+2 token available for one mustering-out benefit roll")
 
     elif total == 11:
-        if use_vargr:
+        if use_zhodani:
+            # Crime (Zhodani) — roll SOC 8+; if failed lose benefit roll and roll Re-education Events.
+            soc_val = character.characteristics.get("SOC")
+            soc_dm = dice.characteristic_dm(soc_val)
+            check_r = dice.roll("2D")
+            check_total = check_r.total + soc_dm
+            if check_total >= 8:
+                auto_applied.append(f"Crime: SOC 8+ check passed (2D={check_r.total}+DM{soc_dm:+d}={check_total}) — no penalty")
+            else:
+                # Lose one benefit roll (minimum 0).
+                if character.pending_benefit_rolls > 0:
+                    character.pending_benefit_rolls -= 1
+                    auto_applied.append(f"Crime: SOC 8+ check failed (2D={check_r.total}+DM{soc_dm:+d}={check_total}) — lost 1 Benefit roll")
+                else:
+                    auto_applied.append(f"Crime: SOC 8+ check failed (2D={check_r.total}+DM{soc_dm:+d}={check_total}) — no Benefit roll to lose")
+                # Roll Re-education Events (1D sub-table).
+                re_r = dice.roll("1D")
+                re_table = rules.zhodani_life_events().get("re_education_events", {})
+                re_results = re_table.get("results", {})
+                re_text = re_results.get(str(re_r.total), "Re-education: consult Re-education Events table.")
+                character.log(f"Re-education Events [1D={re_r.total}]: {re_text}")
+                auto_applied.append(f"Re-education Events 1D={re_r.total}: {re_text}")
+        elif use_vargr:
             # Crime (Vargr) — lose SOC-1.
             sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
             soc = character.characteristics.get("SOC")
@@ -3325,11 +3377,24 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
         d6 = dice.roll("1D")
         sub = d6.total
         if sub == 1:
-            # Psionics — test PSI immediately.
-            psi_roll = dice.roll("2D")
-            character.psi = psi_roll.total
-            character.psi_tested = True
-            auto_applied.append(f"Psionics: PSI tested, rolled {psi_roll.total}. Psion career available.")
+            if use_zhodani:
+                # Psionics (Zhodani) — direct PSI +2 grant; Prole elevation if PSI now > 8.
+                old_psi = character.psi or 0
+                new_psi = min(old_psi + 2, 15)
+                character.psi = new_psi
+                character.psi_tested = True
+                auto_applied.append(f"Psionics: PSI +2 ({old_psi} → {new_psi})")
+                soc_now = character.characteristics.get("SOC")
+                if soc_now <= 9 and new_psi > 8:
+                    # Prole elevated to Intendant.
+                    character.characteristics.set("SOC", 10)
+                    auto_applied.append("Prole elevated to Intendant: SOC raised to 10")
+            else:
+                # Psionics — test PSI immediately.
+                psi_roll = dice.roll("2D")
+                character.psi = psi_roll.total
+                character.psi_tested = True
+                auto_applied.append(f"Psionics: PSI tested, rolled {psi_roll.total}. Psion career available.")
         elif sub == 2:
             if use_vargr:
                 # Aliens (Vargr) — gain Language 1 + Contact [Alien].
@@ -3359,6 +3424,10 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
                 soc_v = character.characteristics.get("SOC")
                 character.characteristics.set("SOC", min(soc_v + 1, sp_max_v))
                 auto_applied.append("Contact with Government: SOC+1")
+            elif use_zhodani:
+                # Contact with Government (Zhodani) — gain one Benefit roll.
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Contact with Government: gained 1 Benefit roll")
             else:
                 # Contact with Government / Confederation Elite.
                 gov_label = "Met [Confederation Elite]" if use_solomani else "Met [Government Official] — Imperial contact"
@@ -3673,6 +3742,15 @@ _VARGR_DRAFT_TABLE: dict[int, tuple[str, str]] = {
     6: ("vargr_law_enforcement", "enforcer"),
 }
 
+_ZHODANI_DRAFT_TABLE: dict[int, tuple[str, str]] = {
+    1: ("zhodani_army", "infantry"),
+    2: ("zhodani_army", "infantry"),
+    3: ("zhodani_army", "infantry"),
+    4: ("zhodani_merchant", "corporate"),
+    5: ("zhodani_merchant", "corporate"),
+    6: ("zhodani_navy", "crew"),
+}
+
 
 def draft_into_service(character: Character) -> dict:
     """Roll 1D on the draft table and auto-start a term in the assigned service.
@@ -3690,6 +3768,8 @@ def draft_into_service(character: Character) -> dict:
     r = dice.roll("1D")
     if character.society_id == "vargr_extents":
         career_id, assignment_id = _VARGR_DRAFT_TABLE[max(1, min(6, r.total))]
+    elif character.society_id == "zhodani_consulate":
+        career_id, assignment_id = _ZHODANI_DRAFT_TABLE[max(1, min(6, r.total))]
     else:
         career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
     career = rules.careers().get(career_id)

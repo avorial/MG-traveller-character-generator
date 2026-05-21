@@ -1,0 +1,63 @@
+{
+  "description": "Rolled when a Zhodani Consulate career Event roll results in 'Life Event'. Roll 2D.",
+  "dice": "2D",
+  "entries": {
+    "2": {
+      "title": "Sickness or Injury",
+      "text": "You are injured or contract a serious illness. Roll on the Injury table."
+    },
+    "3": {
+      "title": "Birth or Death",
+      "text": "Someone close to you dies, such as a friend or family member. Alternatively, someone close to you gives birth (or is born!). You are involved in some fashion (father or mother, relative, godparent, etc)."
+    },
+    "4": {
+      "title": "End of Relationship",
+      "text": "A romantic relationship involving you ends. Roll 1D: On a 1-2 your partner is killed. On a 3-4 your partner leaves. On a 5-6 you leave your partner."
+    },
+    "5": {
+      "title": "Improved Relationship",
+      "text": "A romantic relationship involving you deepens, possibly leading to marriage or some other emotional commitment. Gain an Ally."
+    },
+    "6": {
+      "title": "New Relationship",
+      "text": "You become romantically involved with an existing Ally or Contact. If you have no Contacts or Allies, gain an Ally."
+    },
+    "7": {
+      "title": "New Contact",
+      "text": "You gain a new Contact."
+    },
+    "8": {
+      "title": "Betrayal",
+      "text": "You are betrayed in some fashion by a friend or colleague. If you have any Contacts or Allies, convert one into a Rival or Enemy. Otherwise, gain a Rival or an Enemy."
+    },
+    "9": {
+      "title": "Travel",
+      "text": "You move to another world and gain DM+2 to your next Qualification roll."
+    },
+    "10": {
+      "title": "Good Fortune",
+      "text": "Something good happens to you; you come into money unexpectedly, have a lifelong dream come true, get a book published or have some other stroke of good fortune. Gain a Benefit roll in your current career."
+    },
+    "11": {
+      "title": "Crime",
+      "text": "You commit or are accused of a crime. Roll SOC 8+. If failed, lose one Benefit roll and roll on the Re-education Events table."
+    },
+    "12": {
+      "title": "Unusual Event",
+      "text": "Something unusual occurs. Roll 1D: 1=Psionics: An event affects you, granting PSI +2. If you are a Prole and this increases PSI above 8, you are elevated to the Intendant class (raising your SOC to 10). 2=Aliens: You spend time among an alien race. Gain Language 1 and a Contact with a member of that race. 3=Alien Artefact: You come into possession of a curious piece of alien technology or an archaeological relic. 4=Amnesia: Something happened to you but you do not know what it was. Roll on the Re-education Events table regardless of SOC. 5=Contact with Government: You have brief contact with the highest echelons of Consulate government. Gain one Benefit roll in your current career. 6=Ancient Technology: You have an item believed to be left behind by the Ancients. Because it interacts with you in a unique fashion, you have been allowed to keep it but both the item and you remain objects of occasional study."
+    }
+  },
+  "re_education_events": {
+    "name": "Re-education Events",
+    "dice": "1D",
+    "note": "Rolled when triggered by certain mishaps or life events. Does not count as career time for benefits/advancement/skills but does count for aging.",
+    "results": {
+      "1": "Re-education requires two terms. You must enter a new career and reduce END by -1. If SOC 11+, reduce SOC by -1 to a minimum of 11.",
+      "2": "Re-education requires one term. You must enter a new career and reduce END by -1. If SOC 11+, reduce SOC by -1 to a minimum of 11.",
+      "3": "Re-education requires one term but you can continue this career.",
+      "4": "Re-education requires less than a year and your career is not affected.",
+      "5": "Fine of Cr1000 x 1D; you do not require re-education.",
+      "6": "Exonerated! Receive an additional Benefit roll in your current career."
+    }
+  }
+}

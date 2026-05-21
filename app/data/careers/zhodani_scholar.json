@@ -1,0 +1,161 @@
+{
+  "id": "zhodani_scholar",
+  "name": "Scholar (Zhodani)",
+  "description": "Zhodani trained in technological or research sciences, conducting scientific investigations into alien or Ancient artefacts, materials and psionic phenomena, or those who practise medicine.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": []
+  },
+  "assignments": {
+    "field_researcher": {
+      "name": "Field Researcher",
+      "description": "You are an explorer or field researcher, equally at home in the laboratory or the wilderness.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "lab_scientist": {
+      "name": "Lab Scientist",
+      "description": "You are a researcher in some corporate or Consulate research institution.",
+      "survival": {"characteristic": "EDU", "target": 4},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "physician": {
+      "name": "Physician",
+      "description": "You are a doctor or researcher in the life sciences.",
+      "survival": {"characteristic": "EDU", "target": 4},
+      "advancement": {"characteristic": "INT", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "EDU +1",
+      "5": "Athletics",
+      "6": "Carouse"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Admin",
+      "2": "Electronics",
+      "3": "Diplomat",
+      "4": "Investigate",
+      "5": "Medic",
+      "6": "Science"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Art",
+      "2": "Advocate",
+      "3": "Electronics",
+      "4": "Engineer",
+      "5": "Language",
+      "6": "Science"
+    },
+    "field_researcher": {
+      "name": "Field Researcher",
+      "assignment_only": "field_researcher",
+      "1": "Diplomat",
+      "2": "Investigate",
+      "3": "Language",
+      "4": "Science",
+      "5": "Electronics",
+      "6": "Survival"
+    },
+    "lab_scientist": {
+      "name": "Lab Scientist",
+      "assignment_only": "lab_scientist",
+      "1": "Admin",
+      "2": "Electronics",
+      "3": "Engineer",
+      "4": "Investigate",
+      "5": "Science",
+      "6": "Science"
+    },
+    "physician": {
+      "name": "Physician",
+      "assignment_only": "physician",
+      "1": "Animals",
+      "2": "Electronics",
+      "3": "Investigate",
+      "4": "Medic",
+      "5": "Science",
+      "6": "Steward"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Awareness",
+      "3": "Clairvoyance",
+      "4": "Talent",
+      "5": "Telekinesis",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "field_researcher": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Science 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Investigate 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Electronics (Computers) 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "lab_scientist": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Science 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Investigate 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Electronics (Computers) 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "physician": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Medic 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Science 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Science 1"},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "A disaster leaves several injured and others blame you, forcing you to leave the career. Roll on the Injury table twice, taking the higher result and roll on the Re-education Events table.",
+    "3": "The planetary government interferes with your research for political reasons. If you continue openly, increase any Science skill by one level. If you continue secretly, increase any Science skill by one level but lose all Benefit rolls. If SOC 9-, roll on the Re-education Events table.",
+    "4": "An expedition or voyage goes wrong, leaving you stranded in the wilderness. Gain a level of Survival or Athletics. By the time you find your way home, your job is gone.",
+    "5": "Your work is sabotaged by unknown parties. You may give up (leave the career but retain this term's Benefit roll) or start again from scratch (not leaving the career but losing all Benefit rolls for this term).",
+    "6": "You are assigned to an off-world laboratory but your ship crashes en route. Gain one level of Survival and roll END 8+. If failed, roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+    "3": "You are called upon to perform research that goes against your conscience. Accept and gain an extra Benefit roll, one level in each of any two Science skills and D3 Enemies; or refuse and gain an Ally.",
+    "4": "You are assigned to work on a secret project. Gain one level of Electronics, Engineer, Investigate, Medic or Science.",
+    "5": "You win a prestigious prize for your work, garnering the praise of your peers. Gain DM+1 to any one Benefit roll.",
+    "6": "You spend time on the fringes of known space. Roll Survival or Pilot 8+. If successful, gain a Contact with an alien race and one level in any selected skill. If failed, roll on the Mishaps table.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+    "9": "You make a breakthrough in your field. Gain DM+2 to your next Advancement roll.",
+    "10": "You become entangled in a bureaucratic or legal distraction. Gain one level of Admin, Advocate, Diplomat or Persuade.",
+    "11": "You work for an eccentric but brilliant Noble mentor, who becomes an Ally. Increase any one Science skill by one level and take DM+2 to your next Advancement roll.",
+    "12": "Your work leads to a considerable breakthrough. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 5000, "benefit": "Scientific Equipment"},
+    "2": {"cash": 10000, "benefit": "Two Ship Shares"},
+    "3": {"cash": 20000, "benefit": "EDU +1"},
+    "4": {"cash": 30000, "benefit": "INT +1"},
+    "5": {"cash": 40000, "benefit": "Nenj"},
+    "6": {"cash": 60000, "benefit": "Scout"},
+    "7": {"cash": 100000, "benefit": "SOC +1 and Scout"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}

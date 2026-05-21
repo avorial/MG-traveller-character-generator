@@ -163,6 +163,11 @@ def vargr_extents_life_events() -> dict:
 
 
 @lru_cache(maxsize=1)
+def zhodani_life_events() -> dict:
+    return _load_file("tables/zhodani_life_events.json")
+
+
+@lru_cache(maxsize=1)
 def aslan_background_tables() -> dict:
     return _load_file("tables/aslan_background.json")
 
@@ -193,6 +198,13 @@ VARGR_CAREER_IDS: frozenset[str] = frozenset({
     "vargr_army", "vargr_citizen", "vargr_corsair", "vargr_emissary",
     "vargr_law_enforcement", "vargr_loner", "vargr_marines",
     "vargr_merchant", "vargr_navy", "vargr_psion", "vargr_scientist",
+})
+
+# Zhodani Consulate careers — use the Zhodani Life Events table.
+# Prole is excluded: its events say "Life Events Table" (standard Core), not Zhodani.
+ZHODANI_CAREER_IDS: frozenset[str] = frozenset({
+    "zhodani_agent", "zhodani_army", "zhodani_entertainer", "zhodani_government",
+    "zhodani_guard", "zhodani_merchant", "zhodani_navy", "zhodani_scholar",
 })
 
 # Species that have their own homeworld life events tables (1D).
@@ -233,6 +245,8 @@ def life_events_for_career(career_id: str) -> dict:
         return kkree_life_events()
     if career_id in VARGR_CAREER_IDS:
         return vargr_extents_life_events()
+    if career_id in ZHODANI_CAREER_IDS:
+        return zhodani_life_events()
     return life_events()
 
 
@@ -331,6 +345,7 @@ def reload() -> None:
     for fn in (species, careers, background_skills, skill_packages, life_events,
                solomani_life_events, drinax_palace_life_events, drinax_wasteland_life_events,
                asim_life_events, aslan_life_events, kkree_life_events, vargr_extents_life_events,
+               zhodani_life_events,
                aslan_background_tables, injury_table, aging_table, mustering_benefits,
                education, psionics, skills, societies):
         fn.cache_clear()

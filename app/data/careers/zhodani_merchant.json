@@ -1,0 +1,161 @@
+{
+  "id": "zhodani_merchant",
+  "name": "Merchant (Zhodani)",
+  "description": "Members of commercial enterprises within the Consulate. Merchants carry cargo and passengers between the worlds of the Consulate and beyond.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 4,
+    "modifiers": []
+  },
+  "assignments": {
+    "broker": {
+      "name": "Broker",
+      "description": "You work in a starport brokerage helping corporations and traders find, purchase and sell goods.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "corporate": {
+      "name": "Corporate",
+      "description": "You work on a massive cargo hauler or passenger liner owned by a corporation.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "description": "You work on one of the many independent trade ships plying the worlds of the Consulate.",
+      "survival": {"characteristic": "DEX", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "Carouse",
+      "5": "Gun Combat",
+      "6": "Melee"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Broker",
+      "2": "Electronics",
+      "3": "Drive",
+      "4": "Persuade",
+      "5": "Steward",
+      "6": "Vacc Suit"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Astrogation",
+      "4": "Electronics",
+      "5": "Language",
+      "6": "Medic"
+    },
+    "broker": {
+      "name": "Broker",
+      "assignment_only": "broker",
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Broker",
+      "4": "Diplomat",
+      "5": "Investigate",
+      "6": "Persuade"
+    },
+    "corporate": {
+      "name": "Corporate",
+      "assignment_only": "corporate",
+      "1": "Engineer",
+      "2": "Gunner",
+      "3": "Mechanic",
+      "4": "Pilot",
+      "5": "Vacc Suit",
+      "6": "Athletics"
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "assignment_only": "free_trader",
+      "1": "Engineer",
+      "2": "Mechanic",
+      "3": "Pilot",
+      "4": "Electronics",
+      "5": "Vacc Suit",
+      "6": "Athletics"
+    },
+    "psionic_skills": {
+      "name": "Psionic Skills",
+      "requires_soc": 10,
+      "1": "PSI +1",
+      "2": "Admin",
+      "3": "Persuade",
+      "4": "Clairvoyance",
+      "5": "Science (Psionicology)",
+      "6": "Talent"
+    }
+  },
+  "ranks": {
+    "broker": {
+      "0": {"title": "Assistant", "bonus": null},
+      "1": {"title": "Broker", "bonus": "Investigate 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Experienced Broker", "bonus": "Broker 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Senior Broker", "bonus": "Admin 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "corporate": {
+      "0": {"title": "Deck Hand", "bonus": null},
+      "1": {"title": "Senior Deckhand", "bonus": "Mechanic 1"},
+      "2": {"title": "Fourth Officer", "bonus": null},
+      "3": {"title": "Third Officer", "bonus": "Engineer 1"},
+      "4": {"title": "Second Officer", "bonus": "Pilot 1"},
+      "5": {"title": "First Officer", "bonus": null},
+      "6": {"title": "Captain", "bonus": null}
+    },
+    "free_trader": {
+      "0": {"title": "Deck Hand", "bonus": null},
+      "1": {"title": "Senior Deckhand", "bonus": "Mechanic 1"},
+      "2": {"title": "Fourth Officer", "bonus": null},
+      "3": {"title": "Third Officer", "bonus": "Engineer 1"},
+      "4": {"title": "Second Officer", "bonus": "Pilot 1"},
+      "5": {"title": "First Officer", "bonus": null},
+      "6": {"title": "Captain", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "A war extends across your travel routes enough to disrupt shipping and you are severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "A series of bad deals and decisions forces your employer into bankruptcy, which forces you to leave the career. By salvaging what you can, you may take a Benefit roll for this term as well as any others you are entitled to.",
+    "3": "You are fined Cr1000 x 1D for poorly filed paperwork. Pay this immediately to stay in the career. If not paid and your SOC is 9-, roll on the Re-education Events table.",
+    "4": "Your ship or company faces declining fortunes. You may continue in this career but will gain no Benefit rolls for this term or the next.",
+    "5": "You are asked to leave the career for business reasons and paid off with Cr1000 x 1D.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+    "3": "The government drafts your ship for military use. You must leave this career (mustering out as normal) but may automatically qualify for the Navy (with the same rank) in the next career term.",
+    "4": "From time spent dealing with suppliers and spacers, you gain a level in any one of Animals, Engineer, Science or Profession.",
+    "5": "You are put in temporary charge of the paperwork for the crew. Gain one level of Admin, Broker or Electronics (Computers).",
+    "6": "You expand into new territories. Gain one level of Broker, Diplomat, Profession or a Contact.",
+    "7": "Life Event. Roll on the Zhodani Life Events table.",
+    "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+    "9": "A good deal ensures you are living the high life for a few years. Gain DM+1 to any one Benefit roll.",
+    "10": "Your ship is chosen for elite duty on a very selective route, making it famous in one subsector. Gain an extra Benefit roll.",
+    "11": "Your superiors take an interest in your career. Gain an Ally and take DM+2 to your next Advancement roll.",
+    "12": "Your business or ship thrives. Your next Advancement roll is automatically successful."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 5000, "benefit": "Ship Share"},
+    "3": {"cash": 10000, "benefit": "Two Ship Shares"},
+    "4": {"cash": 20000, "benefit": "EDU +1"},
+    "5": {"cash": 20000, "benefit": "INT +1"},
+    "6": {"cash": 40000, "benefit": "Trader"},
+    "7": {"cash": 40000, "benefit": "SOC +1 and Trader"}
+  },
+  "complete": true,
+  "societies": ["zhodani_consulate"]
+}
