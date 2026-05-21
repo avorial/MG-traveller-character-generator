@@ -272,10 +272,12 @@ class Character(BaseModel):
         """
         for existing in self.skills:
             if existing.name == name and existing.speciality == speciality:
+                if level == 0:
+                    # Level-0 grants (background skills, basic training) never bump an
+                    # existing skill — the character already has it at the same or higher level.
+                    return f"Already has {name}{f' ({speciality})' if speciality else ''} {existing.level}"
                 if existing.level < 4:
-                    existing.level += level if level > 0 else 1
-                    if existing.level > 4:
-                        existing.level = 4
+                    existing.level = min(4, existing.level + level)
                     return f"Increased {existing.name}{f' ({speciality})' if speciality else ''} to {existing.level}"
                 else:
                     return f"{name} already at maximum level 4"
