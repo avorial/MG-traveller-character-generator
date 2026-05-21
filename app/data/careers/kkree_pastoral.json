@@ -29,7 +29,7 @@
       "3": "Melee",
       "4": "Admin",
       "5": "Carouse",
-      "6": "Athletics (endurance)"
+      "6": "Athletics (Endurance)"
     },
     "service_skills": {
       "name": "Service Skills",
@@ -37,7 +37,7 @@
       "2": "Survival",
       "3": "Recon",
       "4": "Melee",
-      "5": "Athletics (endurance)",
+      "5": "Athletics (Endurance)",
       "6": "K'kree Life Event"
     }
   },

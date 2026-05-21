@@ -15,7 +15,7 @@
     "traits":  [
                    {
                        "name":  "Bite",
-                       "description":  "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (natural) skill and does 1D+1 damage."
+                       "description":  "All Vargr possess pronounced canines which make for a nasty close combat weapon. This bite uses the Melee (Natural) skill and does 1D+1 damage."
                    },
                    {
                        "name":  "Heightened Senses",

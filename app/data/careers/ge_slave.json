@@ -69,7 +69,7 @@
       "2": "Medic",
       "3": "Electronics",
       "4": "Admin",
-      "5": "Profession (teacher)",
+      "5": "Profession (Teacher)",
       "6": "Steward"
     },
     "technician": {
@@ -168,7 +168,7 @@
     "8": "You show your worth to your Aslan commanders and are outfitted with a combat implant.",
     "9": "You save the life of an Aslan warrior. Roll once on the Injury table and gain an Ally.",
     "10": "You are challenged to a duel by a rival dog soldier. If you refuse, you are demoted one rank and lose SOC −1. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next Advancement roll.",
-    "11": "Your Aslan masters recognise your value and assign you to a more useful role. Gain Tactics (military) and DM+2 to your next survival roll.",
+    "11": "Your Aslan masters recognise your value and assign you to a more useful role. Gain Tactics (Military) and DM+2 to your next survival roll.",
     "12": "Your unit bugs out after losing a battle. You can escape to freedom but must leave your fellow dog soldiers behind. Leave and you may start a new career outside Empire space but gain 1D Enemies. Stay and automatically qualify as a Warrior for your next term."
   },
   "mustering_out": {

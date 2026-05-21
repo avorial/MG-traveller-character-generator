@@ -34,7 +34,7 @@
     "starship": {
       "name": "Starship",
       "description": "This is for campaigns where the Travellers will spend almost all their time on spacecraft.",
-      "skills": ["Pilot 1", "Gunner 1", "Engineer 1", "Mechanic 1", "Electronics 1", "Medic 1", "Tactics (naval) 1", "Astrogation 1"]
+      "skills": ["Pilot 1", "Gunner 1", "Engineer 1", "Mechanic 1", "Electronics 1", "Medic 1", "Tactics (Naval) 1", "Astrogation 1"]
     },
     "criminal": {
       "name": "Criminal",

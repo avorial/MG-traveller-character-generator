@@ -50,7 +50,7 @@
       "3": "Melee",
       "4": "Admin",
       "5": "Carouse",
-      "6": "Athletics (endurance)"
+      "6": "Athletics (Endurance)"
     },
     "mercantile": {
       "name": "Mercantile/Economic",
@@ -58,7 +58,7 @@
       "2": "Admin",
       "3": "Advocate",
       "4": "Broker",
-      "5": "Electronics (computers)",
+      "5": "Electronics (Computers)",
       "6": "Persuade"
     },
     "warrior": {
@@ -66,7 +66,7 @@
       "1": "Melee",
       "2": "Gun Combat",
       "3": "Electronics",
-      "4": "Electronics (remote ops)",
+      "4": "Electronics (Remote Ops)",
       "5": "Medic",
       "6": "Vacc Suit"
     },
@@ -140,12 +140,12 @@
     "3": "Your herd is involved in a highly successful endeavour. You do your part with honour, earning deserved praise from your herdlord and SOC +1. You also gain D3 Rivals.",
     "4": "You learned new skills appropriate to your status. Gain one roll on any skill table available to this caste.",
     "5": "You solved many problems to bring your herd great success. Gain Jack-of-all-Trades 1 and words of praise from your herdlord.",
-    "6": "Your herd needs to prepare for war. Gain 1 level in Electronics (remote ops) or Gun Combat.",
+    "6": "Your herd needs to prepare for war. Gain 1 level in Electronics (Remote Ops) or Gun Combat.",
     "7": "Life Event. Roll on the K'kree Life Events table.",
     "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
     "9": "Your clan journeys among the stars. Gain 1 level in Engineer, Astrogation, or Electronics.",
     "10": "Your clanlord selects you to be a member of a special delegation providing hospitality to a powerful rival. Gain Steward 1 and make an Average (8+) Profession (K'kree ritual) check. If successful, gain SOC +1 and your clanlord's favour. If you fail, gain your clanlord's rival as an Enemy.",
-    "11": "You serve aboard a warship with your herdlord. Gain 1 level in Pilot, Electronics (remote ops), or Gunner.",
+    "11": "You serve aboard a warship with your herdlord. Gain 1 level in Pilot, Electronics (Remote Ops), or Gunner.",
     "12": "A Herdlord offers you one of his daughters in marriage. Gain an extra wife, SOC 11, elevation to rankholder as the head of a small family in the Noble caste and the admiration of your former peers."
   },
   "mustering_out": {

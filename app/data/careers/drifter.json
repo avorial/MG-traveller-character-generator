@@ -34,7 +34,7 @@
       "1": "STR +1",
       "2": "END +1",
       "3": "DEX +1",
-      "4": "Melee (unarmed)",
+      "4": "Melee (Unarmed)",
       "5": "Melee",
       "6": "Athletics"
     },
@@ -62,7 +62,7 @@
       "assignment_only": "barbarian",
       "1": "Animals",
       "2": "Survival",
-      "3": "Melee (blade)",
+      "3": "Melee (Blade)",
       "4": "Stealth",
       "5": "Seafarer or Flyer",
       "6": "Recon"
@@ -83,7 +83,7 @@
       "1": "Vacc Suit",
       "2": "Mechanic",
       "3": "Astrogation",
-      "4": "Pilot (small craft)",
+      "4": "Pilot (Small Craft)",
       "5": "Zero-G (as Athletics)",
       "6": "Gun Combat"
     }

@@ -69,7 +69,7 @@
     "journalist": {
       "name": "Journalist",
       "assignment_only": "journalist",
-      "1": "Electronics (computers)",
+      "1": "Electronics (Computers)",
       "2": "Investigate",
       "3": "Streetwise",
       "4": "Diplomat",
@@ -79,7 +79,7 @@
     "performer": {
       "name": "Performer",
       "assignment_only": "performer",
-      "1": "Art (performer)",
+      "1": "Art (Performer)",
       "2": "Athletics",
       "3": "Melee",
       "4": "Deception",
@@ -114,7 +114,7 @@
     "6": "You have a brush with a major celebrity, noble or criminal figure. Gain them as a Contact, Ally, Rival or Enemy (your choice).",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "You are invited to perform or exhibit at a prestigious venue. Roll Art 8+ or Persuade 8+; on success, gain a level in Art and DM+2 to your next Advancement roll. On failure, lose 1 SOC.",
-    "9": "You travel extensively, touring or covering stories across several worlds. Gain one of Streetwise 1, Language 1, Pilot (small craft) 1 or Steward 1.",
+    "9": "You travel extensively, touring or covering stories across several worlds. Gain one of Streetwise 1, Language 1, Pilot (Small Craft) 1 or Steward 1.",
     "10": "One of your works becomes a hit, story, or sensation. Gain DM+2 to a Benefit roll this term and DM+1 to your next Advancement roll.",
     "11": "You receive major patronage or a breakthrough opportunity. Gain one level in any skill of your choice, or DM+4 to your next Advancement roll.",
     "12": "You become a superstar in your field. You are automatically promoted and gain SOC +1."

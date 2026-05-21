@@ -44,10 +44,10 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Tactics (military)",
+      "1": "Tactics (Military)",
       "2": "Drive",
       "3": "Gun Combat",
-      "4": "Melee (natural)",
+      "4": "Melee (Natural)",
       "5": "Leadership",
       "6": "Tolerance"
     },
@@ -62,9 +62,9 @@
     },
     "leader": {
       "name": "Leader",
-      "1": "Tactics (military)",
+      "1": "Tactics (Military)",
       "2": "Recon",
-      "3": "Melee (natural)",
+      "3": "Melee (Natural)",
       "4": "Heavy Weapons",
       "5": "Gun Combat",
       "6": "Electronics"
@@ -111,7 +111,7 @@
       "0": { "title": null, "bonus": null },
       "1": { "title": "Hunter", "bonus": "Stealth 1" },
       "2": { "title": null, "bonus": null },
-      "3": { "title": null, "bonus": "Melee (natural) 1" },
+      "3": { "title": null, "bonus": "Melee (Natural) 1" },
       "4": { "title": "Veteran Hunter", "bonus": null },
       "5": { "title": null, "bonus": null },
       "6": { "title": "Claw of the Clan", "bonus": "2 Clan Shares" }
@@ -128,14 +128,14 @@
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
     "3": "You fight a brutal ground war. Gain Stealth 1, Heavy Weapons 1, Vacc Suit 1 or Drive 1.",
-    "4": "You must discipline a disobedient junior officer. Roll Persuade or Melee (natural) 8+. If you succeed, gain them as an Ally. If you fail, lose SOC-1 and they become a Rival.",
+    "4": "You must discipline a disobedient junior officer. Roll Persuade or Melee (Natural) 8+. If you succeed, gain them as an Ally. If you fail, lose SOC-1 and they become a Rival.",
     "5": "You garrison one of the richest Aslan worlds. Gain one of Carouse 1, Streetwise 1, Independence 1 or Survival 1.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
     "7": "Life Event. Roll on the Aslan Life Events table.",
     "8": "You have the opportunity to establish a landhold in your name. Gain TER +2.",
     "9": "After a battle, you capture an enemy commander. You may ransom them back and gain TER +2, or free them and gain them as a trusted Ally.",
     "10": "You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed, and gain DM+2 to your next advancement roll.",
-    "11": "Your deeds are legend among the cubs of your clan. Either gain Tactics (military) 1, or DM+4 to your next advancement roll.",
+    "11": "Your deeds are legend among the cubs of your clan. Either gain Tactics (Military) 1, or DM+4 to your next advancement roll.",
     "12": "Your efforts strike a great blow for your clan. You are automatically promoted."
   },
   "mustering_out": {

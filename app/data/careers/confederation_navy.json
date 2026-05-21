@@ -52,7 +52,7 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Electronics (comms)",
+      "1": "Electronics (Comms)",
       "2": "Gun Combat",
       "3": "Gunner",
       "4": "Mechanic",
@@ -74,16 +74,16 @@
       "2": "Astrogation",
       "3": "Diplomat",
       "4": "Leadership",
-      "5": "Tactics (naval)",
-      "6": "Tactics (naval)"
+      "5": "Tactics (Naval)",
+      "6": "Tactics (Naval)"
     },
     "line_crew": {
       "name": "Line/Crew",
-      "1": "Electronics (comms)",
+      "1": "Electronics (Comms)",
       "2": "Gun Combat",
       "3": "Mechanic",
       "4": "Melee",
-      "5": "Electronics (sensors)",
+      "5": "Electronics (Sensors)",
       "6": "Vacc Suit"
     },
     "technical": {
@@ -92,8 +92,8 @@
       "2": "Engineer",
       "3": "Gunner",
       "4": "Mechanic",
-      "5": "Electronics (remote ops)",
-      "6": "Electronics (sensors)"
+      "5": "Electronics (Remote Ops)",
+      "6": "Electronics (Sensors)"
     },
     "flight": {
       "name": "Flight",
@@ -138,7 +138,7 @@
       "1": { "title": "Lieutenant Junior Grade", "bonus": "Leadership 1" },
       "2": { "title": "Lieutenant", "bonus": null },
       "3": { "title": "Commander", "bonus": null },
-      "4": { "title": "Captain", "bonus": "Tactics (naval) 1" },
+      "4": { "title": "Captain", "bonus": "Tactics (Naval) 1" },
       "5": { "title": "Admiral", "bonus": "SOC 12 or SOC +1, whichever is higher" },
       "6": { "title": "Grand Admiral", "bonus": "SOC 12 or SOC +1, whichever is higher" }
     }
@@ -157,21 +157,21 @@
     "1": "Severely injured in action (treat as a result of 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
     "2": "You spend the entire term in the Frozen Watch, in cold sleep within a cryoberth. You are not ejected from the career but may not make either an advancement or skill roll this term. You may automatically re-enlist. This term is not counted toward your physical age — your physical age will be four years younger than your chronological age.",
     "3": "In a moment of anger, you criticise the incompetence of an officer you believe was promoted due to Party connections. They discover or trump up evidence questioning your loyalty, triggering an intense investigation that forces you out of the service. If you agree to SolSec interrogation, you leave the service without a Benefit roll. If you refuse, roll END 8+ — success means you leave with your Benefit roll intact.",
-    "4": "During a crisis or battle, the ship's safety hinges on your actions. You must make a check with Electronics (sensors) or Gunner if Technical, or Pilot or Tactics (naval) if Flight. If you fail, the ship suffers severe damage and you are court-martialed and dishonourably discharged. If you succeed, you are still discharged but honourably — you may keep your Benefit roll from this term.",
+    "4": "During a crisis or battle, the ship's safety hinges on your actions. You must make a check with Electronics (Sensors) or Gunner if Technical, or Pilot or Tactics (Naval) if Flight. If you fail, the ship suffers severe damage and you are court-martialed and dishonourably discharged. If you succeed, you are still discharged but honourably — you may keep your Benefit roll from this term.",
     "5": "In a three-way political conflict between the Party, the Navy and SolSec, the Navy loses. You are among many personnel who are purged, ending your career. Exception: If you are a Secret Agent, you were instrumental in the purge. Your cover is blown, ending your career, but you gain an Enemy rather than losing a Benefit roll.",
     "6": "Injured. Roll on the Injury table."
   },
   "events": {
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
-    "3": "Your starship explores an alien world. Gain one of Animals (riding or training) 1, Survival 1, Recon 1 or Science (any) 1.",
+    "3": "Your starship explores an alien world. Gain one of Animals (riding or Training) 1, Survival 1, Recon 1 or Science (any) 1.",
     "4": "Your warship is assigned to a lengthy patrol. In your off-duty time, choose recreation or a Party-sponsored study group. Recreation: gain Carouse 1 or Gambler 1. Study group: gain DM+2 on your next advancement roll or roll INT 8+ to gain one of Advocate, History or Science.",
     "5": "You are assigned to test a new starship or weapon system, a prestige project of the Solomani Party. Roll EDU 8+ to gain one of Admin or Engineer (any). Gain one Contact at a Party-run corporation or in the Confederation.",
-    "6": "Your vessel fights in a notable space engagement. Gain one of Electronics (sensors) 1, Engineer 1, Gunner 1, Pilot 1 or Tactics (naval) 1.",
+    "6": "Your vessel fights in a notable space engagement. Gain one of Electronics (Sensors) 1, Engineer 1, Gunner 1, Pilot 1 or Tactics (Naval) 1.",
     "7": "Life Event. Roll on the Solomani Life Events table.",
     "8": "Your vessel participates in a diplomatic mission. Gain one of Language 1, Recon 1, Diplomat 1, Steward 1 or a Contact.",
     "9": "Your vessel is assigned to a deep space survey mission. Gain Astrogation 1 or Science (any) 1.",
-    "10": "Your vessel is sent on a covert mission to support Solomani guerrillas in Imperial space. Gain one of Electronics (comms) 1, Deception 1 or Recon 1. Gain a Contact among the guerrillas.",
-    "11": "Your commanding officer takes an interest in your advancement. Gain Tactics (naval) 1 or take DM+4 on your next advancement roll thanks to their aid.",
+    "10": "Your vessel is sent on a covert mission to support Solomani guerrillas in Imperial space. Gain one of Electronics (Comms) 1, Deception 1 or Recon 1. Gain a Contact among the guerrillas.",
+    "11": "Your commanding officer takes an interest in your advancement. Gain Tactics (Naval) 1 or take DM+4 on your next advancement roll thanks to their aid.",
     "12": "You display uncommon valour in a crisis, saving the entire ship. You gain a promotion or commission automatically."
   },
   "mustering_out": {

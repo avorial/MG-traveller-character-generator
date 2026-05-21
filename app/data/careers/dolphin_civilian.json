@@ -45,8 +45,8 @@
       "name": "Service Skills",
       "1": "Athletics",
       "2": "Athletics",
-      "3": "Melee (natural)",
-      "4": "Melee (natural)",
+      "3": "Melee (Natural)",
+      "4": "Melee (Natural)",
       "5": "Carouse",
       "6": "Recon"
     },
@@ -58,7 +58,7 @@
       "3": "Vacc Suit",
       "4": "Leadership",
       "5": "Navigation",
-      "6": "Science (history)"
+      "6": "Science (History)"
     },
     "liaison": {
       "name": "Liaison",
@@ -74,7 +74,7 @@
       "name": "Nomad",
       "assignment_only": "nomad",
       "1": "Athletics",
-      "2": "Melee (natural)",
+      "2": "Melee (Natural)",
       "3": "Leadership",
       "4": "Recon",
       "5": "Stealth",
@@ -83,7 +83,7 @@
     "historian_poet": {
       "name": "Historian-Poet",
       "assignment_only": "historian_poet",
-      "1": "Science (history)",
+      "1": "Science (History)",
       "2": "Art",
       "3": "Art",
       "4": "Advocate",
@@ -111,8 +111,8 @@
       "6": {"title": null, "bonus": null}
     },
     "historian_poet": {
-      "0": {"title": "Candidate", "bonus": "Art (performer) 1"},
-      "1": {"title": "Apprentice", "bonus": "Science (history) 1"},
+      "0": {"title": "Candidate", "bonus": "Art (Performer) 1"},
+      "1": {"title": "Apprentice", "bonus": "Science (History) 1"},
       "2": {"title": null, "bonus": "SOC 6 or SOC +1"},
       "3": {"title": "Journeyman", "bonus": null},
       "4": {"title": null, "bonus": "SOC 8 or SOC +1"},
@@ -131,12 +131,12 @@
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
     "3": "Rivalries between another race and Dolphins over your world's ocean resources lead to conflict. Do you choose violence or diplomacy? If you choose diplomacy roll Advocate or Diplomat 8+. Success means your faction was vindicated and you gain DM+2 on your next advancement roll; failure means a loss of one Benefit roll. If you chose violence roll Explosives, Gun Combat or Tactics 8+. Failure results in DM-2 on your next advancement roll and you must roll on the Injury Table. Whichever path you chose, raise Leadership or the skill you rolled on by one level.",
-    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of other Dolphins. Gain a Contact in the research field and roll EDU 7+ to gain Science (cybernetics) 1.",
-    "5": "You have a chance to travel offworld on business and spend a long time in space. Increase your choice of either Athletics (dexterity), Electronics (comms) or Electronics (sensors) by 1 or gain Pilot 1.",
+    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of other Dolphins. Gain a Contact in the research field and roll EDU 7+ to gain Science (Cybernetics) 1.",
+    "5": "You have a chance to travel offworld on business and spend a long time in space. Increase your choice of either Athletics (Dexterity), Electronics (Comms) or Electronics (Sensors) by 1 or gain Pilot 1.",
     "6": "You rescue a high-status swimmer who was lost at sea. Roll STR 7+; if successful gain a SOC 10+ sophont as an Ally.",
     "7": "Life Event. Roll on the Life Events table.",
     "8": "Spend an extensive period living out of water among humans. Increase Vacc Suit or Diplomat by 1.",
-    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (natural) or Gun Combat 7+ to rescue them; if successful, gain one as an Ally; if you fail roll on the Injury table.",
+    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (Natural) or Gun Combat 7+ to rescue them; if successful, gain one as an Ally; if you fail roll on the Injury table.",
     "10": "You are asked to volunteer for a dangerous mission to rescue people in a sinking vessel or underwater city. Roll Survival or END 8+. If successful you are granted DM+2 on your next advancement roll and gain an extra Benefit roll. If you fail, roll on the Injury table.",
     "11": "You discover a sunken vessel that contains valuable salvage. Gain one extra Benefit roll.",
     "12": "You rise to a position of responsibility. Your next advancement roll automatically succeeds."

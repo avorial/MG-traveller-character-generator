@@ -33,13 +33,13 @@
       "1": "STR +1",
       "2": "END +1",
       "3": "DEX +1",
-      "4": "Melee (unarmed)",
+      "4": "Melee (Unarmed)",
       "5": "Gambler",
       "6": "END +1"
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Melee (unarmed)",
+      "1": "Melee (Unarmed)",
       "2": "Streetwise",
       "3": "Stealth",
       "4": "Recon",
@@ -59,9 +59,9 @@
     "thug": {
       "name": "Thug",
       "assignment_only": "thug",
-      "1": "Melee (unarmed)",
-      "2": "Melee (blade)",
-      "3": "Athletics (strength)",
+      "1": "Melee (Unarmed)",
+      "2": "Melee (Blade)",
+      "3": "Athletics (Strength)",
       "4": "Intimidate",
       "5": "Streetwise",
       "6": "STR +1"
@@ -72,7 +72,7 @@
       "1": "Stealth",
       "2": "Deception",
       "3": "Streetwise",
-      "4": "Athletics (dexterity)",
+      "4": "Athletics (Dexterity)",
       "5": "Mechanic",
       "6": "Gambler"
     },
@@ -80,7 +80,7 @@
       "name": "Enforcer",
       "assignment_only": "enforcer",
       "1": "Intimidate",
-      "2": "Gun Combat (slug)",
+      "2": "Gun Combat (Slug)",
       "3": "Melee",
       "4": "Streetwise",
       "5": "Recon",
@@ -92,7 +92,7 @@
       "0": {"title": "Inmate", "bonus": null},
       "1": {"title": "Trusted Inmate", "bonus": "Streetwise 1"},
       "2": {"title": "Crew Leader", "bonus": null},
-      "3": {"title": "Lifer", "bonus": "Melee (unarmed) 1"},
+      "3": {"title": "Lifer", "bonus": "Melee (Unarmed) 1"},
       "4": {"title": "Shot-caller", "bonus": null},
       "5": {"title": "Prison Boss", "bonus": "Intimidate 1"},
       "6": {"title": "Prison Boss", "bonus": "SOC -1"}
@@ -108,10 +108,10 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected.",
-    "3": "A riot engulfs your block. Roll Melee (unarmed) 8+ or Stealth 8+ to survive unharmed. On failure, roll on the Injury Table.",
+    "3": "A riot engulfs your block. Roll Melee (Unarmed) 8+ or Stealth 8+ to survive unharmed. On failure, roll on the Injury Table.",
     "4": "You befriend a fellow prisoner with valuable connections. Gain a Contact in the criminal underworld or among political dissidents.",
     "5": "You smuggle contraband or run a side operation. Gain DM+2 to your next Benefit roll, or pick up Streetwise 1, Deception 1, or Gambler 1.",
-    "6": "You serve your time quietly and learn. Gain one of Athletics 1, Melee (unarmed) 1, Streetwise 1, or Deception 1.",
+    "6": "You serve your time quietly and learn. Gain one of Athletics 1, Melee (Unarmed) 1, Streetwise 1, or Deception 1.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "A parole hearing comes up. Roll SOC 8+ or Advocate 8+. On success, you leave at the end of this term with no penalty. On failure, gain DM-2 to your next Advancement roll.",
     "9": "You cross a guard or a gang. Roll END 8+ or Melee 8+ to endure. On failure, roll on the Injury Table and gain an Enemy.",

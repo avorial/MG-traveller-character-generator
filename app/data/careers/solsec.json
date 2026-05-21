@@ -48,12 +48,12 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Electronics (comms)",
+      "1": "Electronics (Comms)",
       "2": "Drive",
       "3": "Flyer",
       "4": "Gun Combat",
       "5": "Recon",
-      "6": "Electronics (computers)"
+      "6": "Electronics (Computers)"
     },
     "advanced_education": {
       "name": "Advanced Education (Min. EDU 8)",
@@ -62,7 +62,7 @@
       "3": "Medic",
       "4": "Electronics",
       "5": "Pilot",
-      "6": "Science (psychology)"
+      "6": "Science (Psychology)"
     },
     "field_agent": {
       "name": "Field Agent",
@@ -77,10 +77,10 @@
       "name": "Administration",
       "1": "Admin",
       "2": "Advocate",
-      "3": "Electronics (computers)",
+      "3": "Electronics (Computers)",
       "4": "Diplomat",
       "5": "Investigate",
-      "6": "Science (psychology)"
+      "6": "Science (Psychology)"
     },
     "secret_agent": {
       "name": "Secret Agent",
@@ -95,7 +95,7 @@
   "ranks": {
     "field_agent": {
       "0": { "title": "Rookie", "bonus": null },
-      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (Computers) 1" },
       "2": { "title": "Captain", "bonus": null },
       "3": { "title": "Major", "bonus": "Deception 1" },
       "4": { "title": "Lieutenant Colonel", "bonus": null },
@@ -104,7 +104,7 @@
     },
     "administration": {
       "0": { "title": "Rookie", "bonus": null },
-      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (Computers) 1" },
       "2": { "title": "Captain", "bonus": null },
       "3": { "title": "Major", "bonus": "Deception 1" },
       "4": { "title": "Lieutenant Colonel", "bonus": null },
@@ -113,7 +113,7 @@
     },
     "secret_agent": {
       "0": { "title": "Rookie", "bonus": null },
-      "1": { "title": "Lieutenant", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Lieutenant", "bonus": "Electronics (Computers) 1" },
       "2": { "title": "Captain", "bonus": null },
       "3": { "title": "Major", "bonus": "Deception 1" },
       "4": { "title": "Lieutenant Colonel", "bonus": null },
@@ -143,13 +143,13 @@
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
     "3": "You uncover evidence of corruption inside SolSec itself. If you report it up the chain, gain DM+2 on your next advancement roll but gain an Enemy. If you suppress it, gain an Ally inside SolSec.",
     "4": "You are assigned to monitor a prominent citizen. Choose: surveil aggressively and gain Investigate 1 or Stealth 1, or build a friendly rapport and gain a Contact.",
-    "5": "You are sent on a cross-border operation into Imperial space. Roll Deception or Stealth 8+. Success: gain one of Electronics (comms) 1, Deception 1, Recon 1 or Stealth 1 and gain a Contact in the Solomani underground. Failure: you are burned and must immediately roll on the Mishap table (but are not ejected from the career).",
+    "5": "You are sent on a cross-border operation into Imperial space. Roll Deception or Stealth 8+. Success: gain one of Electronics (Comms) 1, Deception 1, Recon 1 or Stealth 1 and gain a Contact in the Solomani underground. Failure: you are burned and must immediately roll on the Mishap table (but are not ejected from the career).",
     "6": "You assist in a crackdown on anti-Confederation dissidents. Gain one of Advocate 1, Investigate 1, Persuade 1 or Streetwise 1.",
     "7": "Life Event. Roll on the Solomani Life Events table.",
-    "8": "You are seconded to work alongside Confederation Navy intelligence. Gain one of Astrogation 1, Electronics (sensors) 1, Gunner 1, Pilot 1 or Tactics (naval) 1 and gain a Contact in the Navy.",
+    "8": "You are seconded to work alongside Confederation Navy intelligence. Gain one of Astrogation 1, Electronics (Sensors) 1, Gunner 1, Pilot 1 or Tactics (Naval) 1 and gain a Contact in the Navy.",
     "9": "You develop a network of civilian informants. Gain Streetwise 1 or Carouse 1 and 1D Contacts drawn from ordinary Confederation society.",
     "10": "You discover a Solomani Party official is secretly disloyal to the Cause. You may expose them: gain DM+2 on your next advancement roll and gain them as an Enemy. Or you may use the information as leverage — gain them as an Ally, but gain a Rival from a rival SolSec faction who suspects you.",
-    "11": "A senior SolSec officer becomes your patron and mentor. Gain one level in Deception, Investigate or Science (psychology), or take DM+4 on your next advancement roll.",
+    "11": "A senior SolSec officer becomes your patron and mentor. Gain one level in Deception, Investigate or Science (Psychology), or take DM+4 on your next advancement roll.",
     "12": "Your operation is a complete success, breaking a major enemy ring and earning commendation from the highest levels of the Confederation. You are automatically promoted."
   },
   "mustering_out": {

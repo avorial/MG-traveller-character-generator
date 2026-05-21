@@ -984,7 +984,7 @@ def apply_background_package(
             chosen_spec = skill_choices.get(name, "").strip()
             if not chosen_spec:
                 raise ValueError(f"No speciality chosen for {name} (any) in package '{pkg['name']}'")
-            spec = chosen_spec.lower()
+            spec = _SPEC_LOOKUP.get(chosen_spec.lower(), chosen_spec)
         elif sk.get("options"):
             chosen_spec = skill_choices.get(name, "").strip()
             if not chosen_spec:
@@ -992,7 +992,7 @@ def apply_background_package(
             allowed = [o.lower() for o in sk["options"]]
             if chosen_spec.lower() not in allowed:
                 raise ValueError(f"Invalid speciality '{chosen_spec}' for {name} — must be one of {sk['options']}")
-            spec = chosen_spec.lower()
+            spec = _SPEC_LOOKUP.get(chosen_spec.lower(), chosen_spec)
 
         character.add_skill(name, level=level, speciality=spec)
 
@@ -1108,7 +1108,7 @@ def apply_career_package(
                 raise ValueError(
                     f"No speciality chosen for {name} ({key}) in package '{pkg['name']}'"
                 )
-            spec = chosen_spec.lower() if chosen_spec else None
+            spec = _SPEC_LOOKUP.get(chosen_spec.lower(), chosen_spec) if chosen_spec else None
 
         msg = character.add_skill(name, level=level, speciality=spec)
         pkg_skill_results.append(msg)
@@ -1341,12 +1341,31 @@ def _academy_service(service: str) -> dict:
     return svc
 
 
+def _build_spec_lookup() -> dict[str, str]:
+    """Build lowercase → canonical-case lookup from skills.json speciality lists."""
+    lookup: dict[str, str] = {}
+    for spec_list in rules.skills().get("speciality", {}).values():
+        for sp in spec_list:
+            lookup[sp.lower()] = sp
+    return lookup
+
+
+# Module-level lookup so we normalise speciality case on every add_skill call.
+_SPEC_LOOKUP: dict[str, str] = _build_spec_lookup()
+
+
 def _split_skill_speciality(s: str) -> tuple[str, Optional[str]]:
-    """Split 'Gun Combat (slug)' → ('Gun Combat', 'slug'). Plain name → (name, None)."""
+    """Split 'Gun Combat (Slug)' → ('Gun Combat', 'Slug'). Plain name → (name, None).
+
+    Normalises the speciality to canonical Title Case using the skills.json lookup so that
+    'computers', 'Computers' and 'COMPUTERS' all resolve to 'Computers'.  Specialities not
+    in the lookup (e.g. 'any', 'the Way', custom Profession specs) are returned unchanged.
+    """
     s = s.strip()
     if "(" in s and s.endswith(")"):
         name = s[: s.index("(")].strip()
         spec = s[s.index("(") + 1 : -1].strip()
+        spec = _SPEC_LOOKUP.get(spec.lower(), spec)
         return name, spec
     return s, None
 

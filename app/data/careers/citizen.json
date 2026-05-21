@@ -35,7 +35,7 @@
       "3": "END +1",
       "4": "INT +1",
       "5": "Carouse",
-      "6": "Melee (unarmed)"
+      "6": "Melee (Unarmed)"
     },
     "service_skills": {
       "name": "Service Skills",
@@ -64,7 +64,7 @@
       "3": "Broker",
       "4": "Diplomat",
       "5": "Leadership",
-      "6": "Electronics (computers)"
+      "6": "Electronics (Computers)"
     },
     "worker": {
       "name": "Worker",

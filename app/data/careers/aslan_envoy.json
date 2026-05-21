@@ -36,7 +36,7 @@
       "1": "STR +1",
       "2": "DEX +1",
       "3": "END +1",
-      "4": "Melee (natural)",
+      "4": "Melee (Natural)",
       "5": "Independence",
       "6": "Independence"
     },
@@ -79,7 +79,7 @@
     "duellist": {
       "name": "Duellist",
       "1": "Tolerance",
-      "2": "Melee (natural)",
+      "2": "Melee (Natural)",
       "3": "DEX +1",
       "4": "STR +1",
       "5": "END +1",
@@ -119,19 +119,19 @@
     "1": "Injured. Roll on the Injury table.",
     "2": "A blunder in a negotiation shames you and your clan. You are now Outcast — drop your SOC to 2 and you must take the Outcast or Outlaw career next term.",
     "3": "You fail in a difficult assignment because of the manipulations of another Envoy. Gain them as a Rival.",
-    "4": "An assassin attempts to murder you. Roll Melee (natural) or Recon 8+ to avoid the attempt. If you fail, you are injured; roll on the Injury table. If you succeed, you may continue in this career.",
+    "4": "An assassin attempts to murder you. Roll Melee (Natural) or Recon 8+ to avoid the attempt. If you fail, you are injured; roll on the Injury table. If you succeed, you may continue in this career.",
     "5": "You are dispatched to a distant world for a long period; by the time you return, your position has been taken by someone younger and more ambitious. Gain one of Survival 1, Pilot 1, Carouse 1 or Independence 1.",
     "6": "A human ambassador insults you. Roll Tolerance 8+ to avoid eating them. If you succeed, you may continue in this career. If you fail, gain one of the human's allies as an Enemy."
   },
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
     "3": "Your clan places you in a difficult situation. You can flee if you wish, salvaging something of your reputation but losing SOC −1. If you stay and fight, roll one of Diplomat, Investigate or Stealth 8+. If you succeed, gain DM+2 to your next advancement roll. If you fail, lose SOC −1 and suffer DM-2 to your next advancement roll.",
-    "4": "You develop a taste for hunting. Gain Animals (training) 1, Survival 1, Stealth 1 or Athletics (dexterity) 1.",
+    "4": "You develop a taste for hunting. Gain Animals (Training) 1, Survival 1, Stealth 1 or Athletics (Dexterity) 1.",
     "5": "You attend a clan council on the homeworld. Gain a Contact there.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
     "7": "Life Event. Roll on the Aslan Life Events table.",
     "8": "You spend time in diplomatic circles. Roll Carouse or Persuade 8+ to gain an Ally; if you fail, gain a Rival instead.",
-    "9": "You are insulted by a noble of a rival clan. You may challenge them to a duel; if you refuse, lose SOC −2. If you challenge, roll Melee (natural) 9+. If you succeed, gain SOC +1 and DM+2 to your next advancement roll; if you fail, lose SOC −2 and suffer DM-2 to your next advancement roll.",
+    "9": "You are insulted by a noble of a rival clan. You may challenge them to a duel; if you refuse, lose SOC −2. If you challenge, roll Melee (Natural) 9+. If you succeed, gain SOC +1 and DM+2 to your next advancement roll; if you fail, lose SOC −2 and suffer DM-2 to your next advancement roll.",
     "10": "You are offered membership of a conspiracy in the upper echelons of your clan. If you refuse, gain the conspiracy as an Enemy. If you accept, roll Deception 8+ or Persuade 8+. If you fail, roll on the Mishap table as the conspiracy collapses. If you succeed, gain one of Deception 1, Persuade 1, SOC +1 or TER +1.",
     "11": "You are trusted by the great lords of your clan. Gain TER +2, or gain DM+4 to your next advancement roll.",
     "12": "You excel in your role. You are automatically promoted."

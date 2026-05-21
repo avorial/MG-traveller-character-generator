@@ -54,7 +54,7 @@
     "service_skills": {
       "name": "Service Skills",
       "1": "Advocate",
-      "2": "Electronics (comms)",
+      "2": "Electronics (Comms)",
       "3": "Deception",
       "4": "Drive",
       "5": "Flyer",
@@ -63,7 +63,7 @@
     "advanced_education": {
       "name": "Advanced Education (Min. EDU 8)",
       "1": "Advocate",
-      "2": "Electronics (computers)",
+      "2": "Electronics (Computers)",
       "3": "Language",
       "4": "Pilot",
       "5": "Any Science",
@@ -74,18 +74,18 @@
       "1": "Admin",
       "2": "Advocate",
       "3": "Advocate",
-      "4": "Science (genetics)",
+      "4": "Science (Genetics)",
       "5": "Diplomat",
-      "6": "Science (history or philosophy)"
+      "6": "Science (History or Philosophy)"
     },
     "intellectual": {
       "name": "Intellectual",
       "1": "Advocate",
-      "2": "Art (writing or performance)",
+      "2": "Art (Writing or Performance)",
       "3": "Persuade",
       "4": "SOC +1",
       "5": "Language",
-      "6": "Science (history, philosophy or psychology)"
+      "6": "Science (history, philosophy or Psychology)"
     },
     "militant": {
       "name": "Militant",
@@ -94,7 +94,7 @@
       "3": "Explosives",
       "4": "Recon",
       "5": "Streetwise",
-      "6": "Tactics (military)"
+      "6": "Tactics (Military)"
     }
   },
   "ranks": {
@@ -123,7 +123,7 @@
       "3": { "title": "Cell Leader", "bonus": "Advocate 1 or Leadership 1" },
       "4": { "title": "Commander", "bonus": null },
       "5": { "title": "Brigade Commander", "bonus": null },
-      "6": { "title": "Director", "bonus": "Tactics (military) 1" }
+      "6": { "title": "Director", "bonus": "Tactics (Military) 1" }
     }
   },
   "survival": {
@@ -152,9 +152,9 @@
     "6": "Your faction is involved in a violent political struggle. Make an Advocate, Gun Combat, Explosives, Leadership or Streetwise check. If you succeed, you come out on the winning side and gain DM+2 on your next survival roll. Fail and you suffer DM-2 on your next survival roll.",
     "7": "Life Event. Roll on the Solomani Life Events table.",
     "8": "You find evidence that casts doubt on a superior's commitment to the Solomani Cause. If you expose and denounce them, gain DM+2 to your next advancement roll. If you suppress the evidence and support them anyway, they become an Ally.",
-    "9": "You become deeply involved in the Solomani Movement's factional politics. Gain one level in Advocate, Diplomat, Persuade or Science (philosophy). Gain a Rival from another Party faction.",
+    "9": "You become deeply involved in the Solomani Movement's factional politics. Gain one level in Advocate, Diplomat, Persuade or Science (Philosophy). Gain a Rival from another Party faction.",
     "10": "You use your standing with the Party to promote the career of an ideologically correct artist, journalist or performer. Receive either Art 1 or Carouse 1 and gain a Contact in the media or entertainment industry.",
-    "11": "You befriend a senior member of the Party hierarchy, who becomes an Ally and mentor. Either gain one level in Advocate, Diplomat or Science (philosophy), or take DM+4 on your next advancement roll and acquire a Rival from another Party faction.",
+    "11": "You befriend a senior member of the Party hierarchy, who becomes an Ally and mentor. Either gain one level in Advocate, Diplomat or Science (Philosophy), or take DM+4 on your next advancement roll and acquire a Rival from another Party faction.",
     "12": "Your efforts to advance the Solomani Cause are recognised by the Party. You are automatically promoted."
   },
   "mustering_out": {

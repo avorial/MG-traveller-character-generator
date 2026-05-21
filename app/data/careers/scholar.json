@@ -41,7 +41,7 @@
       "name": "Service Skills",
       "1": "Science (any)",
       "2": "Admin",
-      "3": "Electronics (computers)",
+      "3": "Electronics (Computers)",
       "4": "Investigate",
       "5": "Medic",
       "6": "Diplomat"
@@ -80,10 +80,10 @@
       "name": "Physician",
       "assignment_only": "physician",
       "1": "Medic",
-      "2": "Science (biology)",
+      "2": "Science (Biology)",
       "3": "Investigate",
       "4": "Admin",
-      "5": "Electronics (computers)",
+      "5": "Electronics (Computers)",
       "6": "Diplomat"
     }
   },

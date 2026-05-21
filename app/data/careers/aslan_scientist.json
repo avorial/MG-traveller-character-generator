@@ -67,7 +67,7 @@
       "2": "Science",
       "3": "Persuade",
       "4": "Medic",
-      "5": "Electronics (sensors)",
+      "5": "Electronics (Sensors)",
       "6": "Admin"
     },
     "researcher": {
@@ -92,7 +92,7 @@
   "ranks": {
     "healer": {
       "0": { "title": null, "bonus": null },
-      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Scholar", "bonus": "Electronics (Computers) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
       "4": { "title": null, "bonus": null },
@@ -101,7 +101,7 @@
     },
     "researcher": {
       "0": { "title": null, "bonus": null },
-      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Scholar", "bonus": "Electronics (Computers) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
       "4": { "title": null, "bonus": null },
@@ -110,7 +110,7 @@
     },
     "explorer": {
       "0": { "title": null, "bonus": null },
-      "1": { "title": "Scholar", "bonus": "Electronics (computers) 1" },
+      "1": { "title": "Scholar", "bonus": "Electronics (Computers) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Respected Scholar", "bonus": "Admin 1" },
       "4": { "title": null, "bonus": null },
@@ -123,7 +123,7 @@
     "2": "A lab accident exposes you to something dangerous. Lose END −1.",
     "3": "Another researcher sabotages your work. Gain a Rival. You may continue in this career if you wish but gain no Benefit rolls from this term.",
     "4": "A lab ship misjumps, stranding you on an alien world. Gain one of Survival 1, Astrogation 1, Mechanic 1 or Science 1.",
-    "5": "A clan elder challenges your work as being flawed. You may challenge the elder if you wish. If you challenge, roll Melee (natural) 8+. If you succeed, increase your SOC +1 and you may continue with this career. If you fail, reduce your SOC −2 and leave this career.",
+    "5": "A clan elder challenges your work as being flawed. You may challenge the elder if you wish. If you challenge, roll Melee (Natural) 8+. If you succeed, increase your SOC +1 and you may continue with this career. If you fail, reduce your SOC −2 and leave this career.",
     "6": "Your clan cancels your line of research. You may, if you wish, leave to continue it in human space — you may automatically qualify for the Scholar career from the Traveller Core Rulebook next term."
   },
   "events": {

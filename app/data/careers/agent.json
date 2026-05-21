@@ -73,7 +73,7 @@
       "assignment_only": "intelligence",
       "1": "Investigate",
       "2": "Recon",
-      "3": "Electronics (comms)",
+      "3": "Electronics (Comms)",
       "4": "Stealth",
       "5": "Persuade",
       "6": "Deception"
@@ -82,7 +82,7 @@
       "name": "Corporate",
       "assignment_only": "corporate",
       "1": "Investigate",
-      "2": "Electronics (computers)",
+      "2": "Electronics (Computers)",
       "3": "Stealth",
       "4": "Carouse",
       "5": "Deception",

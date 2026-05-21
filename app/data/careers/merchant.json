@@ -59,7 +59,7 @@
     "merchant_marine": {
       "name": "Merchant Marine",
       "assignment_only": "merchant_marine",
-      "1": "Pilot (spacecraft)",
+      "1": "Pilot (Spacecraft)",
       "2": "Vacc Suit",
       "3": "Astrogation",
       "4": "Engineer",
@@ -69,7 +69,7 @@
     "free_trader": {
       "name": "Free Trader",
       "assignment_only": "free_trader",
-      "1": "Pilot (spacecraft)",
+      "1": "Pilot (Spacecraft)",
       "2": "Mechanic",
       "3": "Astrogation",
       "4": "Engineer",
@@ -111,7 +111,7 @@
     "3": "Your ship is attacked. Roll Gun Combat 8+ or Gunner 8+ to escape; on failure, roll on the Mishap Table (not ejected). Either way, gain an Enemy.",
     "4": "You spend several years trading on the fringes of Imperial space. Gain one of Streetwise 1, Broker 1, Diplomat 1 or Carouse 1.",
     "5": "You make a lucrative deal. Gain DM+1 to any one Benefit roll.",
-    "6": "You travel extensively and broaden your horizons. Gain one of Language 1, Pilot (spacecraft) 1, Astrogation 1 or Steward 1.",
+    "6": "You travel extensively and broaden your horizons. Gain one of Language 1, Pilot (Spacecraft) 1, Astrogation 1 or Steward 1.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "You strike a long-term cargo agreement with a major client. Gain an Ally and DM+1 to any one Benefit roll, or DM+2 to your next Advancement check.",
     "9": "You are pursued by creditors, authorities or pirates. Roll Pilot 8+ or Deception 8+; on success, gain a Contact among the Imperial Starport Authority. On failure, gain an Enemy and roll on the Mishap Table (not ejected).",

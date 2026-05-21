@@ -55,17 +55,17 @@
       "3": "Engineer",
       "4": "Medic",
       "5": "Navigation",
-      "6": "Tactics (naval)"
+      "6": "Tactics (Naval)"
     },
     "officer": {
       "name": "Officer (commissioned only)",
       "requires_commission": true,
       "1": "Leadership",
       "2": "Electronics",
-      "3": "Pilot (capital ships)",
-      "4": "Melee (blade)",
+      "3": "Pilot (Capital Ships)",
+      "4": "Melee (Blade)",
       "5": "Admin",
-      "6": "Tactics (naval)"
+      "6": "Tactics (Naval)"
     },
     "line_crew": {
       "name": "Line/Crew",
@@ -73,7 +73,7 @@
       "1": "Electronics",
       "2": "Mechanic",
       "3": "Gun Combat",
-      "4": "Melee (blade)",
+      "4": "Melee (Blade)",
       "5": "Vacc Suit",
       "6": "Leadership"
     },
@@ -90,12 +90,12 @@
     "flight": {
       "name": "Flight",
       "assignment_only": "flight",
-      "1": "Pilot (small craft)",
+      "1": "Pilot (Small Craft)",
       "2": "Flyer",
       "3": "Gunner",
-      "4": "Electronics (sensors)",
+      "4": "Electronics (Sensors)",
       "5": "Astrogation",
-      "6": "Pilot (spacecraft)"
+      "6": "Pilot (Spacecraft)"
     }
   },
   "ranks": {
@@ -110,10 +110,10 @@
     },
     "officer": {
       "0": {"title": null, "bonus": null},
-      "1": {"title": "Ensign", "bonus": "Melee (blade) 1"},
+      "1": {"title": "Ensign", "bonus": "Melee (Blade) 1"},
       "2": {"title": "Sub-Lieutenant", "bonus": null},
       "3": {"title": "Lieutenant", "bonus": "Leadership 1"},
-      "4": {"title": "Commander", "bonus": "Tactics (naval) 1"},
+      "4": {"title": "Commander", "bonus": "Tactics (Naval) 1"},
       "5": {"title": "Captain", "bonus": "SOC +1"},
       "6": {"title": "Admiral", "bonus": "SOC +2"}
     }
@@ -128,14 +128,14 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
-    "3": "Your ship engages an enemy vessel. Roll Gunner 8+ or Tactics (naval) 8+; on success, gain one of Gunner 1 or Tactics (naval) 1 and DM+1 to your next Advancement roll. On failure, roll on the Mishap Table (not ejected).",
+    "3": "Your ship engages an enemy vessel. Roll Gunner 8+ or Tactics (Naval) 8+; on success, gain one of Gunner 1 or Tactics (Naval) 1 and DM+1 to your next Advancement roll. On failure, roll on the Mishap Table (not ejected).",
     "4": "You are assigned to an isolated, long-range patrol. Gain one of Astrogation 1, Survival 1, Electronics 1 or Vacc Suit 1.",
     "5": "You are given a commendation. Gain DM+1 to any one Benefit roll.",
     "6": "You serve aboard a ship with an excellent captain. Gain them as a Contact or Ally.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "You are sent to officer training or specialist school. Roll EDU 8+ to gain any one skill from the Officer or Advanced Education tables at level 1.",
     "9": "You distinguish yourself in a ship-to-ship engagement. Gain DM+2 to your next Advancement roll.",
-    "10": "You are transferred to an elite unit. Gain one of Gun Combat 1, Melee (blade) 1, Vacc Suit 1 or Leadership 1, or transfer to the Marines without a Qualification roll.",
+    "10": "You are transferred to an elite unit. Gain one of Gun Combat 1, Melee (Blade) 1, Vacc Suit 1 or Leadership 1, or transfer to the Marines without a Qualification roll.",
     "11": "You are given advanced training in a specialist field. Gain one level in any skill you already have, or DM+4 to your next Advancement roll.",
     "12": "Your heroism in a major fleet action is noted by the Imperial court. You are automatically promoted and gain a medal."
   },

@@ -32,7 +32,7 @@
       "name": "Service Skills",
       "1": "Athletics",
       "2": "Athletics",
-      "3": "Melee (natural)",
+      "3": "Melee (Natural)",
       "4": "Survival",
       "5": "Carouse",
       "6": "Recon"
@@ -45,12 +45,12 @@
       "3": "Vacc Suit",
       "4": "Leadership",
       "5": "Navigation",
-      "6": "Science (history)"
+      "6": "Science (History)"
     },
     "philosopher_elder": {
       "name": "Philosopher-Elder",
       "assignment_only": "philosopher_elder",
-      "1": "Science (history)",
+      "1": "Science (History)",
       "2": "Art",
       "3": "Leader",
       "4": "Advocate",
@@ -64,7 +64,7 @@
       "1": {"title": null, "bonus": null},
       "2": {"title": "Pod Matriarch", "bonus": "Leadership 1 and SOC 8 or SOC +1"},
       "3": {"title": null, "bonus": null},
-      "4": {"title": "Clan Matriarch", "bonus": "Science (politics) and SOC 10 or SOC +1"},
+      "4": {"title": "Clan Matriarch", "bonus": "Science (Politics) and SOC 10 or SOC +1"},
       "5": {"title": null, "bonus": null},
       "6": {"title": "Community Matriarch", "bonus": "SOC 12 or SOC +1"}
     }
@@ -80,12 +80,12 @@
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
     "3": "Rivalries between another race and Orca on your world's ocean resources lead to conflict. Do you choose violence or diplomacy? If you choose diplomacy roll Advocate or Diplomat 8+. Success means your faction was vindicated and you gain DM+2 on your next advancement roll; failure means a loss of one Benefit roll. If you chose violence roll Explosives, Gun Combat or Tactics 8+. Failure results in DM-2 on your next advancement roll and you must roll on the Injury table. Whichever path you choose, raise your Leadership or the skill you rolled on by +1.",
-    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of Orca. Gain a Contact in the research field and roll EDU 7+ to gain Science (cybernetics) 1.",
-    "5": "You have a chance to travel offworld and spend a long period of time in space. Increase your choice of either Athletics (dexterity), Electronics (comms) or Electronics (sensors) by +1 or gain Pilot 1.",
+    "4": "You volunteer for a research project to test new waldo equipment or cybernetics to improve the lives of Orca. Gain a Contact in the research field and roll EDU 7+ to gain Science (Cybernetics) 1.",
+    "5": "You have a chance to travel offworld and spend a long period of time in space. Increase your choice of either Athletics (Dexterity), Electronics (Comms) or Electronics (Sensors) by +1 or gain Pilot 1.",
     "6": "You rescue a high-status swimmer who was lost at sea. Roll STR 7+; if successful gain a SOC 10+ sophont as an Ally.",
     "7": "Life Event. Roll on the Life Events table.",
     "8": "Spend an extensive period living out of water among humans. Raise Vacc Suit or Diplomat by +1.",
-    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (natural) or Gun Combat 7+ to rescue them; if successful, gain one of them as an Ally. If you fail roll on the Injury table.",
+    "9": "Your companions are attacked by fierce sea creatures! Do you fight or flee? If you flee gain one of the survivors as an Enemy. If you stay and fight, roll Melee (Natural) or Gun Combat 7+ to rescue them; if successful, gain one of them as an Ally. If you fail roll on the Injury table.",
     "10": "You are asked to volunteer for a dangerous mission to rescue people in a sinking vessel or underwater city. Roll Survival or END 8+. If successful gain DM+2 on your next advancement roll and gain an extra Benefit roll. If you fail, roll on the Injury table.",
     "11": "You discover a sunken vessel that contains valuable salvage. Gain one Benefit roll.",
     "12": "Rise to a position of responsibility. Your next advancement roll automatically succeeds."

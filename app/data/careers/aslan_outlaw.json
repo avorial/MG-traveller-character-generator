@@ -43,8 +43,8 @@
       "name": "Service Skills",
       "1": "Streetwise",
       "2": "Gun Combat",
-      "3": "Melee (natural)",
-      "4": "Tactics (military)",
+      "3": "Melee (Natural)",
+      "4": "Tactics (Military)",
       "5": "Persuade",
       "6": "Stealth"
     },
@@ -54,7 +54,7 @@
       "2": "Engineer",
       "3": "Gunner",
       "4": "Mechanic",
-      "5": "Athletics (dexterity)",
+      "5": "Athletics (Dexterity)",
       "6": "Vacc Suit"
     },
     "raider": {
@@ -79,7 +79,7 @@
   "ranks": {
     "pirate": {
       "0": { "title": "Outlaw", "bonus": null },
-      "1": { "title": null, "bonus": "Melee (natural) 1" },
+      "1": { "title": null, "bonus": "Melee (Natural) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Feared Outlaw", "bonus": "Independence 1 or Streetwise 1" },
       "4": { "title": null, "bonus": null },
@@ -88,7 +88,7 @@
     },
     "raider": {
       "0": { "title": "Outlaw", "bonus": null },
-      "1": { "title": null, "bonus": "Melee (natural) 1" },
+      "1": { "title": null, "bonus": "Melee (Natural) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Feared Outlaw", "bonus": "Independence 1 or Streetwise 1" },
       "4": { "title": null, "bonus": null },
@@ -97,7 +97,7 @@
     },
     "thief": {
       "0": { "title": "Outlaw", "bonus": null },
-      "1": { "title": null, "bonus": "Melee (natural) 1" },
+      "1": { "title": null, "bonus": "Melee (Natural) 1" },
       "2": { "title": null, "bonus": null },
       "3": { "title": "Feared Outlaw", "bonus": "Independence 1 or Streetwise 1" },
       "4": { "title": null, "bonus": null },

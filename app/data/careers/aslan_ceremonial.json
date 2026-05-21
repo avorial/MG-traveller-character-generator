@@ -47,7 +47,7 @@
       "1": "Diplomat",
       "2": "Investigate",
       "3": "Advocate",
-      "4": "Melee (natural)",
+      "4": "Melee (Natural)",
       "5": "Science",
       "6": "Persuade"
     },
@@ -85,7 +85,7 @@
       "3": "Diplomat",
       "4": "Persuade",
       "5": "Tolerance",
-      "6": "Melee (natural)"
+      "6": "Melee (Natural)"
     }
   },
   "ranks": {
@@ -128,7 +128,7 @@
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
     "3": "You uncover an embarrassing secret related to your clan or family. Either trade it for 1D Clan Shares or keep it in reserve. Whenever you use this secret, gain a clan elder as an Enemy.",
-    "4": "You witnessed one of the great duellists in action. Gain Melee (natural) 1, Athletics (strength) 1, Carouse 1 or Medic 1.",
+    "4": "You witnessed one of the great duellists in action. Gain Melee (Natural) 1, Athletics (Strength) 1, Carouse 1 or Medic 1.",
     "5": "You are assigned a challenging task. Roll Art, Investigate or Persuade 8+. If you succeed, gain DM+2 to your next advancement roll. If you fail, you suffer DM-2 to your next advancement roll.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",
     "7": "Life Event. Roll on the Aslan Life Events table.",

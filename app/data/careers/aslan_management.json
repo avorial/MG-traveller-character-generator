@@ -71,7 +71,7 @@
       "name": "Clan Aide",
       "1": "Admin",
       "2": "Advocate",
-      "3": "Melee (natural)",
+      "3": "Melee (Natural)",
       "4": "Medic",
       "5": "Steward",
       "6": "Tolerance"
@@ -125,7 +125,7 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
-    "3": "A rival clan attacks and your place of work is targeted by an assault force. Roll Melee (natural), Stealth or Gun Combat 8+. If you succeed, gain any skill. If you fail, roll on the Injury table.",
+    "3": "A rival clan attacks and your place of work is targeted by an assault force. Roll Melee (Natural), Stealth or Gun Combat 8+. If you succeed, gain any skill. If you fail, roll on the Injury table.",
     "4": "You pick up some useful skills. Gain Pilot 1, Mechanic 1, Electronics 1 or Drive 1.",
     "5": "You have the opportunity to take a risk in business. Wager up to three Benefit rolls and roll Broker 8+. If you succeed, gain an equal number of Benefit rolls to those you wagered. If you fail, lose any wagered Benefits.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill.",

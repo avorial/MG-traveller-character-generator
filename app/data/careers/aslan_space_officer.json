@@ -62,12 +62,12 @@
     },
     "commander": {
       "name": "Commander",
-      "1": "Tactics (naval)",
+      "1": "Tactics (Naval)",
       "2": "Diplomat",
       "3": "Leadership",
       "4": "Pilot",
       "5": "Gunner",
-      "6": "Tactics (naval)"
+      "6": "Tactics (Naval)"
     },
     "shipmaster": {
       "name": "Shipmaster",
@@ -82,7 +82,7 @@
       "name": "Navigator",
       "1": "Astrogation",
       "2": "Pilot",
-      "3": "Engineer (j-drive)",
+      "3": "Engineer (J-drive)",
       "4": "Electronics",
       "5": "Leadership",
       "6": "Astrogation"
@@ -94,7 +94,7 @@
       "1": { "title": "Intendant", "bonus": "Leadership 1" },
       "2": { "title": "Lieutenant", "bonus": null },
       "3": { "title": "Senior Lieutenant", "bonus": null },
-      "4": { "title": "Commandant", "bonus": "Tactics (naval) 1" },
+      "4": { "title": "Commandant", "bonus": "Tactics (Naval) 1" },
       "5": { "title": "Captain", "bonus": null },
       "6": { "title": "Admiral", "bonus": "TER +2" }
     },
@@ -111,7 +111,7 @@
       "0": { "title": "Trainee Navigator", "bonus": null },
       "1": { "title": "Junior Navigator", "bonus": "Astrogation 1" },
       "2": { "title": null, "bonus": null },
-      "3": { "title": "Navigator", "bonus": "Electronics (computers) 1" },
+      "3": { "title": "Navigator", "bonus": "Electronics (Computers) 1" },
       "4": { "title": null, "bonus": null },
       "5": { "title": null, "bonus": null },
       "6": { "title": null, "bonus": "2 Clan Shares" }
@@ -135,7 +135,7 @@
     "8": "You have the opportunity to establish a landhold in your name. Gain TER +2.",
     "9": "Your clan goes to war with another clan and your vessel attacks one of their worlds. If you drive the colonists offworld with vicious tactics, gain TER +2 but lose SOC −2.",
     "10": "You are challenged to a duel by a rival. If you refuse, you lose SOC −1D. Accept, and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next advancement roll.",
-    "11": "You befriend an old Aslan admiral. Either gain Tactics (naval) 1 or DM+4 to any advancement roll thanks to their aid.",
+    "11": "You befriend an old Aslan admiral. Either gain Tactics (Naval) 1 or DM+4 to any advancement roll thanks to their aid.",
     "12": "Your efforts strike a great blow for your clan. You are automatically promoted."
   },
   "mustering_out": {

@@ -50,7 +50,7 @@
       "1": "Independence (if male) or Admin (if female)",
       "2": "Vacc Suit",
       "3": "Streetwise",
-      "4": "Melee (natural)",
+      "4": "Melee (Natural)",
       "5": "Mechanic",
       "6": "Survival"
     },
@@ -66,7 +66,7 @@
     "wildcatter": {
       "name": "Wildcatter",
       "1": "Mechanic",
-      "2": "Profession (miner or belter)",
+      "2": "Profession (Miner or Belter)",
       "3": "Vacc Suit",
       "4": "Survival",
       "5": "Astrogation",
@@ -103,7 +103,7 @@
     },
     "wildcatter": {
       "0": { "title": "Scavenger", "bonus": null },
-      "1": { "title": "Finder", "bonus": "Profession (miner or belter) 1" },
+      "1": { "title": "Finder", "bonus": "Profession (Miner or Belter) 1" },
       "2": { "title": "Experienced Finder", "bonus": null },
       "3": { "title": "Surveyor", "bonus": "Mechanic 1" },
       "4": { "title": "Senior Surveyor", "bonus": null },
@@ -144,7 +144,7 @@
     "5": "You cross the border into Hierate or human space for a job and get to know the locals. Gain Tolerance and one of the following: Persuade 1, Deception 1, Independence 1 or a Contact.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any skill except Jack-of-All-Trades.",
     "7": "Life Event. Roll on the Aslan Life Events table.",
-    "8": "You pick up some useful shipboard skills. Gain one of Pilot (spacecraft), Gunner (turret), Engineer or Mechanic.",
+    "8": "You pick up some useful shipboard skills. Gain one of Pilot (Spacecraft), Gunner (Turret), Engineer or Mechanic.",
     "9": "You have to recruit to fill positions in your crew. Gain Carouse, Streetwise or Persuade and an additional roll on the Cash Benefits table.",
     "10": "You come into conflict with a rival team. Roll Melee 8+ or Deception 8+. If you succeed, gain an Ally from your crew. If you fail, lose your Benefit roll for this term and gain an Enemy.",
     "11": "Your clan offers you a chance at redemption. You may restore your SOC to its original value and attempt to qualify for another career next term, but you owe a great debt to a clan elder, whom you gain as a Contact.",

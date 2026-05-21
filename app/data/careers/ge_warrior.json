@@ -54,7 +54,7 @@
       "2": "Electronics",
       "3": "Explosives",
       "4": "Mechanic",
-      "5": "Tactics (military)",
+      "5": "Tactics (Military)",
       "6": "Survival"
     },
     "imperial_guard": {
@@ -69,7 +69,7 @@
     "dragoon": {
       "name": "Dragoon",
       "1": "Drive or Flyer",
-      "2": "Gunner (turret)",
+      "2": "Gunner (Turret)",
       "3": "Heavy Weapons",
       "4": "Mechanic",
       "5": "Electronics",
@@ -125,14 +125,14 @@
   "events": {
     "2": "Disaster! Roll on the Mishap table but you are not forced to leave this career.",
     "3": "You are sent to fight the Hierate on the front lines. Roll Recon or Gun Combat 8+ to avoid rolling on the Injury table. Regardless of the result, gain one level of Stealth, Medic or Explosives.",
-    "4": "You are assigned to garrison duty on a clan outpost. Gain a Contact there and one of the following skills: Melee (natural), Electronics or Mechanic.",
-    "5": "You take the battle to the Hierate and fight outside the Empire. Gain one level of Melee (natural), Gun Combat, Independence (if male) or Survival, then make a check on that skill. On an 8+, your unit is victorious and you gain either SOC +1 or DM+2 to one Benefit roll. If you fail, you receive DM−2 on your next Advancement roll.",
+    "4": "You are assigned to garrison duty on a clan outpost. Gain a Contact there and one of the following skills: Melee (Natural), Electronics or Mechanic.",
+    "5": "You take the battle to the Hierate and fight outside the Empire. Gain one level of Melee (Natural), Gun Combat, Independence (if male) or Survival, then make a check on that skill. On an 8+, your unit is victorious and you gain either SOC +1 or DM+2 to one Benefit roll. If you fail, you receive DM−2 on your next Advancement roll.",
     "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
     "7": "Life Event. Roll on the Aslan Life Events table.",
     "8": "You fight side by side with the dog soldiers. Gain a level of Language or Tolerance.",
-    "9": "Your ahriy's honour is questioned and you must duel to defend it. Roll Melee (natural) 8+. If you succeed, gain SOC +1. If you fail, lose SOC −1. Also gain a Rival.",
+    "9": "Your ahriy's honour is questioned and you must duel to defend it. Roll Melee (Natural) 8+. If you succeed, gain SOC +1. If you fail, lose SOC −1. Also gain a Rival.",
     "10": "If Aslan, you are considered for promotion to the officer caste. Add the number of terms served in this career as a DM if you attempt to qualify for the Warrior Officer career next term.",
-    "11": "Mercenary Event. You serve as a mercenary and fight in the Dustbelt. Either gain Tactics (military) if male or Electronics if female, or DM+3 to your next Advancement roll.",
+    "11": "Mercenary Event. You serve as a mercenary and fight in the Dustbelt. Either gain Tactics (Military) if male or Electronics if female, or DM+3 to your next Advancement roll.",
     "12": "Mercenary Event. You serve with distinction as a mercenary. You are automatically promoted and gain SOC +1."
   },
   "mustering_out": {

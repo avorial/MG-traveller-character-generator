@@ -33,7 +33,7 @@
       "1": "STR +1",
       "2": "DEX +1",
       "3": "END +1",
-      "4": "Melee (unarmed)",
+      "4": "Melee (Unarmed)",
       "5": "Streetwise",
       "6": "Deception"
     },
@@ -61,8 +61,8 @@
       "assignment_only": "thief",
       "1": "Stealth",
       "2": "Deception",
-      "3": "Electronics (computers)",
-      "4": "Athletics (dexterity)",
+      "3": "Electronics (Computers)",
+      "4": "Athletics (Dexterity)",
       "5": "Streetwise",
       "6": "Melee"
     },
@@ -81,10 +81,10 @@
       "assignment_only": "pirate",
       "1": "Vacc Suit",
       "2": "Gunner",
-      "3": "Pilot (spacecraft)",
+      "3": "Pilot (Spacecraft)",
       "4": "Gun Combat",
       "5": "Mechanic",
-      "6": "Melee (blade)"
+      "6": "Melee (Blade)"
     }
   },
   "ranks": {

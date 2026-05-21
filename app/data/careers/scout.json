@@ -41,7 +41,7 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Pilot (small craft or spacecraft)",
+      "1": "Pilot (Small Craft or Spacecraft)",
       "2": "Survival",
       "3": "Mechanic",
       "4": "Astrogation",
@@ -63,7 +63,7 @@
       "assignment_only": "courier",
       "1": "Electronics",
       "2": "Flyer",
-      "3": "Pilot (spacecraft)",
+      "3": "Pilot (Spacecraft)",
       "4": "Engineer",
       "5": "Athletics",
       "6": "Astrogation"
@@ -110,10 +110,10 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
-    "3": "Your ship is ambushed by enemy vessels. Either run, and roll Pilot 8+ to escape, or treat with them and roll Persuade 10+ to bargain. If you fail, your ship is destroyed and you may not re-enlist in the Scouts at the end of this term. If you succeed, you survive and gain Electronics (sensors) 1. Either way, gain an Enemy.",
-    "4": "You survey an alien world. Gain one of Animals (riding or training) 1, Survival 1, Recon 1 or Science 1.",
+    "3": "Your ship is ambushed by enemy vessels. Either run, and roll Pilot 8+ to escape, or treat with them and roll Persuade 10+ to bargain. If you fail, your ship is destroyed and you may not re-enlist in the Scouts at the end of this term. If you succeed, you survive and gain Electronics (Sensors) 1. Either way, gain an Enemy.",
+    "4": "You survey an alien world. Gain one of Animals (riding or Training) 1, Survival 1, Recon 1 or Science 1.",
     "5": "You perform an exemplary service for the scouts. Gain DM+1 to any one Benefit roll.",
-    "6": "You spend several years jumping from world to world in your scout ship. Gain one of Astrogation 1, Electronics 1, Navigation 1, Pilot (small craft) 1 or Mechanic 1.",
+    "6": "You spend several years jumping from world to world in your scout ship. Gain one of Astrogation 1, Electronics 1, Navigation 1, Pilot (Small Craft) 1 or Mechanic 1.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "When dealing with an alien race, you have an opportunity to gather extra intelligence. Roll Electronics 8+ or Deception 8+. If you succeed, gain an Ally in the Imperium and DM+2 to your next Advancement roll. If you fail, roll on the Mishap Table, but you are not ejected from this career.",
     "9": "Your scout ship is one of the first on the scene to rescue the survivors of a disaster. Roll Medic 8+ or Engineer 8+. If you succeed, gain a Contact and DM+2 to your next Advancement check. If you fail, gain an Enemy.",

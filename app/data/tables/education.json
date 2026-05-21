@@ -272,7 +272,7 @@
         ],
         "on_graduation": {
           "PSI": 1,
-          "fixed_skills": ["Science (psionicology) 1"],
+          "fixed_skills": ["Science (Psionicology) 1"],
           "psionic_talent_upgrade": 1,
           "permanent": {
             "psion_career_auto_entry": true
@@ -280,11 +280,11 @@
           "associates": [
             {"kind": "rival", "description": "Rival — community member unhappy you left"}
           ],
-          "note": "Graduated. PSI+1, Science (psionicology) 1, one psionic talent raised to level 1. Gain a Rival. Psion career entry is now always automatic."
+          "note": "Graduated. PSI+1, Science (Psionicology) 1, one psionic talent raised to level 1. Gain a Rival. Psion career entry is now always automatic."
         },
         "on_honours": {
           "PSI": 1,
-          "fixed_skills": ["Science (psionicology) 1"],
+          "fixed_skills": ["Science (Psionicology) 1"],
           "psionic_all_talents_to_1": true,
           "psionic_one_talent_to_2": true,
           "permanent": {
@@ -293,7 +293,7 @@
           "associates": [
             {"kind": "enemy", "description": "Enemy — community angered you left"}
           ],
-          "note": "Graduated with Honours. PSI+1, Science (psionicology) 1, all talents to level 1, one talent to level 2. Gain an Enemy instead of a Rival. Psion career always automatic."
+          "note": "Graduated with Honours. PSI+1, Science (Psionicology) 1, all talents to level 1, one talent to level 2. Gain an Enemy instead of a Rival. Psion career always automatic."
         },
         "on_failure": {
           "note": "Failed to graduate. Basic psionic training incomplete — keep any enrollment skills."

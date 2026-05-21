@@ -35,14 +35,14 @@
       "2": "DEX +1",
       "3": "END +1",
       "4": "Gambler",
-      "5": "Melee (unarmed)",
-      "6": "Melee (blade)"
+      "5": "Melee (Unarmed)",
+      "6": "Melee (Blade)"
     },
     "service_skills": {
       "name": "Service Skills",
       "1": "Athletics",
       "2": "Vacc Suit",
-      "3": "Tactics (military)",
+      "3": "Tactics (Military)",
       "4": "Heavy Weapons",
       "5": "Gun Combat",
       "6": "Stealth"
@@ -62,7 +62,7 @@
       "requires_commission": true,
       "1": "Leadership",
       "2": "Diplomat",
-      "3": "Tactics (military)",
+      "3": "Tactics (Military)",
       "4": "Electronics",
       "5": "Admin",
       "6": "Advocate"
@@ -71,7 +71,7 @@
       "name": "Support",
       "assignment_only": "support",
       "1": "Mechanic",
-      "2": "Electronics (comms)",
+      "2": "Electronics (Comms)",
       "3": "Drive",
       "4": "Medic",
       "5": "Heavy Weapons",
@@ -81,9 +81,9 @@
       "name": "Star Marine",
       "assignment_only": "star_marine",
       "1": "Vacc Suit",
-      "2": "Athletics (dexterity)",
+      "2": "Athletics (Dexterity)",
       "3": "Gunner",
-      "4": "Melee (blade)",
+      "4": "Melee (Blade)",
       "5": "Electronics",
       "6": "Gun Combat"
     },
@@ -112,7 +112,7 @@
       "0": {"title": null, "bonus": null},
       "1": {"title": "Lieutenant", "bonus": "Leadership 1"},
       "2": {"title": "Captain", "bonus": null},
-      "3": {"title": "Force Commander", "bonus": "Tactics (military) 1"},
+      "3": {"title": "Force Commander", "bonus": "Tactics (Military) 1"},
       "4": {"title": "Lieutenant Colonel", "bonus": null},
       "5": {"title": "Colonel", "bonus": null},
       "6": {"title": "Brigadier", "bonus": "SOC +1"}
@@ -128,15 +128,15 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
-    "3": "You are involved in a boarding action against a pirate or enemy vessel. Gain one of Vacc Suit 1, Gun Combat 1, Melee 1 or Tactics (military) 1.",
+    "3": "You are involved in a boarding action against a pirate or enemy vessel. Gain one of Vacc Suit 1, Gun Combat 1, Melee 1 or Tactics (Military) 1.",
     "4": "You are deployed to a war-torn planet. Gain one of Recon 1, Survival 1, Stealth 1 or Gun Combat 1.",
     "5": "You are given a special assignment or commendation. Gain DM+1 to any one Benefit roll.",
-    "6": "You perform well in a zero-g engagement. Gain Vacc Suit 1 or Athletics (dexterity) 1.",
+    "6": "You perform well in a zero-g engagement. Gain Vacc Suit 1 or Athletics (Dexterity) 1.",
     "7": "Life Event. Roll on the Life Events Table.",
     "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any one skill listed on the Service or Advanced Education tables at level 1.",
     "9": "Your unit leads a successful drop or boarding. Gain DM+2 to your next Advancement check.",
     "10": "You rescue a fellow Marine under fire. Gain them as an Ally and DM+1 to any one Benefit roll, or transfer to the Army without a Qualification roll.",
-    "11": "You attend specialist training. Either gain one level of Battle Dress, Heavy Weapons, Explosives or Tactics (military), or DM+4 to your next Advancement roll.",
+    "11": "You attend specialist training. Either gain one level of Battle Dress, Heavy Weapons, Explosives or Tactics (Military), or DM+4 to your next Advancement roll.",
     "12": "Your actions in a critical operation bring you honour. You are automatically promoted and gain a medal."
   },
   "mustering_out": {

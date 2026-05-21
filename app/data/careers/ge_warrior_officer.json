@@ -41,10 +41,10 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Tactics (military)",
+      "1": "Tactics (Military)",
       "2": "Drive or Flyer",
       "3": "Gun Combat",
-      "4": "Melee (natural)",
+      "4": "Melee (Natural)",
       "5": "Leadership",
       "6": "Vacc Suit"
     },
@@ -54,12 +54,12 @@
       "2": "Electronics",
       "3": "Melee",
       "4": "Recon",
-      "5": "Tactics (military)",
+      "5": "Tactics (Military)",
       "6": "Survival"
     },
     "leader": {
       "name": "Leader",
-      "1": "Tactics (military)",
+      "1": "Tactics (Military)",
       "2": "Recon",
       "3": "Melee",
       "4": "Leadership",
@@ -132,8 +132,8 @@
     "8": "You are awarded a fief on a world of the Empire. Gain TER +2.",
     "9": "After a battle, you capture an enemy commander. You may ransom him back and gain TER +1, or free him and gain him as an Ally.",
     "10": "You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept and roll Melee 8+. If you fail, you lose all Benefits from this term. Succeed and gain DM+2 to your next Advancement roll.",
-    "11": "Mercenary Event. You perform flawlessly as a mercenary leader, fighting in foreign wars along the Dustbelt. Either gain Tactics (military) if male or Electronics if female, or DM+3 to your next Advancement roll.",
-    "12": "Mercenary Event. You are assigned to a mercenary unit and fight outside the Empire. Gain one level of Gun Combat, Melee (natural), Independence (if male) or Vacc Suit, then make a task check on that skill. On an 8+, your unit is victorious and you gain either SOC +1 or DM+2 to your next Advancement roll."
+    "11": "Mercenary Event. You perform flawlessly as a mercenary leader, fighting in foreign wars along the Dustbelt. Either gain Tactics (Military) if male or Electronics if female, or DM+3 to your next Advancement roll.",
+    "12": "Mercenary Event. You are assigned to a mercenary unit and fight outside the Empire. Gain one level of Gun Combat, Melee (Natural), Independence (if male) or Vacc Suit, then make a task check on that skill. On an 8+, your unit is victorious and you gain either SOC +1 or DM+2 to your next Advancement roll."
   },
   "mustering_out": {
     "1": { "cash": 500,    "benefit": "1 Clan Share" },
