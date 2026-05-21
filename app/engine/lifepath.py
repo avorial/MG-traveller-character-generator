@@ -4523,6 +4523,24 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append("Career continues — not ejected from this career")
         character.log("Mishap skill check passed — character stays in career")
 
+    elif etype == "dm_benefit":
+        amount = effect.get("amount", 0)
+        character.dm_next_benefit += amount
+        msgs.append(f"DM{amount:+d} to next Benefit roll")
+        character.log(f"Event: dm_next_benefit {amount:+d}")
+
+    elif etype == "trigger_disaster_mishap":
+        # Used in skill_check on_fail: roll on mishap table but career continues
+        try:
+            mishap_roll(character)
+            if term is not None:
+                term.survived = True
+                term.mishap = None
+            msgs.append("Rolled on Mishap table — career continues")
+            character.log("Event skill-check fail: triggered mishap roll, career continues")
+        except Exception as _exc:
+            msgs.append(f"Mishap roll (event on_fail) error: {_exc}")
+
     return msgs, set_pending
 
 
@@ -4979,6 +4997,310 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 auto_applied.append("Gained Ally [Freed Enemy Commander]")
                 character.log("Event choice: freed commander, gained Ally")
             character.pending_career_mishap_choice = None
+
+        # ----- generic event choice handlers -----
+
+        elif choice_id == "event_skillmulti_or_dm4":
+            # option id = exact skill name (e.g. "Heavy Weapons") or "dm4"
+            if selected == "dm4":
+                character.dm_next_advancement += 4
+                auto_applied.append("DM+4 to next Advancement roll")
+                character.log("Event choice: DM+4 to next advancement")
+            else:
+                sn, spec = _split_skill_speciality(selected)
+                msg = character.add_skill(sn, level=1, speciality=spec)
+                auto_applied.append(msg)
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_contact_or_ally":
+            contact_desc = pending.get("contact_desc", "Contact")
+            ally_desc = pending.get("ally_desc", "Ally")
+            if selected == "contact":
+                character.associates.append(Associate(kind="contact", description=contact_desc))
+                auto_applied.append(f"Gained {contact_desc}")
+            else:
+                character.associates.append(Associate(kind="ally", description=ally_desc))
+                auto_applied.append(f"Gained {ally_desc}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_dm_type_choice":
+            # citizen event 10: DM+2 advancement OR DM+1 benefit
+            if selected == "advancement":
+                character.dm_next_advancement += 2
+                auto_applied.append("DM+2 to next Advancement roll")
+                character.log("Event choice: DM+2 advancement")
+            else:
+                character.dm_next_benefit += 1
+                auto_applied.append("DM+1 to next Benefit roll")
+                character.log("Event choice: DM+1 benefit")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_expose_or_suppress":
+            # expose → dm_advancement+2 + enemy; suppress → ally
+            ally_desc = pending.get("ally_desc", "Ally [Suppressed Information]")
+            enemy_desc = pending.get("enemy_desc", "Enemy [Exposed Person]")
+            if selected == "expose":
+                character.dm_next_advancement += 2
+                auto_applied.append("DM+2 to next Advancement roll")
+                character.associates.append(Associate(kind="enemy", description=enemy_desc))
+                auto_applied.append(f"Gained {enemy_desc}")
+                character.log(f"Event choice: expose — DM+2 advancement, gained {enemy_desc}")
+            else:
+                character.associates.append(Associate(kind="ally", description=ally_desc))
+                auto_applied.append(f"Gained {ally_desc}")
+                character.log(f"Event choice: suppress — gained {ally_desc}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_report_or_suppress":
+            # report → dm_advancement+2 + enemy; suppress → ally
+            ally_desc = pending.get("ally_desc", "Ally [Corrupt Contact]")
+            enemy_desc = pending.get("enemy_desc", "Enemy [Reported Person]")
+            if selected == "report":
+                character.dm_next_advancement += 2
+                auto_applied.append("DM+2 to next Advancement roll")
+                character.associates.append(Associate(kind="enemy", description=enemy_desc))
+                auto_applied.append(f"Gained {enemy_desc}")
+                character.log(f"Event choice: report — DM+2 advancement, gained {enemy_desc}")
+            else:
+                character.associates.append(Associate(kind="ally", description=ally_desc))
+                auto_applied.append(f"Gained {ally_desc}")
+                character.log(f"Event choice: suppress — gained {ally_desc}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_surveil_or_rapport":
+            # solsec event 4: surveil (skill choice) or rapport (contact)
+            if selected == "surveil":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Investigate", "Stealth"],
+                    "prompt": "Choose skill gained from surveillance:",
+                }
+            else:
+                desc = pending.get("contact_desc", "Contact [Monitored Citizen]")
+                character.associates.append(Associate(kind="contact", description=desc))
+                auto_applied.append(f"Gained {desc}")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_marine_rescue":
+            # marine/solomani_marine event 10: ally always; DM+1 benefit OR transfer note
+            ally_desc = pending.get("ally_desc", "Ally [Rescued Marine]")
+            character.associates.append(Associate(kind="ally", description=ally_desc))
+            auto_applied.append(f"Gained {ally_desc}")
+            if selected == "benefit":
+                character.dm_next_benefit += 1
+                auto_applied.append("DM+1 to next Benefit roll")
+            else:
+                auto_applied.append(
+                    "Transfer to Army/Confederation Army without Qualification roll — apply manually"
+                )
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_navy_transfer":
+            # navy event 10: skill choice OR transfer to Marines note
+            if selected == "transfer":
+                auto_applied.append(
+                    "Transfer to Marines without Qualification roll — apply manually"
+                )
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Gun Combat", "Melee (blade)", "Vacc Suit", "Leadership"],
+                    "prompt": "Choose skill gained from elite unit transfer:",
+                }
+
+        elif choice_id == "event_entertainer_celebrity":
+            # entertainer event 6: player chooses relationship type with celebrity
+            desc = pending.get("desc", f"{selected.capitalize()} [Celebrity/Noble/Criminal Figure]")
+            if selected in ("contact", "ally", "rival", "enemy"):
+                character.associates.append(Associate(kind=selected, description=desc))
+                auto_applied.append(f"Gained {selected.capitalize()}: {desc}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_noble_duel":
+            # noble event 3: refuse (SOC-1) or accept (Melee blade 8+ → pass SOC+1, fail injury+SOC-1)
+            if selected == "refuse":
+                soc_old = character.characteristics.SOC
+                character.characteristics.set("SOC", max(0, soc_old - 1))
+                auto_applied.append(f"Refused duel — SOC {soc_old}→{max(0, soc_old - 1)} (−1)")
+                character.log("Noble duel: refused, SOC-1")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Melee (blade)", "Leadership", "Tactics", "Deception"],
+                    "prompt": "Gain one skill from the duel:",
+                }
+            else:
+                auto_applied.append("Accepted duel — rolling Melee (blade) 8+")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Melee (blade)"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
+                    "on_fail": [{"type": "injury"}, {"type": "stat", "stat": "SOC", "amount": -1}],
+                    "prompt": "You accepted the duel — roll Melee (blade) 8+: pass SOC+1; fail injury+SOC−1",
+                }
+
+        elif choice_id == "event_noble_duel_skill":
+            # always-fired skill choice after noble duel (win or lose still get skill)
+            character.pending_career_mishap_choice = {
+                "type": "skill_choice",
+                "options": ["Melee (blade)", "Leadership", "Tactics", "Deception"],
+                "prompt": "Gain one skill from the duel:",
+            }
+
+        elif choice_id == "event_noble_conspiracy":
+            # noble event 8: refuse (enemy) or accept (Deception/Persuade 8+)
+            if selected == "refuse":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Noble Conspiracy]")
+                )
+                auto_applied.append("Refused conspiracy — gained Enemy [Noble Conspiracy]")
+                character.log("Noble conspiracy: refused, gained enemy")
+                character.pending_career_mishap_choice = None
+            else:
+                auto_applied.append("Accepted conspiracy — rolling Deception or Persuade 8+")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Deception"}, {"name": "Persuade"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "skill_choice",
+                                 "options": ["Deception", "Persuade", "Tactics", "Carouse"]}],
+                    "on_fail": [{"type": "trigger_disaster_mishap"}],
+                    "prompt": "Conspiracy operation — roll Deception or Persuade 8+: pass skill choice; fail mishap (career continues)",
+                }
+
+        elif choice_id == "event_party_takebane":
+            # party event 5: accept blame (ally or benefit DM) or refuse (DM-2 adv + rival)
+            if selected == "accept":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Senior Party Member]")
+                )
+                auto_applied.append("Accepted blame — gained Ally [Senior Party Member]")
+                character.dm_next_benefit += 1
+                auto_applied.append("DM+1 to next Benefit roll")
+                character.log("Party event 5: accepted blame, ally + benefit DM")
+            else:
+                character.dm_next_advancement -= 2
+                auto_applied.append("Refused — DM−2 to next Advancement roll")
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Senior Party Member]")
+                )
+                auto_applied.append("Gained Rival [Senior Party Member]")
+                character.log("Party event 5: refused, DM-2 advancement, rival")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_party_evidence":
+            # party event 8: expose (DM+2 adv) or suppress (ally)
+            if selected == "expose":
+                character.dm_next_advancement += 2
+                auto_applied.append("Exposed superior — DM+2 to next Advancement roll")
+                character.log("Party event 8: exposed superior, DM+2 advancement")
+            else:
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Party Superior — supported]")
+                )
+                auto_applied.append("Suppressed evidence — gained Ally [Party Superior]")
+                character.log("Party event 8: suppressed evidence, gained ally")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_merchant_agreement":
+            # merchant event 8: ally always; DM+1 benefit OR DM+2 advancement
+            character.associates.append(Associate(kind="ally", description="Ally [Major Client]"))
+            auto_applied.append("Gained Ally [Major Client]")
+            if selected == "benefit":
+                character.dm_next_benefit += 1
+                auto_applied.append("DM+1 to next Benefit roll")
+            else:
+                character.dm_next_advancement += 2
+                auto_applied.append("DM+2 to next Advancement roll")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_citizen_free_transfer":
+            # citizen/drifter event 11: skill OR free career transfer
+            if selected == "transfer":
+                auto_applied.append(
+                    "Free transfer to any non-military career without Qualification roll — apply manually"
+                )
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "free_skill_choice",
+                    "prompt": "Gain one level in any service skill of your choice:",
+                }
+
+        elif choice_id == "event_solsec_leverage":
+            # solsec event 10: expose (DM+2 adv + enemy) or leverage (ally + rival)
+            if selected == "expose":
+                character.dm_next_advancement += 2
+                auto_applied.append("Exposed disloyal official — DM+2 to next Advancement roll")
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Exposed Official]")
+                )
+                auto_applied.append("Gained Enemy [Exposed Official]")
+            else:
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Official — leveraged silence]")
+                )
+                auto_applied.append("Gained Ally [Official — leveraged silence]")
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Suspicious SolSec Faction]")
+                )
+                auto_applied.append("Gained Rival [Suspicious SolSec Faction]")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_confnav_recreation":
+            # confederation navy event 4: recreation (skill) or study (DM+2 adv or INT 8+ for skill)
+            if selected == "recreation":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Carouse", "Gambler"],
+                    "prompt": "Recreation — choose skill gained:",
+                }
+            else:
+                character.dm_next_advancement += 2
+                auto_applied.append("Study group — DM+2 to next Advancement roll")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "navy_specialist_training":
+            # navy event 11: upgrade any existing skill OR DM+4 advancement
+            if selected == "dm4":
+                character.dm_next_advancement += 4
+                auto_applied.append("DM+4 to next Advancement roll")
+                character.log("Event choice: DM+4 advancement (navy specialist training)")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "free_skill_choice",
+                    "prompt": "Increase any one skill you already have by one level:",
+                }
+
+        elif choice_id == "prisoner_contraband":
+            # prisoner event 5: skill choice or DM+2 benefit
+            if selected == "benefit":
+                character.dm_next_benefit += 2
+                auto_applied.append("DM+2 to next Benefit roll")
+                character.log("Event choice: DM+2 benefit (prisoner contraband)")
+                character.pending_career_mishap_choice = None
+            else:
+                sn, spec = _split_skill_speciality(selected)
+                msg = character.add_skill(sn, level=1, speciality=spec)
+                auto_applied.append(msg)
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "entertainer_patronage":
+            # entertainer event 11: free skill OR DM+4 advancement
+            if selected == "dm4":
+                character.dm_next_advancement += 4
+                auto_applied.append("DM+4 to next Advancement roll")
+                character.log("Event choice: DM+4 to next advancement")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "free_skill_choice",
+                    "prompt": "Gain one level in any skill of your choice:",
+                }
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -6138,6 +6460,604 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         11: [{"type": "skill", "name": "Carouse", "level": 1},
              {"type": "ally", "desc": "Ally [Superior Noble]"}],
         12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+
+    # ---- Core Imperial careers ----
+    "agent": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Investigate"}, {"name": "Streetwise"}], "target": 8,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Deception", "Jack-of-All-Trades", "Persuade", "Tactics"]}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Roll Investigate or Streetwise 8+ — pass: skill choice; fail: Mishap (career continues)"}],
+        4:  [{"type": "dm_benefit", "amount": 1}],
+        5:  [{"type": "d_associates", "kind": "contact", "dice": "D3"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Increase any one skill you already have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase any one existing skill"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "Deception"}], "target": 8,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Deception", "Jack-of-All-Trades", "Persuade", "Streetwise"]}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Undercover op — roll Deception 8+: pass skill choice; fail Mishap. Also roll on Rogue/Citizen table (manual)"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "skill_choice", "options": ["Drive", "Flyer", "Pilot", "Gunner"]}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Befriended by senior agent — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Increase Investigate by one level"},
+                  {"id": "dm4",  "label": "DM+4 to next Advancement roll"},
+              ], "skill_option": "Investigate"}],
+    },
+    "army": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice",
+              "options": ["Vacc Suit", "Engineer", "Animals (riding)", "Recon"]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Stealth", "Streetwise", "Persuade", "Recon"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Gun Combat", "Leadership"]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Brutal ground war — roll EDU 8+: pass gain Gun Combat or Leadership; fail injury"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Increase any one skill you already have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase any one existing skill"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "skill_choice",
+              "options": ["Admin", "Investigate", "Deception", "Recon"]}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Specialist training — choose reward:",
+              "options": [
+                  {"id": "Heavy Weapons",  "label": "Heavy Weapons 1"},
+                  {"id": "Electronics",    "label": "Electronics 1"},
+                  {"id": "Engineer",       "label": "Engineer 1"},
+                  {"id": "dm4",            "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "citizen": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "free_skill_choice",
+              "prompt": "Gain any one Service Skill at level 1"}],
+        4:  [{"type": "rival", "desc": "Rival [Co-worker/Competitor]"},
+             {"type": "free_skill_choice",
+              "prompt": "Gain one level in any skill you already have"}],
+        5:  [{"type": "contact", "desc": "Contact [Workplace Friend]"},
+             {"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Increase any one skill you already have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase any one existing skill"}],
+        8:  [{"type": "skill_choice",
+              "options": ["Admin", "Profession", "Steward", "Survival"]}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "pending_choice", "id": "event_dm_type_choice",
+              "prompt": "Singled out for exemplary work — choose reward:",
+              "options": [
+                  {"id": "advancement", "label": "DM+2 to next Advancement roll"},
+                  {"id": "benefit",     "label": "DM+1 to any one Benefit roll"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_citizen_free_transfer",
+              "prompt": "Specialist training — choose reward:",
+              "options": [
+                  {"id": "skill",    "label": "Gain one Service Skill at level 1"},
+                  {"id": "transfer", "label": "Transfer to any non-military career (no Qualification roll)"},
+              ]}],
+        12: [{"type": "dm_benefit", "amount": 2}],
+    },
+    "drifter": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice", "options": ["Melee", "Gun Combat", "Athletics"]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Steward", "Vacc Suit", "Mechanic", "Astrogation"]}],
+        5:  [{"type": "ally", "desc": "Ally [Fellow Drifter]"},
+             {"type": "skill_choice", "options": ["Streetwise", "Deception", "Persuade"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "dm_benefit", "amount": 2}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Dangerous job — roll END 8+: pass DM+2 Benefit; fail Mishap (career continues)"}],
+        8:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
+             {"type": "skill_check",
+              "skills": [{"name": "Melee"}, {"name": "Gun Combat"}, {"name": "Stealth"}],
+              "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Attacked by enemies (Enemy gained regardless) — roll Melee/Gun Combat/Stealth 8+ to avoid injury"}],
+        9:  [{"type": "dm_benefit", "amount": 2}],
+        10: [{"type": "ally", "desc": "Ally [Local in Trouble — helped]"},
+             {"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "free_skill_choice",
+              "prompt": "Gain one level in any skill of your choice"}],
+    },
+    "entertainer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rival", "desc": "Rival [Critic/Corporate Backer]"}],
+        4:  [{"type": "skill_choice",
+              "options": ["Art", "Persuade", "Deception", "Carouse"]}],
+        5:  [{"type": "dm_benefit", "amount": 2}],
+        6:  [{"type": "pending_choice", "id": "event_entertainer_celebrity",
+              "prompt": "Brush with a celebrity, noble or criminal — what relationship develops?",
+              "desc": "Contact/Ally/Rival/Enemy [Celebrity/Noble/Criminal Figure]",
+              "options": [
+                  {"id": "contact", "label": "Contact"},
+                  {"id": "ally",    "label": "Ally"},
+                  {"id": "rival",   "label": "Rival"},
+                  {"id": "enemy",   "label": "Enemy"},
+              ]}],
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "Art"}, {"name": "Persuade"}], "target": 8,
+              "on_pass": [{"type": "skill", "name": "Art", "level": 1},
+                          {"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+              "prompt": "Prestigious venue — roll Art or Persuade 8+: pass Art+1 + DM+2 Adv; fail SOC−1"}],
+        9:  [{"type": "skill_choice",
+              "options": ["Streetwise", "Language", "Pilot (small craft)", "Steward"]}],
+        10: [{"type": "dm_benefit", "amount": 2},
+             {"type": "dm_advancement", "amount": 1}],
+        11: [{"type": "pending_choice", "id": "entertainer_patronage",
+              "prompt": "Major patronage — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Gain one level in any skill of your choice"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ]}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+    "marine": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice",
+              "options": ["Vacc Suit", "Gun Combat", "Melee", "Tactics (military)"]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Recon", "Survival", "Stealth", "Gun Combat"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_choice", "options": ["Vacc Suit", "Athletics (dexterity)"]}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Gain any one skill from the Service or Advanced Education tables at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain a skill from Service/Advanced Education tables"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "pending_choice", "id": "event_marine_rescue",
+              "prompt": "You rescued a fellow Marine under fire:",
+              "ally_desc": "Ally [Rescued Marine]",
+              "options": [
+                  {"id": "benefit",  "label": "Gain Ally + DM+1 to any one Benefit roll"},
+                  {"id": "transfer", "label": "Gain Ally + transfer to Army (no Qualification roll)"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Specialist training — choose reward:",
+              "options": [
+                  {"id": "Battle Dress",       "label": "Battle Dress 1"},
+                  {"id": "Heavy Weapons",      "label": "Heavy Weapons 1"},
+                  {"id": "Explosives",         "label": "Explosives 1"},
+                  {"id": "Tactics (military)", "label": "Tactics (military) 1"},
+                  {"id": "dm4",                "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "merchant": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
+             {"type": "skill_check",
+              "skills": [{"name": "Gun Combat"}, {"name": "Gunner"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Ship attacked (Enemy gained regardless) — roll Gun Combat/Gunner 8+ to escape; fail Mishap (career continues)"}],
+        4:  [{"type": "skill_choice",
+              "options": ["Streetwise", "Broker", "Diplomat", "Carouse"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_choice",
+              "options": ["Language", "Pilot (spacecraft)", "Astrogation", "Steward"]}],
+        8:  [{"type": "pending_choice", "id": "event_merchant_agreement",
+              "prompt": "Long-term cargo agreement with major client — Ally gained either way:",
+              "options": [
+                  {"id": "benefit",     "label": "Ally + DM+1 to any one Benefit roll"},
+                  {"id": "advancement", "label": "Ally + DM+2 to next Advancement roll"},
+              ]}],
+        9:  [{"type": "skill_check",
+              "skills": [{"name": "Pilot"}, {"name": "Deception"}], "target": 8,
+              "on_pass": [{"type": "contact", "desc": "Contact [Imperial Starport Authority]"}],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Creditor/Pirate/Authority]"},
+                          {"type": "trigger_disaster_mishap"}],
+              "prompt": "Pursued — roll Pilot or Deception 8+: pass Contact [ISA]; fail Enemy + Mishap (career continues)"}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Valuable cargo entrusted — choose reward:",
+              "options": [
+                  {"id": "Diplomat", "label": "Diplomat 1"},
+                  {"id": "Broker",   "label": "Broker 1"},
+                  {"id": "Advocate", "label": "Advocate 1"},
+                  {"id": "dm4",      "label": "DM+4 to next Advancement roll"},
+              ]}],
+        12: [{"type": "dm_benefit", "amount": 2}],
+    },
+    "navy": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Gunner"}, {"name": "Tactics (naval)"}], "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Gunner", "Tactics (naval)"]},
+                          {"type": "dm_advancement", "amount": 1}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Ship engages enemy — roll Gunner or Tactics (naval) 8+: pass skill + DM+1 Adv; fail Mishap (career continues)"}],
+        4:  [{"type": "skill_choice",
+              "options": ["Astrogation", "Survival", "Electronics", "Vacc Suit"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "pending_choice", "id": "event_contact_or_ally",
+              "prompt": "Served aboard ship with an excellent captain — how do they regard you?",
+              "contact_desc": "Contact [Excellent Naval Captain]",
+              "ally_desc": "Ally [Excellent Naval Captain]",
+              "options": [
+                  {"id": "contact", "label": "Contact"},
+                  {"id": "ally",    "label": "Ally"},
+              ]}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Gain any one skill from the Officer or Advanced Education tables at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain a skill from Officer/Advanced Education tables"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "pending_choice", "id": "event_navy_transfer",
+              "prompt": "Transferred to elite unit — choose reward:",
+              "options": [
+                  {"id": "skill",    "label": "Gain a skill (Gun Combat, Melee (blade), Vacc Suit or Leadership)"},
+                  {"id": "transfer", "label": "Transfer to Marines (no Qualification roll)"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "navy_specialist_training",
+              "prompt": "Advanced specialist training — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Increase any one skill you already have by one level"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "noble": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "event_noble_duel",
+              "prompt": "Challenged to a duel for your honour — accept or refuse?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — lose SOC −1"},
+                  {"id": "accept", "label": "Accept — roll Melee (blade) 8+: pass SOC+1; fail injury+SOC−1"},
+              ]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Animals (riding)", "Art", "Carouse", "Streetwise"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_choice",
+              "options": ["Advocate", "Admin", "Diplomat", "Persuade"]},
+             {"type": "rival", "desc": "Rival [Political Opponent]"}],
+        8:  [{"type": "pending_choice", "id": "event_noble_conspiracy",
+              "prompt": "A conspiracy of nobles tries to recruit you — accept or refuse?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — gain the conspiracy as an Enemy"},
+                  {"id": "accept", "label": "Accept — roll Deception or Persuade 8+: pass skill; fail Mishap"},
+              ]}],
+        9:  [{"type": "enemy", "desc": "Enemy [Jealous Relative/Unhappy Subject]"},
+             {"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "skill_choice",
+              "options": ["Carouse", "Diplomat", "Persuade", "Steward"]},
+             {"type": "rival", "desc": "Rival [Society Rival]"},
+             {"type": "ally",  "desc": "Ally [Society Ally]"}],
+        11: [{"type": "ally", "desc": "Ally [Powerful Noble]"},
+             {"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Noble alliance — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Leadership 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ], "skill_option": "Leadership"}],
+    },
+    "prisoner": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Melee (unarmed)"}, {"name": "Stealth"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Riot — roll Melee (unarmed) or Stealth 8+ to survive unharmed; fail injury"}],
+        4:  [{"type": "contact", "desc": "Contact [Criminal Underworld/Political Dissident]"}],
+        5:  [{"type": "pending_choice", "id": "prisoner_contraband",
+              "prompt": "Smuggling/side operation — choose reward:",
+              "options": [
+                  {"id": "Streetwise", "label": "Streetwise 1"},
+                  {"id": "Deception",  "label": "Deception 1"},
+                  {"id": "Gambler",    "label": "Gambler 1"},
+                  {"id": "benefit",    "label": "DM+2 to next Benefit roll"},
+              ]}],
+        6:  [{"type": "skill_choice",
+              "options": ["Athletics", "Melee (unarmed)", "Streetwise", "Deception"]}],
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "SOC", "is_stat": True}, {"name": "Advocate"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "dm_advancement", "amount": -2}],
+              "prompt": "Parole hearing — roll SOC or Advocate 8+: pass leave normally; fail DM−2 Advancement"}],
+        9:  [{"type": "skill_check",
+              "skills": [{"name": "END", "is_stat": True}, {"name": "Melee"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "injury"}, {"type": "enemy", "desc": "Enemy [Guard/Gang]"}],
+              "prompt": "Crossed guard/gang — roll END or Melee 8+: fail injury + Enemy"}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "skill_choice",
+              "options": ["Admin", "Medic", "Advocate", "Mechanic", "Language"]}],
+        12: [{"type": "ally", "desc": "Ally [Fellow Prisoner]"}],
+    },
+    "rogue": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "enemy", "desc": "Enemy [Law Enforcement]"},
+             {"type": "skill_check",
+              "skills": [{"name": "Stealth"}, {"name": "Deception"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Job goes wrong (Enemy gained regardless) — roll Stealth/Deception 8+: fail Mishap (career continues)"}],
+        4:  [{"type": "pending_choice", "id": "event_contact_or_ally",
+              "prompt": "Made a connection in the underworld — how close?",
+              "contact_desc": "Contact [Criminal Underworld]",
+              "ally_desc": "Ally [Criminal Underworld]",
+              "options": [
+                  {"id": "contact", "label": "Contact"},
+                  {"id": "ally",    "label": "Ally"},
+              ]}],
+        5:  [{"type": "dm_benefit", "amount": 2}],
+        6:  [{"type": "skill_choice",
+              "options": ["Streetwise", "Stealth", "Deception", "Persuade"]}],
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "Stealth"}, {"name": "Deception"}], "target": 8,
+              "on_pass": [{"type": "contact", "desc": "Contact [Major Criminal Syndicate]"},
+                          {"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Crime Syndicate]"},
+                          {"type": "trigger_disaster_mishap"}],
+              "prompt": "Syndicate job — roll Stealth or Deception 8+: pass Contact + DM+2 Adv; fail Enemy + Mishap (career continues)"}],
+        9:  [{"type": "skill_check",
+              "skills": [{"name": "Streetwise"}, {"name": "Gun Combat"}], "target": 8,
+              "on_pass": [],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Law Enforcement Agent]"},
+                          {"type": "rival", "desc": "Rival [Street Criminal]"}],
+              "prompt": "Clash with law — roll Streetwise or Gun Combat 8+: fail Enemy [Agent] + Rival [Streets]"}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Specialist knowledge/equipment — choose reward:",
+              "options": [
+                  {"id": "Gun Combat",  "label": "Gun Combat 1"},
+                  {"id": "Stealth",     "label": "Stealth 1"},
+                  {"id": "Electronics", "label": "Electronics 1"},
+                  {"id": "Melee",       "label": "Melee 1"},
+                  {"id": "dm4",         "label": "DM+4 to next Advancement roll"},
+              ]}],
+        12: [{"type": "dm_benefit", "amount": 2}],
+    },
+    "scholar": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Survival"}, {"name": "Medic"}], "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Survival", "Medic"]}],
+              "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
+              "prompt": "Expedition goes wrong — roll Survival or Medic 8+: pass gain that skill; fail END−1"}],
+        4:  [{"type": "skill_choice",
+              "options": ["Science", "Engineer", "Medic", "Electronics"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "contact", "desc": "Contact [Academia/Industry/Government]"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Gain one level in any Science specialty of your choice"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain a Science specialty at level 1"}],
+        9:  [{"type": "skill_check", "skills": [{"name": "INT", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "rival", "desc": "Rival [Rival Researcher]"}],
+              "prompt": "Rival tries to scoop your work — roll INT 8+: pass DM+2 Adv; fail Rival [Researcher]"}],
+        10: [{"type": "ally", "desc": "Ally [Powerful Patron — Academia/Industry/Government]"},
+             {"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Major institution or expedition — choose reward:",
+              "options": [
+                  {"id": "Admin",    "label": "Admin 1"},
+                  {"id": "Advocate", "label": "Advocate 1"},
+                  {"id": "Diplomat", "label": "Diplomat 1"},
+                  {"id": "dm4",      "label": "DM+4 to next Advancement roll"},
+              ]}],
+        12: [{"type": "dm_benefit", "amount": 2}],
+    },
+    "scout": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
+             {"type": "skill_check",
+              "skills": [{"name": "Pilot"}, {"name": "Persuade"}], "target": 8,
+              "on_pass": [{"type": "skill", "name": "Electronics (sensors)", "level": 1}],
+              "on_fail": [],
+              "prompt": "Ambushed (Enemy gained regardless) — roll Pilot 8+ (run) or Persuade 10+ (treat); "
+                        "fail lose right to reenlist this term (apply manually); pass gain Electronics (sensors) 1"}],
+        4:  [{"type": "skill_choice",
+              "options": ["Animals (riding)", "Survival", "Recon", "Science"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_choice",
+              "options": ["Astrogation", "Electronics", "Navigation",
+                          "Pilot (small craft)", "Mechanic"]}],
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "Electronics (sensors)"}, {"name": "Deception"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Imperial Intelligence]"},
+                          {"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Gather alien intelligence — roll Electronics (sensors) or Deception 8+: pass Ally + DM+2 Adv; fail Mishap (career continues)"}],
+        9:  [{"type": "skill_check",
+              "skills": [{"name": "Medic"}, {"name": "Engineer"}], "target": 8,
+              "on_pass": [{"type": "contact", "desc": "Contact [Disaster Survivors]"},
+                          {"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "enemy", "desc": "Enemy [Disaster Survivor — blamed you]"}],
+              "prompt": "Rescue survivors — roll Medic or Engineer 8+: pass Contact + DM+2 Adv; fail Enemy"}],
+        10: [{"type": "skill_check",
+              "skills": [{"name": "Survival"}, {"name": "Pilot"}], "target": 8,
+              "on_pass": [{"type": "contact", "desc": "Contact [Alien Race]"},
+                          {"type": "free_skill_choice",
+                           "prompt": "Gain one level in any skill of your choice"}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Fringe of Charted Space — roll Survival or Pilot 8+: pass Contact [Alien] + free skill; fail Mishap (career continues)"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Courier mission for the Imperium — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Diplomat 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ], "skill_option": "Diplomat"}],
+    },
+
+    # ---- Solomani careers ----
+    "confederation_army": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice",
+              "options": ["Vacc Suit", "Engineer", "Animals (riding)", "Recon"]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Stealth", "Streetwise", "Persuade", "Recon"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Gun Combat", "Leadership"]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Brutal ground war — roll EDU 8+: pass gain Gun Combat or Leadership; fail injury"}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Increase any one skill you already have by one level"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to increase any one existing skill"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "skill_choice",
+              "options": ["Admin", "Investigate", "Deception", "Recon"]}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Specialist training — choose reward:",
+              "options": [
+                  {"id": "Heavy Weapons",  "label": "Heavy Weapons 1"},
+                  {"id": "Electronics",    "label": "Electronics 1"},
+                  {"id": "Engineer",       "label": "Engineer 1"},
+                  {"id": "dm4",            "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "confederation_navy": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice",
+              "options": ["Animals (riding)", "Survival", "Recon", "Science"]}],
+        4:  [{"type": "pending_choice", "id": "event_confnav_recreation",
+              "prompt": "Off-duty time — recreation or Party study group?",
+              "options": [
+                  {"id": "recreation", "label": "Recreation — gain Carouse 1 or Gambler 1"},
+                  {"id": "study",      "label": "Study group — DM+2 to next Advancement roll"},
+              ]}],
+        5:  [{"type": "contact", "desc": "Contact [Party Corp/Confederation]"}],
+        6:  [{"type": "skill_choice",
+              "options": ["Electronics (sensors)", "Engineer", "Gunner",
+                          "Pilot", "Tactics (naval)"]}],
+        8:  [{"type": "skill_choice",
+              "options": ["Language", "Recon", "Diplomat", "Steward"]}],
+        9:  [{"type": "skill_choice", "options": ["Astrogation", "Science"]}],
+        10: [{"type": "skill_choice",
+              "options": ["Electronics (comms)", "Deception", "Recon"]},
+             {"type": "contact", "desc": "Contact [Solomani Guerrillas]"}],
+        11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
+              "prompt": "Commanding officer mentors you — choose reward:",
+              "options": [
+                  {"id": "skill", "label": "Tactics (naval) 1"},
+                  {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
+              ], "skill_option": "Tactics (naval)"}],
+    },
+    "party": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill_check",
+              "skills": [{"name": "Advocate"}, {"name": "Art"}], "target": 7,
+              "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
+              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+              "prompt": "Party Congress speech — roll Advocate or Art 7+: pass SOC+1; fail SOC−1"}],
+        5:  [{"type": "pending_choice", "id": "event_party_takebane",
+              "prompt": "Asked to take blame for a senior Party member — agree or refuse?",
+              "options": [
+                  {"id": "accept", "label": "Agree — gain Ally + DM+1 Benefit roll"},
+                  {"id": "refuse", "label": "Refuse — DM−2 Advancement + Rival"},
+              ]}],
+        8:  [{"type": "pending_choice", "id": "event_party_evidence",
+              "prompt": "Evidence of superior's disloyalty — expose or suppress?",
+              "options": [
+                  {"id": "expose",   "label": "Expose — DM+2 Advancement"},
+                  {"id": "suppress", "label": "Suppress — gain them as Ally"},
+              ]}],
+        9:  [{"type": "skill_choice",
+              "options": ["Advocate", "Diplomat", "Persuade", "Science (philosophy)"]},
+             {"type": "rival", "desc": "Rival [Opposing Party Faction]"}],
+        10: [{"type": "skill_choice", "options": ["Art", "Carouse"]},
+             {"type": "contact", "desc": "Contact [Media/Entertainment Industry]"}],
+        11: [{"type": "ally", "desc": "Ally [Senior Party Member]"},
+             {"type": "rival", "desc": "Rival [Rival Party Faction]"},
+             {"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Befriended senior Party figure — choose reward:",
+              "options": [
+                  {"id": "Advocate",             "label": "Advocate 1"},
+                  {"id": "Diplomat",             "label": "Diplomat 1"},
+                  {"id": "Science (philosophy)", "label": "Science (philosophy) 1"},
+                  {"id": "dm4",                  "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "solsec": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "event_report_or_suppress",
+              "prompt": "Evidence of SolSec corruption — report or suppress?",
+              "ally_desc": "Ally [Corrupt SolSec Contact]",
+              "enemy_desc": "Enemy [Reported Corrupt Officer]",
+              "options": [
+                  {"id": "report",   "label": "Report up the chain — DM+2 Advancement + Enemy"},
+                  {"id": "suppress", "label": "Suppress the evidence — gain Ally inside SolSec"},
+              ]}],
+        4:  [{"type": "pending_choice", "id": "event_surveil_or_rapport",
+              "prompt": "Assigned to monitor a prominent citizen — approach?",
+              "contact_desc": "Contact [Monitored Prominent Citizen]",
+              "options": [
+                  {"id": "surveil", "label": "Aggressive surveillance — gain Investigate or Stealth 1"},
+                  {"id": "rapport", "label": "Friendly rapport — gain Contact"},
+              ]}],
+        5:  [{"type": "skill_check",
+              "skills": [{"name": "Deception"}, {"name": "Stealth"}], "target": 8,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Electronics (comms)", "Deception", "Recon", "Stealth"]},
+                          {"type": "contact", "desc": "Contact [Solomani Underground]"}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Cross-border operation — roll Deception or Stealth 8+: pass skill + Contact; fail Mishap (career continues)"}],
+        6:  [{"type": "skill_choice",
+              "options": ["Advocate", "Investigate", "Persuade", "Streetwise"]}],
+        8:  [{"type": "skill_choice",
+              "options": ["Astrogation", "Electronics (sensors)", "Gunner",
+                          "Pilot", "Tactics (naval)"]},
+             {"type": "contact", "desc": "Contact [Confederation Navy Intelligence]"}],
+        9:  [{"type": "skill_choice", "options": ["Streetwise", "Carouse"]},
+             {"type": "d_associates", "kind": "contact", "dice": "1D"}],
+        10: [{"type": "pending_choice", "id": "event_solsec_leverage",
+              "prompt": "Discovered disloyal Party official — expose or leverage?",
+              "options": [
+                  {"id": "expose",   "label": "Expose — DM+2 Advancement + Enemy [Official]"},
+                  {"id": "leverage", "label": "Leverage — Ally [Official] + Rival [SolSec Faction]"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Senior SolSec mentor — choose reward:",
+              "options": [
+                  {"id": "Deception",           "label": "Deception 1"},
+                  {"id": "Investigate",         "label": "Investigate 1"},
+                  {"id": "Science (psychology)", "label": "Science (psychology) 1"},
+                  {"id": "dm4",                 "label": "DM+4 to next Advancement roll"},
+              ]}],
+    },
+    "solomani_marine": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice",
+              "options": ["Vacc Suit", "Gun Combat", "Melee", "Tactics (military)"]}],
+        4:  [{"type": "skill_choice",
+              "options": ["Recon", "Survival", "Stealth", "Gun Combat"]}],
+        5:  [{"type": "dm_benefit", "amount": 1}],
+        6:  [{"type": "skill_choice", "options": ["Vacc Suit", "Athletics (dexterity)"]}],
+        8:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice",
+                           "prompt": "Gain any one skill from the Service or Advanced Education tables at level 1"}],
+              "on_fail": [], "prompt": "Roll EDU 8+ to gain a skill from Service/Advanced Education tables"}],
+        9:  [{"type": "dm_advancement", "amount": 2}],
+        10: [{"type": "pending_choice", "id": "event_marine_rescue",
+              "prompt": "Rescued a fellow Star Marine under heavy fire:",
+              "ally_desc": "Ally [Rescued Star Marine]",
+              "options": [
+                  {"id": "benefit",  "label": "Ally + DM+1 to any one Benefit roll"},
+                  {"id": "transfer", "label": "Ally + transfer to Confederation Army (no Qualification roll)"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "event_skillmulti_or_dm4",
+              "prompt": "Advanced specialist training — choose reward:",
+              "options": [
+                  {"id": "Battle Dress",       "label": "Battle Dress 1"},
+                  {"id": "Heavy Weapons",      "label": "Heavy Weapons 1"},
+                  {"id": "Explosives",         "label": "Explosives 1"},
+                  {"id": "Tactics (military)", "label": "Tactics (military) 1"},
+                  {"id": "dm4",                "label": "DM+4 to next Advancement roll"},
+              ]}],
     },
 }
 
