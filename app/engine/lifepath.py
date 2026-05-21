@@ -4709,6 +4709,16 @@ def event_roll(character: Character) -> dict:
     }
 
 
+def _apply_zhodani_re_education(character: "Character", msgs: list[str]) -> None:
+    """Roll 1D on the Zhodani Re-education Events sub-table and log the result."""
+    re_r = dice.roll("1D")
+    re_table = rules.zhodani_life_events().get("re_education_events", {})
+    re_results = re_table.get("results", {})
+    re_text = re_results.get(str(re_r.total), "Re-education: consult Re-education Events table.")
+    character.log(f"Re-education Events [1D={re_r.total}]: {re_text}")
+    msgs.append(f"Re-education Events 1D={re_r.total}: {re_text}")
+
+
 def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[list[str], bool]:
     """Apply a single mishap effect. Returns (auto_applied_msgs, set_pending).
 
@@ -4925,6 +4935,18 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                     opts = [{"id": "forfeit",
                              "label": "No Allies or Contacts to lose — forfeit this term's Benefit roll"}]
                 pending["options"] = opts
+            # Populate zhodani_lose_associate from contacts/allies (or skip if none)
+            elif choice_id == "zhodani_lose_associate":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": str(i),
+                            "label": f"Lose {assoc.kind.capitalize()}: {assoc.description or '(unnamed)'}",
+                        })
+                if not opts:
+                    opts = [{"id": "skip", "label": "No Allies or Contacts to lose"}]
+                pending["options"] = opts
             character.pending_career_mishap_choice = pending
             set_pending = True
 
@@ -5001,6 +5023,29 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"Gained {count} extra Benefit roll(s)")
         character.log(f"Event: +{count} extra benefit rolls (rolled {dice_str})")
 
+    elif etype == "zhodani_re_education":
+        _apply_zhodani_re_education(character, msgs)
+
+    elif etype == "zhodani_soc_conditional":
+        # If SOC 10+, apply if_soc_gte_10 effects; otherwise roll Re-education Events.
+        soc = character.characteristics.get("SOC")
+        if soc >= 10:
+            for sub_eff in effect.get("if_soc_gte_10", []):
+                sub_msgs, sub_pending = _apply_mishap_effect(character, sub_eff, term)
+                msgs.extend(sub_msgs)
+                if sub_pending and not set_pending:
+                    set_pending = True
+        else:
+            _apply_zhodani_re_education(character, msgs)
+
+    elif etype == "forfeit_all_benefits_except_one":
+        # Forfeit all accumulated benefit rolls, keeping exactly one.
+        character.pending_benefit_rolls = 1
+        if term is not None:
+            term.benefit_forfeited = True
+        msgs.append("Disgraced — all Benefit rolls forfeited except one (keeping 1)")
+        character.log("Mishap: forfeit all benefits except one, keeping 1")
+
     elif etype == "trigger_disaster_mishap":
         # Used in skill_check on_fail: roll on mishap table but career continues
         try:
@@ -5048,6 +5093,16 @@ def mishap_roll(character: Character) -> dict:
         if etype == "injury":
             if injury_data is None:
                 injury_data = apply_injury(character)
+            continue
+
+        if etype == "injury_twice_higher":
+            r1 = dice.roll("1D").total
+            r2 = dice.roll("1D").total
+            result = max(r1, r2)
+            auto_applied.append(f"Injury ×2 (higher): rolled {r1} and {r2} → using result {result}")
+            character.log(f"Mishap injury_twice_higher: {r1},{r2} → {result}")
+            if injury_data is None:
+                injury_data = _apply_injury_for_result(character, result)
             continue
 
         if etype in ("injury_severity_choice", "stat_choice", "skill_choice",
@@ -6071,6 +6126,129 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 _apply_mishap_effect(character, {"type": "skill", "name": "Outsider", "level": 1}, msgs, term)
                 auto_applied.append("Refused humiliation — gained Enemy + Outsider 1")
                 character.log("K'kree Servant mishap 4: refused, enemy, outsider 1")
+            character.pending_career_mishap_choice = None
+
+        # ── Zhodani pending choices ──────────────────────────────────────────
+
+        elif choice_id == "zhodani_army_illegal_co":
+            if selected == "join":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Corrupt Commanding Officer]")
+                )
+                _apply_zhodani_re_education(character, auto_applied)
+                auto_applied.append("Joined illegal ring — gained Ally [Corrupt CO], then Re-education Events")
+                character.log("Mishap: joined corrupt CO ring, gained ally, re-education")
+            else:  # cooperate
+                auto_applied.append("Co-operated with Thought Police — kept Benefit roll, left career")
+                character.log("Mishap: co-operated with Thought Police, kept benefit")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "zhodani_guard_conscience":
+            if selected == "accept":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Lone Survivor]")
+                )
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                auto_applied.append("Accepted mission — gained Enemy [Lone Survivor]; stayed in Guards")
+                character.log("Mishap: accepted conscience mission, enemy gained, career_continues")
+            else:  # refuse
+                _apply_zhodani_re_education(character, auto_applied)
+                auto_applied.append("Refused mission — rolled Re-education Events, left Guards")
+                character.log("Mishap: refused conscience mission, re-education")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "zhodani_agent_contest":
+            if selected == "accept":
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Accepted fate — gained extra Benefit roll as compensation, left career")
+                character.log("Mishap: accepted fate, extra benefit roll")
+                character.pending_career_mishap_choice = None
+            else:  # contest — chain into Advocate 8+ skill check
+                auto_applied.append("Contesting accusation — must roll Advocate 8+")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Advocate"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "career_continues"}],
+                    "on_fail": [{"type": "zhodani_re_education"}],
+                    "prompt": "Contesting accusation — Roll Advocate 8+ to stay in career",
+                }
+
+        elif choice_id == "zhodani_merchant_fine":
+            if selected == "pay":
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                auto_applied.append("Fine paid — stayed in career")
+                character.log("Mishap: merchant fine paid, career continues")
+            else:  # dont_pay
+                soc = character.characteristics.get("SOC")
+                if soc <= 9:
+                    _apply_zhodani_re_education(character, auto_applied)
+                    auto_applied.append("Fine not paid, SOC 9- — Re-education Events rolled, left career")
+                    character.log("Mishap: merchant fine unpaid, SOC 9-, re-education")
+                else:
+                    auto_applied.append("Fine not paid, SOC 10+ — left career")
+                    character.log("Mishap: merchant fine unpaid, SOC 10+, career ends")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "zhodani_merchant_decline":
+            if term is not None:
+                term.survived = True
+                term.mishap = None
+                term.benefit_forfeited = True
+            auto_applied.append("Chose to continue — career continues but Benefit roll forfeited this term")
+            character.log("Mishap: merchant declining fortunes, career continues, benefit forfeited")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "zhodani_scholar_research":
+            if selected == "secretly":
+                if term is not None:
+                    term.benefit_forfeited = True
+                auto_applied.append("Researching secretly — Benefit roll forfeited")
+                character.log("Mishap: scholar research secretly, benefit forfeited")
+            else:
+                auto_applied.append("Researching openly — no Benefit penalty")
+                character.log("Mishap: scholar research openly")
+            # Either way: gain one level of any Science skill
+            character.pending_career_mishap_choice = {
+                "type": "skill_choice",
+                "options": [],
+                "prompt": "Gain one level in any Science skill (despite government interference)",
+            }
+
+        elif choice_id == "zhodani_scholar_sabotage":
+            if selected == "give_up":
+                auto_applied.append("Gave up research — left career, kept Benefit roll")
+                character.log("Mishap: sabotaged research, gave up, career ends, benefit kept")
+                character.pending_career_mishap_choice = None
+            else:  # restart
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                    term.benefit_forfeited = True
+                auto_applied.append("Restarting from scratch — career continues, Benefit roll forfeited")
+                character.log("Mishap: sabotaged research, restarting, career continues, benefit forfeited")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "zhodani_lose_associate":
+            if selected == "skip":
+                auto_applied.append("No Allies or Contacts to lose")
+                character.log("Mishap: zhodani_lose_associate — no associates to remove")
+            else:
+                try:
+                    idx = int(selected)
+                    if 0 <= idx < len(character.associates):
+                        removed = character.associates.pop(idx)
+                        auto_applied.append(
+                            f"Lost {removed.kind.capitalize()}: {removed.description or '(unnamed)'}"
+                        )
+                        character.log(f"Mishap: lost associate [{removed.kind}] — {removed.description}")
+                except (ValueError, IndexError):
+                    pass
             character.pending_career_mishap_choice = None
 
         else:
@@ -8724,6 +8902,232 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         5: [{"type": "pending_choice", "id": "ge_lose_associate_or_forfeit",
              "prompt": "A friend betrays you. One Ally or Contact becomes a Rival (if none, gain a Rival anyway)."}],
         6: [{"type": "injury"}],
+    },
+
+    # ════════════════════════════════════════════════════════════
+    # Zhodani Consulate careers
+    # ════════════════════════════════════════════════════════════
+
+    # ---- Zhodani Navy ----
+    "zhodani_navy": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Frozen watch — injured, then SOC 8+ to stay
+        2: [{"type": "injury"},
+            {"type": "skill_check",
+             "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_nat2": [],
+             "on_fail": [],
+             "on_pass": [{"type": "career_continues"}]}],
+        # 3: Problems with officer — SOC 10+ Rival, else Re-education
+        3: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [{"type": "rival", "desc": "Rival [Difficult Officer/Crewman]"}]}],
+        # 4: Ship damaged, injured twice lower, but heroism earns extra benefit
+        4: [{"type": "injury_severity_choice"},
+            {"type": "extra_benefit"}],
+        # 5: Serious accident blamed on you — SOC 10+ DM-2 adv + Enemy, else Re-education
+        5: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [
+                 {"type": "dm_advancement", "amount": -2},
+                 {"type": "enemy", "desc": "Enemy [Negligent Crewman Who Blamed You]"},
+             ]}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Army ----
+    "zhodani_army": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Disastrous campaign — D3 Contacts, roll Re-education
+        2: [{"type": "d_associates", "kind": "contact", "dice": "D3", "desc_prefix": "Contact [Fellow Veteran]"},
+            {"type": "zhodani_re_education"}],
+        # 3: Battle against insurgents — gain Recon or Survival, SOC conditional
+        3: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [{"type": "enemy", "desc": "Enemy [Government — buried incident]"}]},
+            {"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        # 4: CO engaged in illegal activity — join (Ally + Re-ed) or cooperate (keep benefit)
+        4: [{"type": "pending_choice", "id": "zhodani_army_illegal_co",
+             "prompt": "Your CO is engaged in illegal activity. What do you do?",
+             "options": [
+                 {"id": "join",      "label": "Join the ring — gain an Ally (then roll Re-education Events)"},
+                 {"id": "cooperate", "label": "Co-operate with Thought Police — keep Benefit roll, leave career"},
+             ]}],
+        # 5: Problems with officer — SOC 10+ Rival, else Re-education
+        5: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [{"type": "rival", "desc": "Rival [Difficult Officer/Fellow Soldier]"}]}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Guard ----
+    "zhodani_guard": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Ship self-destruct scramble — DM-2 advancement + Enemy (unconditional)
+        2: [{"type": "dm_advancement", "amount": -2},
+            {"type": "enemy", "desc": "Enemy [Guard Blaming You For Casualties]"}],
+        # 3: Hostile environment insurgents — skill choice + Enemy
+        3: [{"type": "enemy", "desc": "Enemy [Local Insurgent Leader]"},
+            {"type": "skill_choice", "options": ["Recon", "Survival", "Vacc Suit"]}],
+        # 4: Mission against conscience — accept (stay, Enemy) or refuse (Re-education)
+        4: [{"type": "pending_choice", "id": "zhodani_guard_conscience",
+             "prompt": "You are ordered on a mission against your conscience. What do you do?",
+             "options": [
+                 {"id": "accept", "label": "Accept mission — stay in Guards but gain Enemy [Lone Survivor]"},
+                 {"id": "refuse", "label": "Refuse — roll on Re-education Events table, leave Guards"},
+             ]}],
+        # 5: Captured and mistreated — Enemy + STR-1 + DEX-1 (keep all benefits from term)
+        5: [{"type": "enemy", "desc": "Enemy [Captor]"},
+            {"type": "stat", "stat": "STR", "amount": -1},
+            {"type": "stat", "stat": "DEX", "amount": -1}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Agent ----
+    "zhodani_agent": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Investigation goes critically wrong — Advocate 8+ to keep benefit, else Re-education
+        2: [{"type": "skill_check",
+             "skills": [{"name": "Advocate"}], "target": 8,
+             "on_nat2": [],
+             "on_pass": [],
+             "on_fail": [{"type": "zhodani_re_education"}]}],
+        # 3: Mission goes wrong — accept fate (extra benefit) or contest (Advocate 8+)
+        3: [{"type": "pending_choice", "id": "zhodani_agent_contest",
+             "prompt": "A mission goes wrong and you are held responsible. What do you do?",
+             "options": [
+                 {"id": "accept",  "label": "Accept fate — leave with an extra Benefit roll as compensation"},
+                 {"id": "contest", "label": "Contest the accusation — roll Advocate 8+ (pass: stay; fail: Re-education)"},
+             ]}],
+        # 4: Psychological stress — Re-education
+        4: [{"type": "zhodani_re_education"}],
+        # 5: Injured in sabotage — injury + Contact in medical field
+        5: [{"type": "injury"},
+            {"type": "contact", "desc": "Contact [Medical Professional]"}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Prole ----
+    "zhodani_prole": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Co-worker sabotage — Enemy + Re-education
+        2: [{"type": "enemy", "desc": "Enemy [Sabotaging Co-worker]"},
+            {"type": "zhodani_re_education"}],
+        # 3: Economic hardship — forfeit this term's benefit rolls
+        3: [{"type": "forfeit_benefit"}],
+        # 4: Attack or unusual event — Re-education
+        4: [{"type": "zhodani_re_education"}],
+        # 5: Family member/lover killed — lose Ally/Contact + Re-education
+        5: [{"type": "zhodani_re_education"},
+            {"type": "pending_choice", "id": "zhodani_lose_associate",
+             "prompt": "A family member or lover is killed. Lose one Ally or Contact.",
+             "options": []}],  # options populated dynamically in pending_choice handler
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Government ----
+    "zhodani_government": {
+        # 1: Error of judgement — discharged in disgrace, forfeit all but one benefit
+        1: [{"type": "forfeit_all_benefits_except_one"}],
+        # 2: Backfired diplomacy — stay in career but no advancement
+        2: [{"type": "career_continues"},
+            {"type": "dm_advancement", "amount": -12}],
+        # 3: Posting loses diplomatic status — gain Rival, leave
+        3: [{"type": "rival", "desc": "Rival [Rival Government/Faction]"}],
+        # 4: Assassination attempt — PSI/Melee/Recon 8+ to avoid, fail → injury, pass → stay
+        4: [{"type": "skill_check",
+             "skills": [{"name": "PSI", "is_stat": True},
+                        {"name": "Melee"},
+                        {"name": "Recon"}], "target": 8,
+             "on_nat2": [],
+             "on_fail": [{"type": "injury"}],
+             "on_pass": [{"type": "career_continues"}]}],
+        # 5: Ambassador insult — Diplomat 8+ to avoid; fail → Re-education; pass → extra benefit
+        5: [{"type": "skill_check",
+             "skills": [{"name": "Diplomat"}], "target": 8,
+             "on_nat2": [],
+             "on_fail": [{"type": "zhodani_re_education"}],
+             "on_pass": [{"type": "extra_benefit"}]}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Merchant ----
+    "zhodani_merchant": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Employer bankruptcy — extra benefit for salvaging what you can
+        2: [{"type": "extra_benefit"}],
+        # 3: Fine — pay (stay) or don't pay (SOC 9- → Re-education)
+        3: [{"type": "pending_choice", "id": "zhodani_merchant_fine",
+             "prompt": "You are fined Cr1,000×1D for poorly filed paperwork. Pay to stay in career?",
+             "options": [
+                 {"id": "pay",      "label": "Pay the fine — remain in career"},
+                 {"id": "dont_pay", "label": "Refuse to pay — leave career (SOC 9- also rolls Re-education Events)"},
+             ]}],
+        # 4: Declining fortunes — may continue but no benefits this or next term
+        4: [{"type": "pending_choice", "id": "zhodani_merchant_decline",
+             "prompt": "Your company faces declining fortunes. Continue in career but forfeit this term's Benefit roll?",
+             "options": [
+                 {"id": "continue", "label": "Continue — career continues but no Benefit roll this term"},
+                 {"id": "leave",    "label": "Leave the career (keep Benefit roll)"},
+             ]}],
+        # 5: Paid off — no special mechanical effects (career ends, benefit kept)
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Zhodani Scholar ----
+    "zhodani_scholar": {
+        1: [{"type": "injury_severity_choice"}],
+        # 2: Disaster — injury table twice higher + Re-education
+        2: [{"type": "injury_twice_higher"},
+            {"type": "zhodani_re_education"}],
+        # 3: Government interference — SOC 9- → Re-education; SOC 10+ → choice openly/secretly
+        3: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [
+                 {"type": "pending_choice", "id": "zhodani_scholar_research",
+                  "prompt": "Government interferes with your research. How do you continue?",
+                  "options": [
+                      {"id": "openly",   "label": "Continue openly — gain one Science skill level"},
+                      {"id": "secretly", "label": "Continue secretly — gain one Science skill level but forfeit Benefit roll"},
+                  ]}
+             ]}],
+        # 4: Stranded expedition — skill choice Survival or Athletics (career ends)
+        4: [{"type": "skill_choice", "options": ["Survival", "Athletics"]}],
+        # 5: Work sabotaged — give up (leave, keep benefit) or restart (stay, forfeit benefit)
+        5: [{"type": "pending_choice", "id": "zhodani_scholar_sabotage",
+             "prompt": "Your work is sabotaged by unknown parties. What do you do?",
+             "options": [
+                 {"id": "give_up", "label": "Give up — leave career, retain this term's Benefit roll"},
+                 {"id": "restart", "label": "Start again from scratch — career continues but forfeit all Benefit rolls this term"},
+             ]}],
+        # 6: Ship crash en route — gain Survival 1, then END 8+ or injury
+        6: [{"type": "skill", "name": "Survival", "level": 1},
+            {"type": "skill_check",
+             "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_nat2": [],
+             "on_fail": [{"type": "injury"}],
+             "on_pass": []}],
+    },
+
+    # ---- Zhodani Entertainer ----
+    "zhodani_entertainer": {
+        # 1: Just injury
+        1: [{"type": "injury"}],
+        # 2: Art scandal — gain skill, SOC 10+ forced to move, Re-education, but STAY in career
+        2: [{"type": "career_continues"},
+            {"type": "zhodani_re_education"},
+            {"type": "skill_choice", "options": ["Carouse", "Diplomat", "Persuade"]}],
+        # 3: Grievous breach — Persuade 8+ to keep benefit, else Re-education
+        3: [{"type": "skill_check",
+             "skills": [{"name": "Persuade"}], "target": 8,
+             "on_nat2": [],
+             "on_fail": [{"type": "zhodani_re_education"}],
+             "on_pass": []}],
+        # 4: Contact/Ally betrays you — they become Rival
+        4: [{"type": "pending_choice", "id": "mishap_victim",
+             "prompt": "One of your Contacts or Allies betrays you, ending your career. Choose who.",
+             "options": []}],  # populated dynamically
+        # 5: Stranded far from home — D3 Contacts as you return
+        5: [{"type": "d_associates", "kind": "contact", "dice": "D3",
+             "desc_prefix": "Contact [Met While Stranded]"}],
+        # 6: Quarrel with Entertainer — SOC 10+ Rival, else Re-education
+        6: [{"type": "zhodani_soc_conditional",
+             "if_soc_gte_10": [{"type": "rival", "desc": "Rival [Rival Entertainer]"}]}],
     },
 }
 
