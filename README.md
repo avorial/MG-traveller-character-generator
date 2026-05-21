@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-14.0-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-18.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -115,7 +115,7 @@ The character goes directly to finalization (skill package phase) — no further
 
 Career package choices are stored in `career_package_id` and `career_package_taken` on the character. The capsule narrative describes the package career in place of the normal career-loop paragraphs.
 
-### Careers (22 fully encoded)
+### Careers (44 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -158,6 +158,58 @@ Every career has qualification, all assignments, full skill tables, events (2–
 
 Cetacean careers are only shown for Dolphin and Orca characters. Core careers require Vacc Suit first.
 
+#### Bounty Hunter (1, any society)
+
+| Career | Assignments |
+|---|---|
+| **Bounty Hunter** | Tech Ops, Hunter, Fixer |
+
+Available to characters from any society.
+
+#### Aslan Hierate (11)
+
+| Career | Assignments | Notes |
+|---|---|---|
+| **Ceremonial** | Poet, Clan Agent, Priest | Also available in Glorious Empire |
+| **Envoy** | Negotiator, Spy, Duellist | Also available in Glorious Empire |
+| **Management** | Corporate, Clan Aide, Governess | Female-dominant career |
+| **Military** | Warrior, Cavalry, Flyer, Support | Male-dominant career |
+| **Military Officer** | Leader, Executive Officer, Assassin | Male-dominant career |
+| **Outcast** | Labourer, Trader, Scavenger | Hierate only |
+| **Outlaw** | Pirate, Raider, Thief | Hierate only |
+| **Scientist** | Healer, Researcher, Explorer | Hierate only |
+| **Space Officer** | Commander, Shipmaster, Navigator | Male-dominant career |
+| **Spacer** | Pilot, Gunner, Engineer, Crew | Hierate only |
+| **Wanderer** | Belter, Nomad, Scout | Hierate only |
+
+Career access depends on the character's gender and the role structure of each career. Males are steered toward warrior and technical roles; females toward management and social roles.
+
+#### Glorious Empire (8)
+
+The Glorious Empire shares two careers with the Hierate (Ceremonial, Envoy) and adds six of its own:
+
+| Career | Assignments | Notes |
+|---|---|---|
+| **Ceremonial** | Poet, Clan Agent, Priest | Shared with Hierate |
+| **Envoy** | Negotiator, Spy, Duellist | Shared with Hierate |
+| **Fleet** | Pilot, Gunner, Engineer, Crew | GE exclusive |
+| **Fleet Officer** | Commander, Shipmaster, Navigator | GE exclusive |
+| **Landless One** | Labourer, Wildcatter, Trader, Slaver | GE exclusive |
+| **Slave** | Labourer, Servant, Technician, Dog Soldier | GE exclusive |
+| **Warrior** | Imperial Guard, Dragoon, Support | GE exclusive |
+| **Warrior Officer** | Leader, Executive Officer, Assassin | GE exclusive |
+
+#### K'kree (4)
+
+| Career | Assignments | Notes |
+|---|---|---|
+| **Merchant (K'kree)** | Mercantile/Economic, Warrior, Technical/Scientific, Naval | SOC 8+ required |
+| **Noble (K'kree)** | Warrior, Mercantile/Economic, Technical/Scientific, Naval | SOC 10+ required |
+| **K'kree (Pastoral)** | Pastoral | Low-SOC default career |
+| **Servant (K'kree)** | Service, Warrior | |
+
+Career access depends on `kkree_soc_rank_degree` (rankholder / kinsman / servant of rankholder), which is derived from SOC at the start of the career loop.
+
 Careers with `societies` set are only shown for characters from that polity. Careers with `blocked_societies` are hidden for those characters.
 
 ### Events and mishaps — fully auto-applied
@@ -192,6 +244,26 @@ Military careers (Army, Marine, Navy, Confederation equivalents) display the cor
 - **Home Forces Reserves** — eligible Solomani characters may enlist alongside their main career for training rolls and parallel survival checks.
 - **SolSec Monitor** — non-SolSec Solomani may volunteer as an informer for advancement DMs and bonus benefit rolls.
 
+### Aslan Hierate and Glorious Empire mechanics
+
+- **Gender** — Aslan characters must choose a gender (male / female) before the career loop begins. Gender gates career access: males are directed toward military, spacer, and outlaw careers; females toward management, ceremonial, and envoy careers.
+- **Clan setup** — After species selection, Hierate Aslan go through a four-phase background setup: clan type roll, ancestral deeds roll (gives a DM modifier), territory type roll, and family position roll. Glorious Empire Aslan skip the clan roll (clan is always Tokouea'we) but otherwise follow the same path.
+- **Rite of Passage** — A scored rite-of-passage roll is made during setup. The rite score affects the first career qualification roll.
+- **TER (Territorial) characteristic** — Hierate and Glorious Empire Aslan require the TER extra characteristic. TER is rolled at character creation alongside the core six stats. It functions as a measure of territorial holdings and status among Aslan and is used in social checks with other Aslan.
+- **Clan Shares** — Aslan accumulate clan_shares instead of (or in addition to) ship shares from mustering-out tables. Clan Shares represent a stake in clan land, territory, or starship assets.
+- **Intolerant (Glorious Empire only)** — Glorious Empire Aslan cannot easily gain the Tolerance skill. Event rolls of Tolerance must be re-rolled; only on a second consecutive roll may the skill be taken. Any event that would award Tolerance may award Diplomat instead.
+
+### K'kree mechanics
+
+- **Family patriarch** — A K'kree Traveller is always the patriarch (male head) of a family group, not a solo individual. Character creation generates the patriarch's skills and characteristics; `kkree_wives` and `kkree_family_members` track the size and composition of the family.
+- **Background skills** — K'kree always start with Melee 0, Patriarchy 0, Recon 0, and Survival 0 regardless of background skill picks.
+- **Social caste** — `kkree_soc_rank_degree` (determined from SOC at the start of the career loop) controls career access:
+  - `servant_of_rankholder` (SOC < 6) — only Servant and Pastoral careers
+  - `kinsman_of_rankholder` (SOC 6–9) — Merchant or Servant careers
+  - `rankholder` (SOC 10+) — Noble or Merchant careers
+- **Specialist area** — At the start of the first career a specialty area is rolled (warrior / mercantile / technical / naval), stored in `kkree_specialist_area`. This biases assignment selection throughout the career loop.
+- **Claustrophobia and gregariousness** — K'kree traits are tracked on the character sheet and generate in-play notes; they do not add mechanical modifiers to the character builder itself, but are reflected in capsule narrative and the species traits panel.
+
 ### Additional rules
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll. Officer rank titles replace enlisted titles on success.
@@ -213,7 +285,7 @@ Military careers (Army, Marine, Navy, Confederation equivalents) display the cor
 - **Heroic rolls** — ⚔ HEROIC toggle on the characteristics screen; rolls 4 stats with 2D and 2 stats with 3D6 drop-lowest. Mechanic is shown below the button.
 - **Optional characteristics** — Toggle shows checkboxes for PSI / WLT / LCK / MRL / STY / TER. Select any combination and roll them separately, with heroic option.
 
-### Species (31)
+### Species (34)
 
 Species are listed in picker order (`sort_order` in each JSON) and filtered by society. Single-click a card to preview traits; double-click (or click Confirm) to apply.
 
@@ -222,8 +294,8 @@ Species are listed in picker order (`sort_order` in each JSON) and filtered by s
 | Species | Modifiers |
 |---|---|
 | **Imperial Human** | — |
-| **Vargr (Imperial)** | DEX +1, END −1, STR −1 |
-| **Aslan (Imperial)** | STR +2, DEX −2 |
+| **Vargr (Imperial Raised)** | DEX +1, END −1, STR −1 |
+| **Aslan (Imperial Raised)** | STR +2, DEX −2 |
 | **Bwap** | STR −4, END −4 |
 | **Jonkeereen** | END +2 |
 | **Luriani** | DEX +1, END +1, SOC −2 |
@@ -255,15 +327,24 @@ Cetacean characters need Vacc Suit before most core careers become available; do
 | **Mixed Heritage** | No mods; DM−1 to Confederation career advancement |
 | **Non-Solomani Human** | No mods; Party career closed |
 
+#### Aslan Hierate / Glorious Empire (2)
+
+| Species | Modifiers | Notes |
+|---|---|---|
+| **Aslan (Hierate)** | STR +2, DEX −2 | Dewclaw · Heightened Senses · Honour Bound · Land Sense; starts age 14; aging from term 6; TER characteristic required; accumulates Clan Shares |
+| **Aslan (Glorious Empire)** | STR +2, DEX −2 | As Hierate plus Intolerant trait; fixed Tokouea'we clan; access to GE-exclusive careers |
+
 #### Other societies (5)
 
 | Species | Society | Modifiers |
 |---|---|---|
 | **Zhodani Human** | Zhodani Consulate | INT +1, SOC +1 |
-| **Aslan (Hierate)** | Aslan Hierate | STR +2, DEX −2 |
-| **Vargr (Extents)** | Vargr Extents | STR −1, DEX +1, END −1 |
+| **Vargr (Extents Raised)** | Vargr Extents | STR −1, DEX +1, END −1 |
 | **Hiver Federation Human** | Hiver Federation | INT +1, EDU +1 |
 | **Two Thousand Worlds Human** | Two Thousand Worlds | END +1, SOC −1 |
+| **K'kree** | Two Thousand Worlds | STR +6, INT +2, EDU +2 |
+
+K'kree characters are the patriarch of a family group. They are centauroid obligate herbivores with Claustrophobic and Gregarious traits that generate narrative notes throughout play. Starting age 14; aging from term 6. See K'kree mechanics above.
 
 #### Other / Far Domains (5)
 
@@ -289,8 +370,8 @@ traveller-creator/
 │   │   ├── rules.py                # JSON loader with lru_cache, society helpers
 │   │   └── lifepath.py             # Rules engine (all phases)
 │   ├── data/
-│   │   ├── species/                # 31 species JSON files
-│   │   ├── careers/                # 22 career JSON files
+│   │   ├── species/                # 34 species JSON files
+│   │   ├── careers/                # 44 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_packages.json    # 12 background packages (alternative to skill picks)
@@ -363,6 +444,11 @@ Optional fields:
 | `"university_dm": -1` | DM applied to university qualification |
 | `"military_academy_dm": 1` | DM applied to military academy qualification |
 | `"career_qualify_dms": {"scout": 1}` | Per-career qualification bonuses |
+| `"uses_clan_shares": true` | Aslan: accumulate Clan Shares from mustering-out instead of (or in addition to) Ship Shares |
+| `"extra_characteristics_required": ["TER"]` | Force one or more extra characteristics to be rolled during character creation (e.g. TER for all Aslan) |
+| `"aging_dm_multiplier": 2` | Multiplier applied to aging DMs (e.g. `2` for Aslan, who age differently) |
+| `"uses_kkree_family": true` | K'kree: enable family-patriarch mechanic; populates `kkree_wives` and `kkree_family_members` |
+| `"background_skills": ["Melee 0", ...]` | Override the normal background-skills phase with a fixed species skill list |
 
 ### Adding or editing a career
 
@@ -526,9 +612,16 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `career_package_id` | ID of the chosen career package, if one was taken instead of the normal career loop |
 | `career_package_taken` | `true` once a career package has been applied; prevents any further careers |
 | `good_fortune_benefit_dm` | DM tokens from Life Event 10, usable on benefit rolls |
+| `gender` | Character gender (`"male"` / `"female"` / `null`); required for Aslan to gate career access by role |
+| `clan_shares` | Aslan equivalent of Ship Shares; accumulated at mustering out (Hierate and Glorious Empire only) |
+| `aslan_setup_status` | Tracks the Aslan background setup phases: clan type, ancestral deeds DM, territory type, family position, and rite score |
+| `kkree_wives` | Number of wives in the K'kree patriarch's family group |
+| `kkree_family_members` | List of family role entries (`{"role": "warrior"\|"specialist"\|"servant", "description": "..."}`) |
+| `kkree_soc_rank_degree` | K'kree social caste: `"servant_of_rankholder"` / `"kinsman_of_rankholder"` / `"rankholder"`; gates career access |
+| `kkree_specialist_area` | K'kree specialist area rolled at career start (`"warrior"` / `"mercantile"` / `"technical"` / `"naval"`) |
 
 ---
 
 ## Legal
 
-*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. Rules referenced here are drawn from Mongoose Traveller 2e Core Rulebook, the Solomani Rim sourcebook, Aliens of Charted Space Volumes 1 and 5, and Pirates of Drinax. This project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebooks.
+*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. Rules referenced here are drawn from Mongoose Traveller 2e Core Rulebook, the Solomani Rim sourcebook, Aliens of Charted Space Volumes 1 and 5, The Glorious Empire sourcebook, and Pirates of Drinax. This project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebooks.
