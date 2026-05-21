@@ -262,25 +262,49 @@ class Character(BaseModel):
     dead: bool = False
     death_reason: Optional[str] = None
 
-    def add_skill(self, name: str, level: int = 0, speciality: Optional[str] = None) -> str:
+    def add_skill(self, name: str, level: int = 0, speciality: Optional[str] = None,
+                  fixed_level: bool = False) -> str:
         """Add or upgrade a skill. Returns a human-readable log message.
 
+        Three gain modes (MgT 2e p.59):
+
+        level == 0  (basic training, background skills)
+            Grant at 0 if the character doesn't have it yet; do nothing if they do.
+
+        level > 0, fixed_level=False  (table roll / "gain a level in X")
+            Level 1 if new; increment by *level* if already trained.
+            This is the "no rank listed" rule: "gains the skill at level 1 or increases
+            the skill by one level if already trained."
+
+        level > 0, fixed_level=True  (rank bonus / explicit-level event grant)
+            The skill is gained at exactly *level* — take it only if it is better than
+            the current value (i.e. max(current, level)).  "If a rank is listed, you gain
+            it at that level only if it is better than your current level."
+
         Rulebook nuance (MgT 2e, p.59): when a character gains a
-        speciality (e.g. "Gun Combat (slug)") at level 1+, they also
+        speciality (e.g. "Gun Combat (Slug)") at level 1+, they also
         have the parent skill ("Gun Combat") at level 0. The parent
         is auto-seeded here so the sheet shows it.
         """
+        disp = f"{name}{f' ({speciality})' if speciality else ''}"
         for existing in self.skills:
             if existing.name == name and existing.speciality == speciality:
                 if level == 0:
-                    # Level-0 grants (background skills, basic training) never bump an
-                    # existing skill — the character already has it at the same or higher level.
-                    return f"Already has {name}{f' ({speciality})' if speciality else ''} {existing.level}"
-                if existing.level < 4:
-                    existing.level = min(4, existing.level + level)
-                    return f"Increased {existing.name}{f' ({speciality})' if speciality else ''} to {existing.level}"
+                    # Basic training / background: no-op if already present.
+                    return f"Already has {disp} {existing.level}"
+                if fixed_level:
+                    # Rank bonus / explicit grant: take only if better.
+                    if level > existing.level:
+                        old = existing.level
+                        existing.level = min(level, 4)
+                        return f"Increased {disp} to {existing.level}"
+                    return f"{disp} unchanged (already {existing.level})"
                 else:
-                    return f"{name} already at maximum level 4"
+                    # Table roll / "gain a level": always increment.
+                    if existing.level < 4:
+                        existing.level = min(4, existing.level + level)
+                        return f"Increased {disp} to {existing.level}"
+                    return f"{disp} already at maximum level 4"
 
         new_level = max(level, 0)
         self.skills.append(Skill(name=name, level=new_level, speciality=speciality))

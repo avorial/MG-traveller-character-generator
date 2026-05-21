@@ -994,7 +994,7 @@ def apply_background_package(
                 raise ValueError(f"Invalid speciality '{chosen_spec}' for {name} — must be one of {sk['options']}")
             spec = _SPEC_LOOKUP.get(chosen_spec.lower(), chosen_spec)
 
-        character.add_skill(name, level=level, speciality=spec)
+        character.add_skill(name, level=level, speciality=spec, fixed_level=(level > 0))
 
     # ── Credits & equipment ───────────────────────────────────────────────────
     credit_bonus = pkg.get("credits", 0)
@@ -1110,7 +1110,7 @@ def apply_career_package(
                 )
             spec = _SPEC_LOOKUP.get(chosen_spec.lower(), chosen_spec) if chosen_spec else None
 
-        msg = character.add_skill(name, level=level, speciality=spec)
+        msg = character.add_skill(name, level=level, speciality=spec, fixed_level=(level > 0))
         pkg_skill_results.append(msg)
 
     # ── Credits & equipment ───────────────────────────────────────────────
@@ -2020,17 +2020,18 @@ def pre_career_graduate(
         # ── Jack-of-all-Trades ───────────────────────────────────────────────────
         if "jack_of_all_trades" in block:
             joat_level = int(block["jack_of_all_trades"])
-            character.add_skill("Jack-of-all-Trades", level=joat_level)
+            character.add_skill("Jack-of-all-Trades", level=joat_level, fixed_level=True)
             applied_note.append(f"Jack-of-all-Trades {joat_level}")
 
         # ── Fixed skills ("Leadership 1": true or "fixed_skills": [...]) ─────────
-        # Handle "fixed_skills" list: ["Science (psionicology) 1", "Gun Combat 0"]
+        # Rank listed → fixed_level=True (take only if better than current).
+        # Handle "fixed_skills" list: ["Science (Psionicology) 1", "Gun Combat 0"]
         for sk_str in block.get("fixed_skills", []):
             parts = sk_str.rsplit(" ", 1)
             sk_part = parts[0].strip()
             sk_level = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
             sn, spec = _split_skill_speciality(sk_part)
-            character.add_skill(sn, level=sk_level, speciality=spec)
+            character.add_skill(sn, level=sk_level, speciality=spec, fixed_level=(sk_level > 0))
             applied_note.append(f"Gained {sk_str}")
         # Handle "SkillName N": true pattern (e.g. "Leadership 1": true)
         for bk, bv in block.items():
@@ -2038,7 +2039,7 @@ def pre_career_graduate(
                 parts = bk.rsplit(" ", 1)
                 if parts[1].isdigit():
                     sn, spec = _split_skill_speciality(parts[0].strip())
-                    character.add_skill(sn, level=int(parts[1]), speciality=spec)
+                    character.add_skill(sn, level=int(parts[1]), speciality=spec, fixed_level=True)
                     applied_note.append(f"Gained {bk}")
 
         # ── Pending DMs for next rolls ───────────────────────────────────────────
@@ -2197,7 +2198,7 @@ def pre_career_graduate(
                     f"'{s}' is not in the skill pool for this track."
                 )
             sn, spec = _split_skill_speciality(s)
-            character.add_skill(sn, level=1, speciality=spec)
+            character.add_skill(sn, level=1, speciality=spec, fixed_level=True)
         picks_remaining -= len(chosen_skills)
 
     # Log graduation result.
@@ -2459,7 +2460,7 @@ def pre_career_choose_skills(
         if s not in pool and base not in pool:
             raise ValueError(f"'{s}' not in this track's skill pool.")
         sn, spec = _split_skill_speciality(s)
-        character.add_skill(sn, level=skill_level, speciality=spec)
+        character.add_skill(sn, level=skill_level, speciality=spec, fixed_level=(skill_level > 0))
 
     remaining -= len(chosen_skills)
     stage_label = "enrollment" if skill_pick_stage == "enrollment" else "graduation"
@@ -4532,7 +4533,7 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
     elif etype == "skill":
         name = effect["name"]
         level = effect.get("level", 1)
-        msg = character.add_skill(name, level=level)
+        msg = character.add_skill(name, level=level, fixed_level=True)
         msgs.append(msg)
 
     elif etype == "skill_choice":
@@ -9440,7 +9441,7 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         text = text[: m_level.start()].strip()
 
     name, speciality = _split_skill_speciality(text)
-    applied_msg = character.add_skill(name, level=level, speciality=speciality)
+    applied_msg = character.add_skill(name, level=level, speciality=speciality, fixed_level=True)
     disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     return f"Rank bonus applied: {disp} ({applied_msg})"
 
