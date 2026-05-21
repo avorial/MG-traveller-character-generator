@@ -934,6 +934,33 @@ function renderSheet() {
         <p class="empty">Used for advancement in Bounty Hunter career.</p>
       </div>` : ''}
 
+      ${(character.species_id === 'kkree') ? (() => {
+        const degreeLabels = {
+          servant_of_rankholder: 'Servant-of-Rankholder',
+          kinsman_of_rankholder: 'Kinsman-of-Rankholder',
+          rankholder: 'Rankholder',
+        };
+        const degree = degreeLabels[character.kkree_soc_rank_degree] || character.kkree_soc_rank_degree || '—';
+        const wives = character.kkree_wives || 0;
+        const members = (character.kkree_family_members || []);
+        const roleCount = { warrior: 0, specialist: 0, servant: 0 };
+        members.forEach(m => { if (roleCount[m.role] != null) roleCount[m.role]++; });
+        const memberSummary = members.length
+          ? `${roleCount.warrior} warrior${roleCount.warrior !== 1 ? 's' : ''}, ${roleCount.specialist} specialist${roleCount.specialist !== 1 ? 's' : ''}, ${roleCount.servant} servant${roleCount.servant !== 1 ? 's' : ''}`
+          : 'No family members yet';
+        return `
+      <div class="sheet-section">
+        <h3>K'kree Family</h3>
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-cell"><span class="stat-label">SOC RANK</span><span class="stat-value" style="font-size:11px">${degree}</span></div>
+          <div class="stat-cell"><span class="stat-label">WIVES</span><span class="stat-value">${wives}</span></div>
+          <div class="stat-cell"><span class="stat-label">MEMBERS</span><span class="stat-value">${members.length}</span></div>
+        </div>
+        ${members.length ? `<ul class="skill-list" style="margin-top:6px">${members.map((m, i) => `<li>${m.role.charAt(0).toUpperCase() + m.role.slice(1)}${m.description ? ` — ${m.description}` : ''}</li>`).join('')}</ul>` : `<p class="empty">${memberSummary}</p>`}
+        ${character.kkree_specialist_area ? `<p class="empty">Specialist area: ${character.kkree_specialist_area}</p>` : ''}
+      </div>`;
+      })() : ''}
+
       ${character.pension_per_year > 0 ? (() => {
         const _ex = new Set(['scout','rogue','prisoner','drifter']);
         const _qt = (character.term_history || []).filter(h => !_ex.has(h.career_id)).length;
@@ -3642,15 +3669,20 @@ function renderChooseCareer() {
   const isGEAslan = speciesId === 'glorious_empire_aslan';
   const aslanSocietyTag = isGEAslan ? 'glorious_empire' : 'aslan_hierate';
 
+  // K'kree characters (uses_kkree_family) must only see K'kree careers (two_thousand_worlds tag).
+  const isKkree = !!(speciesDef && speciesDef.uses_kkree_family);
+
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
         if (banned.has(c.id)) return false;
         // Aslan: only show careers whitelisted for this Aslan society tag
         if (isAslan && !(c.societies && c.societies.includes(aslanSocietyTag))) return false;
+        // K'kree: only show careers tagged two_thousand_worlds
+        if (isKkree && !(c.societies && c.societies.includes('two_thousand_worlds'))) return false;
         // "societies" = whitelist: only show for these societies
-        // (Aslan characters are already filtered by aslanSocietyTag above — skip the generic check)
-        if (!isAslan && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
+        // (Aslan and K'kree characters are already filtered above — skip the generic check)
+        if (!isAslan && !isKkree && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
         if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
         // "allowed_species" = species whitelist: only show for these species
