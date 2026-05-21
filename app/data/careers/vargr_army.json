@@ -1,0 +1,151 @@
+{
+  "id": "vargr_army",
+  "name": "Army (Vargr)",
+  "description": "Pack soldiers in service of a Vargr government or powerful corsair band. Soldiers deal with planetary surface actions, battles and campaigns. Such individuals may also be mercenaries for hire.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 6,
+    "modifiers": []
+  },
+  "assignments": {
+    "infantry": {
+      "name": "Infantry",
+      "description": "You are one of the frontline soldiers in the army.",
+      "survival": {"characteristic": "STR", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 5}
+    },
+    "cavalry": {
+      "name": "Cavalry",
+      "description": "You are a driver or gunner for a combat vehicle.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "support": {
+      "name": "Support",
+      "description": "You are a medic, technician or other supporting role behind the frontlines.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "SOC", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Drive",
+      "3": "Recon",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "Heavy Weapons"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Electronics",
+      "2": "Navigation",
+      "3": "Tactics (Military)",
+      "4": "Engineer",
+      "5": "Medic",
+      "6": "Survival"
+    },
+    "infantry": {
+      "name": "Infantry",
+      "assignment_only": "infantry",
+      "1": "Athletics",
+      "2": "Stealth",
+      "3": "Recon",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "Heavy Weapons"
+    },
+    "cavalry": {
+      "name": "Cavalry",
+      "assignment_only": "cavalry",
+      "1": "Drive",
+      "2": "Mechanic",
+      "3": "Electronics (Sensors)",
+      "4": "Gunner",
+      "5": "Flyer",
+      "6": "Drive"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Electronics (Comms)",
+      "2": "Drive",
+      "3": "Engineer",
+      "4": "Mechanic",
+      "5": "Medic",
+      "6": "Explosives"
+    }
+  },
+  "ranks": {
+    "infantry": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Recon 1"},
+      "4": {"title": null, "bonus": "Leadership 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    },
+    "cavalry": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Recon 1"},
+      "4": {"title": null, "bonus": "Leadership 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    },
+    "support": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Mechanic 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Engineer 1"},
+      "4": {"title": null, "bonus": "EDU +1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "Most of your unit are killed in battle, for which you blame your pack leader. With no other survivors to witness their lack of skill, they have you removed from the service. Lose SOC −1 and gain them as an Enemy.",
+    "3": "You are sent to a hostile region to battle guerrilla fighters and rebels. You are discharged due to stress or injury. Increase Recon or Survival by one level and lose SOC −1.",
+    "4": "You discover your pack leader is involved in illegal activities such as weapon or drug smuggling. You can join their ring and gain them as an Ally before the inevitable investigation gets you discharged and you lose SOC −1, or you can testify against them — gaining SOC +1 but they become an Enemy and you are discharged as part of the official cover-up.",
+    "5": "You fail a critical mission. Lose SOC −1 and leave the service.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You are assigned to a hostile planet. Gain one of Vacc Suit 1, Engineer (any) 1 or Survival 1.",
+    "4": "You are assigned to a war-torn urban region. Gain one of Stealth 1, Streetwise 1, Persuade 1 or Recon 1.",
+    "5": "Your pack is given a special assignment or duty. Gain DM+1 to one Benefit roll for this career or SOC +1.",
+    "6": "You are thrown into a brutal ground war and your leader is killed. Roll END 8+ to avoid injury; if successful, gain one level in Gun Combat (any) or Leadership and roll SOC 8+ to become the pack leader, gaining an automatic promotion.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You receive advanced training. Roll EDU 8+ to increase any one skill you already have by one level.",
+    "9": "Surrounded by a superior enemy, you hold out until relief arrives. Gain DM+1 to your next Advancement roll or SOC +1.",
+    "10": "You are assigned to a peacekeeping role. Gain one of Admin 1, Investigate 1, Recon 1 or SOC +1.",
+    "11": "You save your pack leader's life in battle. Gain them as an Ally and receive DM+2 to your next Advancement roll.",
+    "12": "You perform a heroic deed in battle. Gain SOC +1 and an automatic promotion."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "STR +1"},
+    "2": {"cash": 2000, "benefit": "DEX +1"},
+    "3": {"cash": 5000, "benefit": "Combat Implant or END +1"},
+    "4": {"cash": 10000, "benefit": "Armour"},
+    "5": {"cash": 15000, "benefit": "Weapon"},
+    "6": {"cash": 20000, "benefit": "SOC +1"},
+    "7": {"cash": 25000, "benefit": "Ally"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

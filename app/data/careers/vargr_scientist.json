@@ -1,0 +1,151 @@
+{
+  "id": "vargr_scientist",
+  "name": "Scientist (Vargr)",
+  "description": "These individuals are trained in scientific methods to investigate situations, research phenomena and develop new technologies and materials.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 8,
+    "modifiers": []
+  },
+  "assignments": {
+    "doctor": {
+      "name": "Doctor",
+      "description": "You are a physician or surgeon.",
+      "survival": {"characteristic": "EDU", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    },
+    "researcher": {
+      "name": "Researcher",
+      "description": "You are a researcher for a corporate or government organisation.",
+      "survival": {"characteristic": "EDU", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "technician": {
+      "name": "Technician",
+      "description": "You are a technician or assistant in a team of scientists or engineers.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Science",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "EDU +1",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Investigate",
+      "3": "Science",
+      "4": "Diplomat",
+      "5": "Medic",
+      "6": "Admin"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Admin",
+      "2": "Engineer",
+      "3": "Investigate",
+      "4": "Language",
+      "5": "Art",
+      "6": "Science"
+    },
+    "doctor": {
+      "name": "Doctor",
+      "assignment_only": "doctor",
+      "1": "Medic",
+      "2": "Electronics",
+      "3": "Investigate",
+      "4": "Persuade",
+      "5": "Science",
+      "6": "Medic"
+    },
+    "researcher": {
+      "name": "Researcher",
+      "assignment_only": "researcher",
+      "1": "Investigate",
+      "2": "Admin",
+      "3": "Science",
+      "4": "Science",
+      "5": "Investigate",
+      "6": "Electronics"
+    },
+    "technician": {
+      "name": "Technician",
+      "assignment_only": "technician",
+      "1": "Science",
+      "2": "Admin",
+      "3": "Mechanic",
+      "4": "Engineer",
+      "5": "Electronics",
+      "6": "Drive or Flyer"
+    }
+  },
+  "ranks": {
+    "doctor": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Medic 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Science 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Electronics 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "researcher": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Investigate 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Science 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Electronics 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "technician": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Engineer 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Electronics 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Science 1"},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "A lab accident exposes you to a dangerous substance. Lose END −1.",
+    "3": "An experiment goes critically wrong and causes the death of several pack members. You are forced to leave this career and lose SOC −1.",
+    "4": "You are assigned to an off-world laboratory but your ship crashes en route. Gain Survival 1 and roll END 8+. If you fail, roll on the Injury table.",
+    "5": "Your employers cancel your research. You may continue this career but gain no Benefit rolls this term. Alternatively, roll SOC 8+: if successful, you continue your work with another pack and stay in this career but gain an Enemy of your previous employer. If you fail, you are forced to leave this career.",
+    "6": "A rival scientist discredits you or steals your research. Gain a Rival, lose SOC −1 and suffer DM-2 to your next Survival roll."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "You are assigned to a military project. Gain a Contact and one of Gun Combat 1, Engineer 1, Heavy Weapons 1 or Science 1.",
+    "4": "You are singled out and assigned to work on a secret project and forbidden to discuss it with anyone, even members of your pack. Gain Deception 1.",
+    "5": "You are assigned to an orbiting laboratory or lab ship. Gain one level in Vacc Suit or Athletics (Dexterity).",
+    "6": "You are given advanced training. Roll EDU 8+ to gain one level in any skill you are eligible for in this career.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You work with several institutes and research facilities. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+    "9": "You become friends with a brilliant but eccentric mentor. Gain an Ally and one level in any Science skill.",
+    "10": "You make a minor scientific discovery. Gain SOC +1 and DM+1 to a Benefit roll from this career.",
+    "11": "You work for a prestigious organisation. Gain DM+1 to a Benefit roll from this career and DM+4 to your next Advancement roll.",
+    "12": "You make a scientific breakthrough. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 5000, "benefit": "Scientific Equipment"},
+    "2": {"cash": 10000, "benefit": "Contact"},
+    "3": {"cash": 20000, "benefit": "INT +1"},
+    "4": {"cash": 30000, "benefit": "EDU +1"},
+    "5": {"cash": 50000, "benefit": "Ship Share"},
+    "6": {"cash": 75000, "benefit": "SOC +1"},
+    "7": {"cash": 100000, "benefit": "Lab Ship"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

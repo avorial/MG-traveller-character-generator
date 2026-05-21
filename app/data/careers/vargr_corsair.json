@@ -1,0 +1,141 @@
+{
+  "id": "vargr_corsair",
+  "name": "Corsair",
+  "description": "Corsair bands are independent groups of pirates and mercenaries who prey on merchant shipping throughout Vargr space and beyond, into the Zhodani Consulate and the Imperium.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 7,
+    "modifiers": []
+  },
+  "assignments": {
+    "raider": {
+      "name": "Raider",
+      "description": "You are part of the main attacking force in your band, specialising in boarding and looting ships.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    },
+    "pilot": {
+      "name": "Pilot",
+      "description": "You are one of the pilots or navigators in your corsair band.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "reaver": {
+      "name": "Reaver",
+      "description": "You are part of the ship's crew and function as an engineer, gunner or other supporting role.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "Gambler",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Vacc Suit",
+      "2": "Athletics (Dexterity)",
+      "3": "Stealth",
+      "4": "Recon",
+      "5": "Melee",
+      "6": "Gun Combat"
+    },
+    "raider": {
+      "name": "Raider",
+      "assignment_only": "raider",
+      "1": "Stealth",
+      "2": "Recon",
+      "3": "Melee",
+      "4": "Gun Combat",
+      "5": "Athletics",
+      "6": "Explosives"
+    },
+    "pilot": {
+      "name": "Pilot",
+      "assignment_only": "pilot",
+      "1": "Pilot",
+      "2": "Astrogation",
+      "3": "Electronics",
+      "4": "Gunner",
+      "5": "Athletics (Dexterity)",
+      "6": "Flyer"
+    },
+    "reaver": {
+      "name": "Reaver",
+      "assignment_only": "reaver",
+      "1": "Engineer",
+      "2": "Electronics",
+      "3": "Gunner",
+      "4": "Mechanic",
+      "5": "Athletics",
+      "6": "Leadership"
+    }
+  },
+  "ranks": {
+    "raider": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": "Gun Combat 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": "Leadership 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "Tactics 1"}
+    },
+    "pilot": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Electronics (Sensors) 1"},
+      "2": {"title": null, "bonus": "Astrogation 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": "Pilot 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "reaver": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Engineer 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": "Leadership 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "You are arrested but are able to pay a fine to earn your freedom. Lose one Benefit roll from this career and lose SOC −1.",
+    "3": "You are betrayed by a member of your band, ending your career as a Corsair. If you have an Ally or Contact in the band, they are now an Enemy; otherwise gain an Enemy.",
+    "4": "A job goes wrong and the pack looks for new leadership. Roll SOC 8+ to support the winning side. If you fail, you are forced to leave the band and gain a Rival.",
+    "5": "You make a mistake forcing your pack to flee from the local law enforcement. Lose SOC −1 and you are forced to leave your corsair band.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "You are arrested and hire a lawyer who gets the charges dropped. You lose one Benefit roll from this career but gain the lawyer as a Contact.",
+    "4": "You are forced into hiding on a hostile world. Gain Survival 1.",
+    "5": "You gain a Contact in the criminal underworld.",
+    "6": "One of your raids is particularly successful. Gain a Benefit roll.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "Your time spent in the criminal underworld gives you one of Streetwise 1, Stealth 1, Melee (any) 1 or Gun Combat (any) 1.",
+    "9": "You become involved in a territorial war with a rival corsair band. Roll Gun Combat (any) or Melee (any) 8+ to help defeat them. Gain SOC +1 if you succeed or roll on the Injury table if you fail.",
+    "10": "Your leader uses poor judgement and your band suffers heavy losses. Roll SOC 10+ to become the new pack leader and gain an automatic promotion.",
+    "11": "You support a pack member who becomes the new leader. Gain an Ally and DM+4 to your next Advancement roll.",
+    "12": "Your raiding skills have become legendary. You gain an automatic promotion and SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Ship Share"},
+    "2": {"cash": 5000, "benefit": "DEX +1"},
+    "3": {"cash": 10000, "benefit": "Weapon"},
+    "4": {"cash": 25000, "benefit": "Armour"},
+    "5": {"cash": 50000, "benefit": "Two Ship Shares"},
+    "6": {"cash": 75000, "benefit": "SOC +1"},
+    "7": {"cash": 100000, "benefit": "Corsair Ship"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

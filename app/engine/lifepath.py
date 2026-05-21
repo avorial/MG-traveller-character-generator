@@ -867,6 +867,28 @@ def apply_species(character: Character, species_id: str) -> dict:
     else:
         character.log(f"Applied species: {species_data['name']}")
 
+    # Vargr Extents: CHA replaces SOC. Re-roll SOC as 1D+2 (not the standard 2D).
+    if species_data.get("uses_cha"):
+        cha_roll = dice.roll_1d() + 2
+        old_soc = character.characteristics.SOC
+        character.characteristics.set("SOC", cha_roll)
+        character.log(f"CHA (SOC) re-rolled as 1D+2 = {cha_roll} (was {old_soc})")
+
+    # Auto-grant species background skills (e.g. Vargr: Melee (Infighting) 0).
+    species_bg_skills = species_data.get("background_skills", [])
+    for skill_entry in species_bg_skills:
+        # Parse "Skill (Speciality) N" — default level 0
+        level = 0
+        entry = skill_entry.strip()
+        m = re.search(r"\s+(\d+)\s*$", entry)
+        if m:
+            level = int(m.group(1))
+            entry = entry[: m.start()].strip()
+        sn, spec = _split_skill_speciality(entry)
+        character.add_skill(sn, level=level, speciality=spec)
+        display = f"{sn} ({spec})" if spec else sn
+        character.log(f"Species background skill: {display} {level}")
+
     # Aslan Hierate: skip background/pre_career phases; go directly to aslan_setup
     needs_aslan_setup = species_data.get("uses_clan_shares", False)
     if needs_aslan_setup:
@@ -2621,6 +2643,16 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
                 "merchant", "solsec", "agent",
             ]
             draft_career = solomani_draft[d6 - 1]
+        elif character.society_id == "vargr_extents":
+            # Vargr Extents draft table: 1-3=Army, 4=Marines, 5=Navy, 6=Law Enforcement
+            if d6 <= 3:
+                draft_career = "vargr_army"
+            elif d6 == 4:
+                draft_career = "vargr_marines"
+            elif d6 == 5:
+                draft_career = "vargr_navy"
+            else:
+                draft_career = "vargr_law_enforcement"
         else:
             # Imperial draft table: 1-3=Army, 4-5=Marine, 6=Navy
             if d6 <= 3:
@@ -3084,6 +3116,68 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
     }
 
 
+def _apply_vargr_pack_event(character: Character) -> list[str]:
+    """Roll 1D on the Pack Events sub-table and auto-apply mechanical effects.
+
+    Returns a list of log strings for the caller to append to auto_applied.
+    Called when a Vargr Extents life event result is 6 or 8.
+    """
+    sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+    r = dice.roll("1D")
+    sub = r.total
+    applied: list[str] = [f"Pack Event sub-roll: 1D={sub}"]
+
+    pack_table = rules.vargr_extents_life_events().get("pack_events", {})
+    result_text = pack_table.get("results", {}).get(str(sub), "")
+    if result_text:
+        applied.append(result_text)
+
+    if sub == 1:
+        # Failure — lose SOC-1
+        soc = character.characteristics.get("SOC")
+        character.characteristics.set("SOC", max(1, soc - 1))
+        applied.append("Pack Failure: SOC-1")
+    elif sub == 2:
+        # Leave Pack — auto-roll SOC 6+ to stay; if fail, note ejection risk
+        soc = character.characteristics.get("SOC")
+        stay_r = dice.roll("2D", modifier=dice.characteristic_dm(soc), target=6)
+        if stay_r.succeeded:
+            applied.append(f"Leave Pack: SOC 6+ roll = {stay_r.total} — stayed in career")
+        else:
+            applied.append(f"Leave Pack: SOC 6+ roll = {stay_r.total} — ejected from career")
+            character.log("Pack Event: forced to leave pack — ejected from career")
+    elif sub == 3:
+        # Join Pack — gain Contact
+        character.associates.append(Associate(kind="contact", description="Contact [New Pack]"))
+        applied.append("Join Pack: Gained Contact [New Pack]")
+    elif sub == 4:
+        # Power Struggle — roll 1D: 1-3 Rival, 4-6 Ally
+        struggle_r = dice.roll("1D").total
+        if struggle_r <= 3:
+            character.associates.append(Associate(kind="rival", description="Rival [Pack Power Struggle]"))
+            applied.append(f"Power Struggle (1D={struggle_r}): current leader kept — Gained Rival")
+        else:
+            character.associates.append(Associate(kind="ally", description="Ally [New Pack Leader]"))
+            applied.append(f"Power Struggle (1D={struggle_r}): new leader chosen — Gained Ally")
+    elif sub == 5:
+        # Success — SOC+1
+        soc = character.characteristics.get("SOC")
+        character.characteristics.set("SOC", min(soc + 1, sp_max))
+        applied.append("Pack Success: SOC+1")
+    elif sub == 6:
+        # Leadership Challenge — note as pending; auto-apply Rival on failure
+        soc = character.characteristics.get("SOC")
+        lead_r = dice.roll("2D", modifier=dice.characteristic_dm(soc), target=10)
+        if lead_r.succeeded:
+            character.dm_next_advancement += 2
+            applied.append(f"Leadership Challenge (2D={lead_r.total}): succeeded — became pack leader, DM+2 to next Advancement")
+        else:
+            character.associates.append(Associate(kind="rival", description="Rival [Lost Leadership Challenge]"))
+            applied.append(f"Leadership Challenge (2D={lead_r.total}): failed — Gained Rival")
+
+    return applied
+
+
 def apply_life_event(character: Character, career_id: Optional[str] = None) -> dict:
     """Roll 2D on the Life Events table and auto-apply everything possible.
 
@@ -3103,6 +3197,7 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
         return _apply_homeworld_life_event(character, character.species_id)
 
     use_solomani = career_id in rules.SOLOMANI_CAREER_IDS
+    use_vargr = career_id in rules.VARGR_CAREER_IDS
 
     r = dice.roll("2D")
     total = r.total
@@ -3143,7 +3238,10 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
             auto_applied.append("Gained Ally [Romantic]")
 
     elif total == 6:
-        if use_solomani:
+        if use_vargr:
+            # Pack Event (Vargr) — roll 1D on Pack Events sub-table.
+            auto_applied.extend(_apply_vargr_pack_event(character))
+        elif use_solomani:
             # Party Connections — gain Contact [Solomani Party].
             character.associates.append(
                 Associate(kind="contact", description="Contact [Solomani Party/Confederation]")
@@ -3160,27 +3258,31 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
         auto_applied.append("Gained Contact [Generic]")
 
     elif total == 8:
-        # Betrayal — convert first Contact/Ally or gain Rival/Enemy.
-        contacts = [i for i, a in enumerate(character.associates) if a.kind == "contact"]
-        allies = [i for i, a in enumerate(character.associates) if a.kind == "ally"]
-        if contacts:
-            old = character.associates[contacts[0]]
-            old_desc = old.description or "Contact"
-            character.associates[contacts[0]] = Associate(
-                kind="rival", description=f"Rival [Betrayer] (was: {old_desc})"
-            )
-            auto_applied.append(f"Contact '{old_desc}' converted to Rival [Betrayer]")
-        elif allies:
-            old = character.associates[allies[0]]
-            old_desc = old.description or "Ally"
-            character.associates[allies[0]] = Associate(
-                kind="enemy", description=f"Enemy [Betrayer] (was: {old_desc})"
-            )
-            auto_applied.append(f"Ally '{old_desc}' converted to Enemy [Betrayer]")
+        if use_vargr:
+            # Pack Event (Vargr) — roll 1D on Pack Events sub-table.
+            auto_applied.extend(_apply_vargr_pack_event(character))
         else:
-            # No contacts or allies — player picks which to gain.
-            pending_choice = {"kind": "betrayal_no_associates"}
-            auto_applied.append("PENDING: no existing Contact/Ally — choose Rival or Enemy [Betrayer]")
+            # Betrayal — convert first Contact/Ally or gain Rival/Enemy.
+            contacts = [i for i, a in enumerate(character.associates) if a.kind == "contact"]
+            allies = [i for i, a in enumerate(character.associates) if a.kind == "ally"]
+            if contacts:
+                old = character.associates[contacts[0]]
+                old_desc = old.description or "Contact"
+                character.associates[contacts[0]] = Associate(
+                    kind="rival", description=f"Rival [Betrayer] (was: {old_desc})"
+                )
+                auto_applied.append(f"Contact '{old_desc}' converted to Rival [Betrayer]")
+            elif allies:
+                old = character.associates[allies[0]]
+                old_desc = old.description or "Ally"
+                character.associates[allies[0]] = Associate(
+                    kind="enemy", description=f"Enemy [Betrayer] (was: {old_desc})"
+                )
+                auto_applied.append(f"Ally '{old_desc}' converted to Enemy [Betrayer]")
+            else:
+                # No contacts or allies — player picks which to gain.
+                pending_choice = {"kind": "betrayal_no_associates"}
+                auto_applied.append("PENDING: no existing Contact/Ally — choose Rival or Enemy [Betrayer]")
 
     elif total == 9:
         # Travel / Relocation — DM+2 to next Qualification roll.
@@ -3188,12 +3290,23 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
         auto_applied.append("DM+2 to next Qualification roll")
 
     elif total == 10:
-        # Good Fortune — one DM+2 token for any benefit roll.
-        character.good_fortune_benefit_dm += 2
-        auto_applied.append("Good Fortune: DM+2 token available for one mustering-out benefit roll")
+        if use_vargr:
+            # Good Fortune (Vargr) — gain a Benefit roll or SOC+1.
+            character.pending_benefit_rolls += 1
+            auto_applied.append("Good Fortune: gained extra Benefit roll (or take SOC+1 instead)")
+        else:
+            # Good Fortune — one DM+2 token for any benefit roll.
+            character.good_fortune_benefit_dm += 2
+            auto_applied.append("Good Fortune: DM+2 token available for one mustering-out benefit roll")
 
     elif total == 11:
-        if use_solomani:
+        if use_vargr:
+            # Crime (Vargr) — lose SOC-1.
+            sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+            soc = character.characteristics.get("SOC")
+            character.characteristics.set("SOC", max(1, soc - 1))
+            auto_applied.append("Crime: SOC-1")
+        elif use_solomani:
             # Solomani Pride — SOC+1.
             soc = character.characteristics.get("SOC")
             sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
@@ -3218,10 +3331,16 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
             character.psi_tested = True
             auto_applied.append(f"Psionics: PSI tested, rolled {psi_roll.total}. Psion career available.")
         elif sub == 2:
-            # Aliens — gain Science 1 (alien race) + Contact [Alien].
-            character.add_skill("Science", level=1, speciality="Alien Races")
-            character.associates.append(Associate(kind="contact", description="Contact [Alien]"))
-            auto_applied.append("Gained Science (Alien Races) 1 and Contact [Alien]")
+            if use_vargr:
+                # Aliens (Vargr) — gain Language 1 + Contact [Alien].
+                character.add_skill("Language", level=1)
+                character.associates.append(Associate(kind="contact", description="Contact [Alien Race]"))
+                auto_applied.append("Aliens: Gained Language 1 and Contact [Alien Race]")
+            else:
+                # Aliens — gain Science 1 (alien race) + Contact [Alien].
+                character.add_skill("Science", level=1, speciality="Alien Races")
+                character.associates.append(Associate(kind="contact", description="Contact [Alien]"))
+                auto_applied.append("Gained Science (Alien Races) 1 and Contact [Alien]")
         elif sub == 3:
             # Alien Artefact / Terran Artefact — add to equipment.
             item_name = "Terran Artefact (Historical)" if use_solomani else "Alien Artefact"
@@ -3234,21 +3353,29 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
             )
             auto_applied.append("Noted Unknown [Amnesia] in associates")
         elif sub == 5:
-            # Contact with Government / Confederation Elite.
-            gov_label = "Met [Confederation Elite]" if use_solomani else "Met [Government Official] — Imperial contact"
-            character.associates.append(
-                Associate(kind="contact", description=gov_label)
-            )
-            auto_applied.append(f"Noted {gov_label} in associates")
+            if use_vargr:
+                # Contact with Government (Vargr) — pack became well known, SOC+1.
+                sp_max_v = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+                soc_v = character.characteristics.get("SOC")
+                character.characteristics.set("SOC", min(soc_v + 1, sp_max_v))
+                auto_applied.append("Contact with Government: SOC+1")
+            else:
+                # Contact with Government / Confederation Elite.
+                gov_label = "Met [Confederation Elite]" if use_solomani else "Met [Government Official] — Imperial contact"
+                character.associates.append(
+                    Associate(kind="contact", description=gov_label)
+                )
+                auto_applied.append(f"Noted {gov_label} in associates")
         elif sub == 6:
-            # Ancient Technology.
-            character.equipment.append(Equipment(name="Ancient Technology", notes="Unusual Event 12-6"))
-            auto_applied.append("Ancient Technology added to equipment")
+            # Ancient Technology (Vargr: believed left by the Ancients).
+            item_label = "Ancient Technology (Ancients — Vargr Origin)" if use_vargr else "Ancient Technology"
+            character.equipment.append(Equipment(name=item_label, notes="Unusual Event 12-6"))
+            auto_applied.append(f"{item_label} added to equipment")
         auto_applied.insert(0, f"Unusual Event sub-roll: D6={sub}")
 
     # Fetch descriptive text from the appropriate life-events table.
     life_table_data = rules.life_events_for_career(career_id or "")
-    event_text = life_table_data["entries"].get(str(total), {})
+    event_text = life_table_data.get("entries", life_table_data).get(str(total), {})
     if isinstance(event_text, dict):
         event_text = f"{event_text.get('title', '')}: {event_text.get('text', 'Something happens in your life.')}"
     elif not event_text:
@@ -3537,6 +3664,16 @@ _DRAFT_TABLE: dict[int, tuple[str, str]] = {
 }
 
 
+_VARGR_DRAFT_TABLE: dict[int, tuple[str, str]] = {
+    1: ("vargr_army", "infantry"),
+    2: ("vargr_army", "infantry"),
+    3: ("vargr_army", "infantry"),
+    4: ("vargr_marines", "marine"),
+    5: ("vargr_navy", "crew"),
+    6: ("vargr_law_enforcement", "enforcer"),
+}
+
+
 def draft_into_service(character: Character) -> dict:
     """Roll 1D on the draft table and auto-start a term in the assigned service.
 
@@ -3551,7 +3688,10 @@ def draft_into_service(character: Character) -> dict:
         raise ValueError("Cannot be drafted while already in an active term.")
 
     r = dice.roll("1D")
-    career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
+    if character.society_id == "vargr_extents":
+        career_id, assignment_id = _VARGR_DRAFT_TABLE[max(1, min(6, r.total))]
+    else:
+        career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
     career = rules.careers().get(career_id)
     if career is None:
         raise ValueError(f"Draft table points at unknown career '{career_id}'")
@@ -4049,8 +4189,9 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         dm += mixed_heritage_dm
 
     # RAW: DM-1 for each career previously attempted (failed) this selection round.
+    # Vargr Extents (no_career_change_penalty) are exempt from this penalty.
     failed_dm = -character.failed_qualifications_this_term
-    if failed_dm:
+    if failed_dm and not species_data.get("no_career_change_penalty"):
         dm += failed_dm
 
     # Apply DM from prior events (e.g. Travel life event)
@@ -4409,7 +4550,7 @@ def event_roll(character: Character) -> dict:
         life_r = dice.roll("2D")
         career_id_for_evt = term.career_id if term else ""
         life_table_data = rules.life_events_for_career(career_id_for_evt)
-        life_data = life_table_data["entries"].get(str(life_r.total))
+        life_data = life_table_data.get("entries", life_table_data).get(str(life_r.total))
         if life_data:
             event_text = f"Life Event — {life_data['title']}: {life_data['text']}"
             if life_data.get("sub_table"):
@@ -9527,6 +9668,14 @@ def _apply_skill_result(character: Character, result: str) -> str:
     if not result:
         return "no result"
     stripped = result.strip()
+
+    # Associate grants from skill tables ("Contact", "Ally")
+    if stripped == "Contact":
+        character.associates.append(Associate(kind="contact", description="Met during career"))
+        return "Gained a Contact"
+    if stripped == "Ally":
+        character.associates.append(Associate(kind="ally", description="Met during career"))
+        return "Gained an Ally"
 
     # Characteristic bonuses ("STR +1", "DEX +1", etc.)
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):

@@ -1,0 +1,63 @@
+{
+  "description": "Rolled when a Vargr Extents career Event roll results in 'Life Event'. Roll 2D. Results 6 and 8 trigger the Pack Events sub-table.",
+  "dice": "2D",
+  "entries": {
+    "2": {
+      "title": "Sickness or Injury",
+      "text": "You are injured or sick. Roll on the Injury table."
+    },
+    "3": {
+      "title": "Birth or Death",
+      "text": "Someone close to you dies, such as a friend or pack member. Alternatively, someone close to you gives birth (or is born!). You are involved in some fashion."
+    },
+    "4": {
+      "title": "Ending of Relationship",
+      "text": "A romantic relationship involving you ends. Roll 1D: on 1-2 your mate is killed; on 3-4 your mate leaves you; on 5-6 you leave your mate."
+    },
+    "5": {
+      "title": "New Relationship",
+      "text": "You become romantically involved with an existing Ally, Contact, another Traveller or pack member."
+    },
+    "6": {
+      "title": "Pack Event",
+      "text": "Roll on the Pack Events table."
+    },
+    "7": {
+      "title": "New Contact",
+      "text": "You gain a new Contact."
+    },
+    "8": {
+      "title": "Pack Event",
+      "text": "Roll on the Pack Events table."
+    },
+    "9": {
+      "title": "Travel",
+      "text": "You move to another world. Gain DM+2 to your next Qualification roll."
+    },
+    "10": {
+      "title": "Good Fortune",
+      "text": "Something good happens to you — you come into money unexpectedly, have a lifelong dream come true or have another stroke of good fortune. Gain a Benefit roll in your current career or gain SOC +1."
+    },
+    "11": {
+      "title": "Crime",
+      "text": "You commit a crime or are accused of a crime. Lose SOC -1."
+    },
+    "12": {
+      "title": "Unusual Event",
+      "text": "Something weird. Roll 1D: 1=Psionics; 2=Aliens (Language 1 or Science 1 + Contact); 3=Alien Artefact; 4=Amnesia; 5=Contact with Government (SOC+1); 6=Ancient Technology (left by the Ancients when they first brought the Vargr to Lair)."
+    }
+  },
+  "pack_events": {
+    "name": "Pack Events",
+    "dice": "1D",
+    "note": "Travellers not currently in a pack roll SOC 7+ to join a new pack; on a failure, gain a Rival (result 6) or an Ally (result 8) instead.",
+    "results": {
+      "1": "Failure: Your failure causes a serious problem for your pack — the loss of a well-paid job or the death of a pack member. Lose SOC -1. If you are the pack leader, your pack will look to new leadership until you can redeem yourself.",
+      "2": "Leave Pack: A change of situation, disagreement or lack of leadership forces you to leave your pack and your job. Roll SOC 6+ to find another job in your current field or you are ejected from your career.",
+      "3": "Join Pack: You join a new pack. This can be a change of job or employer within your career, or you become involved with another group.",
+      "4": "Power Struggle: The pack leader does not live up to the reputation their Charisma suggested and you look to others to replace them. Roll 1D: on a 1-3 the current leader keeps their position and you gain a Rival; on a 4-6 a new leader takes charge and you gain an Ally.",
+      "5": "Success: You are successful at a particularly difficult task and exceed all expectations. Gain SOC +1.",
+      "6": "Leadership Challenge: The pack leader fails in their role and the pack looks for a new leader. Roll Leadership or SOC 10+ to become the new leader. If you fail, another member is chosen and you gain a Rival."
+    }
+  }
+}

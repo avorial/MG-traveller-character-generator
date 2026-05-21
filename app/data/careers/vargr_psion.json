@@ -1,0 +1,151 @@
+{
+  "id": "vargr_psion",
+  "name": "Psion (Vargr)",
+  "description": "The nature of Vargr society means there are few psionic institutes. Most organisations exist on worlds bordering Zhodani space and psions from other regions are usually trained by a mentor or have developed their abilities by themselves.",
+  "qualification": {
+    "characteristic": "PSI",
+    "target": 6,
+    "modifiers": []
+  },
+  "assignments": {
+    "wild_talent": {
+      "name": "Wild Talent",
+      "description": "You developed your powers without formal training.",
+      "survival": {"characteristic": "EDU", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "mentored": {
+      "name": "Mentored",
+      "description": "You are trained by a mentor.",
+      "survival": {"characteristic": "SOC", "target": 6},
+      "advancement": {"characteristic": "PSI", "target": 6}
+    },
+    "institute": {
+      "name": "Institute",
+      "description": "You are trained in a psionic institute.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Melee",
+      "2": "STR +1",
+      "3": "DEX +1",
+      "4": "END +1",
+      "5": "PSI +1",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Telepathy",
+      "2": "Telepathy",
+      "3": "Clairvoyance",
+      "4": "Telekinesis",
+      "5": "Awareness",
+      "6": "Teleportation"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Admin",
+      "2": "Electronics",
+      "3": "Language",
+      "4": "Science",
+      "5": "Art",
+      "6": "Medic"
+    },
+    "wild_talent": {
+      "name": "Wild Talent",
+      "assignment_only": "wild_talent",
+      "1": "Telepathy",
+      "2": "Telekinesis",
+      "3": "Deception",
+      "4": "Stealth",
+      "5": "Streetwise",
+      "6": "Survival"
+    },
+    "mentored": {
+      "name": "Mentored",
+      "assignment_only": "mentored",
+      "1": "Telepathy",
+      "2": "Clairvoyance",
+      "3": "Admin",
+      "4": "Persuade",
+      "5": "Science (Psionicology)",
+      "6": "Streetwise"
+    },
+    "institute": {
+      "name": "Institute",
+      "assignment_only": "institute",
+      "1": "Telepathy",
+      "2": "Awareness",
+      "3": "Telepathy",
+      "4": "Electronics (Computers)",
+      "5": "Investigate",
+      "6": "Science (Psionicology)"
+    }
+  },
+  "ranks": {
+    "wild_talent": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Survival 1"},
+      "2": {"title": null, "bonus": "Streetwise 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": "Deception 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "mentored": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Streetwise 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Telepathy 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "Clairvoyance 1"}
+    },
+    "institute": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Science (Psionicology) 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Telepathy 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "Clairvoyance 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "You make telepathic contact with an unknown entity. You go missing for 1D days and have no memory of the event. If the roll for number of days was 5 or 6, you also lose PSI −1.",
+    "3": "Your pack discovers you are a psion and does not look favourably on your kind. You are humiliated and outcast from the pack and community. Lose SOC −1 and your next Survival roll suffers DM-2.",
+    "4": "You visit a world where psionics are outlawed. You are arrested and your time in prison forces you to leave this career.",
+    "5": "You join a pack of other psions and lose the power struggle for leadership. Gain a Rival.",
+    "6": "You are experimented on by a corporation, government or psionic institute. Roll 1D: on a 1–2 you suffer an injury (roll on the Injury table); on a 3–4 you lose PSI −1; on a 5–6 there are no complications but you are forced to leave this career."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "You make telepathic contact with an unknown entity. You go missing for 1D days and have no memory of the event. If the roll for number of days was 5–6, you also lose PSI −1.",
+    "4": "You come into contact with an alien device. Roll 1D: on a 1–2 you are injured (roll on the Injury table); on a 3–4 you gain one level in a Talent you already know; on a 5–6 you gain PSI +1.",
+    "5": "You excel as a psion. Gain DM+1 to one Benefit roll from this career.",
+    "6": "You receive advanced training. Roll EDU 8+ to gain one level in any non-psionic skill.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You receive additional psionic training. Roll PSI 10+ to gain a new psionic talent. If you fail, gain one level in Science (Psionicology).",
+    "9": "Your quick thinking and use of psionic abilities save the life of a pack member. Gain SOC +1 and an Ally.",
+    "10": "You dedicate your spare time to psionic training. Gain PSI +1.",
+    "11": "You befriend a mentor. Gain a Contact and DM+4 to your next Advancement roll.",
+    "12": "You have a natural aptitude for psionics. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 2000, "benefit": "Contact"},
+    "3": {"cash": 5000, "benefit": "END +1"},
+    "4": {"cash": 5000, "benefit": "INT +1"},
+    "5": {"cash": 10000, "benefit": "Ally"},
+    "6": {"cash": 10000, "benefit": "SOC +1"},
+    "7": {"cash": 15000, "benefit": "PSI +1"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

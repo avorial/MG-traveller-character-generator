@@ -158,6 +158,11 @@ def kkree_life_events() -> dict:
 
 
 @lru_cache(maxsize=1)
+def vargr_extents_life_events() -> dict:
+    return _load_file("tables/vargr_extents_life_events.json")
+
+
+@lru_cache(maxsize=1)
 def aslan_background_tables() -> dict:
     return _load_file("tables/aslan_background.json")
 
@@ -181,6 +186,13 @@ ASLAN_CAREER_IDS: frozenset[str] = frozenset({
 # K'kree careers — use the K'kree Life Events table.
 KKREE_CAREER_IDS: frozenset[str] = frozenset({
     "kkree_pastoral", "kkree_servant", "kkree_merchant", "kkree_noble",
+})
+
+# Vargr Extents careers — use the Vargr Extents Life Events table.
+VARGR_CAREER_IDS: frozenset[str] = frozenset({
+    "vargr_army", "vargr_citizen", "vargr_corsair", "vargr_emissary",
+    "vargr_law_enforcement", "vargr_loner", "vargr_marines",
+    "vargr_merchant", "vargr_navy", "vargr_psion", "vargr_scientist",
 })
 
 # Species that have their own homeworld life events tables (1D).
@@ -219,6 +231,8 @@ def life_events_for_career(career_id: str) -> dict:
         return aslan_life_events()
     if career_id in KKREE_CAREER_IDS:
         return kkree_life_events()
+    if career_id in VARGR_CAREER_IDS:
+        return vargr_extents_life_events()
     return life_events()
 
 
@@ -316,7 +330,7 @@ def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
     for fn in (species, careers, background_skills, skill_packages, life_events,
                solomani_life_events, drinax_palace_life_events, drinax_wasteland_life_events,
-               asim_life_events, aslan_life_events, kkree_life_events,
+               asim_life_events, aslan_life_events, kkree_life_events, vargr_extents_life_events,
                aslan_background_tables, injury_table, aging_table, mustering_benefits,
                education, psionics, skills, societies):
         fn.cache_clear()

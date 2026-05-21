@@ -3,7 +3,7 @@
     "name":  "Vargr (Extents Raised)",
     "description":  "Same biology as Imperial Vargr, pack politics even more extreme. Charisma is literally political power. Loyalty shifts fast.",
     "characteristic_modifiers":  {
-                                     "STR":  -1,
+                                     "STR":  -2,
                                      "DEX":  1,
                                      "END":  -1,
                                      "INT":  0,
@@ -11,6 +11,10 @@
                                      "SOC":  0
                                  },
     "characteristic_maximum":  15,
+    "uses_cha":  true,
+    "no_career_change_penalty":  true,
+    "background_skills":  ["Melee (Infighting) 0"],
+    "life_events_table":  "vargr_extents",
     "sort_order":  700,
     "traits":  [
                    {

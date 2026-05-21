@@ -1,0 +1,151 @@
+{
+  "id": "vargr_law_enforcement",
+  "name": "Law Enforcement (Vargr)",
+  "description": "Law enforcement agents typically work for government authorities to uphold the law and prevent crime, but many find work as security guards working for corporations.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 6,
+    "modifiers": []
+  },
+  "assignments": {
+    "enforcer": {
+      "name": "Enforcer",
+      "description": "You are a police officer.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 5}
+    },
+    "investigator": {
+      "name": "Investigator",
+      "description": "You are a detective or private investigator.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "security": {
+      "name": "Security",
+      "description": "You are part of a private security force.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Gun Combat",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Melee",
+      "5": "INT +1",
+      "6": "Athletics"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Streetwise",
+      "2": "Drive",
+      "3": "Investigate",
+      "4": "Flyer",
+      "5": "Recon",
+      "6": "Gun Combat"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Language",
+      "3": "Explosives",
+      "4": "Medic",
+      "5": "Vacc Suit",
+      "6": "Electronics"
+    },
+    "enforcer": {
+      "name": "Enforcer",
+      "assignment_only": "enforcer",
+      "1": "Investigate",
+      "2": "Recon",
+      "3": "Streetwise",
+      "4": "Stealth",
+      "5": "Melee",
+      "6": "Advocate"
+    },
+    "investigator": {
+      "name": "Investigator",
+      "assignment_only": "investigator",
+      "1": "Investigate",
+      "2": "Recon",
+      "3": "Electronics (Comms)",
+      "4": "Stealth",
+      "5": "Persuade",
+      "6": "Deception"
+    },
+    "security": {
+      "name": "Security",
+      "assignment_only": "security",
+      "1": "Investigate",
+      "2": "Electronics (Computers)",
+      "3": "Stealth",
+      "4": "Carouse",
+      "5": "Deception",
+      "6": "Streetwise"
+    }
+  },
+  "ranks": {
+    "enforcer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": "Streetwise 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": "Advocate 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    },
+    "investigator": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Investigate 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Streetwise 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": "Stealth 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "security": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Recon 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "A charismatic criminal under investigation offers you a deal. Accept and you are forced from this career and lose SOC −1. Refuse and you must roll on the Injury table and gain an Enemy.",
+    "3": "An investigation goes critically wrong, ending your career. Roll Advocate 8+. If you succeed you may keep the Benefit roll from this term. If you fail you lose SOC −1.",
+    "4": "A failed investigation forces your pack to find new leadership. Roll SOC 8+ to be on the winning side and remain in this career. If you fail, you leave your pack and career.",
+    "5": "You uncover important information and people want to kill you for it. Gain one Enemy and suffer DM-2 to your next Survival roll if you remain in this career.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "An investigation takes a dangerous turn. Roll Investigate or Streetwise 8+. If you fail, roll on the Mishap table. If you succeed, gain SOC +1 or increase one of the following skills by one level: Deception, Jack-of-all-Trades, Stealth, Streetwise or Tactics (Military).",
+    "4": "You establish a network of contacts. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+    "5": "You are rewarded for a successful mission. Gain DM+1 to any Benefit roll from this career.",
+    "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "An investigation uncovers a warehouse full of illegal goods. You may choose to profit from your discovery and roll Deception 8+. If you fail, lose SOC −1 and suffer DM-4 to your next Survival roll. If you succeed, gain one Benefit roll.",
+    "9": "You go undercover to pursue an investigation. Pick another career to use as your cover and roll Deception 8+. If you fail, roll on the Mishap table for that career. If you succeed, roll on any specialist skill table for the chosen career and gain DM+2 to your next Advancement roll in this career.",
+    "10": "During a dangerous investigation you save the life of one of your pack members. Gain an Ally.",
+    "11": "Your successes have earned you much respect from your superiors. Gain DM+4 to your next Advancement roll.",
+    "12": "You solve a big case or uncover a conspiracy against your employers. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Scientific Equipment"},
+    "2": {"cash": 2000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "Blade"},
+    "4": {"cash": 7500, "benefit": "Contact"},
+    "5": {"cash": 10000, "benefit": "Armour"},
+    "6": {"cash": 25000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Weapon"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

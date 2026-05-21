@@ -1,0 +1,151 @@
+{
+  "id": "vargr_merchant",
+  "name": "Merchant (Vargr)",
+  "description": "Vargr merchants are the leaders of their own commercial enterprises or employees of larger corporations. The most common merchant professions are junk dealers, scroungers and contingency experts.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 6,
+    "modifiers": []
+  },
+  "assignments": {
+    "junk_dealer": {
+      "name": "Junk Dealer",
+      "description": "You are a second-hand equipment merchant who buys unwanted equipment from failed businesses or acquires it through salvage.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "scrounger": {
+      "name": "Scrounger",
+      "description": "You are a broker or contingency expert able to find the best goods at the cheapest prices.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "description": "You are an independent trader.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "SOC", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "Melee",
+      "4": "Streetwise",
+      "5": "Contact",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Admin",
+      "2": "Streetwise",
+      "3": "Electronics (Computers)",
+      "4": "Investigate",
+      "5": "Broker",
+      "6": "Persuade"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Advocate",
+      "2": "Admin",
+      "3": "Astrogation",
+      "4": "Electronics",
+      "5": "Language",
+      "6": "Science"
+    },
+    "junk_dealer": {
+      "name": "Junk Dealer",
+      "assignment_only": "junk_dealer",
+      "1": "Persuade",
+      "2": "Admin",
+      "3": "Broker",
+      "4": "Electronics",
+      "5": "Investigate",
+      "6": "Mechanic"
+    },
+    "scrounger": {
+      "name": "Scrounger",
+      "assignment_only": "scrounger",
+      "1": "Broker",
+      "2": "Admin",
+      "3": "Streetwise",
+      "4": "Deception",
+      "5": "Persuade",
+      "6": "Mechanic"
+    },
+    "free_trader": {
+      "name": "Free Trader",
+      "assignment_only": "free_trader",
+      "1": "Persuade",
+      "2": "Broker",
+      "3": "Vacc Suit",
+      "4": "Gunner",
+      "5": "Electronics",
+      "6": "Pilot (Spacecraft)"
+    }
+  },
+  "ranks": {
+    "junk_dealer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Persuade 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Broker 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "scrounger": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Electronics (Computers) 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Broker 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "free_trader": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Persuade 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Pilot 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "A war or local hostilities block trade routes, putting you out of business. Roll END 8+. If you fail, roll on the Injury table.",
+    "3": "You, or a member of your business pack, were involved in illegal activities. Your business is closed and you lose SOC −1.",
+    "4": "A rival company puts you out of business. You keep your Benefit roll for this term but gain the rival merchant as a Rival.",
+    "5": "One of your employees attempts to take leadership of the pack. Roll SOC 8+. If you fail, you lose your business and gain an Enemy. If you succeed, you may continue in this career and gain a Rival.",
+    "6": "The economic climate hits you hard forcing you into bankruptcy. Your business fails and you lose all Benefit rolls for this term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "You are approached by someone to buy or smuggle illegal goods for them. If you accept, roll Deception 8+ to gain a Benefit roll with DM+1. If you fail, you are arrested and lose SOC −1. If you refuse the deal, you gain an Enemy.",
+    "4": "You find a bargain. Gain DM+1 to any Benefit roll for this career.",
+    "5": "You enrol on a training course to further your knowledge. Roll EDU 8+ to gain any skill.",
+    "6": "Your business is suspected of illegal activities but your own efforts prove your innocence. Gain one of Advocate 1, Admin 1, Diplomat 1, Investigate 1 or Persuade 1.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You negotiate a lucrative business deal. Gain one Benefit roll.",
+    "9": "You do a lot of business with one company, preventing them from going out of business. Gain an Ally.",
+    "10": "You establish a network of business contacts. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+    "11": "You do business with an influential corporation or organisation. Gain SOC +1 and DM+2 to your next Advancement roll.",
+    "12": "Your business thrives. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Scientific Equipment"},
+    "2": {"cash": 2000, "benefit": "Contact"},
+    "3": {"cash": 5000, "benefit": "INT +1"},
+    "4": {"cash": 10000, "benefit": "Ship Share"},
+    "5": {"cash": 20000, "benefit": "Two Contacts"},
+    "6": {"cash": 30000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Koerae Trader Ship"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

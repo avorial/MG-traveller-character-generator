@@ -1,0 +1,151 @@
+{
+  "id": "vargr_emissary",
+  "name": "Emissary",
+  "description": "The competitive nature of Vargr society requires skilled arbitrators to settle disputes and negotiate deals. Emissaries are most often employed by governments, corporations and merchants.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 10,
+    "modifiers": []
+  },
+  "assignments": {
+    "arbitrator": {
+      "name": "Arbitrator",
+      "description": "You work for a government and are highly skilled in settling disputes between packs and factions.",
+      "survival": {"characteristic": "SOC", "target": 8},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "diplomat": {
+      "name": "Diplomat",
+      "description": "You specialise in creating and maintaining diplomatic relations with other races.",
+      "survival": {"characteristic": "SOC", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    },
+    "negotiator": {
+      "name": "Negotiator",
+      "description": "You are trained to negotiate trade deals, working for government or corporate interests.",
+      "survival": {"characteristic": "SOC", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "SOC +1",
+      "2": "EDU +1",
+      "3": "INT +1",
+      "4": "Electronics (Computers)",
+      "5": "Carouse",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "INT +1",
+      "2": "Admin",
+      "3": "Advocate",
+      "4": "Electronics (Computers)",
+      "5": "Diplomat",
+      "6": "Carouse"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Admin",
+      "2": "Advocate",
+      "3": "Art",
+      "4": "Language",
+      "5": "Science",
+      "6": "Diplomat"
+    },
+    "arbitrator": {
+      "name": "Arbitrator",
+      "assignment_only": "arbitrator",
+      "1": "Advocate",
+      "2": "Deception",
+      "3": "Electronics (Computers)",
+      "4": "Investigate",
+      "5": "Persuade",
+      "6": "Advocate"
+    },
+    "diplomat": {
+      "name": "Diplomat",
+      "assignment_only": "diplomat",
+      "1": "Diplomat",
+      "2": "Persuade",
+      "3": "Advocate",
+      "4": "Carouse",
+      "5": "Electronics (Computers)",
+      "6": "Diplomat"
+    },
+    "negotiator": {
+      "name": "Negotiator",
+      "assignment_only": "negotiator",
+      "1": "Broker",
+      "2": "Admin",
+      "3": "Advocate",
+      "4": "Electronics (Computers)",
+      "5": "Persuade",
+      "6": "Broker"
+    }
+  },
+  "ranks": {
+    "arbitrator": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Advocate 1"},
+      "2": {"title": null, "bonus": "Carouse 1"},
+      "3": {"title": null, "bonus": "Diplomat 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    },
+    "diplomat": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Carouse 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Diplomat 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "negotiator": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Persuade 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Broker 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "Your failed negotiations earn you a bad reputation. You are forced out of your position and lose SOC −1.",
+    "3": "You are outclassed by another Emissary. Gain them as a Rival and roll SOC 6+ to avoid losing SOC −1 in the fallout.",
+    "4": "Failed dealings force your pack to look for new leadership. Roll SOC 8+ to support the winning side. If you fail, suffer DM-2 to your next Survival roll.",
+    "5": "An assassin attempts to take your life. Roll END or Melee (Infighting) 8+. If you fail, roll on the Injury table. If you succeed, you may continue this career.",
+    "6": "An opposing Emissary attempts to humiliate you. Roll Broker, Diplomat or Persuade 10+ to outmanoeuvre them. If you succeed, you may continue in this career and gain them as a Rival. If you fail, you are forced out of your position and gain them as an Enemy."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "Negotiations are going badly. You can either cut your losses and lose SOC −1, or roll Broker, Diplomat or Persuade 10+. If you fail, you lose SOC −1, one Benefit roll from this career and suffer DM-2 to your next Advancement roll. If you succeed, gain SOC +1 and DM+2 to your next Advancement roll.",
+    "4": "You successfully negotiate a difficult situation and are rewarded. Gain DM+1 to one Benefit roll.",
+    "5": "Through your many dealings and negotiations you have met many influential people. Roll SOC 8+ to gain an Ally. If you fail, you gain a Contact instead.",
+    "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "Your dedication and diligence to your career earns you one of Advocate 1, Broker 1 or Diplomat 1.",
+    "9": "During high-stakes negotiations, a charismatic pack leader from the opposing side offers you a lucrative deal to switch sides. If you accept, gain one Benefit roll and your previous employer becomes a Rival. If you refuse, your current employer becomes an Ally and you gain DM+2 to your next Survival roll.",
+    "10": "Your continued success has earned you much respect from your pack. Roll SOC 10+ to become pack leader and gain an automatic promotion.",
+    "11": "Your successful career has placed you in a favourable position. Gain one Benefit roll or DM+4 to your next Advancement roll.",
+    "12": "You have done exemplary work for your pack and organisation. Gain an automatic promotion and SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 5000, "benefit": "INT +1"},
+    "2": {"cash": 5000, "benefit": "EDU +1"},
+    "3": {"cash": 10000, "benefit": "Ship Share"},
+    "4": {"cash": 10000, "benefit": "Contact"},
+    "5": {"cash": 25000, "benefit": "Two Ship Shares"},
+    "6": {"cash": 25000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Yacht"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

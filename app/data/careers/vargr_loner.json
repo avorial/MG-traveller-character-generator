@@ -1,0 +1,142 @@
+{
+  "id": "vargr_loner",
+  "name": "Loner",
+  "description": "Although most Vargr are gregarious by nature, some prefer to be self-reliant or work alone. Some Vargr also follow this career out of necessity rather than the desire for solitude.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true,
+    "modifiers": []
+  },
+  "assignments": {
+    "hunter": {
+      "name": "Hunter",
+      "description": "You track and hunt animals for your pack.",
+      "survival": {"characteristic": "DEX", "target": 5},
+      "advancement": {"characteristic": "DEX", "target": 6}
+    },
+    "prospector": {
+      "name": "Prospector",
+      "description": "You look for new sources of raw materials on planets and asteroids.",
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "explorer": {
+      "name": "Explorer",
+      "description": "You explore and map unknown systems or survey new worlds for colonisation.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "Melee",
+      "5": "Jack-of-all-Trades",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Gun Combat",
+      "2": "Melee",
+      "3": "Drive",
+      "4": "Pilot",
+      "5": "Electronics",
+      "6": "Survival"
+    },
+    "hunter": {
+      "name": "Hunter",
+      "assignment_only": "hunter",
+      "1": "Athletics",
+      "2": "Gun Combat",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Stealth",
+      "6": "Advocate"
+    },
+    "prospector": {
+      "name": "Prospector",
+      "assignment_only": "prospector",
+      "1": "Astrogation",
+      "2": "Electronics",
+      "3": "Pilot",
+      "4": "Vacc Suit",
+      "5": "Mechanic",
+      "6": "Deception"
+    },
+    "explorer": {
+      "name": "Explorer",
+      "assignment_only": "explorer",
+      "1": "Navigation",
+      "2": "Science",
+      "3": "Electronics",
+      "4": "Recon",
+      "5": "Survival",
+      "6": "Streetwise"
+    }
+  },
+  "ranks": {
+    "hunter": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Stealth 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Survival 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "prospector": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": null},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Pilot 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "explorer": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Pilot 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Survival 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured. Roll on the Injury table.",
+    "2": "You fail to provide for your pack or find suitable territory. Lose SOC −1.",
+    "3": "Another Loner is operating in the area and you struggle to be successful. Gain them as an Enemy.",
+    "4": "You crash on an uninhabited world or are stranded in a hostile region. Gain one of Animals 1, Recon 1 or Survival 1. You may remain in this career but you lose all Benefit rolls for this term.",
+    "5": "You are ambushed by a corsair band and lose all Benefit rolls for this term. Roll END 6+. If you fail, roll on the Injury table.",
+    "6": "There is a gap in your memory and you have no idea what happened to you."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "A patron offers you a job. If you accept, gain DM+4 to your next Qualification roll and gain them as a Contact.",
+    "4": "Your independence has forced you to rely on your own specialist skills. Roll EDU 6+ to gain one skill from your specialist skill table.",
+    "5": "Your self-reliance allows you to adapt to all situations. Gain Jack-of-all-Trades 1.",
+    "6": "You are boarded or attacked by a corsair band but you have nothing of value. Roll SOC 6+. If you succeed, the Corsairs offer you a position in their band and you automatically qualify for the Corsair career. If you fail or refuse, roll on the Injury table.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You find some salvage or abandoned goods on your travels. Gain one Benefit roll.",
+    "9": "You have a successful expedition. Gain DM+1 to one Benefit roll for this career.",
+    "10": "You thrive on adversity. Roll Survival 8+. If you succeed, gain +1 to STR, DEX or END. If you fail, roll on the Injury table.",
+    "11": "You excel at your career. Gain DM+2 to your next Survival roll and DM+2 to your next Advancement roll.",
+    "12": "You hit the mother lode. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 2000, "benefit": "END +1"},
+    "3": {"cash": 5000, "benefit": "INT +1"},
+    "4": {"cash": 7500, "benefit": "Ship Share"},
+    "5": {"cash": 10000, "benefit": "Weapon"},
+    "6": {"cash": 20000, "benefit": "SOC +1"},
+    "7": {"cash": 30000, "benefit": "Two Ship Shares"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}

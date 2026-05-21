@@ -1,0 +1,151 @@
+{
+  "id": "vargr_marines",
+  "name": "Marines (Vargr)",
+  "description": "Marines are members of fighting forces carried onboard starships. They deal with piracy and boarding actions in space, defend starports and bases belonging to the navy, and supplement ground forces.",
+  "qualification": {
+    "characteristic": "SOC",
+    "target": 7,
+    "modifiers": []
+  },
+  "assignments": {
+    "marine": {
+      "name": "Marine",
+      "description": "You specialise in boarding actions and capturing enemy vessels.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    },
+    "special_ops": {
+      "name": "Special Ops",
+      "description": "You have been trained for specialist and covert missions.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "support": {
+      "name": "Support",
+      "description": "You are an engineer, battlefield medic or other supporting role.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "SOC", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Melee",
+      "5": "Leadership",
+      "6": "SOC +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Vacc Suit",
+      "2": "Athletics",
+      "3": "Recon",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "Tactics"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Survival",
+      "2": "Drive",
+      "3": "Pilot",
+      "4": "Medic",
+      "5": "Tactics",
+      "6": "Leadership"
+    },
+    "marine": {
+      "name": "Marine",
+      "assignment_only": "marine",
+      "1": "Athletics",
+      "2": "Vacc Suit",
+      "3": "Recon",
+      "4": "Gun Combat",
+      "5": "Melee",
+      "6": "Heavy Weapons"
+    },
+    "special_ops": {
+      "name": "Special Ops",
+      "assignment_only": "special_ops",
+      "1": "Vacc Suit",
+      "2": "Recon",
+      "3": "Stealth",
+      "4": "Explosives",
+      "5": "Melee",
+      "6": "Gun Combat"
+    },
+    "support": {
+      "name": "Support",
+      "assignment_only": "support",
+      "1": "Medic",
+      "2": "Engineer",
+      "3": "Mechanic",
+      "4": "Electronics",
+      "5": "Admin",
+      "6": "Drive or Flyer"
+    }
+  },
+  "ranks": {
+    "marine": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Melee 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Gun Combat 1"},
+      "4": {"title": null, "bonus": "Leadership 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "SOC +1"}
+    },
+    "special_ops": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Stealth 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Melee 1"},
+      "4": {"title": null, "bonus": "Recon 1"},
+      "5": {"title": null, "bonus": "Pilot 1"},
+      "6": {"title": null, "bonus": null}
+    },
+    "support": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": "Mechanic 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": "Engineer 1"},
+      "4": {"title": null, "bonus": "Science 1"},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+    "2": "You are captured and tortured by an opposing force. Lose SOC −1 and roll END 8+. If you fail, roll on the Injury table.",
+    "3": "Your pack fails to defeat an enemy or corsair band. Lose SOC −1 and gain the opponent as an Enemy.",
+    "4": "A mission goes wrong and you are stranded behind enemy lines. Increase Stealth or Survival by one level but due to the failure you lose SOC −1 and are dismissed from service.",
+    "5": "You oppose your pack leader but fail to win over the rest of the pack. Roll SOC 8+. If you fail, you are ejected from this career. If successful, you stay on this career, gain a Rival and suffer DM-2 to your next Advancement roll.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+    "3": "You are captured and tortured by an enemy. You eventually escape and gain END +1 from the ordeal.",
+    "4": "Your time aboard spacecraft has made you proficient in the space environment. Gain one level in Vacc Suit or Athletics (Dexterity).",
+    "5": "You have become an experienced fighter. Gain one level in Gun Combat, Melee or Recon.",
+    "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+    "7": "Life Event. Roll on the Vargr Life Events table.",
+    "8": "You save the life of a pack member. Gain an Ally.",
+    "9": "You are assigned to a black ops mission. Gain Tactics 1 and DM+2 to your next Advancement roll.",
+    "10": "Your leader is killed and you attempt to take command of the unit. Roll SOC 8+. If you succeed, you become the pack leader and gain DM+2 to your next Advancement roll.",
+    "11": "Your skill and performance in battle earns much respect from your leader. Gain DM+4 to your next Advancement roll.",
+    "12": "You perform a heroic deed in battle. You are automatically promoted and gain SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "Blade"},
+    "2": {"cash": 5000, "benefit": "DEX +1"},
+    "3": {"cash": 5000, "benefit": "END +1"},
+    "4": {"cash": 10000, "benefit": "Ally"},
+    "5": {"cash": 10000, "benefit": "Armour"},
+    "6": {"cash": 25000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Weapon"}
+  },
+  "complete": true,
+  "societies": ["vargr_extents"]
+}
