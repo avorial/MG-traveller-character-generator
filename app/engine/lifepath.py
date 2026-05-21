@@ -4349,11 +4349,23 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
     elif etype == "stat":
         stat = effect["stat"]
         amount = effect["amount"]
-        old = character.characteristics.get(stat)
-        new_val = max(0, old + amount)
-        character.characteristics.set(stat, new_val)
-        msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
-        character.log(f"Mishap: {stat} {old}→{new_val}")
+        if stat == "REP":
+            old = character.reputation
+            character.reputation = max(0, old + amount)
+            msgs.append(f"REP {old}→{character.reputation} ({amount:+d})")
+            character.log(f"Mishap/event: REP {amount:+d}")
+        elif stat == "TER":
+            old = character.extra_characteristics.get("TER", 0)
+            new_val = max(0, old + amount)
+            character.extra_characteristics["TER"] = new_val
+            msgs.append(f"TER {old}→{new_val} ({amount:+d})")
+            character.log(f"Mishap/event: TER {amount:+d}")
+        else:
+            old = character.characteristics.get(stat)
+            new_val = max(0, old + amount)
+            character.characteristics.set(stat, new_val)
+            msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
+            character.log(f"Mishap: {stat} {old}→{new_val}")
 
     elif etype == "stat_cap":
         # Set stat to min(current, cap) — used for "SOC drops to 2" / "TER drops to 0" etc.
@@ -4528,6 +4540,22 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         character.dm_next_benefit += amount
         msgs.append(f"DM{amount:+d} to next Benefit roll")
         character.log(f"Event: dm_next_benefit {amount:+d}")
+
+    elif etype == "dm_qualification":
+        amount = effect.get("amount", 0)
+        character.dm_next_qualification += amount
+        msgs.append(f"DM{amount:+d} to next Qualification roll")
+        character.log(f"Event: dm_next_qualification {amount:+d}")
+
+    elif etype == "d_extra_benefit":
+        dice_str = effect.get("dice", "1D")
+        if dice_str == "D3":
+            count = (dice.roll("1D").total + 1) // 2
+        else:
+            count = dice.roll(dice_str).total
+        character.pending_benefit_rolls += count
+        msgs.append(f"Gained {count} extra Benefit roll(s)")
+        character.log(f"Event: +{count} extra benefit rolls (rolled {dice_str})")
 
     elif etype == "trigger_disaster_mishap":
         # Used in skill_check on_fail: roll on mishap table but career continues
@@ -5301,6 +5329,257 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "type": "free_skill_choice",
                     "prompt": "Gain one level in any skill of your choice:",
                 }
+
+        elif choice_id == "bounty_hunter_deal":
+            # bounty hunter mishap 2: accept (Cr50k + REP-1) or refuse (enemy + D3 enemies)
+            if selected == "accept":
+                character.reputation = max(0, character.reputation - 1)
+                auto_applied.append(f"Accepted deal — REP −1 (now {character.reputation}), gain Cr50,000 (apply manually)")
+                character.log("BH mishap 2: accepted deal, REP-1")
+            else:
+                character.reputation = max(0, character.reputation - 1)
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Bounty Mark]")
+                )
+                auto_applied.append(f"Refused — Enemy [Bounty Mark] gained; REP −1 (now {character.reputation})")
+                # D3 more enemies from the mark's associates
+                count = (dice.roll("1D").total + 1) // 2
+                for _ in range(count):
+                    character.associates.append(
+                        Associate(kind="enemy", description="Enemy [Mark's Ally/Friend]")
+                    )
+                auto_applied.append(f"Also gained {count} more Enemy (mark's associates)")
+                character.log(f"BH mishap 2: refused, Enemy + {count} enemies, REP-1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "bounty_hunter_rep_or_debt":
+            # bounty hunter mishap 6: REP-1 OR MCr1 debt
+            if selected == "rep":
+                character.reputation = max(0, character.reputation - 1)
+                auto_applied.append(f"Took REP hit — REP −1 (now {character.reputation})")
+                character.log("BH mishap 6: REP-1")
+            else:
+                character.medical_debt += 1_000_000
+                auto_applied.append("Took MCr1 debt to crime lord (Cr1,000,000 at 20% annual interest once mustered out)")
+                character.log("BH mishap 6: MCr1 debt to crime lord")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "cetacean_conflict_choice":
+            # dolphin/orca event 3: diplomacy or violence, each with a skill check
+            skill_options = pending.get("diplomacy_skills", ["Advocate", "Diplomat"])
+            violence_skills = pending.get("violence_skills", ["Explosives", "Gun Combat", "Tactics"])
+            if selected == "diplomacy":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": s} for s in skill_options],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "dm_advancement", "amount": 2}],
+                    "on_fail": [{"type": "forfeit_benefit"}],
+                    "prompt": f"Diplomacy — roll {'/'.join(skill_options)} 8+: pass DM+2 Adv; fail lose Benefit roll",
+                }
+                auto_applied.append("Chose diplomacy — rolling skill check")
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": s} for s in violence_skills],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [],
+                    "on_fail": [{"type": "dm_advancement", "amount": -2}, {"type": "injury"}],
+                    "prompt": f"Violence — roll {'/'.join(violence_skills)} 8+: fail DM−2 Adv + injury",
+                }
+                auto_applied.append("Chose violence — rolling skill check")
+
+        elif choice_id == "cetacean_fight_or_flee":
+            # dolphin/orca/spirit_singer event 9: flee (enemy) or fight (skill check → ally/injury)
+            fight_skills = pending.get("fight_skills", ["Melee (natural)", "Gun Combat"])
+            target = pending.get("target", 7)
+            if selected == "flee":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Survivor Who Blames You]")
+                )
+                auto_applied.append("Fled — gained Enemy [Survivor Who Blames You]")
+                character.log("Cetacean event 9: fled, gained enemy")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": s} for s in fight_skills],
+                    "target": target,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "ally", "desc": "Ally [Rescued Companion]"}],
+                    "on_fail": [{"type": "injury"}],
+                    "prompt": f"Fought — roll {'/'.join(fight_skills)} {target}+: pass Ally; fail injury",
+                }
+                auto_applied.append("Stayed and fought — rolling skill check")
+
+        elif choice_id == "cetacean_accept_or_protest":
+            # dolphin_military event 10: accept blame (DM-1 adv) or protest (Advocate/SOC 8+)
+            if selected == "accept":
+                character.dm_next_advancement -= 1
+                auto_applied.append("Accepted blame — DM−1 to next Advancement roll")
+                character.log("Cetacean event 10: accepted blame, DM-1 advancement")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Advocate"}, {"name": "SOC", "is_stat": True}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "dm_advancement", "amount": 1},
+                                {"type": "skill_choice", "options": ["Leadership", "Advocate"]}],
+                    "on_fail": [{"type": "dm_advancement", "amount": -2}],
+                    "prompt": "Protest — roll Advocate or SOC 8+: pass DM+1 Adv + skill; fail DM−2 Adv",
+                }
+                auto_applied.append("Protested — rolling Advocate or SOC 8+")
+
+        elif choice_id == "spirit_singer_matriarch":
+            # spirit_singer event 10: consult dying matriarch (agree or decline)
+            if selected == "agree":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Dying Matriarch's Pod]")
+                )
+                auto_applied.append("Agreed — gained Ally [Dying Matriarch's Pod]")
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Own Faith — disapproves]")
+                )
+                auto_applied.append("Gained Rival [Own Faith — disapproves of choice]")
+                character.log("Spirit singer event 10: agreed, ally + rival")
+            else:
+                auto_applied.append("Declined — no mechanical effect")
+                character.log("Spirit singer event 10: declined")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "aslan_outcast_join_ihatei":
+            # aslan_outcast event 9: join the ihatei's retinue or decline
+            if selected == "join":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Ihatei — joined retinue]")
+                )
+                auto_applied.append("Joined ihatei — gained Ally [Ihatei]. Must qualify for a Core Rulebook career next term (apply manually).")
+                character.log("Outcast event 9: joined ihatei, ally")
+            else:
+                auto_applied.append("Declined — no effect")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "aslan_outlaw_bounty":
+            # aslan_outlaw event 5: normal path OR try to claim reward yourself
+            if selected == "normal":
+                # enemy + skill choice
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Clan — put price on your head]")
+                )
+                auto_applied.append("Clan put price on head — gained Enemy [Clan]")
+                character.log("Outlaw event 5: normal path, enemy + skill choice")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Stealth", "Streetwise", "Gun Combat", "Survival"],
+                    "prompt": "Gain one skill from evading the bounty:",
+                }
+            else:
+                # Risky: Deception 8+ → 3 benefit rolls; fail END-2 + career ends
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Clan — put price on your head]")
+                )
+                auto_applied.append("Attempting to claim the reward — rolling Deception 8+")
+                character.log("Outlaw event 5: risky path, Enemy added, rolling Deception")
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Deception"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "extra_benefit", "amount": 3}],
+                    "on_fail": [{"type": "stat", "stat": "END", "amount": -2}],
+                    "prompt": "Claim the reward — roll Deception 8+: pass 3 extra Benefit rolls; fail END−2 (ejected from career — apply manually)",
+                }
+
+        elif choice_id == "aslan_outlaw_pass_reward":
+            # aslan_outlaw event 9 pass: extra benefit OR SOC+1
+            if selected == "benefit":
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Gained 1 extra Benefit roll")
+                character.log("Outlaw event 9 pass: extra benefit")
+            else:
+                soc_old = character.characteristics.SOC
+                character.characteristics.set("SOC", soc_old + 1)
+                auto_applied.append(f"SOC {soc_old}→{soc_old + 1} (+1)")
+                character.log("Outlaw event 9 pass: SOC+1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "aslan_outlaw_mission":
+            # aslan_outlaw event 10: accept mission (Stealth 8+) OR inform enemies (benefit + enemy)
+            if selected == "accept":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Stealth"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "extra_benefit", "amount": 1}],
+                    "on_fail": [],
+                    "prompt": "Covert mission — roll Stealth 8+: pass 1 extra Benefit roll; fail nothing gained",
+                }
+                auto_applied.append("Accepted mission — rolling Stealth 8+")
+            else:
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Informed enemies — gained 1 Benefit roll")
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Clan — informed on]")
+                )
+                auto_applied.append("Gained Enemy [Clan — informed on]")
+                character.log("Outlaw event 10: informed, benefit + enemy")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "aslan_outlaw_redemption":
+            # aslan_outlaw event 11: male (TER+1 + SOC restore) or female (reroll SOC)
+            # Both options leave career after this term
+            if selected == "male":
+                ter_old = character.extra_characteristics.get("TER", 0)
+                character.extra_characteristics["TER"] = ter_old + 1
+                auto_applied.append(f"TER {ter_old}→{ter_old + 1} (+1)")
+                auto_applied.append("SOC restored to original value (apply manually — record SOC at career start)")
+                auto_applied.append("Must leave this career after this term")
+                character.log("Outlaw event 11: male redemption, TER+1, SOC restore, career ends next term")
+            elif selected == "female":
+                auto_applied.append("May reroll SOC (apply manually — roll 2D + modifiers)")
+                auto_applied.append("Must leave this career after this term")
+                character.log("Outlaw event 11: female redemption, SOC reroll, career ends next term")
+            else:
+                auto_applied.append("Declined redemption — no effect")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "dolphin_mil_massacre":
+            # dolphin_military mishap 3: refuse (ejected) or participate (enemy, career continues)
+            if selected == "refuse":
+                # Career ends normally — nothing to override; ejection proceeds
+                auto_applied.append("Refused to participate — ejected from career")
+                character.log("DolMil mishap 3: refused massacre, ejected")
+            else:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Indigenous Aquatic Alien]")
+                )
+                auto_applied.append("Participated — gained Enemy [Indigenous Aquatic Alien]; career continues")
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                character.log("DolMil mishap 3: participated, enemy gained, career continues")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "dolphin_mil_denounce":
+            # dolphin_military mishap 5: denounce (enemy, career continues) or don't (ejected)
+            if selected == "denounce":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Commander's Ally]")
+                )
+                auto_applied.append("Denounced commander — gained Enemy [Commander's Ally]; career continues")
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                character.log("DolMil mishap 5: denounced, enemy, career continues")
+            else:
+                auto_applied.append("Did not denounce — ejected from career")
+                character.log("DolMil mishap 5: did not denounce, ejected")
+            character.pending_career_mishap_choice = None
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -6892,6 +7171,247 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ], "skill_option": "Diplomat"}],
     },
 
+    # ---- Bounty Hunter ----
+    "bounty_hunter": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rival", "desc": "Rival [Competing Bounty Hunter]"},
+             {"type": "skill_check",
+              "skills": [{"name": "Investigate"}], "target": 8,
+              "on_pass": [{"type": "stat", "stat": "REP", "amount": 1},
+                          {"type": "skill_choice",
+                           "options": ["Athletics", "Deception", "Gun Combat",
+                                       "Investigate", "Persuade", "Stealth", "Streetwise"]}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "High-profile bounty race (Rival gained regardless) — roll Investigate 8+: pass REP+1 + skill; fail Mishap (career continues)"}],
+        4:  [{"type": "stat", "stat": "REP", "amount": 1},
+             {"type": "dm_benefit", "amount": 1}],
+        5:  [{"type": "d_associates", "kind": "contact", "dice": "D3"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "INT", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Engineer", "Explosives", "Gunner",
+                                       "Pilot", "Survival", "Vacc Suit"]}],
+              "on_fail": [{"type": "skill_choice",
+                           "options": ["Engineer", "Explosives", "Gunner",
+                                       "Pilot", "Survival", "Vacc Suit"]}],
+              "prompt": "Advanced training — roll INT 8+: pass gain chosen skill (existing +1 or new 1); either way gain skill"}],
+        8:  [{"type": "skill_choice", "options": ["Gun Combat", "Heavy Weapons"]}],
+        9:  [{"type": "stat", "stat": "REP", "amount": 1},
+             {"type": "skill_check",
+              "skills": [{"name": "Investigate"}, {"name": "Streetwise"}], "target": 8,
+              "on_pass": [{"type": "dm_benefit", "amount": 1}],
+              "on_fail": [{"type": "trigger_disaster_mishap"},
+                          {"type": "enemy", "desc": "Enemy [Corrupt Politician]"}],
+              "prompt": "Corrupt politician bounty (REP+1 always) — roll Investigate/Streetwise 8+: pass DM+1 Benefit; fail Mishap + Enemy"}],
+        10: [{"type": "stat", "stat": "REP", "amount": 2}],
+        11: [{"type": "ally", "desc": "Ally [Accomplished Bounty Hunter]"},
+             {"type": "stat", "stat": "REP", "amount": 1}],
+        12: [{"type": "stat", "stat": "REP", "amount": 2},
+             {"type": "extra_benefit", "amount": 2}],
+    },
+
+    # ---- Dolphin Civilian ----
+    "dolphin_civilian": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "cetacean_conflict_choice",
+              "prompt": "Ocean resource conflict — diplomacy or violence?",
+              "diplomacy_skills": ["Advocate", "Diplomat"],
+              "violence_skills": ["Explosives", "Gun Combat", "Tactics"],
+              "options": [
+                  {"id": "diplomacy", "label": "Diplomacy — roll Advocate/Diplomat 8+: pass DM+2 Adv; fail lose Benefit"},
+                  {"id": "violence",  "label": "Violence — roll Explosives/Gun Combat/Tactics 8+: fail DM−2 Adv + injury"},
+              ]}],
+        4:  [{"type": "contact", "desc": "Contact [Research Field]"},
+             {"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "skill", "name": "Science (cybernetics)", "level": 1}],
+              "on_fail": [], "prompt": "Roll EDU 7+ to gain Science (cybernetics) 1"}],
+        5:  [{"type": "skill_choice",
+              "options": ["Athletics (dexterity)", "Electronics (comms)",
+                          "Electronics (sensors)", "Pilot"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "STR", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "ally", "desc": "Ally [High-Status Sophont — rescued]"}],
+              "on_fail": [], "prompt": "Rescue high-status swimmer — roll STR 7+: pass Ally"}],
+        8:  [{"type": "skill_choice", "options": ["Vacc Suit", "Diplomat"]}],
+        9:  [{"type": "pending_choice", "id": "cetacean_fight_or_flee",
+              "prompt": "Companions attacked by sea creatures — fight or flee?",
+              "fight_skills": ["Melee (natural)", "Gun Combat"],
+              "target": 7,
+              "options": [
+                  {"id": "flee",  "label": "Flee — one survivor becomes Enemy"},
+                  {"id": "fight", "label": "Fight — roll Melee (natural)/Gun Combat 7+: pass Ally; fail injury"},
+              ]}],
+        10: [{"type": "skill_check",
+              "skills": [{"name": "Survival"}, {"name": "END", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "dm_advancement", "amount": 2},
+                          {"type": "extra_benefit", "amount": 1}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Dangerous rescue mission — roll Survival or END 8+: pass DM+2 Adv + extra Benefit; fail injury"}],
+        11: [{"type": "extra_benefit", "amount": 1}],
+    },
+
+    # ---- Dolphin Military ----
+    "dolphin_military": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "dm_advancement", "amount": 2},
+             {"type": "contact", "desc": "Contact [Elite Military Unit]"}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Vacc Suit"}], "target": 4,
+              "on_pass": [{"type": "skill", "name": "Explosives", "level": 1}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Mine disposal training — roll Vacc Suit 4+: pass Explosives+1; fail injury"}],
+        5:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Pilot (small craft)", "Electronics (sensors)"]}],
+              "on_fail": [], "prompt": "Roll EDU 7+ to gain Pilot or Electronics (sensors) 1"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "Vacc Suit"}], "target": 7,
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Gun Combat", "Leadership", "Tactics (military)"]}],
+              "on_fail": [], "prompt": "Amphibious campaign — roll Vacc Suit 7+ to gain Gun Combat/Leadership/Tactics 1"}],
+        8:  [{"type": "skill_choice",
+              "options": ["Vacc Suit", "Melee", "Gun Combat", "Tactics (military)"]}],
+        9:  [{"type": "contact", "desc": "Contact [Intelligence Agent]"},
+             {"type": "skill_check", "skills": [{"name": "INT", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "skill_choice", "options": ["Recon", "Stealth"]}],
+              "on_fail": [], "prompt": "Intelligence joint mission — roll 7+ to gain Recon or Stealth 1"}],
+        10: [{"type": "pending_choice", "id": "cetacean_accept_or_protest",
+              "prompt": "Unjustly blamed by human leader — accept blame or protest?",
+              "options": [
+                  {"id": "accept",  "label": "Accept — DM−1 to next Advancement roll"},
+                  {"id": "protest", "label": "Protest — roll Advocate/SOC 8+: pass DM+1 Adv + skill; fail DM−2 Adv"},
+              ]}],
+        11: [{"type": "dm_advancement", "amount": 2},
+             {"type": "skill_choice", "options": ["Admin", "Tactics (military)"]}],
+    },
+
+    # ---- Philosopher-Elder (Uplifted Orca) ----
+    "philosopher_elder": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "cetacean_conflict_choice",
+              "prompt": "Ocean resource conflict — diplomacy or violence?",
+              "diplomacy_skills": ["Advocate", "Diplomat"],
+              "violence_skills": ["Explosives", "Gun Combat", "Tactics"],
+              "options": [
+                  {"id": "diplomacy", "label": "Diplomacy — roll Advocate/Diplomat 8+: pass DM+2 Adv; fail lose Benefit"},
+                  {"id": "violence",  "label": "Violence — roll Explosives/Gun Combat/Tactics 8+: fail DM−2 Adv + injury"},
+              ]}],
+        4:  [{"type": "contact", "desc": "Contact [Research Field]"},
+             {"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "skill", "name": "Science (cybernetics)", "level": 1}],
+              "on_fail": [], "prompt": "Roll EDU 7+ to gain Science (cybernetics) 1"}],
+        5:  [{"type": "skill_choice",
+              "options": ["Athletics (dexterity)", "Electronics (comms)",
+                          "Electronics (sensors)", "Pilot"]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "STR", "is_stat": True}], "target": 7,
+              "on_pass": [{"type": "ally", "desc": "Ally [High-Status Sophont — rescued]"}],
+              "on_fail": [], "prompt": "Rescue high-status swimmer — roll STR 7+: pass Ally"}],
+        8:  [{"type": "skill_choice", "options": ["Vacc Suit", "Diplomat"]}],
+        9:  [{"type": "pending_choice", "id": "cetacean_fight_or_flee",
+              "prompt": "Companions attacked by sea creatures — fight or flee?",
+              "fight_skills": ["Melee (natural)", "Gun Combat"],
+              "target": 7,
+              "options": [
+                  {"id": "flee",  "label": "Flee — one survivor becomes Enemy"},
+                  {"id": "fight", "label": "Fight — roll Melee (natural)/Gun Combat 7+: pass Ally; fail injury"},
+              ]}],
+        10: [{"type": "skill_check",
+              "skills": [{"name": "Survival"}, {"name": "END", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "dm_advancement", "amount": 2},
+                          {"type": "extra_benefit", "amount": 1}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Dangerous rescue mission — roll Survival or END 8+: pass DM+2 Adv + extra Benefit; fail injury"}],
+        11: [{"type": "extra_benefit", "amount": 1}],
+    },
+
+    # ---- Spirit Singer (Orca) ----
+    "spirit_singer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Clan Elder — proved your guidance]"}],
+        4:  [{"type": "contact", "desc": "Contact [Matriarch — spiritual consultation]"}],
+        5:  [{"type": "skill_choice", "options": ["Survival", "Persuade"]}],
+        6:  [{"type": "stat", "stat": "SOC", "amount": -3},
+             {"type": "d_extra_benefit", "dice": "D3"},
+             {"type": "dm_benefit", "amount": 3}],
+        8:  [{"type": "skill_choice", "options": ["Carouse", "Persuade"]}],
+        9:  [{"type": "pending_choice", "id": "cetacean_fight_or_flee",
+              "prompt": "Companions attacked by sea creatures — fight or flee?",
+              "fight_skills": ["Melee (natural)"],
+              "target": 7,
+              "options": [
+                  {"id": "flee",  "label": "Flee — one survivor becomes Enemy"},
+                  {"id": "fight", "label": "Fight — roll Melee (natural) 7+: pass Ally; fail injury"},
+              ]}],
+        10: [{"type": "pending_choice", "id": "spirit_singer_matriarch",
+              "prompt": "Secretly consult the spirits for a dying matriarch of another faith — agree or decline?",
+              "options": [
+                  {"id": "agree",   "label": "Agree — Ally in her Pod + Rival in own faith"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
+        11: [{"type": "dm_advancement", "amount": -2}],
+        12: [{"type": "dm_advancement", "amount": 1}],
+    },
+
+    # ---- Aslan Outcast ----
+    "aslan_outcast": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "dm_qualification", "amount": 4}],
+        4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
+        5:  [{"type": "skill_choice",
+              "options": ["Mechanic", "Vacc Suit", "Engineer", "Tolerance"]}],
+        6:  [{"type": "contact", "desc": "Contact [Underworld/Fringer]"}],
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "Melee"}, {"name": "Stealth"}], "target": 8,
+              "on_pass": [{"type": "extra_benefit", "amount": 1}],
+              "on_fail": [{"type": "forfeit_benefit"}],
+              "prompt": "Attacked by thieves — roll Melee 10+ or Stealth 8+ to fight/escape: pass extra Benefit; fail forfeit Benefit"}],
+        9:  [{"type": "pending_choice", "id": "aslan_outcast_join_ihatei",
+              "prompt": "An ihatei offers you a place in their retinue — join or decline?",
+              "options": [
+                  {"id": "join",    "label": "Join — gain Ally [Ihatei] (must attempt Core career qualification next term)"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
+        10: [{"type": "dm_qualification", "amount": 99}],
+    },
+
+    # ---- Aslan Outlaw ----
+    "aslan_outlaw": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "stat", "stat": "END", "amount": -1},
+             {"type": "free_skill_choice", "prompt": "Barely survived — gain any one skill at level 1"}],
+        4:  [{"type": "extra_benefit", "amount": 1}],
+        5:  [{"type": "pending_choice", "id": "aslan_outlaw_bounty",
+              "prompt": "A clan has put a price on your head — take the normal path or claim the reward yourself?",
+              "options": [
+                  {"id": "normal", "label": "Normal path — Enemy [Clan] + skill choice"},
+                  {"id": "risky",  "label": "Claim reward yourself — Enemy [Clan] + Deception 8+: pass 3 Benefits; fail END−2 + ejected"},
+              ]}],
+        6:  [{"type": "contact", "desc": "Contact [Criminal Sphere]"}],
+        8:  [{"type": "skill_choice",
+              "options": ["Electronics", "Independence", "Stealth", "Gun Combat"]}],
+        9:  [{"type": "skill_check",
+              "skills": [{"name": "Pilot"}, {"name": "Stealth"}, {"name": "Gun Combat"}],
+              "target": 8,
+              "on_pass": [{"type": "pending_choice", "id": "aslan_outlaw_pass_reward",
+                           "prompt": "Audacious raid succeeded — choose reward:",
+                           "options": [
+                               {"id": "benefit", "label": "1 extra Benefit roll"},
+                               {"id": "soc",     "label": "SOC +1"},
+                           ]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Audacious raid — roll Pilot/Stealth/Gun Combat 8+: pass extra Benefit or SOC+1; fail injury"}],
+        10: [{"type": "pending_choice", "id": "aslan_outlaw_mission",
+              "prompt": "Clan offers covert mission — accept (Stealth 8+ for extra Benefit) or inform enemies (Benefit + Enemy)?",
+              "options": [
+                  {"id": "accept", "label": "Accept mission — roll Stealth 8+: pass extra Benefit; fail nothing"},
+                  {"id": "inform", "label": "Inform enemies — gain extra Benefit + Enemy [Clan]"},
+              ]}],
+        11: [{"type": "pending_choice", "id": "aslan_outlaw_redemption",
+              "prompt": "Chance at redemption (career ends after this term) — choose your path:",
+              "options": [
+                  {"id": "male",   "label": "Male: TER+1 + restore SOC (note SOC manually)"},
+                  {"id": "female", "label": "Female (unmarried): reroll SOC (apply manually)"},
+                  {"id": "none",   "label": "Decline — no effect"},
+              ]}],
+    },
+
     # ---- Solomani careers ----
     "confederation_army": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -7533,6 +8053,138 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         4: [{"type": "career_continues"}],   # 1D sub-result (1-4 eject, 5-6 ally) — noted in text
         5: [{"type": "career_continues"}],   # family deaths + SOC loss — noted in text
         # 6: standard ejection
+    },
+
+    # ---- Bounty Hunter ----
+    "bounty_hunter": {
+        1: [{"type": "injury_severity_choice"},
+            {"type": "stat", "stat": "REP", "amount": -1}],
+        2: [{"type": "pending_choice", "id": "bounty_hunter_deal",
+             "prompt": "Your mark offers you a deal — accept (lose bounty + REP−1, gain Cr50k) or refuse (Enemy + D3 Enemies + REP−1)?",
+             "options": [
+                 {"id": "accept", "label": "Accept — lose bounty, REP−1, gain Cr50,000"},
+                 {"id": "refuse", "label": "Refuse — Enemy + D3 more Enemies, REP−1"},
+             ]}],
+        3: [{"type": "skill_check",
+             "skills": [{"name": "Broker"}, {"name": "Diplomat"}, {"name": "Persuade"}],
+             "target": 8,
+             "on_nat2": [],
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "REP", "amount": -1}],
+             "prompt": "Complicit client — roll Broker/Diplomat/Persuade 8+: fail REP−1"}],
+        4: [{"type": "enemy", "desc": "Enemy [Abandoned Contract]"},
+            {"type": "stat", "stat": "REP", "amount": -1}],
+        5: [{"type": "injury"},
+            {"type": "stat", "stat": "REP", "amount": -1}],
+        6: [{"type": "pending_choice", "id": "bounty_hunter_rep_or_debt",
+             "prompt": "Something went terribly wrong — accept REP hit or take on criminal debt?",
+             "options": [
+                 {"id": "rep",  "label": "Lose REP −1"},
+                 {"id": "debt", "label": "Owe MCr1 to a crime lord (20% annual interest)"},
+             ]}],
+    },
+
+    # ---- Dolphin Civilian ----
+    "dolphin_civilian": {
+        1: [{"type": "injury"}],
+        # 2: ejection only (political investigation)
+        3: [{"type": "skill_check",
+             "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
+             "on_nat2": [],
+             "on_pass": [{"type": "force_next_career", "career_id": "dolphin_military"}],
+             "on_fail": [],
+             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (note manually)"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "enemy", "desc": "Enemy [Purist Political Militant]"}],
+        5: [{"type": "stat", "stat": "END", "amount": -2}],
+        6: [{"type": "injury"},
+            {"type": "skill_check",
+             "skills": [{"name": "SOC", "is_stat": True}, {"name": "Advocate"}], "target": 8,
+             "on_nat2": [],
+             "on_pass": [{"type": "extra_benefit", "amount": 1}],
+             "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Trapped by fishermen (Injury always) — roll SOC or Advocate 8+: pass extra Benefit (settlement); fail forfeit Benefit"}],
+    },
+
+    # ---- Dolphin Military ----
+    "dolphin_military": {
+        1: [{"type": "injury"}],
+        # 2: ejection only (anti-Dolphin prejudice)
+        3: [{"type": "pending_choice", "id": "dolphin_mil_massacre",
+             "prompt": "Ordered to participate in massacre of indigenous aquatic aliens — refuse (ejected) or participate (Enemy, career continues)?",
+             "options": [
+                 {"id": "refuse",      "label": "Refuse — ejected from career"},
+                 {"id": "participate", "label": "Participate — gain Enemy, career continues"},
+             ]}],
+        4: [{"type": "stat", "stat": "END", "amount": -2}],
+        5: [{"type": "pending_choice", "id": "dolphin_mil_denounce",
+             "prompt": "Commander linked to radical faction — denounce them (career continues, Enemy) or stay silent (ejected)?",
+             "options": [
+                 {"id": "denounce", "label": "Denounce commander — career continues, gain Enemy"},
+                 {"id": "silent",   "label": "Stay silent — ejected from career"},
+             ]}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Philosopher-Elder (Uplifted Orca) ----
+    "philosopher_elder": {
+        1: [{"type": "injury"}],
+        # 2: ejection only
+        3: [{"type": "skill_check",
+             "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
+             "on_nat2": [],
+             "on_pass": [{"type": "force_next_career", "career_id": "dolphin_military"}],
+             "on_fail": [],
+             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (note manually)"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "enemy", "desc": "Enemy [Purist Political Militant]"}],
+        5: [{"type": "stat", "stat": "END", "amount": -2}],
+        6: [{"type": "injury"},
+            {"type": "skill_check",
+             "skills": [{"name": "SOC", "is_stat": True}, {"name": "Advocate"}], "target": 8,
+             "on_nat2": [],
+             "on_pass": [{"type": "extra_benefit", "amount": 1}],
+             "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Trapped by fishermen (Injury always) — roll SOC or Advocate 8+: pass extra Benefit (settlement); fail forfeit Benefit"}],
+    },
+
+    # ---- Spirit Singer (Orca) ----
+    "spirit_singer": {
+        1: [{"type": "injury"}],
+        2: [{"type": "enemy", "desc": "Enemy [Opponent of the Way]"}],
+        3: [{"type": "rank_loss", "amount": 1},
+            {"type": "forfeit_benefit"},
+            {"type": "career_continues"}],
+        4: [],  # Skill level loss — needs manual application; career_continues implicit
+        5: [{"type": "forfeit_benefit"},
+            {"type": "career_continues"}],
+        6: [{"type": "d_associates", "kind": "rival", "dice": "D3"}],
+    },
+
+    # ---- Aslan Outcast ----
+    "aslan_outcast": {
+        1: [{"type": "injury_severity_choice"}],   # roll twice, take lower (same mechanic)
+        2: [{"type": "pending_choice", "id": "ge_lose_associate_or_forfeit",
+             "prompt": "Your friends desert you. Lose an Ally or Contact (or forfeit Benefit if you have none)."}],
+        3: [{"type": "injury"},
+            {"type": "enemy", "desc": "Enemy [Thug Leader]"}],
+        4: [{"type": "stat", "stat": "END", "amount": -1}],
+        5: [{"type": "forfeit_benefit"}],
+        6: [{"type": "injury"}],
+    },
+
+    # ---- Aslan Outlaw ----
+    "aslan_outlaw": {
+        1: [{"type": "injury_severity_choice"}],   # roll twice, take lower
+        2: [{"type": "stat", "stat": "END", "amount": -2},
+            {"type": "enemy", "desc": "Enemy [Clan Member — captured you]"}],
+        3: [{"type": "injury"},
+            {"type": "forfeit_benefit"}],
+        4: [{"type": "skill_choice",
+             "options": ["Deception", "Pilot", "Independence", "Streetwise"]}],
+        5: [{"type": "pending_choice", "id": "ge_lose_associate_or_forfeit",
+             "prompt": "A friend betrays you. One Ally or Contact becomes a Rival (if none, gain a Rival anyway)."}],
+        6: [{"type": "injury"}],
     },
 }
 
