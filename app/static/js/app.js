@@ -293,6 +293,8 @@ let uiState = {
   mobileTab: 'stage',
   // Light/dark theme toggle
   themeLight: localStorage.getItem('theme') === 'light',
+  // Card description visibility toggle
+  hideDesc: localStorage.getItem('traveller_hide_desc') === '1',
   // Heroic stat generation toggle (4×2D + 2×3D6 drop lowest)
   heroicRoll: false,
   // College skill pick: awaiting specialty selection for this skill name
@@ -353,6 +355,7 @@ async function freshCharacter() {
   character = data.character;
   const keepGm   = uiState.gmMode;
   const keepTheme = uiState.themeLight;
+  const keepHideDesc = uiState.hideDesc;
   uiState = {
     selectedSpecies: null,
     selectedBgSkills: new Set(),
@@ -367,6 +370,7 @@ async function freshCharacter() {
     anagathicsPhaseDone: false, pendingNextTermAction: null,
     gmMode: keepGm,
     themeLight: keepTheme,
+    hideDesc: keepHideDesc,
     connectionsDone: false, connections: [],
     basicTrainingSkills: null,
     skillPackageApplied: false,
@@ -491,9 +495,10 @@ function renderSavesModal() {
       if (!confirm(`Load "${slotName}"? This will replace your current character.`)) return;
       character = slot.character;
       saveCharacter();
-      // Reset transient UI state but keep theme/GM
+      // Reset transient UI state but keep theme/GM/desc
       const keepGm    = uiState.gmMode;
       const keepTheme = uiState.themeLight;
+      const keepHideDesc2 = uiState.hideDesc;
       uiState = {
         selectedSpecies: null,
         selectedBgSkills: new Set(),
@@ -508,6 +513,7 @@ function renderSavesModal() {
         anagathicsPhaseDone: false, pendingNextTermAction: null,
         gmMode: keepGm,
         themeLight: keepTheme,
+        hideDesc: keepHideDesc2,
         connectionsDone: false, connections: [],
         basicTrainingSkills: null,
         skillPackageApplied: false,
@@ -823,9 +829,10 @@ function renderSheet() {
     : '<p class="empty">No careers yet</p>';
 
   const associates = character.associates || [];
+  // "wife" associates are shown in the K'kree Family section, not the standard Associates panel.
   const buckets = { contact: [], ally: [], rival: [], enemy: [] };
   associates.forEach((a, i) => {
-    if (buckets[a.kind]) buckets[a.kind].push({ a, i });
+    if (a.kind !== 'wife' && buckets[a.kind]) buckets[a.kind].push({ a, i });
   });
   const bucketOrder = [
     ['contact', 'Contacts'],
@@ -833,7 +840,8 @@ function renderSheet() {
     ['rival', 'Rivals'],
     ['enemy', 'Enemies'],
   ];
-  const associatesHTML = associates.length
+  const nonWifeAssociates = associates.filter(a => a.kind !== 'wife');
+  const associatesHTML = nonWifeAssociates.length
     ? bucketOrder.map(([k, title]) => {
         const items = buckets[k];
         if (!items.length) return '';
@@ -845,7 +853,7 @@ function renderSheet() {
             </ul>
           </div>
         `;
-      }).join('')
+      }).join('') || '<p class="empty">No associates yet</p>'
     : '<p class="empty">No associates yet</p>';
 
   sheet.innerHTML = `
@@ -941,7 +949,9 @@ function renderSheet() {
           rankholder: 'Rankholder',
         };
         const degree = degreeLabels[character.kkree_soc_rank_degree] || character.kkree_soc_rank_degree || '—';
-        const wives = character.kkree_wives || 0;
+        // Wives are now stored as Associate records with kind="wife"
+        const wifeAssociates = (character.associates || []).filter(a => a.kind === 'wife');
+        const wives = wifeAssociates.length;
         const members = (character.kkree_family_members || []);
         const roleCount = { warrior: 0, specialist: 0, servant: 0 };
         members.forEach(m => { if (roleCount[m.role] != null) roleCount[m.role]++; });
@@ -956,7 +966,8 @@ function renderSheet() {
           <div class="stat-cell"><span class="stat-label">WIVES</span><span class="stat-value">${wives}</span></div>
           <div class="stat-cell"><span class="stat-label">MEMBERS</span><span class="stat-value">${members.length}</span></div>
         </div>
-        ${members.length ? `<ul class="skill-list" style="margin-top:6px">${members.map((m, i) => `<li>${m.role.charAt(0).toUpperCase() + m.role.slice(1)}${m.description ? ` — ${m.description}` : ''}</li>`).join('')}</ul>` : `<p class="empty">${memberSummary}</p>`}
+        ${wives > 0 ? `<ul class="skill-list" style="margin-top:4px">${wifeAssociates.map(w => `<li>Wife — ${w.description || 'unnamed'}</li>`).join('')}</ul>` : `<p class="empty">No wives yet</p>`}
+        ${members.length ? `<ul class="skill-list" style="margin-top:6px">${members.map(m => `<li>${m.role.charAt(0).toUpperCase() + m.role.slice(1)}${m.description ? ` — ${m.description}` : ''}</li>`).join('')}</ul>` : `<p class="empty">${memberSummary}</p>`}
         ${character.kkree_specialist_area ? `<p class="empty">Specialist area: ${character.kkree_specialist_area}</p>` : ''}
       </div>`;
       })() : ''}
@@ -2497,51 +2508,9 @@ function renderPreCareerPhase() {
 
   // Life event interactive choice screen
   if (uiState.lastRoll?.type === 'precareer_life_event_choice') {
-    const kind = uiState.lastRoll.choiceKind;
-    const hasBenefitRolls = (character.pending_benefit_rolls || 0) > 0;
-
-    let title, body, buttons;
-    if (kind === 'romantic_split') {
-      title = 'Life Event — Relationship Ends Badly';
-      body = 'A romantic relationship involving you ends badly. Choose the consequence:';
-      buttons = `
-        <button class="card" id="btn-life-choice-rival">
-          <div class="card-title">Rival [Romantic]</div>
-          <div class="card-desc">They become a rival — someone who competes with or resents you.</div>
-        </button>
-        <button class="card" id="btn-life-choice-enemy">
-          <div class="card-title">Enemy [Romantic]</div>
-          <div class="card-desc">They become an enemy — actively working against you.</div>
-        </button>`;
-    } else if (kind === 'betrayal_no_associates') {
-      title = 'Life Event — Betrayal';
-      body = 'A friend has betrayed you. You have no existing Contacts or Allies to convert. Gain one of:';
-      buttons = `
-        <button class="card" id="btn-life-choice-rival">
-          <div class="card-title">Rival [Betrayer]</div>
-          <div class="card-desc">They become a rival — someone who resents or opposes you.</div>
-        </button>
-        <button class="card" id="btn-life-choice-enemy">
-          <div class="card-title">Enemy [Betrayer]</div>
-          <div class="card-desc">They become an active enemy — a serious, ongoing threat.</div>
-        </button>`;
-    } else if (kind === 'crime_choice') {
-      title = 'Life Event — Crime';
-      body = 'You commit or are accused of a crime. Choose your consequence:';
-      buttons = `
-        <button class="card ${hasBenefitRolls ? '' : 'locked'}" id="btn-life-choice-lose_benefit" ${hasBenefitRolls ? '' : 'disabled'}>
-          <div class="card-title">Lose a Benefit Roll ${hasBenefitRolls ? '' : '(none available)'}</div>
-          <div class="card-desc">You pay a fine or bribe. Lose one mustering-out benefit roll.</div>
-        </button>
-        <button class="card" id="btn-life-choice-prisoner">
-          <div class="card-title">Take the Prisoner Career</div>
-          <div class="card-desc">You serve time. Your next career must be Prisoner.</div>
-        </button>`;
-    } else {
-      title = 'Life Event Choice';
-      body = 'An unexpected event requires a decision.';
-      buttons = '';
-    }
+    const pending = character.pending_life_event_choice || {};
+    const kind = uiState.lastRoll.choiceKind || pending.kind;
+    const { title, body, buttons } = buildLifeEventChoiceUI(kind, pending, 'precareer');
 
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
@@ -4407,6 +4376,7 @@ function wireCareerPhase() {
         uiState.basicTrainingSkills = response.basic_training_skills;
       }
       uiState.selectedCoverCareer = null;  // consumed
+      uiState.lastRoll = null;             // clear any stale roll from the previous term
       uiState.subPhase = 'train';
       renderAll();
     });
@@ -5317,6 +5287,19 @@ function wireCareerPhase() {
     });
   });
 
+  // ---- Career-phase inline life event choice buttons (btn-career-life-choice-*) ----
+  // These fire when event 7 produces a pending_life_event_choice during a career term.
+  document.querySelectorAll('[id^="btn-career-life-choice-"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const choice = btn.id.replace('btn-career-life-choice-', '');
+      try {
+        const response = await apiCall('/api/character/life-event-choice', { choice });
+        await applyResponse(response);
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
   // ---- Event choice buttons (pending_career_event_choice) ----
 
   // skill_choice: pick one skill from a list
@@ -5437,8 +5420,11 @@ function wireCareerPhase() {
   // the player the roll result before continuing to the next phase.
   async function executeNextAction(nextAction) {
     if (nextAction.type === 'next_term') {
-      // Intercept for anagathics before starting the next term (every term, per user request).
-      if (!uiState.anagathicsPhaseDone) {
+      // Intercept for anagathics before starting the next term — but only when the
+      // player hasn't opted out. Mirrors the guard in renderCareerPhase() so that
+      // anagathics_interest:'no' characters never get stuck in the intercept.
+      const anaInterest = character.anagathics_interest;
+      if (!uiState.anagathicsPhaseDone && anaInterest !== 'no') {
         uiState.pendingNextTermAction = nextAction;
         uiState.agingResult = null;
         uiState.agingNextAction = null;
@@ -6995,6 +6981,176 @@ function parseEventAssociateOps(text) {
   return ops;
 }
 
+// ─── Life event choice UI builder ─────────────────────────────────────────────
+// Returns { title, body, buttons } where buttons is HTML using btn-life-choice-{value}
+// for precareer context or btn-career-life-choice-{value} for career context.
+function buildLifeEventChoiceUI(kind, pending, context) {
+  const prefix = context === 'career' ? 'btn-career-life-choice-' : 'btn-life-choice-';
+  const hasBenefits = !!(pending.has_benefits);
+  const hasBenefitRolls = (character.pending_benefit_rolls || 0) > 0;
+
+  let title = 'Life Event Choice';
+  let body = 'An unexpected event requires a decision.';
+  let buttons = '';
+
+  if (kind === 'romantic_split') {
+    title = 'Life Event — Relationship Ends Badly';
+    body = 'A romantic relationship involving you ends badly. Choose the consequence:';
+    buttons = `
+      <button class="card" id="${prefix}rival">
+        <div class="card-title">Rival [Romantic]</div>
+        <div class="card-desc">They become a rival — someone who competes with or resents you.</div>
+      </button>
+      <button class="card" id="${prefix}enemy">
+        <div class="card-title">Enemy [Romantic]</div>
+        <div class="card-desc">They become an enemy — actively working against you.</div>
+      </button>`;
+
+  } else if (kind === 'betrayal_no_associates') {
+    title = 'Life Event — Betrayal';
+    body = 'A friend has betrayed you. You have no existing Contacts or Allies to convert. Gain one of:';
+    buttons = `
+      <button class="card" id="${prefix}rival">
+        <div class="card-title">Rival [Betrayer]</div>
+        <div class="card-desc">They become a rival — someone who resents or opposes you.</div>
+      </button>
+      <button class="card" id="${prefix}enemy">
+        <div class="card-title">Enemy [Betrayer]</div>
+        <div class="card-desc">They become an active enemy — a serious, ongoing threat.</div>
+      </button>`;
+
+  } else if (kind === 'crime_choice') {
+    title = 'Life Event — Crime';
+    body = 'You commit or are accused of a crime. Choose your consequence:';
+    buttons = `
+      <button class="card ${hasBenefitRolls ? '' : 'locked'}" id="${prefix}lose_benefit" ${hasBenefitRolls ? '' : 'disabled'}>
+        <div class="card-title">Lose a Benefit Roll ${hasBenefitRolls ? '' : '(none available)'}</div>
+        <div class="card-desc">You pay a fine or bribe. Lose one mustering-out benefit roll.</div>
+      </button>
+      <button class="card" id="${prefix}prisoner">
+        <div class="card-title">Take the Prisoner Career</div>
+        <div class="card-desc">You serve time. Your next career must be Prisoner.</div>
+      </button>`;
+
+  } else if (kind === 'drinax_arranged_marriage') {
+    title = 'Life Event — Arranged Marriage';
+    body = 'Your family arranges a marriage for you. You won\'t meet your new spouse until the ceremony. Accept for SOC +1, or decline.';
+    buttons = `
+      <button class="card" id="${prefix}accept">
+        <div class="card-title">Accept (SOC +1)</div>
+        <div class="card-desc">Go through with the marriage. Gain SOC +1.</div>
+      </button>
+      <button class="card" id="${prefix}decline">
+        <div class="card-title">Decline</div>
+        <div class="card-desc">Refuse the arrangement. No mechanical change.</div>
+      </button>`;
+
+  } else if (kind === 'drinax_star_guard') {
+    title = 'Life Event — Star Guard Commission';
+    body = 'You inherit a place in the Star Guard. Sell the commission for cash, or take it and enter the Navy.';
+    buttons = `
+      <button class="card" id="${prefix}sell">
+        <div class="card-title">Sell the Commission</div>
+        <div class="card-desc">Roll 1D × Cr10,000 — paid out immediately.</div>
+      </button>
+      <button class="card" id="${prefix}commission">
+        <div class="card-title">Take the Commission (Navy)</div>
+        <div class="card-desc">Auto-qualify for Navy; automatic promotion your first term (DM+12 to Advancement).</div>
+      </button>`;
+
+  } else if (kind === 'drinax_duel_penalty') {
+    title = 'Life Event — Duel Penalty';
+    body = 'The cheating duellist has hurt you. Choose one additional penalty to suffer:';
+    buttons = `
+      <button class="card ${hasBenefits ? '' : 'locked'}" id="${prefix}lose_benefit" ${hasBenefits ? '' : 'disabled'}>
+        <div class="card-title">Lose 1 Benefit Roll ${hasBenefits ? '' : '(none available)'}</div>
+        <div class="card-desc">Lose one mustering-out benefit roll.</div>
+      </button>
+      <button class="card" id="${prefix}lose_soc">
+        <div class="card-title">Lose 1 SOC</div>
+        <div class="card-desc">Your social standing suffers from the scandal.</div>
+      </button>
+      <button class="card" id="${prefix}lose_end">
+        <div class="card-title">Lose 1 END</div>
+        <div class="card-desc">You are wounded in the exchange.</div>
+      </button>`;
+
+  } else if (kind === 'drinax_child_crisis') {
+    title = 'Life Event — Mouth to Feed';
+    body = 'A child is born but the tribe cannot feed another. Choose what happens:';
+    buttons = `
+      <button class="card" id="${prefix}child_dies">
+        <div class="card-title">The Child Dies</div>
+        <div class="card-desc">A tragic outcome — narrative only, no mechanical penalty.</div>
+      </button>
+      <button class="card" id="${prefix}drifter">
+        <div class="card-title">Leave — Drifter</div>
+        <div class="card-desc">You strike out to provide for the child. Next career must be Drifter.</div>
+      </button>
+      <button class="card" id="${prefix}rogue">
+        <div class="card-title">Leave — Rogue</div>
+        <div class="card-desc">You turn to crime to provide for the child. Next career must be Rogue.</div>
+      </button>`;
+
+  } else if (kind === 'drinax_ship_berth') {
+    title = 'Life Event — Ship Berth Offered';
+    body = 'A merchant or smuggler offers you a place on their crew. Choose your path:';
+    buttons = `
+      <button class="card" id="${prefix}rogue">
+        <div class="card-title">Join as Rogue</div>
+        <div class="card-desc">Auto-qualify for the Rogue career next term.</div>
+      </button>
+      <button class="card" id="${prefix}merchant">
+        <div class="card-title">Join as Merchant</div>
+        <div class="card-desc">Auto-qualify for the Merchant career next term.</div>
+      </button>
+      <button class="card" id="${prefix}decline">
+        <div class="card-title">Decline</div>
+        <div class="card-desc">Stay where you are. No transfer.</div>
+      </button>`;
+
+  } else if (kind === 'asim_family_aid') {
+    title = 'Life Event — Impoverished Family';
+    body = 'Your family is struggling. You can give up a benefit roll to help them — and they\'ll owe you one.';
+    buttons = `
+      <button class="card ${hasBenefits ? '' : 'locked'}" id="${prefix}pay" ${hasBenefits ? '' : 'disabled'}>
+        <div class="card-title">Help Them ${hasBenefits ? '' : '(no benefit rolls available)'}</div>
+        <div class="card-desc">Lose 1 Benefit roll. Gain DM+1 to your next Advancement roll.</div>
+      </button>
+      <button class="card" id="${prefix}keep">
+        <div class="card-title">Keep Your Distance</div>
+        <div class="card-desc">No mechanical change. Family remains struggling.</div>
+      </button>`;
+
+  } else if (kind === 'asim_misfortune_choice') {
+    title = 'Life Event — Dangerous Misunderstanding';
+    body = 'You must pay a price. Lose a Benefit roll (if available), or sever ties with a Contact or Ally:';
+    const assocOpts = (pending.contacts_allies || []).map(a =>
+      `<button class="card" id="${prefix}lose_associate_${a.idx}">
+        <div class="card-title">Lose ${a.kind.charAt(0).toUpperCase() + a.kind.slice(1)}</div>
+        <div class="card-desc">${escapeHTML(a.description || a.kind)}</div>
+      </button>`
+    ).join('');
+    const benefitBtn = hasBenefits
+      ? `<button class="card" id="${prefix}lose_benefit">
+          <div class="card-title">Lose 1 Benefit Roll</div>
+          <div class="card-desc">Lose one mustering-out benefit roll.</div>
+        </button>`
+      : '';
+    buttons = benefitBtn + assocOpts;
+    if (!buttons) {
+      title = 'Life Event — Dangerous Misunderstanding';
+      body = 'A dangerous misunderstanding — no benefit rolls or associates to lose. Narrative consequence only.';
+      buttons = `<button class="card" id="${prefix}lose_benefit" disabled>
+        <div class="card-title">Nothing to lose</div>
+        <div class="card-desc">No mechanical penalty available.</div>
+      </button>`;
+    }
+  }
+
+  return { title, body, buttons };
+}
+
 function renderEventStep() {
   // Post-roll view with dice + event text
   if (uiState.lastRoll?.type === 'event') {
@@ -7494,10 +7650,26 @@ function renderEventStep() {
       }
     }
 
+    // Inline life event choice (fires when event 7 produces a pending_life_event_choice)
+    const pendingLifeEventChoice = character.pending_life_event_choice || null;
+    let pendingCareerLifeEventHTML = '';
+    if (pendingLifeEventChoice) {
+      const { title: lecTitle, body: lecBody, buttons: lecButtons } = buildLifeEventChoiceUI(
+        pendingLifeEventChoice.kind, pendingLifeEventChoice, 'career'
+      );
+      pendingCareerLifeEventHTML = `
+        <div class="event-skill-picker">
+          <span class="event-label">Life Event — Choose</span>
+          <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(lecTitle)}: ${escapeHTML(lecBody)}</em></p>
+          <div class="card-grid" style="margin-top:8px">${lecButtons}</div>
+        </div>`;
+    }
+
     const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
       || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen)
       || entertainerPending || citizenMishapPending
-      || !!(pendingEventChoice && !lr.eventChoiceResolved);
+      || !!(pendingEventChoice && !lr.eventChoiceResolved)
+      || !!pendingLifeEventChoice;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP
@@ -7567,7 +7739,8 @@ function renderEventStep() {
         ${eventEffectsHTML}
         ${disasterMishapHTML}
         ${pendingEventChoiceHTML}
-        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 || eventEffectsMsgs.length || pendingEventChoice ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
+        ${pendingCareerLifeEventHTML}
+        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 || eventEffectsMsgs.length || pendingEventChoice || pendingLifeEventChoice ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>
@@ -8948,6 +9121,8 @@ async function bootstrap() {
 
   // Apply saved theme before first paint
   if (uiState.themeLight) document.body.classList.add('theme-light');
+  // Apply saved desc-hide state before first paint
+  if (uiState.hideDesc) document.body.classList.add('hide-card-desc');
 
   // Mobile tab bar wiring
   wireMobileTabs();
@@ -8989,6 +9164,22 @@ async function bootstrap() {
       btn.disabled = false;
     }
   });
+
+  // Description toggle (¶ button) — hides .card-desc on all picker cards
+  const btnDesc = document.getElementById('btn-desc-toggle');
+  if (btnDesc) {
+    const applyDesc = () => {
+      document.body.classList.toggle('hide-card-desc', !!uiState.hideDesc);
+      btnDesc.classList.toggle('desc-active', !!uiState.hideDesc);
+      btnDesc.title = uiState.hideDesc ? 'Show card descriptions' : 'Hide card descriptions';
+    };
+    applyDesc();
+    btnDesc.addEventListener('click', () => {
+      uiState.hideDesc = !uiState.hideDesc;
+      try { localStorage.setItem('traveller_hide_desc', uiState.hideDesc ? '1' : '0'); } catch (e) { /* ignore */ }
+      applyDesc();
+    });
+  }
 
   // Theme toggle
   const btnTheme = document.getElementById('btn-theme-toggle');
