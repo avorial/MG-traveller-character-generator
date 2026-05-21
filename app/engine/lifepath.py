@@ -9507,6 +9507,20 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         character.ship_shares += dice.roll("2D").total
         return
 
+    # Skill grant — "Skill N" or "Skill (Spec) N", e.g. "Advocate 1", "Gun Combat 2"
+    if _SKILL_LEVEL_RE.match(b):
+        # Split off the trailing integer level
+        m_skill = re.match(r"^(.+?)\s+(\d+)$", b)
+        if m_skill:
+            skill_str = m_skill.group(1).strip()
+            level = int(m_skill.group(2))
+            sn, spec = _split_skill_speciality(skill_str)
+            character.add_skill(sn, level=level, speciality=spec)
+            character.log(
+                f"Muster benefit skill: {skill_str} → level {level}"
+            )
+            return
+
     # Associates — Ally, Contact, Rival, Enemy
     b_lower = b.lower()
     if b_lower in _BENEFIT_ASSOC_KINDS:
