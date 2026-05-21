@@ -8391,6 +8391,8 @@ function renderMusterPhase() {
       lr.result === 'Weapon' ||
       (typeof lr.result === 'string' && lr.result.startsWith('Weapon and'))
     );
+    // Skill choice: "Advocate 1 or Broker 1 or ..." — player must pick one.
+    const pendingSkillChoice = lr.pendingSkillChoice;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
       <div class="stage-content">
@@ -8402,7 +8404,14 @@ function renderMusterPhase() {
             <span class="event-label">Rank 5-6 bonus</span>
             <div class="dm-chip applied">DM+1 to all benefit rolls (highest rank reached 5-6)</div>
           </div>` : ''}
-        ${isWeaponChoice ? `
+        ${pendingSkillChoice ? `
+          <p class="phase-body" style="margin-top:12px">Choose one skill to gain:</p>
+          <div class="phase-actions" style="flex-wrap:wrap">
+            ${pendingSkillChoice.options.map(opt =>
+              `<button class="btn primary btn-muster-skill-choice" data-skill="${opt}">${opt} →</button>`
+            ).join('')}
+          </div>
+        ` : isWeaponChoice ? `
           <p class="phase-body" style="margin-top:12px">Choose your weapon type:</p>
           <div class="phase-actions">
             <button class="btn primary" id="btn-weapon-melee">MELEE WEAPON →</button>
@@ -8590,6 +8599,7 @@ function wireMusterPhase() {
           good_fortune_used: response.good_fortune_used,
           careerId,
           careerName: careerDef?.name || careerId,
+          pendingSkillChoice: response.pending_skill_choice || null,
         };
         renderAll();
       } catch (e) {
@@ -8605,6 +8615,22 @@ function wireMusterPhase() {
       renderStage();
     });
   }
+
+  // Skill choice buttons — shown when benefit is "A 1 or B 1 or ..."
+  document.querySelectorAll('.btn-muster-skill-choice').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const chosen = btn.dataset.skill;
+      try {
+        const response = await apiCall('/api/character/muster-benefit-choice', { chosen });
+        await applyResponse(response);
+        uiState.lastRoll = null;
+        uiState.selectedCareer = null;
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  });
 
   // Weapon type choice — shown when a plain "Weapon" benefit is rolled
   const btnWeaponMelee = document.getElementById('btn-weapon-melee');

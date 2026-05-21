@@ -194,6 +194,10 @@ class MusterOutAction(CharacterAction):
     use_good_fortune: bool = False
 
 
+class MusterBenefitChoiceAction(CharacterAction):
+    chosen: str  # The skill option chosen by the player
+
+
 class PreCareerQualifyAction(CharacterAction):
     track: str  # "university" | "military_academy" | "merchant_academy" | etc.
     service: str | None = None    # "army" | "marine" | "navy" (military_academy only)
@@ -851,6 +855,15 @@ async def api_muster_out(action: MusterOutAction):
         return lifepath.muster_out_roll(
             character, action.career_id, action.column, action.use_good_fortune
         )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/muster-benefit-choice")
+async def api_muster_benefit_choice(action: MusterBenefitChoiceAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_muster_benefit_choice(character, action.chosen)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

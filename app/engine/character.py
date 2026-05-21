@@ -166,6 +166,12 @@ class Character(BaseModel):
     # /api/character/career-event-choice.
     pending_career_event_choice: Optional[dict] = None
 
+    # Pending skill choice from a mustering-out benefit roll.
+    # Set when the rolled benefit is "Skill A N or Skill B N or ..." and the
+    # player must pick one. Shape: {"options": [str], "raw": str}
+    # Cleared once the player resolves it via /api/character/muster-benefit-choice.
+    pending_muster_benefit_choice: Optional[dict] = None
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

@@ -353,6 +353,33 @@ def _pension_for_terms(n: int) -> int:
 # Associate kinds that can appear as mustering-out benefits.
 _BENEFIT_ASSOC_KINDS: frozenset[str] = frozenset({"ally", "contact", "rival", "enemy"})
 
+# Matches "Skill Name N" or "Skill (Spec) N" — e.g. "Advocate 1", "Science (Biology) 2"
+_SKILL_LEVEL_RE = re.compile(
+    r"^[A-Za-z][A-Za-z\s\-/']*(?:\([A-Za-z\s\-/']+\))?\s+\d+$"
+)
+
+
+def _is_skill_choice_benefit(benefit: str) -> list[str]:
+    """Return the list of skill options if `benefit` is an 'X or Y or ...' skill choice.
+
+    Returns empty list if it's anything else (characteristic bonus, equipment, etc.).
+    """
+    if " or " not in benefit:
+        return []
+    parts = [p.strip() for p in benefit.split(" or ")]
+    if len(parts) < 2:
+        return []
+    # Every part must look like "Skill N" (not a stat bonus, not an associate, etc.)
+    stat_names = {"STR", "DEX", "END", "INT", "EDU", "SOC", "TER", "PSI"}
+    for p in parts:
+        if p.lower() in _BENEFIT_ASSOC_KINDS:
+            return []  # associate choice — handled elsewhere
+        if re.match(r"^(STR|DEX|END|INT|EDU|SOC|TER|PSI)\s*[+-]\d+$", p, re.IGNORECASE):
+            return []  # characteristic bonus
+        if not _SKILL_LEVEL_RE.match(p):
+            return []  # doesn't look like "Skill N"
+    return parts
+
 
 def test_psionics(character: "Character") -> dict:
     """Roll the Psionic Potential Test (2D 9+) and, on success, generate a Psi score.
@@ -9364,9 +9391,18 @@ def muster_out_roll(
         )
     else:
         benefit = row["benefit"]
-        _apply_benefit(character, benefit)
+        skill_options = _is_skill_choice_benefit(benefit)
+        if skill_options:
+            # Skill-choice benefit: don't apply yet — let the player pick.
+            character.pending_muster_benefit_choice = {
+                "options": skill_options,
+                "raw": benefit,
+            }
+            character.log(f"Muster out (benefit)[{r.total}]: {benefit} — PENDING player choice")
+        else:
+            _apply_benefit(character, benefit)
+            character.log(f"Muster out (benefit)[{r.total}]: {benefit}")
         result_text = benefit
-        character.log(f"Muster out (benefit)[{r.total}]: {benefit}")
 
     career_rec.benefit_rolls_used += 1
     character.pending_benefit_rolls -= 1
@@ -9377,6 +9413,30 @@ def muster_out_roll(
         "rank_dm": rank_dm,
         "good_fortune_used": good_fortune_used,
         "good_fortune_remaining": character.good_fortune_benefit_dm,
+        "pending_skill_choice": character.pending_muster_benefit_choice,
+        "character": character.model_dump(),
+    }
+
+
+def resolve_muster_benefit_choice(character: Character, chosen: str) -> dict:
+    """Resolve a pending mustering-out skill-choice benefit.
+
+    The player has selected one skill option from the 'X or Y or ...' benefit.
+    Apply it and clear the pending state.
+    """
+    pending = character.pending_muster_benefit_choice
+    if pending is None:
+        raise ValueError("No pending mustering-out benefit choice to resolve.")
+    options = pending.get("options", [])
+    if chosen not in options:
+        raise ValueError(
+            f"'{chosen}' is not a valid option. Choose one of: {', '.join(options)}"
+        )
+    _apply_benefit(character, chosen)
+    character.pending_muster_benefit_choice = None
+    character.log(f"Muster benefit choice resolved: {chosen}")
+    return {
+        "chosen": chosen,
         "character": character.model_dump(),
     }
 
