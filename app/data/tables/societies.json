@@ -39,8 +39,8 @@
       "id": "two_thousand_worlds",
       "name": "Two Thousand Worlds",
       "subtitle": "The K'Kree herd-empire — and those who must live within it",
-      "description": "The Two Thousand Worlds is the vast interstellar empire of the K'Kree — six-limbed centauroid obligate herbivores who regard meat-eaters with deep revulsion. Humans who inhabit K'Kree space are rare, operate under strict dietary laws, and are considered of low status. Native K'Kree player characters are not yet fully implemented.",
-      "species_ids": ["two_thousand_worlds_human"]
+      "description": "The Two Thousand Worlds is the vast interstellar empire of the K'Kree — six-limbed centauroid obligate herbivores who regard meat-eaters with deep revulsion. Humans who inhabit K'Kree space are rare, operate under strict dietary laws, and are considered of low status. Play as a K'Kree patriarch and track your family group across four castes: Pastoral, Servant, Merchant, and Noble.",
+      "species_ids": ["two_thousand_worlds_human", "kkree"]
     },
     {
       "id": "vargr_extents",

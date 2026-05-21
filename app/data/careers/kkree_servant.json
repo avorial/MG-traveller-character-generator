@@ -1,0 +1,132 @@
+{
+  "id": "kkree_servant",
+  "name": "Servant (K'kree)",
+  "description": "Servant-caste K'kree fulfil necessary but low-status functions such as farming, basic maintenance, and providing the bulk of combat troops. They support the herd and die for it if necessary.",
+  "qualification": {"soc_min": 1, "soc_max": 6},
+  "assignments": {
+    "service": {
+      "name": "Service",
+      "description": "You support the herd through farming, maintenance, and direct service to higher-caste families.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "STR", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 4}
+    },
+    "warrior": {
+      "name": "Warrior",
+      "description": "You serve as a rank-and-file warrior, forming the backbone of the K'kree military.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 4}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Patriarchy",
+      "5": "Profession (K'kree ritual)",
+      "6": "K'kree Life Event"
+    },
+    "kkree_skills": {
+      "name": "K'kree Skills",
+      "1": "Patriarchy",
+      "2": "Profession (K'kree ritual)",
+      "3": "Melee",
+      "4": "Admin",
+      "5": "Carouse",
+      "6": "Athletics (endurance)"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "STR +1",
+      "2": "END +1",
+      "3": "Profession",
+      "4": "Admin",
+      "5": "Drive",
+      "6": "Steward"
+    },
+    "service": {
+      "name": "Service",
+      "1": "STR +1",
+      "2": "END +1",
+      "3": "Profession",
+      "4": "Admin",
+      "5": "Drive",
+      "6": "Steward"
+    },
+    "warrior": {
+      "name": "Warrior",
+      "1": "Melee",
+      "2": "Gun Combat",
+      "3": "Heavy Weapons",
+      "4": "Athletics (endurance)",
+      "5": "Medic",
+      "6": "Vacc Suit"
+    },
+    "technical_scientific": {
+      "name": "Technical/Scientific",
+      "1": "Profession (K'kree ritual)",
+      "2": "Mechanic",
+      "3": "Electronics",
+      "4": "Steward",
+      "5": "Investigate",
+      "6": "Language"
+    }
+  },
+  "ranks": {
+    "service": {
+      "0": {"title": "Servant", "bonus": null},
+      "1": {"title": "Worker", "bonus": "Profession 1"},
+      "2": {"title": "Senior Worker", "bonus": null},
+      "3": {"title": "Foreman", "bonus": null},
+      "4": {"title": "Senior Foreman", "bonus": null},
+      "5": {"title": "Overseer", "bonus": null},
+      "6": {"title": "Master Overseer", "bonus": null}
+    },
+    "warrior": {
+      "0": {"title": "Levy", "bonus": null},
+      "1": {"title": "Warrior", "bonus": "Melee 1"},
+      "2": {"title": "Veteran Warrior", "bonus": null},
+      "3": {"title": "Fighting-Leader", "bonus": "Gun Combat 1"},
+      "4": {"title": "Senior Fighting-Leader", "bonus": null},
+      "5": {"title": "Warband Second", "bonus": null},
+      "6": {"title": "Warband Leader", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in a predator or enemy attack. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+    "2": "You anger your herdlord and are punished with a period of ostracism. Gain one level of Outsider skill. You do not leave the career.",
+    "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+    "4": "Your status in the herd is diminished. If you accept this, SOC -1 and gain an Ally who respects your correct attitude. If you refuse, gain Outsider 1 and an Enemy. You do not leave the career.",
+    "5": "D3 of your family members are killed or otherwise lost. Their sacrifice compensates with SOC +1 (which may elevate you to the next caste). You do not leave the career.",
+    "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your herd is involved in a highly successful endeavour. You do your part with honour, earning deserved praise from your herdlord and an additional Benefits roll. You also gain D3 Enemies.",
+    "4": "Your herd goes on a mission. You complete your tasks to the herdlord's satisfaction. Gain 1 Contact or 1 level in any skill available to this caste.",
+    "5": "You are given an onerous task you do not know how to complete. Roll INT 10+. On success, gain Jack-of-all-Trades 1 and a Rival made to look stupid. On failure, you suffer humiliation and abuse.",
+    "6": "Your herd needs to prepare for war. Gain 1 level in Melee or Gun Combat.",
+    "7": "Life Event. Roll on the K'kree Life Events table.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "9": "You have to follow your herdlord on a space voyage. It is unpleasant, especially when they make you practice wearing a vacc suit. Gain 1 level of Vacc Suit.",
+    "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
+    "11": "An important Merchant-caste leader offers you one of his daughters in marriage. Gain an extra wife, SOC 7, elevation to servant-of-rankholder in the Merchant caste and the admiration of your former peers.",
+    "12": "A relative of yours was lost for a time, then came home as one-with-the-sky. You are not sure what to make of his ramblings but gain D3 Contacts among the dignitaries who have come to hear them and also SOC +1."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 2000, "benefit": "Contact"},
+    "3": {"cash": 5000, "benefit": "Ally"},
+    "4": {"cash": 7500, "benefit": "Gun Combat 1 or Recon 1 or Drive 1"},
+    "5": {"cash": 10000, "benefit": "END +1"},
+    "6": {"cash": 15000, "benefit": "DEX +1"},
+    "7": {"cash": 25000, "benefit": "SOC +1"}
+  },
+  "mustering_dm_notes": "DM+1 if SOC 5+",
+  "complete": true,
+  "societies": ["two_thousand_worlds"],
+  "notes": "K'kree males only. SOC 1-6. Term 1 must use the Warrior skill table (all K'kree males serve as warriors in their first term). From term 2, use the assignment's skill table."
+}

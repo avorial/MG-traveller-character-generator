@@ -1,0 +1,164 @@
+{
+  "id": "kkree_merchant",
+  "name": "Merchant (K'kree)",
+  "description": "Merchant-caste K'kree carry out most of the administrative, economic, and technical work within K'kree society. They also provide junior leadership to the military and handle technical tasks in ground combat and aboard starships.",
+  "qualification": {"soc_min": 7, "soc_max": 10},
+  "assignments": {
+    "mercantile": {
+      "name": "Mercantile/Economic",
+      "description": "You handle commerce, administration, and the economic life of the herd.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 6}
+    },
+    "warrior": {
+      "name": "Warrior",
+      "description": "You serve as a junior military leader, directing fighting-bands in combat.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "END", "target": 7},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 6}
+    },
+    "technical": {
+      "name": "Technical/Scientific",
+      "description": "You maintain the technical and scientific capabilities of the herd.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 6}
+    },
+    "naval": {
+      "name": "Naval",
+      "description": "You serve aboard K'kree warships, operating as crew or navigators.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "INT +1",
+      "3": "EDU +1",
+      "4": "Patriarchy",
+      "5": "Profession (K'kree ritual)",
+      "6": "K'kree Life Event"
+    },
+    "kkree_skills": {
+      "name": "K'kree Skills",
+      "1": "Patriarchy",
+      "2": "Profession (K'kree ritual)",
+      "3": "Melee",
+      "4": "Admin",
+      "5": "Carouse",
+      "6": "Athletics (endurance)"
+    },
+    "mercantile": {
+      "name": "Mercantile/Economic",
+      "1": "Profession",
+      "2": "Admin",
+      "3": "Advocate",
+      "4": "Broker",
+      "5": "Electronics (computers)",
+      "6": "Persuade"
+    },
+    "warrior": {
+      "name": "Warrior",
+      "1": "Melee",
+      "2": "Gun Combat",
+      "3": "Electronics",
+      "4": "Electronics (remote ops)",
+      "5": "Medic",
+      "6": "Vacc Suit"
+    },
+    "technical": {
+      "name": "Technical/Scientific",
+      "1": "Profession",
+      "2": "Electronics",
+      "3": "Engineer",
+      "4": "Investigate",
+      "5": "Science",
+      "6": "Medic"
+    },
+    "naval": {
+      "name": "Naval",
+      "1": "Pilot",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Gunner",
+      "5": "Gun Combat",
+      "6": "Vacc Suit"
+    }
+  },
+  "ranks": {
+    "mercantile": {
+      "0": {"title": "Junior Merchant", "bonus": null},
+      "1": {"title": "Merchant", "bonus": "Broker 1"},
+      "2": {"title": "Senior Merchant", "bonus": null},
+      "3": {"title": "Trader", "bonus": "Admin 1"},
+      "4": {"title": "Senior Trader", "bonus": null},
+      "5": {"title": "Master Trader", "bonus": null},
+      "6": {"title": "Merchant Prince", "bonus": null}
+    },
+    "warrior": {
+      "0": {"title": "Fighting-Leader Trainee", "bonus": null},
+      "1": {"title": "Fighting-Leader", "bonus": "Tactics 1"},
+      "2": {"title": "Senior Fighting-Leader", "bonus": null},
+      "3": {"title": "Warring-Leader", "bonus": "Leadership 1"},
+      "4": {"title": "Senior Warring-Leader", "bonus": null},
+      "5": {"title": "Battling-Captain", "bonus": null},
+      "6": {"title": "Senior Battling-Captain", "bonus": null}
+    },
+    "technical": {
+      "0": {"title": "Technician", "bonus": null},
+      "1": {"title": "Senior Technician", "bonus": "Science 1"},
+      "2": {"title": "Specialist", "bonus": null},
+      "3": {"title": "Senior Specialist", "bonus": "Engineer 1"},
+      "4": {"title": "Master Specialist", "bonus": null},
+      "5": {"title": "Chief Scientist", "bonus": null},
+      "6": {"title": "Master of Sciences", "bonus": null}
+    },
+    "naval": {
+      "0": {"title": "Crewman", "bonus": null},
+      "1": {"title": "Spacefarer", "bonus": "Vacc Suit 1"},
+      "2": {"title": "Senior Spacefarer", "bonus": null},
+      "3": {"title": "Vessel-Leader", "bonus": "Pilot 1"},
+      "4": {"title": "Senior Vessel-Leader", "bonus": null},
+      "5": {"title": "Leader of the Outer Steppe", "bonus": null},
+      "6": {"title": "Great Leader of the Outer Steppe", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in an accident. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+    "2": "You anger your herdlord and are punished with reduced status. SOC is lowered by D3 (which may drop you into the Servant caste). You do not leave the career.",
+    "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+    "4": "You exceed your status when offering advice to your superiors. Lose one Benefit roll and gain a Rival who profited from your eclipse. You do not leave the career.",
+    "5": "War or serious inter-herd conflict kills 1D of your family members. Make an Average (8+) Patriarchy check. If you pass, you marry a new wife quickly enough to avoid embarrassment. If not, lose SOC -1. You do not leave the career.",
+    "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your herd is involved in a highly successful endeavour. You do your part with honour, earning deserved praise from your herdlord and SOC +1. You also gain D3 Rivals.",
+    "4": "You learned new skills appropriate to your status. Gain one roll on any skill table available to this caste.",
+    "5": "You solved many problems to bring your herd great success. Gain Jack-of-all-Trades 1 and words of praise from your herdlord.",
+    "6": "Your herd needs to prepare for war. Gain 1 level in Electronics (remote ops) or Gun Combat.",
+    "7": "Life Event. Roll on the K'kree Life Events table.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "9": "Your clan journeys among the stars. Gain 1 level in Engineer, Astrogation, or Electronics.",
+    "10": "Your clanlord selects you to be a member of a special delegation providing hospitality to a powerful rival. Gain Steward 1 and make an Average (8+) Profession (K'kree ritual) check. If successful, gain SOC +1 and your clanlord's favour. If you fail, gain your clanlord's rival as an Enemy.",
+    "11": "You serve aboard a warship with your herdlord. Gain 1 level in Pilot, Electronics (remote ops), or Gunner.",
+    "12": "A Herdlord offers you one of his daughters in marriage. Gain an extra wife, SOC 11, elevation to rankholder as the head of a small family in the Noble caste and the admiration of your former peers."
+  },
+  "mustering_out": {
+    "1": {"cash": 5000, "benefit": "Vehicle"},
+    "2": {"cash": 10000, "benefit": "Contact or Weapon"},
+    "3": {"cash": 20000, "benefit": "Ally"},
+    "4": {"cash": 30000, "benefit": "Advocate 1 or Broker 1 or Science 1 or Profession 1"},
+    "5": {"cash": 50000, "benefit": "EDU +1"},
+    "6": {"cash": 75000, "benefit": "INT +1"},
+    "7": {"cash": 100000, "benefit": "SOC +1"}
+  },
+  "mustering_dm_notes": "DM+1 if SOC 9+",
+  "complete": true,
+  "societies": ["two_thousand_worlds"],
+  "notes": "K'kree males only. SOC 7-10. Term 1 must use the Warrior skill table."
+}

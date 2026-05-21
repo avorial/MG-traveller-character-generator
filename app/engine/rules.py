@@ -153,6 +153,11 @@ def aslan_life_events() -> dict:
 
 
 @lru_cache(maxsize=1)
+def kkree_life_events() -> dict:
+    return _load_file("tables/kkree_life_events.json")
+
+
+@lru_cache(maxsize=1)
 def aslan_background_tables() -> dict:
     return _load_file("tables/aslan_background.json")
 
@@ -171,6 +176,11 @@ ASLAN_CAREER_IDS: frozenset[str] = frozenset({
     "aslan_spacer", "aslan_space_officer", "aslan_wanderer",
     "aslan_outlaw",
     # aslan_outcast uses standard Core life events (page 44 RAW)
+})
+
+# K'kree careers — use the K'kree Life Events table.
+KKREE_CAREER_IDS: frozenset[str] = frozenset({
+    "kkree_pastoral", "kkree_servant", "kkree_merchant", "kkree_noble",
 })
 
 # Species that have their own homeworld life events tables (1D).
@@ -207,6 +217,8 @@ def life_events_for_career(career_id: str) -> dict:
         return solomani_life_events()
     if career_id in ASLAN_CAREER_IDS:
         return aslan_life_events()
+    if career_id in KKREE_CAREER_IDS:
+        return kkree_life_events()
     return life_events()
 
 
@@ -303,6 +315,8 @@ def list_careers() -> list[dict]:
 def reload() -> None:
     """Dev helper — flush caches so edits to JSON are picked up without a restart."""
     for fn in (species, careers, background_skills, skill_packages, life_events,
-               solomani_life_events, injury_table, aging_table, mustering_benefits,
+               solomani_life_events, drinax_palace_life_events, drinax_wasteland_life_events,
+               asim_life_events, aslan_life_events, kkree_life_events,
+               aslan_background_tables, injury_table, aging_table, mustering_benefits,
                education, psionics, skills, societies):
         fn.cache_clear()

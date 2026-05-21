@@ -1,0 +1,80 @@
+{
+  "id": "kkree_pastoral",
+  "name": "K'kree (Pastoral)",
+  "description": "Those K'kree who live the traditional pastoral lifestyle on habitable worlds, following ancient ways and preserving the heritage of the K'kree on behalf of those who venture among the stars. Casteless K'kree and traditionalists use this career.",
+  "qualification": {"automatic": true},
+  "assignments": {
+    "pastoral": {
+      "name": "Pastoral",
+      "description": "You live the traditional K'kree life, roaming the plains and maintaining ancient customs.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "Patriarchy",
+      "2": "STR +1",
+      "3": "DEX +1",
+      "4": "END +1",
+      "5": "END +1",
+      "6": "Survival"
+    },
+    "kkree_skills": {
+      "name": "K'kree Skills",
+      "1": "Patriarchy",
+      "2": "Profession (K'kree ritual)",
+      "3": "Melee",
+      "4": "Admin",
+      "5": "Carouse",
+      "6": "Athletics (endurance)"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Profession (K'kree ritual)",
+      "2": "Survival",
+      "3": "Recon",
+      "4": "Melee",
+      "5": "Athletics (endurance)",
+      "6": "K'kree Life Event"
+    }
+  },
+  "ranks": {
+    "pastoral": {
+      "0": {"title": "Herd Member", "bonus": null},
+      "1": {"title": "Proven Warrior", "bonus": "Patriarchy 1"},
+      "2": {"title": "Senior Herd Member", "bonus": null},
+      "3": {"title": "Elder", "bonus": null},
+      "4": {"title": "Herd Elder", "bonus": null},
+      "5": {"title": "Revered Elder", "bonus": null},
+      "6": {"title": "Ancestor-Speaker", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in a predator or enemy attack. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+    "2": "You anger your herdlord and are punished with a period of ostracism. Gain one level of Outsider skill. You do not leave the career.",
+    "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+    "4": "After a dispute whose origins are way over your head, your herd now has powerful enemies. You gain an Enemy. You do not leave the career.",
+    "5": "Your herd is involved in a dispute with another and you are used as cannon-fodder. Make a Melee check 8+. On success you survive uninjured. On failure, lose 1 point from STR or END. You do not leave the career.",
+    "6": "You are ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your herd is involved in a vigorous or even violent dispute with another. You do your part with honour, earning deserved praise from your herdlord. You also gain D3 Enemies.",
+    "4": "You are part of a diplomatic mission to a non-K'kree group. Gain 1 level of Diplomat or a non-K'kree Contact for this weird and unsettling experience.",
+    "5": "You have to undertake tasks outside the normal pastoral existence and are very glad to get back to the correct and proper life you wanted. Gain 1 level in any skill.",
+    "6": "Your herd undertakes a long trek for reasons that presumably makes sense to your leaders. Gain 1 level of Navigation or Survival.",
+    "7": "Life Event. Roll on the K'kree Life Events table.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "9": "Defending your family and herd bravely, you suffer an injury that reduces END by -1, but you gain 1 level of Melee or Gun Combat.",
+    "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
+    "11": "You are offered the chance to be adopted into the big family of a herdlord or clanlord. If you agree, your SOC jumps to 13 and you enter the Noble career as servant-of-rankholder next term.",
+    "12": "You got cut off from the herd. It was horrible but then the ancestors came and sang to you. They revealed great truths and led you home. Gain SOC +1 and an Ally among the herd's elders."
+  },
+  "mustering_out": null,
+  "complete": true,
+  "societies": ["two_thousand_worlds"],
+  "notes": "K'kree only. No mustering-out benefits — pastoral K'kree do not normally leave until death. SOC 0 casteless K'kree and traditionalists use this career."
+}

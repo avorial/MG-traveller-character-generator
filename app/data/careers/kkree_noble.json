@@ -1,0 +1,164 @@
+{
+  "id": "kkree_noble",
+  "name": "Noble (K'kree)",
+  "description": "Noble K'kree lead the key endeavours of the K'kree species — military, spacegoing, economic, scientific, diplomatic, or as generalist leaders. Some noble K'kree conduct diplomacy on behalf of their people whilst the greatest lead the K'kree as a whole.",
+  "qualification": {"soc_min": 11},
+  "assignments": {
+    "warrior": {
+      "name": "Warrior",
+      "description": "You command K'kree military forces in battle, directing warring-bands and battle-forces.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 8}
+    },
+    "mercantile": {
+      "name": "Mercantile/Economic",
+      "description": "You lead the commercial and economic life of the K'kree.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "SOC", "target": 5},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 8}
+    },
+    "technical": {
+      "name": "Technical/Scientific",
+      "description": "You direct the scientific and technical endeavours of the K'kree.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 8}
+    },
+    "naval": {
+      "name": "Naval",
+      "description": "You command K'kree warships and naval formations.",
+      "allowed_genders": ["male"],
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "PATRIARCHY", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "SOC +1",
+      "2": "INT +1",
+      "3": "EDU +1",
+      "4": "Patriarchy",
+      "5": "Profession (K'kree ritual)",
+      "6": "K'kree Life Event"
+    },
+    "kkree_skills": {
+      "name": "K'kree Skills",
+      "1": "Patriarchy",
+      "2": "Profession (K'kree ritual)",
+      "3": "Melee",
+      "4": "Admin",
+      "5": "Carouse",
+      "6": "Athletics (endurance)"
+    },
+    "warrior": {
+      "name": "Warrior",
+      "1": "Melee",
+      "2": "Tactics",
+      "3": "Patriarchy",
+      "4": "Carouse",
+      "5": "END +1",
+      "6": "Vacc Suit"
+    },
+    "mercantile": {
+      "name": "Mercantile/Economic",
+      "1": "Profession",
+      "2": "Patriarchy",
+      "3": "Advocate",
+      "4": "Broker",
+      "5": "Persuade",
+      "6": "Broker"
+    },
+    "technical": {
+      "name": "Technical/Scientific",
+      "1": "Science",
+      "2": "Patriarchy",
+      "3": "Engineer",
+      "4": "Science",
+      "5": "Electronics",
+      "6": "Medic"
+    },
+    "naval": {
+      "name": "Naval",
+      "1": "Pilot",
+      "2": "Astrogation",
+      "3": "Engineer",
+      "4": "Gunner",
+      "5": "Gun Combat",
+      "6": "Vacc Suit"
+    }
+  },
+  "ranks": {
+    "warrior": {
+      "0": {"title": "Warring-Leader", "bonus": null},
+      "1": {"title": "Senior Warring-Leader", "bonus": "Tactics 1"},
+      "2": {"title": "Battling-Captain", "bonus": null},
+      "3": {"title": "Senior Battling-Captain", "bonus": "Leadership 1"},
+      "4": {"title": "Campaigning-Captain", "bonus": null},
+      "5": {"title": "Warring-Captain", "bonus": "Tactics 1"},
+      "6": {"title": "Great Captain", "bonus": null}
+    },
+    "mercantile": {
+      "0": {"title": "Noble Merchant", "bonus": null},
+      "1": {"title": "Senior Noble Merchant", "bonus": "Broker 1"},
+      "2": {"title": "Trading Lord", "bonus": null},
+      "3": {"title": "Senior Trading Lord", "bonus": "Admin 1"},
+      "4": {"title": "Commerce Master", "bonus": null},
+      "5": {"title": "Grand Commerce Master", "bonus": null},
+      "6": {"title": "Herdlord of Commerce", "bonus": null}
+    },
+    "technical": {
+      "0": {"title": "Noble Scientist", "bonus": null},
+      "1": {"title": "Senior Noble Scientist", "bonus": "Science 1"},
+      "2": {"title": "Master Scientist", "bonus": null},
+      "3": {"title": "Senior Master Scientist", "bonus": "Engineer 1"},
+      "4": {"title": "Grand Master Scientist", "bonus": null},
+      "5": {"title": "Science Lord", "bonus": null},
+      "6": {"title": "Grand Science Lord", "bonus": null}
+    },
+    "naval": {
+      "0": {"title": "Leader of the Outer Steppe", "bonus": null},
+      "1": {"title": "Small Commander of the Outer Steppe", "bonus": "Pilot 1"},
+      "2": {"title": "Commander of the Outer Steppe", "bonus": null},
+      "3": {"title": "Great Commander of the Outer Steppe", "bonus": "Tactics 1"},
+      "4": {"title": "Lord Commander of the Outer Steppe", "bonus": null},
+      "5": {"title": "Lord of the Outer Steppe", "bonus": null},
+      "6": {"title": "Grand Lord of the Outer Steppe", "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in an attack by enemies of your clan. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+    "2": "Your leadership is called into question, almost inciting a revolt among your household. Make a Difficult (10+) Patriarchy check. If successful, lose 1 level of Patriarchy and dismiss one of your wives in disgrace. If you fail, reduce SOC by 1 and revert to servant-to-rankholder at the new rank. You do not leave the career unless you drop into the Merchant caste.",
+    "3": "One of your wives is killed by enemies. Make an Average (8+) Patriarchy check. If successful, your bloody vengeance earns you respect and D3 Enemies. If you fail, you are humiliated and must reduce SOC by 1 and revert to servant-to-rankholder at the new rank. You do not leave the career unless you drop into the Merchant caste.",
+    "4": "Your immediate superior suffers a huge setback. Roll 1D: on 1-2 it was your fault — you are ejected from this career and cannot begin another. On 3-4 it was not your fault but you were blamed anyway — same result plus an Enemy. On 5-6 it was not your fault and you won acclaim for preventing the situation worsening. Gain an Ally from outside your clan.",
+    "5": "You narrowly survive an accident or conflict that kills some of your family. 1D family members are slain and every third one is a wife. You lose SOC points equal to the number of wives slain. You do not leave the career unless you drop into the Merchant caste.",
+    "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "You lead your family well and with great honour. You are automatically promoted. Your success gains you D3 Rivals or one Enemy.",
+    "4": "You have to deal with outsiders on behalf of your clan. Gain 1 level of Diplomat or Leadership.",
+    "5": "You are challenged to a contest of martial prowess by a rival. Make an Average (8+) Melee check. Success earns you an Ally who admires your skills and noble bearing.",
+    "6": "You lead your people in conflict. Gain 1 level in Melee, Gun Combat, or Tactics.",
+    "7": "Life Event. Roll on the K'kree Life Events table.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "9": "Your clan journeys among the stars. Gain 1 level of Astrogation or Pilot.",
+    "10": "You are charged with a complex and distasteful mission by your superior. Gain 1 level of Diplomat, Persuade, or Streetwise.",
+    "11": "You serve at the side of your superior during a difficult challenge and gain his favour. Gain 1 level of Carouse and your superior as an Ally.",
+    "12": "A superior noble offers you one of his daughters in marriage. Gain an extra wife, SOC +1 and enter the new social level as kinsman-of-rankholder."
+  },
+  "mustering_out": {
+    "1": {"cash": 25000, "benefit": "Ship Share"},
+    "2": {"cash": 50000, "benefit": "D3 Ship Shares"},
+    "3": {"cash": 100000, "benefit": "1D Ship Shares"},
+    "4": {"cash": 200000, "benefit": "Advocate 1 or Broker 1 or Science 1 or Profession 1"},
+    "5": {"cash": 500000, "benefit": "EDU +1"},
+    "6": {"cash": 1000000, "benefit": "INT +1"},
+    "7": {"cash": 5000000, "benefit": "SOC +1"}
+  },
+  "mustering_dm_notes": "DM+1 if SOC 12+",
+  "complete": true,
+  "societies": ["two_thousand_worlds"],
+  "notes": "K'kree males only. SOC 11+. Term 1 uses the Warrior skill table."
+}

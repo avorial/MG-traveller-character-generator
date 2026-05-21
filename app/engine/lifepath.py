@@ -3798,6 +3798,21 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         character.log(f"Automatic qualification for {career['name']}.")
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
+    # K'kree SOC-range qualification
+    if "soc_min" in qual or "soc_max" in qual:
+        soc = character.characteristics.SOC
+        soc_min = qual.get("soc_min", 0)
+        soc_max = qual.get("soc_max", 99)
+        career_name = career.get("name", career_id)
+        if soc_min <= soc <= soc_max:
+            character.log(f"K'kree caste qualification for {career_name}: SOC {soc} is within range {soc_min}-{soc_max}.")
+            return {"automatic": True, "succeeded": True, "character": character.model_dump()}
+        else:
+            character.log(f"K'kree caste qualification failed for {career_name}: SOC {soc} not in range {soc_min}-{soc_max}.")
+            character.failed_qualifications_this_term += 1
+            return {"automatic": False, "succeeded": False, "character": character.model_dump(),
+                    "roll": None, "reason": f"SOC {soc} not in range {soc_min}–{soc_max} for {career_name}"}
+
     auto_qualify = qual.get("auto_qualify_if")
     if auto_qualify:
         # e.g. {"SOC": ">=10"} for Noble
@@ -5249,7 +5264,55 @@ def advancement_roll(character: Character) -> dict:
 
     char_key = adv["characteristic"]
     target = adv["target"]
-    dm = _char_dm(character, char_key) + cover_dm
+
+    # K'kree Patriarchy-based advancement (SOC rank degree)
+    if char_key == "PATRIARCHY":
+        patriarchy_level = next(
+            (s.level for s in character.skills if s.name == "Patriarchy" and s.speciality is None),
+            0
+        )
+        dm = patriarchy_level + cover_dm
+        # Adjust target based on current SOC (higher SOC → harder check)
+        soc = character.characteristics.SOC
+        if soc <= 3:
+            target = 2   # Simple
+        elif soc <= 6:
+            target = 4   # Easy
+        elif soc <= 10:
+            target = 6   # Routine
+        elif soc == 11:
+            # Automatic for Small Family Patriarch
+            term.advanced = True
+            term.rank += 1
+            term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
+            character.kkree_soc_rank_degree = "rankholder"
+            character.log(f"K'kree SOC rank advancement: Automatic (SOC 11, Small Family Patriarch) — now Rankholder.")
+            return {
+                "roll": {"total": "Auto", "succeeded": True, "natural": 12},
+                "advanced": True, "rank": term.rank,
+                "new_rank": term.rank,
+                "new_rank_title": term.rank_title,
+                "rank_bonus": None,
+                "forced_from_career": False,
+                "monitor_dm": 0,
+                "monitor_rank_up": False,
+                "monitor_rank": character.solsec_monitor_rank,
+                "advancement_skill_roll": True,
+                "character": character.model_dump(),
+                "note": "Automatic SOC rank advancement — Small Family Patriarch."
+            }
+        elif soc == 12:
+            target = 8   # Average
+        elif soc == 13:
+            target = 10  # Difficult
+        elif soc == 14:
+            target = 12  # Very Difficult
+        else:  # SOC 15
+            target = 14  # Formidable
+        char_display = f"Patriarchy (skill {patriarchy_level})"
+    else:
+        dm = _char_dm(character, char_key) + cover_dm
+        char_display = None
 
     # Apply permanent pre-career advancement DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -5302,9 +5365,22 @@ def advancement_roll(character: Character) -> dict:
                 )
             )
 
+    # K'kree: track SOC rank degree advancement on success
+    if char_key == "PATRIARCHY" and r.succeeded:
+        if character.kkree_soc_rank_degree == "servant_of_rankholder":
+            character.kkree_soc_rank_degree = "kinsman_of_rankholder"
+            character.log("K'kree SOC rank degree: advanced to Kinsman-of-Rankholder.")
+        elif character.kkree_soc_rank_degree == "kinsman_of_rankholder":
+            character.kkree_soc_rank_degree = "rankholder"
+            character.log("K'kree SOC rank degree: advanced to Rankholder.")
+        else:
+            character.log("K'kree SOC rank degree: already Rankholder — no further advancement this way.")
+            term.advanced = False
+
+    _char_key_display = char_display if char_key == "PATRIARCHY" else char_key
     monitor_note = f" [Monitor DM+{monitor_dm}]" if monitor_dm else ""
     msg = (
-        f"Advancement ({char_key} {target}+{'+' + str(pending) if pending else ''}){cover_note}{monitor_note}: "
+        f"Advancement ({_char_key_display} {target}+{'+' + str(pending) if pending else ''}){cover_note}{monitor_note}: "
         f"2D{dm:+d} = {r.total} "
         f"[{'PROMOTED to rank ' + str(term.rank) + (' — ' + term.rank_title if term.rank_title else '') if r.succeeded else 'no promotion'}]"
     )
@@ -5998,6 +6074,71 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "skill_choice", "options": ["Carouse", "Art", "Language"]}],
         11: [{"type": "skill_choice", "options": ["Leadership", "Admin", "Diplomat"]}],
     },
+
+    # ---- K'kree careers ----
+    "kkree_pastoral": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "enemy", "desc": "Enemy [K'kree Herd Rival]"}],
+        4:  [{"type": "skill_choice", "options": ["Diplomat", "Contact (non-K'kree)"]}],
+        5:  [{"type": "free_skill_choice", "prompt": "Gain 1 level in any skill"}],
+        6:  [{"type": "skill_choice", "options": ["Navigation", "Survival"]}],
+        8:  [{"type": "skill", "name": "Profession (K'kree ritual)", "level": 1},
+             {"type": "contact", "desc": "Contact [K'kree outside herd]"}],
+        9:  [{"type": "stat", "stat": "END", "amount": -1},
+             {"type": "skill_choice", "options": ["Melee", "Gun Combat"]}],
+        10: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "contact", "desc": "Contact [Steppelord's Court]"}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Herd Elder]"}],
+    },
+    "kkree_servant": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "extra_benefit", "amount": 1},
+             {"type": "enemy", "desc": "Enemy [Herd Rival]"}],
+        5:  [{"type": "skill_check", "skills": [{"name": "INT", "is_stat": True}], "target": 10,
+              "on_pass": [{"type": "skill", "name": "Jack-of-all-Trades", "level": 1},
+                          {"type": "rival", "desc": "Rival [Made to Look Stupid]"}],
+              "on_fail": [],
+              "prompt": "Roll INT 10+ — pass: Jack-of-all-Trades 1 + Rival; fail: humiliation"}],
+        6:  [{"type": "skill_choice", "options": ["Melee", "Gun Combat"]}],
+        8:  [{"type": "skill", "name": "Profession (K'kree ritual)", "level": 1},
+             {"type": "contact", "desc": "Contact [K'kree outside herd]"}],
+        9:  [{"type": "skill", "name": "Vacc Suit", "level": 1}],
+        10: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "contact", "desc": "Contact [Steppelord's Court]"}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+    "kkree_merchant": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "rival", "desc": "Rival [Herd Competitor]"}],
+        4:  [{"type": "free_skill_choice", "prompt": "Gain one roll on any skill table available to Merchant caste"}],
+        5:  [{"type": "skill", "name": "Jack-of-all-Trades", "level": 1}],
+        6:  [{"type": "skill_choice", "options": ["Electronics (remote ops)", "Gun Combat"]}],
+        8:  [{"type": "skill", "name": "Profession (K'kree ritual)", "level": 1},
+             {"type": "contact", "desc": "Contact [K'kree outside herd]"}],
+        9:  [{"type": "skill_choice", "options": ["Engineer", "Astrogation", "Electronics"]}],
+        10: [{"type": "skill", "name": "Steward", "level": 1}],
+        11: [{"type": "skill_choice", "options": ["Pilot", "Electronics (remote ops)", "Gunner"]}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+    "kkree_noble": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        4:  [{"type": "skill_choice", "options": ["Diplomat", "Leadership"]}],
+        5:  [{"type": "skill_check", "skills": [{"name": "Melee"}], "target": 8,
+              "on_pass": [{"type": "ally", "desc": "Ally [Admiring Rival]"}],
+              "on_fail": [],
+              "prompt": "Roll Melee 8+ in contest of martial prowess — pass: gain Ally"}],
+        6:  [{"type": "skill_choice", "options": ["Melee", "Gun Combat", "Tactics"]}],
+        8:  [{"type": "skill", "name": "Profession (K'kree ritual)", "level": 1},
+             {"type": "contact", "desc": "Contact [K'kree outside herd]"}],
+        9:  [{"type": "skill_choice", "options": ["Astrogation", "Pilot"]}],
+        10: [{"type": "skill_choice", "options": ["Diplomat", "Persuade", "Streetwise"]}],
+        11: [{"type": "skill", "name": "Carouse", "level": 1},
+             {"type": "ally", "desc": "Ally [Superior Noble]"}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+    },
 }
 
 
@@ -6431,6 +6572,47 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "on_fail": [{"type": "force_next_career", "career_id": "prisoner"}],
              "prompt": "Roll Stealth or Persuade 8+ to escape capture — pass: stay free; fail: Prisoner career next"}],
         6: [{"type": "career_continues"}],
+    },
+
+    # ---- K'kree careers ----
+    # Most K'kree mishaps 1-5 say "you do not leave the career" — hence career_continues.
+    # Mishap 6 is standard ejection (no career_continues).
+    "kkree_pastoral": {
+        1: [{"type": "injury"}, {"type": "career_continues"}],
+        2: [{"type": "career_continues"}],   # gain Outsider — noted in text
+        3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
+        4: [{"type": "enemy", "desc": "Enemy [Rival Herd]"}, {"type": "career_continues"}],
+        5: [{"type": "skill_check", "skills": [{"name": "Melee"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "STR", "amount": -1}],
+             "prompt": "Roll Melee 8+ — fail: lose STR -1"},
+            {"type": "career_continues"}],
+        # 6: standard ejection — no entry needed
+    },
+    "kkree_servant": {
+        1: [{"type": "injury"}, {"type": "career_continues"}],
+        2: [{"type": "career_continues"}],
+        3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
+        4: [{"type": "career_continues"}],   # choice: accept SOC-1+Ally or refuse+Enemy+Outsider
+        5: [{"type": "stat", "stat": "SOC", "amount": 1}, {"type": "career_continues"}],
+        # 6: standard ejection
+    },
+    "kkree_merchant": {
+        1: [{"type": "injury"}, {"type": "career_continues"}],
+        2: [{"type": "career_continues"}],   # SOC lowered by D3 — noted in text
+        3: [{"type": "rival", "desc": "Rival [K'kree Herdmate]"}, {"type": "career_continues"}],
+        4: [{"type": "forfeit_benefit"}, {"type": "rival", "desc": "Rival [Profited from Eclipse]"},
+            {"type": "career_continues"}],
+        5: [{"type": "career_continues"}],   # family deaths + Patriarchy check — noted in text
+        # 6: standard ejection
+    },
+    "kkree_noble": {
+        1: [{"type": "injury"}, {"type": "career_continues"}],
+        2: [{"type": "career_continues"}],   # Patriarchy check choice — noted in text
+        3: [{"type": "career_continues"}],   # Patriarchy check + enemies — noted in text
+        4: [{"type": "career_continues"}],   # 1D sub-result (1-4 eject, 5-6 ally) — noted in text
+        5: [{"type": "career_continues"}],   # family deaths + SOC loss — noted in text
+        # 6: standard ejection
     },
 }
 

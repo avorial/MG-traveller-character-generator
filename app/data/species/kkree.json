@@ -1,0 +1,37 @@
+{
+  "id": "kkree",
+  "name": "K'kree",
+  "description": "Six-limbed centauroid obligate herbivores from Kirur, the K'kree are among the most powerful species in Charted Space. They are militant vegetarians with a pathological hatred of meat-eaters. K'kree are deeply social herd-creatures who cannot function alone — a K'kree Traveller is the patriarch of a family group, not a solo individual.",
+  "characteristic_modifiers": {"STR": 6, "DEX": 0, "END": 0, "INT": 2, "EDU": 2, "SOC": 0},
+  "characteristic_maximum": 15,
+  "sort_order": 650,
+  "traits": [
+    {
+      "name": "Big and Tough",
+      "description": "K'kree are much larger than humans. END damage (from injury, exertion or any physical effect) is halved, dropping fractions. END is also treated as doubled for duration of physical activity (not effectiveness)."
+    },
+    {
+      "name": "Claustrophobic",
+      "description": "K'kree cannot stand confined spaces. A Difficult (10+) END check is required to enter a confined space. Stateroom-sized spaces impose DM-2; crawlways impose DM-4. Failure = refuses to enter. If already inside, wriggles out or freezes/thrashes (roll 1D, 4+ = freeze). A K'kree who has worked aboard starships may use their highest shipboard skill (Pilot, Engineer, etc.) as a DM."
+    },
+    {
+      "name": "Gregarious",
+      "description": "K'kree need others of their kind at all times. If suddenly deprived of companions, make an Average (8+) END check (DM up to -6 for violent separation). Failure may cause panic, collapse, or long-term madness. Alone for extended periods: Difficult (10+) END check each day; Effect -6 or worse = D3-day collapse."
+    },
+    {
+      "name": "Speed of Hoof",
+      "description": "If a K'kree uses three minor actions in a round all for movement, it gains a bonus minor action also usable for movement."
+    },
+    {
+      "name": "Militant Herbivore",
+      "description": "K'kree can detect traces of recent meat consumption. A character who has eaten meat within 30 days triggers unease or revulsion in K'kree. Those who have done so within a few days risk a violent reaction from K'kree they encounter."
+    }
+  ],
+  "aliases": ["kkree", "k_kree", "centaur"],
+  "source": "Aliens of Charted Space Vol. 1, Mongoose Publishing",
+  "starting_age": 14,
+  "aging_starts_term": 6,
+  "uses_kkree_family": true,
+  "background_skills": ["Melee 0", "Patriarchy 0", "Recon 0", "Survival 0"],
+  "notes": "The K'kree Traveller is a family patriarch. Character creation generates the patriarch's skills and characteristics. Family composition (wives, warriors, specialists, servants) is tracked via kkree_wives and kkree_family_members. Male K'kree only — all other family members have modified stats (STR+6 but INT-4, EDU-4 for males; STR+3, EDU-5 for females). SOC determines caste and career access."
+}

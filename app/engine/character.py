@@ -212,6 +212,15 @@ class Character(BaseModel):
     #       family_position, rite_score, rite_doubles_roll, rite_doubles_result
     aslan_setup_status: Optional[dict] = None
 
+    # K'kree family tracking (for K'kree species only)
+    kkree_wives: int = 0
+    kkree_family_members: list[dict] = Field(default_factory=list)
+    # Role breakdown of family: [{"role": "warrior"|"specialist"|"servant", "description": str}, ...]
+    kkree_soc_rank_degree: str = "servant_of_rankholder"
+    # "servant_of_rankholder" | "kinsman_of_rankholder" | "rankholder"
+    kkree_specialist_area: Optional[str] = None
+    # The specialist area rolled at career start (e.g. "warrior", "mercantile", "technical", "naval")
+
     # SolSec Monitor (Solomani informer role, parallel to any non-SolSec career)
     # DM+1 to advancement; nat-2 survival → SolSec mishap instead of career mishap;
     # nat-12 survival → SolSec event + SolSec Contact.
