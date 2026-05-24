@@ -19,11 +19,20 @@ class Characteristics(BaseModel):
     EDU: int = 0
     SOC: int = 0
 
-    def get(self, key: str) -> int:
-        return getattr(self, key.upper())
+    def get(self, key: str) -> Optional[int]:
+        """Return characteristic value, or None for unknown keys (e.g. PSI)."""
+        k = key.upper()
+        try:
+            return getattr(self, k)
+        except AttributeError:
+            return None
 
     def set(self, key: str, value: int) -> None:
-        setattr(self, key.upper(), max(0, value))
+        k = key.upper()
+        try:
+            setattr(self, k, max(0, value))
+        except AttributeError:
+            pass  # Unknown characteristic — silently ignore
 
 
 class Skill(BaseModel):
@@ -113,6 +122,7 @@ class Character(BaseModel):
     pending_benefit_rolls: int = 0
     cash_rolls_used: int = 0
     dm_next_advancement: int = 0
+    dm_permanent_advancement: int = 0  # never consumed — stacks every roll for life
     dm_next_qualification: int = 0
     dm_next_benefit: int = 0
     dm_next_survival: int = 0
@@ -258,6 +268,21 @@ class Character(BaseModel):
     # Career package (optional alternative to normal careers)
     career_package_id: Optional[str] = None
     career_package_taken: bool = False
+
+    # Droyne caste system
+    # droyne_caste: the string name of the caste ("worker", "warrior", etc.)
+    # droyne_caste_number: the 1D roll result (1=Worker, 2=Warrior, 3=Drone,
+    #   4=Technician, 5=Sport, 6=Leader) — used as a negative DM in continuation checks.
+    droyne_caste: Optional[str] = None
+    droyne_caste_number: int = 0
+    # Tracks whether caste modifiers have already been applied to avoid double-applying.
+    droyne_caste_mods_applied: bool = False
+
+    # Hiver nest type ("industrial" | "economic" | "generalist" | "academic" | "social")
+    # Also tracks whether the Hiver has attained Senior or Manipulator status (for one-time bonuses).
+    hiver_nest_type: Optional[str] = None
+    hiver_senior_bonus_awarded: bool = False
+    hiver_manipulator_bonus_awarded: bool = False
 
     # Capsule description (generated in finalize phase, persisted for export)
     capsule_description: str = ""

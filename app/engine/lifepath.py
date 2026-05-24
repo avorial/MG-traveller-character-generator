@@ -5286,6 +5286,12 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"DM{amount:+d} to next Advancement roll")
         character.log(f"Event: dm_next_advancement {amount:+d}")
 
+    elif etype == "dm_permanent_advancement":
+        amount = effect.get("amount", 0)
+        character.dm_permanent_advancement += amount
+        msgs.append(f"Permanent DM{amount:+d} to ALL future Advancement rolls (never consumed)")
+        character.log(f"Event: dm_permanent_advancement {amount:+d}")
+
     elif etype == "auto_advance":
         character.dm_next_advancement += 12
         msgs.append("Automatically promoted this term (DM+12 to Advancement roll)")
@@ -8142,12 +8148,12 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 )
                 character.log(f"Merchant event 5: took money, 2D={_r2d.total}, Cr{_credits_gained:,}")
             else:  # credit
-                character.dm_next_advancement += 1
+                character.dm_permanent_advancement += 1
                 character.associates.append(
                     Associate(kind="contact", description="Contact [Business Ally — shared big score]")
                 )
-                auto_applied.append("Claimed the credit — DM+1 to next Advancement roll; gained Contact [Business Ally]")
-                character.log("Merchant event 5: claimed credit, adv DM+1, Contact added")
+                auto_applied.append("Claimed the credit — permanent DM+1 to ALL future Advancement rolls; gained Contact [Business Ally]")
+                character.log("Merchant event 5: claimed credit, permanent adv DM+1, Contact added")
             character.pending_career_mishap_choice = None
 
         elif choice_id == "hiver_merchant_debt":
@@ -8390,6 +8396,7 @@ def commission_roll(character: "Character") -> dict:
     # Event/DM bonuses (dm_next_advancement applies to commission per RAW)
     pending_dm = character.dm_next_advancement
     dm += pending_dm
+    dm += character.dm_permanent_advancement
 
     r = dice.roll("2D", modifier=dm, target=target)
 
@@ -8401,6 +8408,8 @@ def commission_roll(character: "Character") -> dict:
     if pending_dm:
         dm_notes.append(f"Pending DM{pending_dm:+d}")
         character.dm_next_advancement = 0  # consumed
+    if character.dm_permanent_advancement:
+        dm_notes.append(f"Permanent DM{character.dm_permanent_advancement:+d}")
 
     new_rank_title = None
     rank_bonus_log = None
@@ -8450,7 +8459,11 @@ def _hiver_advancement_roll(character: "Character", career: dict, term) -> dict:
     flags to prevent double-awarding.
     """
     res_dm = dice.characteristic_dm(character.characteristics.SOC)
-    r = dice.roll("2D", modifier=res_dm)
+    perm_dm = character.dm_permanent_advancement  # never consumed
+    next_dm = character.dm_next_advancement
+    character.dm_next_advancement = 0
+    combined_dm = res_dm + perm_dm + next_dm
+    r = dice.roll("2D", modifier=combined_dm)
     total = r.total
     current_rank = term.rank
 
@@ -8510,21 +8523,23 @@ def _hiver_advancement_roll(character: "Character", career: dict, term) -> dict:
                     rank_bonus_log = f"Manipulator nest bonus: {bonus_log}"
 
         status_name = {0: "Adult", 1: "Senior", 2: "Manipulator"}.get(new_rank, f"Rank {new_rank}")
+        _perm_note = f" + permanent DM{perm_dm:+d}" if perm_dm else ""
         character.log(
-            f"Hiver advancement [2D+RES{res_dm:+d}={total}]: "
+            f"Hiver advancement [2D+RES{res_dm:+d}{_perm_note}={total}]: "
             f"ADVANCED to {status_name} (rank {new_rank})"
         )
     else:
         term.advanced = False
+        _perm_note = f" + permanent DM{perm_dm:+d}" if perm_dm else ""
         if current_rank >= 2:
             character.log(
-                f"Hiver advancement [2D+RES{res_dm:+d}={total}]: already Manipulator — no further advancement."
+                f"Hiver advancement [2D+RES{res_dm:+d}{_perm_note}={total}]: already Manipulator — no further advancement."
             )
         else:
             status_name = {0: "Adult", 1: "Senior"}.get(current_rank, f"Rank {current_rank}")
             threshold = senior_min if current_rank == 0 else manipulator_min
             character.log(
-                f"Hiver advancement [2D+RES{res_dm:+d}={total}]: "
+                f"Hiver advancement [2D+RES{res_dm:+d}{_perm_note}={total}]: "
                 f"no advancement (needed {threshold}+ to advance from {status_name})."
             )
 
@@ -8653,8 +8668,10 @@ def advancement_roll(character: Character) -> dict:
         dm += int(pdms["first_career_commission_dm"])
 
     dm += character.dm_next_advancement
+    dm += character.dm_permanent_advancement
     pending = character.dm_next_advancement
     character.dm_next_advancement = 0
+    # dm_permanent_advancement is intentionally NOT zeroed — it applies every roll
 
     # SolSec Monitor: DM+1 to advancement in any career except Drifter
     monitor_dm = 0
@@ -11341,7 +11358,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         2:  [{"type": "trigger_disaster_mishap"}],
         3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
         4:  [{"type": "dm_advancement", "amount": 4}],
-        5:  [{"type": "dm_advancement", "amount": 1}],
+        5:  [{"type": "dm_permanent_advancement", "amount": 1}],
         6:  [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "free_skill_choice", "prompt": "RES check passed — gain a level in any skill you possess:"}],
               "on_fail": [],
