@@ -25,8 +25,15 @@
       "id": "hiver_federation",
       "name": "Hiver Federation",
       "subtitle": "Masters of manipulation, architects of stability",
-      "description": "The Hivers are six-limbed starfish-shaped beings who never communicate directly — all Hiver interaction is through elaborate indirect manipulation. Their Federation is ancient, stable, and remarkably successful. A handful of humans live and work within Federation space; native Hiver player characters are not yet fully implemented.",
-      "species_ids": ["hiver_federation_human"]
+      "description": "The Hivers are six-limbed starfish-shaped beings who never communicate directly — all Hiver interaction is through elaborate indirect manipulation. Their Federation is ancient, stable, and remarkably successful. A handful of humans live and work within Federation space. Hiver Travellers use Resolve (RES) in place of Social Standing and advance via the status table (Adult → Senior → Manipulator) rather than conventional ranks.",
+      "species_ids": ["hiver_federation_human", "hiver"]
+    },
+    {
+      "id": "droyne_oytrip",
+      "name": "Droyne Oytrip",
+      "subtitle": "Caste-bound community of an ancient alien species",
+      "description": "The Droyne are an ancient species organised entirely around caste. At adolescence (age 12) each Droyne undergoes the Iskyar ritual, drawing golden coyns to determine which of six castes they belong to for life: Worker, Warrior, Drone, Technician, Sport, or Leader. Droyne have no Social Standing — their position is defined by caste and how highly their Oytrip values them. They roll 1D+1 for most characteristics (not 2D) and always have PSI. No mishap automatically ejects a Droyne — instead they make a continuation check each time misfortune strikes.",
+      "species_ids": ["droyne"]
     },
     {
       "id": "zhodani_consulate",
