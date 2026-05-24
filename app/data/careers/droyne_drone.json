@@ -1,0 +1,153 @@
+{
+  "id": "droyne_drone",
+  "name": "Drone",
+  "description": "Drones are vital to Droyne reproduction and raising young. They are also important to ritual, social and managerial functions.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "drone",
+  "mishap_no_eject": true,
+  "assignments": {
+    "family": {
+      "name": "Family",
+      "description": "Your role is to care for and educate the young.",
+      "survival": {"characteristic": "INT", "target": 4},
+      "advancement": {"characteristic": "PSI", "target": 9}
+    },
+    "priestly": {
+      "name": "Priestly",
+      "description": "You perform the many rituals required to maintain the Oytrip and to caste the young.",
+      "survival": {"characteristic": "PSI", "target": 4},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    },
+    "social": {
+      "name": "Social",
+      "description": "You are an administrator or middle-manager.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 9}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "PSI +1",
+      "4": "Appeal",
+      "5": "Flight",
+      "6": "Prediction"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Admin",
+      "2": "Appeal",
+      "3": "Profession",
+      "4": "Art (Droyne)",
+      "5": "Medic",
+      "6": "Caste"
+    },
+    "useful_drone": {
+      "name": "Useful Drone (Min INT 6+)",
+      "requires_int": 6,
+      "1": "Any psionic skill",
+      "2": "Appeal",
+      "3": "Science",
+      "4": "Outsider",
+      "5": "PSI +1",
+      "6": "Caste"
+    },
+    "family": {
+      "name": "Family Drone",
+      "assignment_only": "family",
+      "1": "Steward",
+      "2": "Art (Droyne)",
+      "3": "Appeal",
+      "4": "Medic",
+      "5": "Profession",
+      "6": "Steward"
+    },
+    "priestly": {
+      "name": "Priestly Drone",
+      "assignment_only": "priestly",
+      "1": "PSI +1",
+      "2": "Prediction",
+      "3": "Art (Droyne)",
+      "4": "Ancients Tech",
+      "5": "Appeal",
+      "6": "Prediction"
+    },
+    "social": {
+      "name": "Social Drone",
+      "assignment_only": "social",
+      "1": "Art (Droyne)",
+      "2": "Prediction",
+      "3": "Admin",
+      "4": "Appeal",
+      "5": "Leadership",
+      "6": "Outsider"
+    }
+  },
+  "ranks": {
+    "family": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Drone", "bonus": null},
+      "2": {"title": "Satisfactory Drone", "bonus": "Caste (drone) 1"},
+      "3": {"title": "Valued Drone", "bonus": "PSI +1"},
+      "4": {"title": "Highly Valued Drone", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Drone", "bonus": "Prediction 1"},
+      "6": {"title": "Eminent Drone", "bonus": "Leadership 1"}
+    },
+    "priestly": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Drone", "bonus": null},
+      "2": {"title": "Satisfactory Drone", "bonus": "Caste (drone) 1"},
+      "3": {"title": "Valued Drone", "bonus": "PSI +1"},
+      "4": {"title": "Highly Valued Drone", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Drone", "bonus": "Prediction 1"},
+      "6": {"title": "Eminent Drone", "bonus": "Leadership 1"}
+    },
+    "social": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Drone", "bonus": null},
+      "2": {"title": "Satisfactory Drone", "bonus": "Caste (drone) 1"},
+      "3": {"title": "Valued Drone", "bonus": "PSI +1"},
+      "4": {"title": "Highly Valued Drone", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Drone", "bonus": "Prediction 1"},
+      "6": {"title": "Eminent Drone", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. Roll 1D. On 1–4 the Warriors protect you and no adverse effects are suffered. On 5–6 the family areas are penetrated and the young endangered. Gain one level of Medic but you suffer a −D3 reduction on STR, DEX or END due to your wounds. Make a continuation check.",
+    "2": "A junior Leader challenges the seniors in your Oytrip. You are called upon to consult the coyns. Make a Prediction check. If you succeed, you may choose the outcome you desire. If you fail, decide whether to support the challenge or oppose it. Then roll 1D. On 1–3 the junior Leader was incorrect and is driven from the Oytrip. If you supported them, you are sent with them. You join their Kroyloss, which breaks up soon afterward. Muster out and begin adventuring or commit ritual suicide. If you did not support them, you suffer no ill effects but must make a continuation check. On 4–6 the junior Leader was correct and the senior leaders step aside in their favour. If you supported them no ill effects befall you. If not, you participate in the death rituals for the previous leadership and are expected to join them. You may commit ritual suicide or leave the Oytrip.",
+    "3": "A dangerous situation arises and the whole Oytrip suffers. You are tasked with getting the young to safety. If you take extraordinary risks, you suffer a 1 point reduction in each of STR, DEX and END and must make a continuation check. If you allow others to make the sacrifice you suffer no harm but your rank drops by −1 and you gain an Enemy within the Oytrip.",
+    "4": "Bad things occur. It is best not to speak of them, for fear of frightening the young and the Workers. You are involved in coordinating the response at the mid-level. Make a Leadership or Admin check. If successful, you organise a useful response and all is well. If you fail, you witness terrible events which shake your confidence in the Leaders. You may leave the Oytrip now or make a continuation check in each subsequent term at DM−4.",
+    "5": "Your Leader undertakes an expedition which goes badly wrong. Make a Prediction check. If successful, you advised against it and receive due honour when the situation is resolved. If you fail, you advised that the expedition go ahead. Your rank is reduced by −1 but you gain one level of Outsider (any).",
+    "6": "You behave incorrectly. Your rank is reduced by −1. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+    "4": "You attempt to bring various matters to the attention of the Leaders. Make an Appeal check. If you succeed, you gain rank +1 or one level of Caste. If you fail, you are discredited for a time but gain a level of Appeal.",
+    "5": "Your Leader engages in a voyage and brings you along as a performer of rituals. You learn much about starfaring and the wider universe. Gain one level in any of Outsider, Science (any), Vacc Suit.",
+    "6": "You do good work and your Leader is pleased. Gain one level in Profession, Admin, Art (Droyne) or Appeal.",
+    "7": "The Oytrip prospers due to the diligence of its members. Your Leaders are pleased.",
+    "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "You made a prediction. It was alarming. If you reveal it to the Leader, make an immediate Appeal check. If successful, your rank is increased by +1. If you fail, your rank is reduced by −1 and you are given onerous tasks to perform.",
+    "10": "You are involved with outsiders. It was overall quite disturbing but you think you benefited from the experience. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+    "11": "You are involved in the creation of an installation owned by your Oytrip but far outside it. Your managerial skills are tested. Gain one level of Admin, Appeal or Leadership.",
+    "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You perform the appropriate rituals to keep it safe and functional. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 500, "benefit": "INT +1"},
+    "2": {"cash": 1000, "benefit": "EDU +1"},
+    "3": {"cash": 1500, "benefit": "PSI +1"},
+    "4": {"cash": 2500, "benefit": "Coyns"},
+    "5": {"cash": 5000, "benefit": "Vacc Suit"},
+    "6": {"cash": 7500, "benefit": "Wings"},
+    "7": {"cash": 10000, "benefit": "Coyns"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}

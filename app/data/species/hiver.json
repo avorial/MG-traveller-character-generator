@@ -1,0 +1,108 @@
+{
+  "id": "hiver",
+  "name": "Hiver",
+  "description": "Six-limbed beings resembling a fleshy dome about one metre across, with manipulator tentacles at the end of each limb. Hivers have no vocal chords and communicate through sign language, typically via a Voder device. Masters of indirect manipulation, they have built a vast interstellar federation through persuasion rather than force. A Hiver's social standing is known as Resolve (RES) rather than Social Standing (SOC). Hivers have no psionic potential whatsoever.",
+  "characteristic_modifiers": {"STR": -2, "DEX": 0, "END": 0, "INT": 2, "EDU": 2, "SOC": 0},
+  "characteristic_maximum": 15,
+  "starting_age": 14,
+  "aging_starts_term": 6,
+  "no_anagathics": true,
+  "res_replaces_soc": true,
+  "sort_order": 610,
+  "hiver_species": true,
+  "no_psionics": true,
+  "hiver_nest_table": {
+    "2":  "industrial",
+    "3":  "industrial",
+    "4":  "economic",
+    "5":  "economic",
+    "6":  "generalist",
+    "7":  "generalist",
+    "8":  "generalist",
+    "9":  "academic",
+    "10": "academic",
+    "11": "social",
+    "12": "social"
+  },
+  "hiver_nest_benefits": {
+    "industrial": {
+      "background": "EDU +1",
+      "min_qualification": {"characteristic": "EDU", "target": 7},
+      "full_qualification": ["Profession 2", "Mechanic 2"],
+      "senior_bonus": "RES +1",
+      "manipulator_bonus": "RES +1, Science (sociology) 1"
+    },
+    "economic": {
+      "background": "INT +1",
+      "min_qualification": {"characteristic": "INT", "target": 7},
+      "full_qualification": ["Admin 2", "Advocate 2"],
+      "senior_bonus": "Broker 1",
+      "manipulator_bonus": "RES +1, Science (sociology) 1"
+    },
+    "generalist": {
+      "background": "Persuade 0, Survival 0",
+      "min_qualification": {"characteristic": "INT", "target": 4},
+      "full_qualification": ["Survival 2", "Medic 2"],
+      "senior_bonus": "RES +1",
+      "manipulator_bonus": "RES +1, Science (sociology) 1"
+    },
+    "academic": {
+      "background": "EDU +1",
+      "min_qualification": {"characteristic": "EDU", "target": 8},
+      "full_qualification": ["Science 2", "Investigate 2"],
+      "senior_bonus": "Science 1",
+      "manipulator_bonus": "RES +1, Science (sociology) 1"
+    },
+    "social": {
+      "background": "Persuade 0",
+      "min_qualification": {"characteristic": "INT", "target": 8},
+      "full_qualification": ["Deception 2", "Science 2"],
+      "senior_bonus": "RES +1",
+      "manipulator_bonus": "RES +1, Science (sociology) 1"
+    }
+  },
+  "hiver_advancement_table": {
+    "adult_max": 9,
+    "senior_min": 10,
+    "senior_max": 14,
+    "manipulator_min": 15
+  },
+  "hiver_nest_change": {
+    "industrial":  {"diplomat_persuade": "routine_6",  "transition_manipulation": "average_8"},
+    "economic":    {"diplomat_persuade": "average_8",  "transition_manipulation": "difficult_10"},
+    "generalist":  {"diplomat_persuade": "routine_6",  "transition_manipulation": "average_8"},
+    "academic":    {"diplomat_persuade": "average_8",  "transition_manipulation": "difficult_10"},
+    "social":      {"diplomat_persuade": "difficult_10", "transition_manipulation": "very_difficult_12"}
+  },
+  "hiver_qualification_penalties": {
+    "does_not_meet_minimum": -6,
+    "meets_minimum": -2,
+    "fully_qualified": 0
+  },
+  "life_events_table": "hiver_life_events",
+  "traits": [
+    {
+      "name": "Manipulative",
+      "description": "Hivers receive DM+1 on all Deception and Persuade checks when working indirectly — setting up a situation, planting an idea, or guiding someone to a conclusion they believe they reached themselves. They suffer DM-2 on checks requiring direct assertion of authority."
+    },
+    {
+      "name": "Non-Vocal",
+      "description": "Hivers have no vocal chords. They communicate through sign language, typically using a Voder device that translates their movements into speech or text. Without a Voder, communication with non-Hiver speakers requires a Difficult (10+) Diplomat check to convey anything specific. All Hivers are fluent in Hiver sign language and Gurvin."
+    },
+    {
+      "name": "Six Limbs",
+      "description": "All six Hiver limbs can function as both arms and legs. One limb serves as a 'head' with eye-stalks. Hivers can manipulate objects with multiple limbs simultaneously, gaining DM+1 on tasks requiring fine manipulation with two or more objects at once."
+    },
+    {
+      "name": "Regeneration",
+      "description": "Hivers can regenerate most minor injuries over time. However, major trauma (loss of a limb in a manner that cannot be regrown, severe scarring) requires medical intervention and may leave permanent effects."
+    },
+    {
+      "name": "Violence Aversion",
+      "description": "Hivers have a deep instinctive aversion to violence and direct confrontation. A Hiver who must engage in personal combat suffers DM-2 on all attack rolls. Hivers cannot normally gain or use military combat skills above level 1 unless they are in a Manipulator (Military Leader) assignment."
+    }
+  ],
+  "aliases": ["hiver", "starfish"],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing",
+  "notes": "SOC characteristic represents Resolve (RES) — a Hiver's social influence and willpower. Advancement in all Hiver careers is via a 2D + RES DM check against Average (8+); the numeric result is then checked against the advancement status table (≤9=Adult, 10-14=Senior, 15=Manipulator). Hivers do not make survival checks in Federation careers. No basic training is ever received (neither in the first term nor when switching careers). Mustering out: 2 rolls per term + RES DM; at least half (round down) must be cash rolls. The mustering out table is 2D-based (not 1D). Anagathics do not work on Hivers. Hivers have no psionic ability of any kind."
+}

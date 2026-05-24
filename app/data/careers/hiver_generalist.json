@@ -1,0 +1,150 @@
+{
+  "id": "hiver_generalist",
+  "name": "Generalist",
+  "description": "Most Hivers are generalists, typically living a normal life as a citizen of any type of nest. The average generalist works at a steady job and indulges their interests in a variety of fields without going very far into any of them.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "no_survival": true,
+  "hiver_career": true,
+  "hiver_open_to": ["any"],
+  "hiver_min_qualification": {"characteristic": "INT", "target": 4},
+  "hiver_full_qualification": ["Survival 2", "Medic 2"],
+  "hiver_senior_bonus": "RES +1",
+  "hiver_manipulator_bonus": "RES +1, Science (sociology) 1",
+  "hiver_no_basic_training": true,
+  "assignments": {
+    "nest_citizen": {
+      "name": "Nest-Citizen",
+      "description": "You are an ordinary citizen of a nest, working to nurture the young and to support the work of the nest as a whole. You are aware you are often manipulated by more determined nest-mates but there is little you can do about it.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "dedicated_generalist": {
+      "name": "Dedicated Generalist",
+      "description": "You believe that generalism is the way forward. You will delve into a subject as far as necessary before turning aside for something else. Rather than knowing everything about something, you believe your path to success is to know enough about everything.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "drifter": {
+      "name": "Drifter",
+      "description": "You seem to have no purpose — although this may be a deception of course — and simply wander aimlessly from place-to-place and field to field. Your wanderings might take you far beyond the Hive Federation.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "RES +1",
+      "2": "STR +1",
+      "3": "DEX +1",
+      "4": "END +1",
+      "5": "INT +1",
+      "6": "Jack-of-all-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Survival",
+      "2": "Steward",
+      "3": "Profession",
+      "4": "Admin",
+      "5": "Animals",
+      "6": "Drive or Flyer"
+    },
+    "active_citizen": {
+      "name": "Active Citizen (Min. RES 7+)",
+      "requires_res": 7,
+      "1": "RES +1",
+      "2": "Deception",
+      "3": "Diplomat",
+      "4": "Persuade",
+      "5": "Language",
+      "6": "Science (sociology)"
+    },
+    "nest_citizen": {
+      "name": "Nest-Citizen",
+      "assignment_only": "nest_citizen",
+      "1": "Animals",
+      "2": "Survival",
+      "3": "Drive or Flyer",
+      "4": "Admin",
+      "5": "Profession",
+      "6": "Steward"
+    },
+    "dedicated_generalist": {
+      "name": "Generalist",
+      "assignment_only": "dedicated_generalist",
+      "1": "Streetwise",
+      "2": "Investigate",
+      "3": "Recon",
+      "4": "Persuade",
+      "5": "Electronics",
+      "6": "Science"
+    },
+    "drifter": {
+      "name": "Hiver Drifter",
+      "assignment_only": "drifter",
+      "1": "Streetwise",
+      "2": "Survival",
+      "3": "Recon",
+      "4": "Deception",
+      "5": "Gun Combat",
+      "6": "RES +1"
+    }
+  },
+  "ranks": {
+    "all": {
+      "0": {"title": "Adult", "bonus": null},
+      "1": {"title": "Senior", "bonus": "RES +1"},
+      "2": {"title": "Manipulator", "bonus": "RES +1, Science (sociology) 1"}
+    }
+  },
+  "hiver_advancement_table": {
+    "adult_max": 9,
+    "senior_min": 10,
+    "senior_max": 14,
+    "manipulator_min": 15
+  },
+  "mishaps": {
+    "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+    "2": "You are threatened with violence and do not like it at all. Make a RES check. If you fail, your confidence is shaken and you pass up several opportunities. Lose a number of Benefit rolls equal to the negative Effect. If you succeed, gain an Enemy who is even more resentful at being manipulated into not hurting you the first time.",
+    "3": "It all went wrong. You do not know if you failed to plan properly or there are other manipulators working against you. Either way, you lose RES −1.",
+    "4": "Everything went wrong, then suddenly it was all fine again. Someone intervened but you do not know why. You do not have to leave the career but gain a Contact to whom you owe a huge favour. If this is not repaid you will gain a powerful Enemy but if you do what they ask of you when the time comes you will gain them as an Ally instead.",
+    "5": "Your reputation is blackened, which you may or may not deserve, but either way you cannot manipulate anyone who knows about your shame. You left your old life behind to get away from this situation.",
+    "6": "Your nest was involved in conflict and has ceased to exist. The survivors were mostly absorbed by other nests but for some reason none would take you."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You are manipulated into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+    "4": "Things generally go rather well whenever you are involved and you are pleased with the results. More importantly, you get the credit. Gain DM+4 on your next advancement check.",
+    "5": "You make contacts and influence people. Gain D3 Contacts.",
+    "6": "An opportunity arises to obtain specialist training. Make a RES check. If successful you may gain a level in any skill you possess.",
+    "7": "A Life Event occurs.",
+    "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+    "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+    "10": "You spend considerable time outside the Hive Federation. Gain a level of Deception or Streetwise.",
+    "11": "You are involved in preservation work in the local wilderness. Gain a level of Animals, Recon or Survival.",
+    "12": "Your nest is threatened and everyone receives militia training to help defend it. Gain a level of Gun Combat or Heavy Weapons."
+  },
+  "mustering_out": {
+    "2":  {"cash": -700000, "benefit": "Reduce Large Debt"},
+    "3":  {"cash": -70000,  "benefit": "Reduce Small Debt"},
+    "4":  {"cash": 0,       "benefit": "Ship Share"},
+    "5":  {"cash": 35000,   "benefit": "INT +1"},
+    "6":  {"cash": 35000,   "benefit": "Topical Club Membership"},
+    "7":  {"cash": 5000,    "benefit": "Tools of the Profession"},
+    "8":  {"cash": 7000,    "benefit": "Contact"},
+    "9":  {"cash": 35000,   "benefit": "EDU +1"},
+    "10": {"cash": 70000,   "benefit": "RES +1"},
+    "11": {"cash": 100000,  "benefit": "Personal Transport Vessel (not owned)"},
+    "12": {"cash": 500000,  "benefit": "Personal Transport Vessel (owned)"}
+  },
+  "mustering_out_rolls_per_term": 2,
+  "mustering_out_dm_characteristic": "SOC",
+  "mustering_out_min_cash_fraction": 0.5,
+  "complete": true,
+  "societies": ["hiver_federation"]
+}

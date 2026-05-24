@@ -1,0 +1,151 @@
+{
+  "id": "hiver_academic",
+  "name": "Academic",
+  "description": "All Hivers are curious about pretty much everything but few devote themselves full-time to study and research. Those who do may be experimenters or researchers, or may specialise in the fields necessary to support a nest and ensure the well-being of its young.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "no_survival": true,
+  "hiver_career": true,
+  "hiver_open_to": ["academic"],
+  "hiver_open_to_restricted": {"generalist": ["physician"]},
+  "hiver_min_qualification": {"characteristic": "EDU", "target": 8},
+  "hiver_full_qualification": ["Science 2", "Investigate 2"],
+  "hiver_senior_bonus": "Science 1",
+  "hiver_manipulator_bonus": "RES +1, Science (sociology) 1",
+  "hiver_no_basic_training": true,
+  "assignments": {
+    "experimenter": {
+      "name": "Experimenter",
+      "description": "You believe in direct observation of phenomena and conducting experiments yourself — although usually in a supervisory role with someone else taking any risks.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "researcher": {
+      "name": "Researcher",
+      "description": "You collect information and lore. This may be on scientific or non-scientific subjects. You like to work from existing sources rather than going out in the field.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "physician": {
+      "name": "Physician",
+      "description": "You are an expert in the arts and sciences that support a nest, from food preparation and medical procedures to teaching the young through tales of past manipulations.",
+      "survival": {"characteristic": null, "target": null},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "RES +1",
+      "2": "INT +1",
+      "3": "EDU +1",
+      "4": "Survival",
+      "5": "Language",
+      "6": "Science"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Drive or Flyer",
+      "2": "Admin",
+      "3": "Persuade",
+      "4": "Investigate",
+      "5": "Science",
+      "6": "Electronics"
+    },
+    "active_academic": {
+      "name": "Active Academic (Min. RES 7+)",
+      "requires_res": 7,
+      "1": "RES +1",
+      "2": "Deception",
+      "3": "Diplomat",
+      "4": "Persuade",
+      "5": "Language",
+      "6": "Science (sociology)"
+    },
+    "experimenter": {
+      "name": "Experimenter",
+      "assignment_only": "experimenter",
+      "1": "Mechanic",
+      "2": "Electronics",
+      "3": "Science",
+      "4": "Vacc Suit",
+      "5": "Investigate",
+      "6": "Science"
+    },
+    "researcher": {
+      "name": "Researcher",
+      "assignment_only": "researcher",
+      "1": "Electronics",
+      "2": "Science",
+      "3": "Investigate",
+      "4": "Language",
+      "5": "Persuade",
+      "6": "Medic"
+    },
+    "physician": {
+      "name": "Physician",
+      "assignment_only": "physician",
+      "1": "Medic",
+      "2": "Survival",
+      "3": "Science",
+      "4": "Electronics",
+      "5": "Persuade",
+      "6": "Medic"
+    }
+  },
+  "ranks": {
+    "all": {
+      "0": {"title": "Adult", "bonus": null},
+      "1": {"title": "Senior", "bonus": "Science 1"},
+      "2": {"title": "Manipulator", "bonus": "RES +1, Science (sociology) 1"}
+    }
+  },
+  "hiver_advancement_table": {
+    "adult_max": 9,
+    "senior_min": 10,
+    "senior_max": 14,
+    "manipulator_min": 15
+  },
+  "mishaps": {
+    "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+    "2": "Repeated failures have disheartened you. Make a RES check. If you fail, your confidence was shaken and you pass up several opportunities. Lose a number of Benefit rolls equal to the negative Effect. If you succeed, you prove you were right all along (or convince others that you were even if you were not). Gain an Enemy whose plans you cleverly thwarted.",
+    "3": "You presented a well-researched thesis with a powerful argument for its acceptance and ended up embarrassed and discredited. You do not know if you were just plain wrong or if there are other manipulators working against you. Either way, you lose RES −1.",
+    "4": "One of your projects went horribly awry but your community rallied around and got you out of trouble without even being manipulated by you, at least. It is clear someone intervened but you do not know why. You do not have to leave the career but gain a Contact to whom you owe a huge favour. If this is not repaid you will gain a powerful Enemy but if you do what they ask of you when the time comes you will gain them as an Ally instead.",
+    "5": "Whether you deserved it or not, word got out about some actions on your part that look bad. You cannot manipulate anyone who knows about this, so have left your old life behind to find a new start.",
+    "6": "Your nest has ceased to exist due to a disaster you may or may not have caused. The survivors were mostly absorbed by other nests but for some reason none would take you."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You are manipulated into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+    "4": "Things generally go rather well whenever you are involved and you are pleased with the results. More importantly, you get the credit. Gain DM+4 on your next advancement check.",
+    "5": "You realise some 'accidents' were attempts on your life. You are not sure who is behind it despite checking out all likely culprits. Gain 3 Contacts, one of whom is secretly an Enemy. You now carry a gun and have gained a level of Gun Combat skill.",
+    "6": "An opportunity arises to obtain specialist training. Make a RES check. If successful you may gain a level in any skill you possess.",
+    "7": "A Life Event occurs.",
+    "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+    "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+    "10": "You spend considerable time outside the Hive Federation and have extensively studied various alien races. By 'studied' you mean manipulated, of course. Gain an Ally. If you want, you may make an immediate Benefits cash roll but this brings with it a Rival who may have been the source of the money.",
+    "11": "You provide expert advice to teams engaged in preservation work in the local wilderness. Gain a level of Animals, Recon or Survival.",
+    "12": "Your nest is threatened and you help figure out a complex manipulation to deflect the threat. Gain a level of Science (sociology) and RES +1 or gain a level of Persuade and a Contact."
+  },
+  "mustering_out": {
+    "2":  {"cash": -700000, "benefit": "Reduce Large Debt"},
+    "3":  {"cash": -70000,  "benefit": "Reduce Small Debt"},
+    "4":  {"cash": 0,       "benefit": "Ship Share"},
+    "5":  {"cash": 35000,   "benefit": "INT +1"},
+    "6":  {"cash": 35000,   "benefit": "Topical Club Membership"},
+    "7":  {"cash": 5000,    "benefit": "Tools of the Profession"},
+    "8":  {"cash": 7000,    "benefit": "Contact"},
+    "9":  {"cash": 35000,   "benefit": "EDU +1"},
+    "10": {"cash": 70000,   "benefit": "RES +1"},
+    "11": {"cash": 100000,  "benefit": "Personal Transport Vessel (not owned)"},
+    "12": {"cash": 500000,  "benefit": "Personal Transport Vessel (owned)"}
+  },
+  "mustering_out_rolls_per_term": 2,
+  "mustering_out_dm_characteristic": "SOC",
+  "mustering_out_min_cash_fraction": 0.5,
+  "complete": true,
+  "societies": ["hiver_federation"]
+}

@@ -1,0 +1,50 @@
+{
+  "description": "Rolled when a Hiver career Event roll results in 'A Life Event occurs'. Roll 2D.",
+  "dice": "2D",
+  "entries": {
+    "2": {
+      "title": "Injury",
+      "text": "You were injured in an accident or perhaps even by violence. Roll on the Hiver Injury Table."
+    },
+    "3": {
+      "title": "Deficiency Disease",
+      "text": "You suffered a deficiency disease which took its toll on your health. Lose 1 point from any characteristic, determined randomly."
+    },
+    "4": {
+      "title": "Relationship Collapses",
+      "text": "Your previously good relationship with someone — this may be another Hiver or someone from outside the Hive Federation — collapses. It was probably your fault for manipulating them too hard but you will not admit that. Gain an Enemy."
+    },
+    "5": {
+      "title": "Work Clashes",
+      "text": "Your work clashes with that of another individual, leading to friction. Despite your attempts to resolve the situation or modify their thinking they remain unreasonably opposed to you. Gain a Rival."
+    },
+    "6": {
+      "title": "Useful Alliance",
+      "text": "You meet someone useful and manipulate them into thinking they owe you their loyalty. Gain an Ally."
+    },
+    "7": {
+      "title": "New Connections",
+      "text": "You make some useful connections. Gain a Contact."
+    },
+    "8": {
+      "title": "Plotting Discovered",
+      "text": "Someone was plotting behind your back! You discovered their intentions to make you their puppet and are now wary of them. Convert one Ally or Contact into a Rival. If you have no Allies or Contacts, gain an Enemy."
+    },
+    "9": {
+      "title": "New Knowledge",
+      "text": "You travel and gain new knowledge, which can be used to your advantage. Gain +2 on your next advancement check."
+    },
+    "10": {
+      "title": "Nest Change",
+      "text": "You change nests. This is a golden opportunity to shed some of your previous negative credit. Gain one additional Benefits cash roll."
+    },
+    "11": {
+      "title": "Great Manipulator",
+      "text": "You are fortunate to meet a great Manipulator, who shares some secrets with you. You gain a level of Deception, Diplomat or Persuade."
+    },
+    "12": {
+      "title": "Manipulator's Gift",
+      "text": "You are fortunate to meet a great Manipulator, who shares some secrets with you. You realise it would not do such a thing without a goal in mind. Perhaps the Manipulator recognised your potential and wanted to help but more likely it has a plan for you. Either way, you gain RES +1 and a general feeling of paranoia."
+    }
+  }
+}

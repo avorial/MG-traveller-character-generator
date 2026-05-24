@@ -168,6 +168,16 @@ def zhodani_life_events() -> dict:
 
 
 @lru_cache(maxsize=1)
+def droyne_life_events() -> dict:
+    return _load_file("tables/droyne_life_events.json")
+
+
+@lru_cache(maxsize=1)
+def hiver_life_events() -> dict:
+    return _load_file("tables/hiver_life_events.json")
+
+
+@lru_cache(maxsize=1)
 def aslan_background_tables() -> dict:
     return _load_file("tables/aslan_background.json")
 
@@ -205,6 +215,18 @@ VARGR_CAREER_IDS: frozenset[str] = frozenset({
 ZHODANI_CAREER_IDS: frozenset[str] = frozenset({
     "zhodani_agent", "zhodani_army", "zhodani_entertainer", "zhodani_government",
     "zhodani_guard", "zhodani_merchant", "zhodani_navy", "zhodani_scholar",
+})
+
+# Droyne Oytrip careers — use the Droyne Life Events system (end-of-term 2D+caste_number,
+# then on 10+ roll on the Droyne Life Events table).
+DROYNE_CAREER_IDS: frozenset[str] = frozenset({
+    "droyne_worker", "droyne_warrior", "droyne_drone",
+    "droyne_technician", "droyne_sport", "droyne_leader",
+})
+
+# Hiver Federation careers — use the Hiver Life Events table.
+HIVER_CAREER_IDS: frozenset[str] = frozenset({
+    "hiver_academic", "hiver_generalist", "hiver_manipulator", "hiver_merchant",
 })
 
 # Species that have their own homeworld life events tables (1D).
@@ -247,6 +269,11 @@ def life_events_for_career(career_id: str) -> dict:
         return vargr_extents_life_events()
     if career_id in ZHODANI_CAREER_IDS:
         return zhodani_life_events()
+    if career_id in HIVER_CAREER_IDS:
+        return hiver_life_events()
+    # NOTE: Droyne career events are handled differently — end_term rolls
+    # 2D+caste_number and on 10+ rolls on droyne_life_events().  The per-career
+    # Events table (2–12) is separate and does not use this routing.
     return life_events()
 
 
@@ -345,7 +372,7 @@ def reload() -> None:
     for fn in (species, careers, background_skills, skill_packages, life_events,
                solomani_life_events, drinax_palace_life_events, drinax_wasteland_life_events,
                asim_life_events, aslan_life_events, kkree_life_events, vargr_extents_life_events,
-               zhodani_life_events,
+               zhodani_life_events, droyne_life_events, hiver_life_events,
                aslan_background_tables, injury_table, aging_table, mustering_benefits,
                education, psionics, skills, societies):
         fn.cache_clear()

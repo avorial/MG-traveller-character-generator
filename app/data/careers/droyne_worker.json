@@ -1,0 +1,153 @@
+{
+  "id": "droyne_worker",
+  "name": "Worker",
+  "description": "Workers provide manual and semi-skilled labour throughout Droyne society. They build the structures, grow the food, and carry out the repetitive essential tasks that keep the Oytrip functioning.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "worker",
+  "mishap_no_eject": true,
+  "assignments": {
+    "farming": {
+      "name": "Farming",
+      "description": "You work in food production and preparation. You may be an agricultural worker, food preparation technician or part of a team that ensures meals are delivered and served in the correct manner.",
+      "survival": {"characteristic": "END", "target": 4},
+      "advancement": {"characteristic": "STR", "target": 10}
+    },
+    "labouring": {
+      "name": "Labouring",
+      "description": "You are a simple worker, either in a physical or administrative field. You spend a lot of your time carrying out repetitive tasks. Sometimes a Leader has an important job for you and you strive to perform it correctly.",
+      "survival": {"characteristic": "STR", "target": 5},
+      "advancement": {"characteristic": "END", "target": 10}
+    },
+    "building": {
+      "name": "Building",
+      "description": "You build the structures and machinery, perhaps even the starships, used by your society. You do not understand how the machinery works but if you complete your task correctly it will function to your Leaders' satisfaction.",
+      "survival": {"characteristic": "DEX", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "Mechanic",
+      "6": "Jack-of-all-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Mechanic",
+      "2": "Drive",
+      "3": "Profession",
+      "4": "Appeal",
+      "5": "Flight",
+      "6": "Caste"
+    },
+    "useful_training": {
+      "name": "Useful Worker (Min INT 6+)",
+      "requires_int": 6,
+      "1": "Ancients Tech",
+      "2": "Appeal",
+      "3": "Electronics",
+      "4": "Outsider",
+      "5": "Vacc Suit",
+      "6": "Any psionic skill"
+    },
+    "farming": {
+      "name": "Farming",
+      "assignment_only": "farming",
+      "1": "Animals",
+      "2": "Athletics",
+      "3": "Drive",
+      "4": "Flyer",
+      "5": "Profession",
+      "6": "Steward"
+    },
+    "labouring": {
+      "name": "Labouring",
+      "assignment_only": "labouring",
+      "1": "STR +1",
+      "2": "Admin",
+      "3": "Drive",
+      "4": "Flyer",
+      "5": "END +1",
+      "6": "Outsider"
+    },
+    "building": {
+      "name": "Building",
+      "assignment_only": "building",
+      "1": "Art (Droyne)",
+      "2": "Drive",
+      "3": "Electronics",
+      "4": "Explosives",
+      "5": "Mechanic",
+      "6": "Jack-of-all-Trades"
+    }
+  },
+  "ranks": {
+    "farming": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Worker", "bonus": null},
+      "2": {"title": "Satisfactory Worker", "bonus": "Caste (worker) 1"},
+      "3": {"title": "Valued Worker", "bonus": "Profession 1"},
+      "4": {"title": "Highly Valued Worker", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Worker", "bonus": "INT +1"},
+      "6": {"title": "Eminent Worker", "bonus": "Leadership 1"}
+    },
+    "labouring": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Worker", "bonus": null},
+      "2": {"title": "Satisfactory Worker", "bonus": "Caste (worker) 1"},
+      "3": {"title": "Valued Worker", "bonus": "Profession 1"},
+      "4": {"title": "Highly Valued Worker", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Worker", "bonus": "INT +1"},
+      "6": {"title": "Eminent Worker", "bonus": "Leadership 1"}
+    },
+    "building": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Worker", "bonus": null},
+      "2": {"title": "Satisfactory Worker", "bonus": "Caste (worker) 1"},
+      "3": {"title": "Valued Worker", "bonus": "Profession 1"},
+      "4": {"title": "Highly Valued Worker", "bonus": "Appeal 1"},
+      "5": {"title": "Exemplary Worker", "bonus": "INT +1"},
+      "6": {"title": "Eminent Worker", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. In desperation the Leaders order your fellow Workers to shield the remaining Warriors with your bodies. Many die but the Oytrip is saved. Gain your choice of Gun Combat, Melee or Medic but suffer −D3 to STR, DEX or END due to your wounds. Make a continuation check.",
+    "2": "A junior Leader challenges the seniors in your Oytrip. If you side with the junior Leader you are driven from the Oytrip. If you did not side with them, nothing happens to you. Make a continuation check.",
+    "3": "A dangerous situation arises and the workers are ordered to make great sacrifices to save the Oytrip. If you behave correctly, you suffer injuries and lose −1 in each of STR, DEX and END, and must make a continuation check. If you do not behave correctly, you are driven from the Oytrip.",
+    "4": "Bad things occur. The Leaders do not confide in you because you are a lowly Worker. You have no idea what happened but the Oytrip endures. Make a continuation check but suffer no other ill-effects.",
+    "5": "Your Leader undertakes an expedition that goes badly wrong. You are forced to survive outside Droyne society for several months. You gain Outsider (any) 1 and may choose to take Streetwise 1 (a Black Skill). Make a continuation check.",
+    "6": "You behave incorrectly. Your rank is reduced by −1. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+    "4": "Your fellow Workers ask you to raise concerns with your Leader. Make an Appeal check. If successful, you are heard and the situation is positively resolved. Your rank increases by +1. Whether you succeed or fail, gain one level of Appeal.",
+    "5": "Your Leader asks much of you. If you follow their directions, gain one level of a Black Skill (Carouse, Deception, Gambler, Persuade or Streetwise). If you refuse to obey, you are ejected from the Oytrip.",
+    "6": "You do good work and your Leader is pleased. Gain one level in Profession, Drive, Flyer or Appeal.",
+    "7": "You work every day. The Oytrip prospers.",
+    "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "You have an idea. If you dare suggest it to the Leader, make an Appeal check. If successful, your rank is increased by +1. If you fail, your rank is reduced by −1. If you keep quiet, gain one level in Profession or Caste.",
+    "10": "You are involved with outsiders and find them less confusing than most others of your Caste. Gain one level in Outsider skill and a Contact outside the Oytrip.",
+    "11": "You are involved in the creation of a starship and you learn a little about how it works. Gain one level in Electronics, Engineer, Gunner or Vacc Suit.",
+    "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You tend and sometimes carry it for him. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 250, "benefit": "STR +2"},
+    "2": {"cash": 500, "benefit": "END +1"},
+    "3": {"cash": 750, "benefit": "INT +1"},
+    "4": {"cash": 1000, "benefit": "Tool Kit"},
+    "5": {"cash": 2500, "benefit": "Vacc Suit"},
+    "6": {"cash": 5000, "benefit": "Wings"},
+    "7": {"cash": 10000, "benefit": "Weapon"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}

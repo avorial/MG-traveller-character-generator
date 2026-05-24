@@ -1,0 +1,72 @@
+{
+  "id": "droyne_life_events",
+  "name": "Droyne Life Events",
+  "description": "Droyne do not use the standard Life Events system. Instead, a Droyne Traveller rolls 2D with their caste number as a positive DM at the end of every term. On a result of 10+, roll on this table.",
+  "roll": "2D",
+  "events": {
+    "2": {
+      "description": "You help build a prestigious starship. Choose to gain either one level in Engineer, Electronics or Mechanic, or increase rank by +1.",
+      "effects": [
+        {"type": "pending_choice", "choice_type": "skill_or_rank", "options": ["Engineer", "Electronics", "Mechanic", "rank +1"]}
+      ]
+    },
+    "3": {
+      "description": "Your immediate Leader dies or is discredited. Make a Caste check. If you succeed, your rank is increased by +1 when you join a new Leader. If you fail, it is decreased by −1.",
+      "effects": [
+        {"type": "skill_check", "skill": "Caste", "success": {"type": "rank", "value": 1}, "failure": {"type": "rank", "value": -1}}
+      ]
+    },
+    "4": {
+      "description": "You gain a Black Skill. Gain one level of Carouse, Deception, Gambler, Persuade or Streetwise.",
+      "effects": [
+        {"type": "pending_choice", "choice_type": "skill", "options": ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"]}
+      ]
+    },
+    "5": {
+      "description": "Your daily efforts are in keeping with the expectations of your Leaders. Gain a level in your Caste skill.",
+      "effects": [
+        {"type": "skill", "skill": "Caste", "level": 1}
+      ]
+    },
+    "6": {
+      "description": "The Oytrip struggles through difficult times. Make a Caste skill check. If successful you suffer no ill effects. If you fail, your rank is reduced by −1.",
+      "effects": [
+        {"type": "skill_check", "skill": "Caste", "success": null, "failure": {"type": "rank", "value": -1}}
+      ]
+    },
+    "7": {
+      "description": "The Oytrip endures.",
+      "effects": []
+    },
+    "8": {
+      "description": "The Oytrip prospers. Your diligent work brings you into contact with an important Leader. Make an Appeal check. If successful you gain this Leader as a Contact.",
+      "effects": [
+        {"type": "skill_check", "skill": "Appeal", "success": {"type": "contact"}, "failure": null}
+      ]
+    },
+    "9": {
+      "description": "You come into contact with outsiders. Make an Outsider check. If successful, you gain an Ally from outside the Oytrip. If you fail, you gain a level of Outsider in a specialty of your choice.",
+      "effects": [
+        {"type": "skill_check", "skill": "Outsider", "success": {"type": "ally"}, "failure": {"type": "skill", "skill": "Outsider", "level": 1}}
+      ]
+    },
+    "10": {
+      "description": "You are taken on a voyage, or lead one. Gain one level in Pilot, Astrogator, Engineer or Electronics.",
+      "effects": [
+        {"type": "pending_choice", "choice_type": "skill", "options": ["Pilot", "Astrogation", "Engineer", "Electronics"]}
+      ]
+    },
+    "11": {
+      "description": "You are selected for advanced psionic training. Gain PSI +1.",
+      "effects": [
+        {"type": "characteristic", "characteristic": "PSI", "value": 1}
+      ]
+    },
+    "12": {
+      "description": "You come into contact with Ancients technology. It is frightening but fascinating. You gain one level of Ancients Tech.",
+      "effects": [
+        {"type": "skill", "skill": "Ancients Tech", "level": 1}
+      ]
+    }
+  }
+}

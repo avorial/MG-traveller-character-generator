@@ -1,0 +1,153 @@
+{
+  "id": "droyne_technician",
+  "name": "Technician",
+  "description": "Technicians make, maintain and repair devices used throughout Droyne society.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "technician",
+  "mishap_no_eject": true,
+  "assignments": {
+    "fixing": {
+      "name": "Fixing",
+      "description": "You maintain and repair technical equipment, starships and vehicles.",
+      "survival": {"characteristic": "INT", "target": 4},
+      "advancement": {"characteristic": "DEX", "target": 9}
+    },
+    "artificer": {
+      "name": "Artificer",
+      "description": "You make devices, chemicals and software on behalf of the Oytrip.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 9}
+    },
+    "dreaming": {
+      "name": "Dreaming",
+      "description": "You do scientific research, although often you do not know the significance of what you are discovering.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "DEX +1",
+      "3": "EDU +1",
+      "4": "Flight",
+      "5": "Appeal",
+      "6": "Jack-of-all-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Mechanic",
+      "2": "Drive",
+      "3": "Electronics",
+      "4": "Vacc Suit",
+      "5": "Flyer",
+      "6": "Caste"
+    },
+    "useful_technician": {
+      "name": "Useful Technician (Min INT 6+)",
+      "requires_int": 6,
+      "1": "Ancients Tech",
+      "2": "Appeal",
+      "3": "Science",
+      "4": "Outsider",
+      "5": "Art (Droyne)",
+      "6": "Any psionic skill"
+    },
+    "fixing": {
+      "name": "Fixing Technician",
+      "assignment_only": "fixing",
+      "1": "Mechanic",
+      "2": "Electronics",
+      "3": "Electronics (remote ops)",
+      "4": "Flyer",
+      "5": "Profession",
+      "6": "Caste"
+    },
+    "artificer": {
+      "name": "Artificer",
+      "assignment_only": "artificer",
+      "1": "Electronics",
+      "2": "Engineer",
+      "3": "Electronics (remote ops)",
+      "4": "Appeal",
+      "5": "DEX +1",
+      "6": "Caste"
+    },
+    "dreaming": {
+      "name": "Dreaming Technician",
+      "assignment_only": "dreaming",
+      "1": "Art (Droyne)",
+      "2": "Science",
+      "3": "Science",
+      "4": "Investigate",
+      "5": "PSI +1",
+      "6": "Caste"
+    }
+  },
+  "ranks": {
+    "fixing": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Technician", "bonus": null},
+      "2": {"title": "Satisfactory Technician", "bonus": "Caste (technician) 1"},
+      "3": {"title": "Valued Technician", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Technician", "bonus": "Electronics 1"},
+      "5": {"title": "Exemplary Technician", "bonus": "INT +1"},
+      "6": {"title": "Eminent Technician", "bonus": "Leadership 1"}
+    },
+    "artificer": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Technician", "bonus": null},
+      "2": {"title": "Satisfactory Technician", "bonus": "Caste (technician) 1"},
+      "3": {"title": "Valued Technician", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Technician", "bonus": "Electronics 1"},
+      "5": {"title": "Exemplary Technician", "bonus": "INT +1"},
+      "6": {"title": "Eminent Technician", "bonus": "Leadership 1"}
+    },
+    "dreaming": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Technician", "bonus": null},
+      "2": {"title": "Satisfactory Technician", "bonus": "Caste (technician) 1"},
+      "3": {"title": "Valued Technician", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Technician", "bonus": "Electronics 1"},
+      "5": {"title": "Exemplary Technician", "bonus": "INT +1"},
+      "6": {"title": "Eminent Technician", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. Roll 1D: on 1–4 the Warriors deal with the problem and you continue your work uninterrupted. On 5–6 you are caught in the fighting. Gain your choice of Gun Combat, Melee or Medic but lose −D3 from STR, DEX or END due to your wounds. Make a continuation check.",
+    "2": "A junior Leader challenges the seniors in your Oytrip. This causes serious disruption to your work and you are punished for the failure of a project. The junior Leader offers you a place in their Kroyloss if you left with them. If you did, you are exiled from the Oytrip; the Kroyloss breaks up and you are alone. Muster out and begin adventuring or commit ritual suicide as is correct. If you do not leave the Oytrip, your rank is reduced by −1. You must still make a continuation check.",
+    "3": "A dangerous situation arises and the Technicians are instructed to work under hazardous conditions. If you behave correctly, you lose 1 point in each of STR, DEX and END and must make a continuation check. If you do not behave correctly, you betray your role in the Oytrip and are rightly driven from it. You may continue to betray your Oytrip by mustering out and begin adventuring now or may commit ritual suicide as is correct in these situations.",
+    "4": "Bad things occur. You are asked to make emergency repairs under dangerous conditions. If you try your hardest regardless of your own safety, you lose −D3 points from STR, DEX or END and your rank increases by +1. If you do the minimum expected of you and let the burden fall on your fellow Technicians you suffer no injuries but rank is reduced by −1. You must also make a continuation check.",
+    "5": "Your Leader leads you on an expedition which goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+    "6": "You behave incorrectly. Your rank is reduced by −1. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+    "4": "You come up with a new and better way of accomplishing a task. Make an Appeal check. If successful, your rank is increased by +1. If unsuccessful you are chided by your leader for raising such trivial concerns but gain a level in Caste (technician) as a result of better knowing your place.",
+    "5": "Your Leader asks much of you. If you follow their directions, gain one level in any of: Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them. If you refuse to obey, you are ejected from the Oytrip. It is not the place of Technicians to challenge their Leaders.",
+    "6": "You serve the Oytrip well and your Leader is pleased. Gain one level in Profession, Drive, Flyer or Appeal.",
+    "7": "You carry out your duties. The Oytrip suffers few breakdowns and equipment problems.",
+    "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "You proved unusually adept at your primary role. If you are a Fixing Technician, gain DEX +1. If you are an Artificer, gain EDU +1. If you are a Dreaming Technician, gain INT +1.",
+    "10": "You are involved with outsiders and find them less confusing than most others of your Caste. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+    "11": "You are involved in the creation or crewing of a starship. Gain one level in any of Electronics, Engineer, Gunner, Pilot or Vacc Suit.",
+    "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You are charged with looking after it. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 500, "benefit": "INT +2"},
+    "2": {"cash": 750, "benefit": "DEX +1"},
+    "3": {"cash": 1000, "benefit": "Tool Kit"},
+    "4": {"cash": 1500, "benefit": "PSI +1"},
+    "5": {"cash": 3000, "benefit": "Vacc Suit"},
+    "6": {"cash": 5000, "benefit": "Wings"},
+    "7": {"cash": 10000, "benefit": "Weapon"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}

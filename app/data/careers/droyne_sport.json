@@ -1,0 +1,153 @@
+{
+  "id": "droyne_sport",
+  "name": "Sport",
+  "description": "Sports are scouts and emissaries, and also carry out most trading functions on behalf of an Oytrip. They are the only caste likely to be encountered operating independently.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "sport",
+  "mishap_no_eject": true,
+  "assignments": {
+    "finding": {
+      "name": "Finding",
+      "description": "You locate and obtain what the Oytrip needs. This may be by prospecting, surveying an area or speculating on the stock exchange at a nearby starport.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 9}
+    },
+    "speaker": {
+      "name": "Speaker",
+      "description": "You are an emissary, carrying messages within an Oytrip or to others. You may be sent to interact with non-Droyne.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 9}
+    },
+    "seeking": {
+      "name": "Seeking",
+      "description": "You travel far from the Oytrip as an explorer, spy or scout.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "EDU +1",
+      "5": "PSI +1",
+      "6": "Jack-of-all-Trades"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Gun Combat",
+      "2": "Melee",
+      "3": "Drive",
+      "4": "Flight",
+      "5": "Appeal",
+      "6": "Caste"
+    },
+    "useful_sport": {
+      "name": "Useful Sport (Min INT 6+)",
+      "requires_int": 6,
+      "1": "Any psionic skill",
+      "2": "Pilot",
+      "3": "Astrogation",
+      "4": "Engineer",
+      "5": "Vacc Suit",
+      "6": "Caste"
+    },
+    "finding": {
+      "name": "Finding Sport",
+      "assignment_only": "finding",
+      "1": "Broker",
+      "2": "Diplomat",
+      "3": "Investigate",
+      "4": "Science",
+      "5": "Electronics",
+      "6": "Outsider"
+    },
+    "speaker": {
+      "name": "Speaker Sport",
+      "assignment_only": "speaker",
+      "1": "Appeal",
+      "2": "Outsider",
+      "3": "Diplomat",
+      "4": "Advocate",
+      "5": "Caste",
+      "6": "Art (Droyne)"
+    },
+    "seeking": {
+      "name": "Seeking Sport",
+      "assignment_only": "seeking",
+      "1": "Pilot",
+      "2": "Astrogation",
+      "3": "Recon",
+      "4": "Stealth",
+      "5": "Outsider",
+      "6": "Navigation"
+    }
+  },
+  "ranks": {
+    "finding": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Sport", "bonus": null},
+      "2": {"title": "Satisfactory Sport", "bonus": "Caste (sport) 1"},
+      "3": {"title": "Valued Sport", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Sport", "bonus": "Outsider 1"},
+      "5": {"title": "Exemplary Sport", "bonus": "INT +1"},
+      "6": {"title": "Eminent Sport", "bonus": "Leadership 1"}
+    },
+    "speaker": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Sport", "bonus": null},
+      "2": {"title": "Satisfactory Sport", "bonus": "Caste (sport) 1"},
+      "3": {"title": "Valued Sport", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Sport", "bonus": "Outsider 1"},
+      "5": {"title": "Exemplary Sport", "bonus": "INT +1"},
+      "6": {"title": "Eminent Sport", "bonus": "Leadership 1"}
+    },
+    "seeking": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Sport", "bonus": null},
+      "2": {"title": "Satisfactory Sport", "bonus": "Caste (sport) 1"},
+      "3": {"title": "Valued Sport", "bonus": "Appeal 1"},
+      "4": {"title": "Highly Valued Sport", "bonus": "Outsider 1"},
+      "5": {"title": "Exemplary Sport", "bonus": "INT +1"},
+      "6": {"title": "Eminent Sport", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. You are one of the emissaries sent to negotiate an end to the conflict. Make an Appeal check. If successful, the fighting is ended quickly although you lose −1 to STR, DEX or END due to a stray shot or blow. If you fail, the damage is increased to −1 on each of these characteristics. Make a continuation check.",
+    "2": "A junior Leader challenges the seniors in your Oytrip. They are ejected from the Oytrip for their temerity and choose to form a Kroyloss with their immediate followers. You are sent to monitor this group and follow it very far from home before it meets a sad end. Realising you may never get back to the Oytrip, you have the option of beginning your adventuring now — or committing ritual suicide. If you choose to try to get home, make an END check. If successful, you made it and are welcomed back. If you fail, you eventually arrived half-starved and in a near-deranged state from loneliness. Reduce INT, EDU and PSI by −1 each. You must also make a continuation check.",
+    "3": "A dangerous situation arises and you have a chance to stop it getting worse. Make an Appeal check. If successful, you bring to the attention of the Oytrip's highest Leader a series of incorrect actions by another Leader, which results in them being ejected from the Oytrip. You gain this Leader and their Kroyloss as an Enemy. If you fail, you do not deliver the news in time and the situation goes out of control. Reduce rank by −1 and make a continuation check.",
+    "4": "Bad things occur. You are instructed to go to another Oytrip and ask for assistance but not to reveal what has happened. Make an Appeal check. If successful, your request is granted and the situation is salvaged. If you fail, desperate measures have to be taken. The Leaders arrange a Ritual of Cleansing whereby those involved commit suicide to carry away the stigma of the deeds done. You have been selected to take part. You may do so if you wish. If not, you must betray your Oytrip and flee, living in disgrace among outsiders. Muster out and begin adventuring now.",
+    "5": "Your Leader undertakes an expedition which goes badly wrong. Those involved are forced to survive outside Droyne society for several months. You are sent to find them and get them home. Make an Outsider check. If successful, you suffer no ill effects. If you fail, reduce rank by −1. Either way, you gain a Contact outside the Oytrip.",
+    "6": "You behave incorrectly. Your rank is reduced by −1. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+    "4": "The Workers of your Oytrip ask you to raise concerns with the senior Leaders. Make an Appeal check. If successful, you are heard and the situation is positively resolved. Your rank increases by +1. Whether you succeed or fail, gain one level of Appeal.",
+    "5": "You are sent to live among non-Droyne and learn about them. Gain one level of Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them.",
+    "6": "You have to work outside your normal area of expertise. Gain one level in any skill from any table available to your caste.",
+    "7": "The Oytrip prospers. All is well.",
+    "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "You interact with non-Droyne. Gain one level in Outsider or any Black Skill.",
+    "10": "You travel aboard starships for much of this term. Gain one level in any of Astrogation, Electronics, Engineer, Gunner, Pilot, Vacc Suit.",
+    "11": "It is necessary to approach and investigate a piece of Ancients technology. You are sent to undertake a preliminary investigation. Make an Ancients Tech or Art (Droyne) check. If successful, you gain PSI +1 and a level in Ancients Tech. If you fail, you may choose one or the other.",
+    "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You tend and sometimes carry it for him. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "INT +1"},
+    "2": {"cash": 2000, "benefit": "DEX +1"},
+    "3": {"cash": 3000, "benefit": "EDU +1"},
+    "4": {"cash": 5000, "benefit": "Weapon"},
+    "5": {"cash": 7500, "benefit": "Vacc Suit"},
+    "6": {"cash": 10000, "benefit": "Wings"},
+    "7": {"cash": 15000, "benefit": "Coyns"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}

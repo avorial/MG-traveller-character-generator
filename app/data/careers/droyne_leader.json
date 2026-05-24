@@ -1,0 +1,153 @@
+{
+  "id": "droyne_leader",
+  "name": "Leader",
+  "description": "Leaders are the top echelon of Droyne society. They make all policy decisions and determine the fate of their subordinates.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "leader",
+  "mishap_no_eject": true,
+  "assignments": {
+    "military": {
+      "name": "Military",
+      "description": "You command Warriors, either as ground forces or aboard a spacecraft.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    },
+    "priestly": {
+      "name": "Priestly",
+      "description": "You preside over important rituals and safeguard the society of the Oytrip. You may also act as a senior merchant or trader.",
+      "survival": {"characteristic": "EDU", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 9}
+    },
+    "leader_of_leaders": {
+      "name": "Leader of Leaders",
+      "description": "You lead and direct other Leaders, perhaps even the whole Oytrip.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 10}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "PSI +1",
+      "4": "Leadership",
+      "5": "Flight",
+      "6": "Ancients Tech"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Admin",
+      "2": "Leadership",
+      "3": "Outsider",
+      "4": "Appeal",
+      "5": "Gun Combat",
+      "6": "Caste"
+    },
+    "trusted_leader": {
+      "name": "Trusted Leader (Min PSI 8+)",
+      "requires_psi": 8,
+      "1": "Ancients Tech",
+      "2": "Any psionic skill",
+      "3": "Diplomat",
+      "4": "Astrogation",
+      "5": "Vacc Suit",
+      "6": "Any psionic skill"
+    },
+    "military": {
+      "name": "Military Leader",
+      "assignment_only": "military",
+      "1": "Gun Combat",
+      "2": "Tactics",
+      "3": "Leadership",
+      "4": "Vacc Suit",
+      "5": "Astrogation",
+      "6": "Any psionic skill"
+    },
+    "priestly": {
+      "name": "Priestly Leader",
+      "assignment_only": "priestly",
+      "1": "PSI +1",
+      "2": "Art (Droyne)",
+      "3": "Prediction",
+      "4": "Broker",
+      "5": "Leadership",
+      "6": "Any psionic skill"
+    },
+    "leader_of_leaders": {
+      "name": "Leader of Leaders",
+      "assignment_only": "leader_of_leaders",
+      "1": "Leadership",
+      "2": "Diplomat",
+      "3": "Gun Combat",
+      "4": "Leadership",
+      "5": "Admin",
+      "6": "Any psionic skill"
+    }
+  },
+  "ranks": {
+    "military": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Leader", "bonus": null},
+      "2": {"title": "Satisfactory Leader", "bonus": "Caste (leader) 1"},
+      "3": {"title": "Valued Leader", "bonus": "Art (Droyne) 1"},
+      "4": {"title": "Highly Valued Leader", "bonus": "Leadership 1"},
+      "5": {"title": "Exemplary Leader", "bonus": "PSI +1"},
+      "6": {"title": "Eminent Leader", "bonus": "Leadership 1"}
+    },
+    "priestly": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Leader", "bonus": null},
+      "2": {"title": "Satisfactory Leader", "bonus": "Caste (leader) 1"},
+      "3": {"title": "Valued Leader", "bonus": "Art (Droyne) 1"},
+      "4": {"title": "Highly Valued Leader", "bonus": "Leadership 1"},
+      "5": {"title": "Exemplary Leader", "bonus": "PSI +1"},
+      "6": {"title": "Eminent Leader", "bonus": "Leadership 1"}
+    },
+    "leader_of_leaders": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Leader", "bonus": null},
+      "2": {"title": "Satisfactory Leader", "bonus": "Caste (leader) 1"},
+      "3": {"title": "Valued Leader", "bonus": "Art (Droyne) 1"},
+      "4": {"title": "Highly Valued Leader", "bonus": "Leadership 1"},
+      "5": {"title": "Exemplary Leader", "bonus": "PSI +1"},
+      "6": {"title": "Eminent Leader", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. Desperate measures are required. Make a Leadership check. If you are successful, your response is correct — whether you won the fight or not. Gain your choice of Gun Combat, Melee or Tactics. If you fail, lose −D3 to STR, DEX or END due to your wounds. Make a continuation check.",
+    "2": "You challenge the seniors in your Oytrip. Your challenge fails but you remain convinced you are right. You are driven from the Oytrip with some companions, who form a Kroyloss. This collapses after a time, leaving you alone in the universe. You are determined to prove you were right all along and this conviction overrides your urge to commit ritual suicide. Muster out, begin adventuring and gain an Enemy in your old Oytrip.",
+    "3": "A dangerous situation arises and the Oytrip looks to you for leadership. You are able to rally the nearest Droyne and prevent things getting any worse but are injured in the process. You suffer injuries and lose −1 to each of STR, DEX and END and must make a continuation check. You gain an Ally within the Oytrip.",
+    "4": "A band of non-Droyne enter the Oytrip and attempt to subvert your way of life. They cause utter mayhem and steal some items before being caught. If you take the stance that they did not know any better and should be educated rather than punished, you are ejected from the Oytrip and sent to carry out that education. Muster out and begin adventuring career with an Ally who is an outsider. If you choose to punish them, you gain three Enemies, all of them from outside your Oytrip.",
+    "5": "You undertake an expedition which goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+    "6": "You behave incorrectly. Your rank is reduced by −2, because this is particularly serious among Leaders. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You work closely with your Oytrip's most senior Leaders and gain their respect. Your rank is increased by +1.",
+    "4": "A Worker comes to you with serious concerns. If you support them, you gain one level of Leadership but also a Rival among your own Oytrip. If you put the uppity Worker in their place you gain a level of Caste (leader) and an Ally among your own Oytrip.",
+    "5": "You are sent with a diplomatic party to a starport or installation run by non-Droyne. It is a cesspit of incorrect behaviour! If you choose to learn the ways of the outsiders, gain one level in any of Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them. If you prefer not to sully yourself, you gain nothing.",
+    "6": "Your leadership keeps everything running smoothly. Gain one level in Appeal, Diplomat, or Leadership.",
+    "7": "Everything is as it should be.",
+    "8": "You lead an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "A non-Leader comes to you with an idea. It has merit but will upset the traditional order of things. If you supported the idea and took it to the Oytrip's senior-most Leaders, gain a level of Appeal. If you put the underling in their place, gain a level of Caste (leader).",
+    "10": "You are forced to interact with outsiders. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+    "11": "You are involved in the creation or operation of a starship. Gain one level in any of Astrogation, Tactics (any) or Vacc Suit.",
+    "12": "You are honoured for a time with possession or guardianship of an Ancients artefact. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "INT +1"},
+    "2": {"cash": 2000, "benefit": "PSI +1"},
+    "3": {"cash": 5000, "benefit": "Weapon"},
+    "4": {"cash": 7500, "benefit": "Weapon"},
+    "5": {"cash": 10000, "benefit": "Vacc Suit"},
+    "6": {"cash": 15000, "benefit": "Wings"},
+    "7": {"cash": 25000, "benefit": "Ship"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}

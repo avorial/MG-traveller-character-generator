@@ -1,0 +1,64 @@
+{
+  "id": "droyne",
+  "name": "Droyne",
+  "description": "Six-limbed winged beings who organise their entire society around a caste system determined at adolescence. Once casted, a Droyne develops radically different physical and mental characteristics depending on their caste. Workers labour, Warriors fight, Drones manage and reproduce, Technicians build, Sports explore and communicate, and Leaders direct all others. Droyne have no concept of Social Status — their position is defined entirely by caste and the degree to which their Oytrip values them.",
+  "characteristic_modifiers": {"STR": 0, "DEX": 0, "END": 0, "INT": 0, "EDU": 0, "SOC": 0},
+  "characteristic_maximum": 15,
+  "characteristic_dice": {
+    "STR": "1D+1",
+    "DEX": "1D+1",
+    "END": "1D+1",
+    "INT": "1D+1",
+    "EDU": "1D+1",
+    "SOC": null,
+    "PSI": "2D"
+  },
+  "no_soc": true,
+  "has_psi": true,
+  "psi_always_rolled": true,
+  "starting_age": 12,
+  "aging_starts_term": 4,
+  "sort_order": 600,
+  "droyne_caste_system": true,
+  "droyne_caste_mods": {
+    "worker":     {"STR": 2, "END": 4},
+    "warrior":    {"STR": 3, "DEX": 1, "END": 2},
+    "drone":      {"DEX": 1, "INT": 3, "EDU": 2},
+    "technician": {"DEX": 2, "INT": 3, "EDU": 1},
+    "sport":      {"DEX": 1, "END": 1, "INT": 2, "EDU": 2},
+    "leader":     {"INT": 4, "EDU": 2}
+  },
+  "droyne_casting_bonus": {"STR": 1, "DEX": 1, "END": 1, "INT": 1, "EDU": 1},
+  "droyne_caste_table": {
+    "1": "worker",
+    "2": "warrior",
+    "3": "drone",
+    "4": "technician",
+    "5": "sport",
+    "6": "leader"
+  },
+  "life_events_table": "droyne_life_events",
+  "life_events_roll": "2D_plus_caste_number",
+  "life_events_threshold": 10,
+  "traits": [
+    {
+      "name": "Wings",
+      "description": "All Droyne have wings. Newly casted Droyne must determine wing size by rolling 1D: vestigial on 1–3, small on 4–5, large on 6. Droyne with small or large wings automatically gain Flight 0. A Droyne whose wings are too small to fly may select one of Drive, Flyer, Recon or Survival instead when they receive the Flight skill."
+    },
+    {
+      "name": "Claws",
+      "description": "All Droyne have a sharp claw on their hands and feet. Claws do 1D+2 damage and use Melee (natural). More commonly used as a tool or an aid in gripping surfaces — a Droyne that can dig their claws in gains DM+1 to remain anchored or keep hold of something."
+    },
+    {
+      "name": "Close Combat Aversion",
+      "description": "Droyne dislike close combat due to their light bone structure. A Droyne struck with an impact weapon (club, bat, fist) suffers one additional point of damage per 1D rolled. All Droyne suffer DM-2 when fighting in melee without a weapon."
+    },
+    {
+      "name": "Homing",
+      "description": "All Droyne have an innate psionic sense of the direction and distance to their home Oytrip. If the Oytrip is destroyed or the Droyne ejected, this ability ceases to function."
+    }
+  ],
+  "aliases": ["droyne", "chirper_casted"],
+  "source": "Aliens of Charted Space Vol. 2, Mongoose Publishing",
+  "notes": "Droyne have no SOC characteristic. PSI is always rolled with 2D at character creation. Caste is determined by 1D roll (or player choice): 1=Worker, 2=Warrior, 3=Drone, 4=Technician, 5=Sport, 6=Leader. The caste roll result is also the caste_number used in continuation checks. All casted Droyne gain +1 to STR/DEX/END/INT/EDU immediately at casting, then apply caste-specific modifiers. All Droyne undergo psionic testing before their first term. Aging starts at age 24 (end of term 4). No mustering out in the usual sense — the table reflects what the Droyne took with them."
+}

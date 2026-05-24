@@ -315,14 +315,20 @@ _STAT_KEYS: frozenset[str] = frozenset({"STR", "DEX", "END", "INT", "EDU", "SOC"
 
 
 def _char_dm(character: "Character", char_key: str) -> int:
-    """Return the DM for a characteristic, including REP and PSI.
+    """Return the DM for a characteristic, including REP, PSI, and RES.
 
-    REP is stored on character.reputation; all others use the standard
-    Characteristics object.  Unknown keys return DM 0.
+    REP is stored on character.reputation.
+    PSI is stored on character.psi.
+    RES (Hiver Resolve) is an alias for SOC (stored in characteristics.SOC).
+    All others use the standard Characteristics object.  Unknown keys return DM 0.
     """
     k = char_key.upper()
     if k == "REP":
         return dice.characteristic_dm(character.reputation)
+    if k == "PSI":
+        return dice.characteristic_dm(character.psi)
+    if k == "RES":
+        return dice.characteristic_dm(character.characteristics.SOC)
     val = character.characteristics.get(k)
     return dice.characteristic_dm(val) if val is not None else 0
 
@@ -945,6 +951,83 @@ def apply_species(character: Character, species_id: str) -> dict:
                     character.characteristics.set("EDU", 8)
                     character.log(adj.get("description", "EDU raised to 8"))
 
+    # Droyne caste system: re-roll characteristics using species-defined dice,
+    # roll caste (1D), apply casting bonus, and apply caste modifiers.
+    droyne_caste_result: dict | None = None
+    if species_data.get("droyne_caste_system"):
+        char_dice_map = species_data.get("characteristic_dice", {})
+        if char_dice_map:
+            char_rerolls: dict[str, int] = {}
+            for stat, formula in char_dice_map.items():
+                if formula is None:
+                    # SOC not used by Droyne — set to 0
+                    character.characteristics.set(stat, 0)
+                    char_rerolls[stat] = 0
+                elif formula.upper() == "PSI" or stat.upper() == "PSI":
+                    # PSI rolled as 2D; store separately
+                    psi_r = dice.roll("2D")
+                    character.psi = psi_r.total
+                    character.psi_tested = True
+                    char_rerolls["PSI"] = psi_r.total
+                else:
+                    # Parse "NdX+M" or "ND+M" format using the dice engine
+                    cr = dice.roll(formula)
+                    character.characteristics.set(stat, cr.total)
+                    char_rerolls[stat] = cr.total
+            character.log(
+                "Droyne characteristics (1D+1 each): "
+                + ", ".join(f"{k} {v}" for k, v in char_rerolls.items())
+            )
+
+        # Apply the Iskyar casting bonus (+1 to each physical/mental stat from ritual)
+        casting_bonus = species_data.get("droyne_casting_bonus", {})
+        casting_parts: list[str] = []
+        for stat, bonus in casting_bonus.items():
+            if bonus and stat.upper() != "PSI":
+                old = character.characteristics.get(stat) or 0
+                character.characteristics.set(stat, old + bonus)
+                casting_parts.append(f"{stat} {old}→{old + bonus}")
+        if casting_parts:
+            character.log(f"Iskyar casting bonus: {', '.join(casting_parts)}")
+
+        # Roll 1D for caste
+        caste_table = species_data.get("droyne_caste_table", {})
+        caste_r = dice.roll("1D")
+        caste_name = caste_table.get(str(caste_r.total), "worker")
+        character.droyne_caste = caste_name
+        character.droyne_caste_number = caste_r.total
+        character.log(f"Droyne caste roll: 1D={caste_r.total} → {caste_name.capitalize()}")
+
+        # Apply caste stat modifiers
+        caste_mods = species_data.get("droyne_caste_mods", {}).get(caste_name, {})
+        caste_mod_parts: list[str] = []
+        for stat, delta in caste_mods.items():
+            if delta:
+                old = character.characteristics.get(stat) or 0
+                character.characteristics.set(stat, old + delta)
+                caste_mod_parts.append(f"{stat} {old}→{old + delta} ({delta:+d})")
+        if caste_mod_parts:
+            character.log(f"Caste ({caste_name}) modifiers: {', '.join(caste_mod_parts)}")
+        character.droyne_caste_mods_applied = True
+
+        droyne_caste_result = {
+            "caste": caste_name,
+            "caste_number": caste_r.total,
+            "caste_mods": caste_mods,
+        }
+
+    # Hiver Federation: roll 2D on nest table to determine home nest type.
+    # Nest type determines the Senior and Manipulator advancement bonuses.
+    hiver_nest_result: dict | None = None
+    if species_data.get("hiver_species"):
+        nest_table = species_data.get("hiver_nest_table", {})
+        if nest_table:
+            nest_r = dice.roll("2D")
+            nest_type = nest_table.get(str(nest_r.total), "generalist")
+            character.hiver_nest_type = nest_type
+            character.log(f"Hiver nest type: 2D={nest_r.total} → {nest_type.capitalize()}")
+            hiver_nest_result = {"nest_type": nest_type, "roll": nest_r.to_dict()}
+
     # Aslan Hierate: skip background/pre_career phases; go directly to aslan_setup
     needs_aslan_setup = species_data.get("uses_clan_shares", False)
     if needs_aslan_setup:
@@ -957,6 +1040,8 @@ def apply_species(character: Character, species_id: str) -> dict:
         "applied": applied,
         "traits": character.traits,
         "needs_aslan_setup": needs_aslan_setup,
+        "droyne_caste": droyne_caste_result,
+        "hiver_nest": hiver_nest_result,
         "character": character.model_dump(),
     }
 
@@ -3234,6 +3319,253 @@ def _apply_vargr_pack_event(character: Character) -> list[str]:
     return applied
 
 
+def _apply_hiver_life_event(character: "Character") -> dict:
+    """Roll on the Hiver Life Events table (2D).
+
+    Hiver life events happen when career event 7 triggers a Life Event.
+    The table is 2–12 with Hiver-specific results.
+    """
+    r = dice.roll("2D")
+    total = r.total
+    auto_applied: list[str] = []
+    pending_choice: dict | None = None
+    sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+
+    if total == 2:
+        # Injury
+        injury = apply_injury(character)
+        auto_applied.append(f"Injury rolled: {injury.get('title', 'see log')}")
+        if injury.get("pending_choice"):
+            auto_applied.append("PENDING: choose which stat absorbs the damage")
+
+    elif total == 3:
+        # Deficiency Disease — lose 1 from a random characteristic
+        stats = ["STR", "DEX", "END", "INT", "EDU"]
+        stat = stats[dice.roll("1D").total % len(stats)]
+        old_val = character.characteristics.get(stat)
+        character.characteristics.set(stat, max(0, old_val - 1))
+        auto_applied.append(f"Deficiency Disease: {stat} {old_val} → {max(0, old_val - 1)}")
+
+    elif total == 4:
+        # Relationship Collapses — gain Enemy
+        character.associates.append(Associate(kind="enemy", description="Enemy [Collapsed Relationship]"))
+        auto_applied.append("Gained Enemy [Collapsed Relationship]")
+
+    elif total == 5:
+        # Work Clashes — gain Rival
+        character.associates.append(Associate(kind="rival", description="Rival [Work Friction]"))
+        auto_applied.append("Gained Rival [Work Friction]")
+
+    elif total == 6:
+        # Useful Alliance — gain Ally
+        character.associates.append(Associate(kind="ally", description="Ally [Manipulated Into Loyalty]"))
+        auto_applied.append("Gained Ally [Manipulated Into Loyalty]")
+
+    elif total == 7:
+        # New Connections — gain Contact
+        character.associates.append(Associate(kind="contact", description="Contact [New Connection]"))
+        auto_applied.append("Gained Contact [New Connection]")
+
+    elif total == 8:
+        # Plotting Discovered — convert Contact/Ally to Rival, or gain Enemy
+        contacts = [i for i, a in enumerate(character.associates) if a.kind == "contact"]
+        allies   = [i for i, a in enumerate(character.associates) if a.kind == "ally"]
+        if contacts:
+            old = character.associates[contacts[0]]
+            old_desc = old.description or "Contact"
+            character.associates[contacts[0]] = Associate(
+                kind="rival", description=f"Rival [Plotting Discovered — was: {old_desc}]"
+            )
+            auto_applied.append(f"Contact '{old_desc}' converted to Rival [Plotting Discovered]")
+        elif allies:
+            old = character.associates[allies[0]]
+            old_desc = old.description or "Ally"
+            character.associates[allies[0]] = Associate(
+                kind="rival", description=f"Rival [Plotting Discovered — was: {old_desc}]"
+            )
+            auto_applied.append(f"Ally '{old_desc}' converted to Rival [Plotting Discovered]")
+        else:
+            character.associates.append(Associate(kind="enemy", description="Enemy [Uncovered Plotter]"))
+            auto_applied.append("No Contact/Ally available — gained Enemy [Uncovered Plotter]")
+
+    elif total == 9:
+        # New Knowledge — DM+2 to next advancement check
+        character.dm_next_advancement += 2
+        auto_applied.append("New Knowledge: DM+2 to next advancement check")
+
+    elif total == 10:
+        # Nest Change — gain 1 additional cash benefit roll
+        character.pending_benefit_rolls += 1
+        auto_applied.append("Nest Change: gained 1 additional cash benefit roll")
+
+    elif total == 11:
+        # Great Manipulator — choose Deception, Diplomat, or Persuade
+        pending_choice = {
+            "kind": "hiver_great_manipulator",
+        }
+        character.pending_life_event_choice = pending_choice
+        auto_applied.append("PENDING: choose Deception, Diplomat or Persuade to gain at level 1")
+
+    elif total == 12:
+        # Manipulator's Gift — RES +1 (stored as SOC)
+        old_soc = character.characteristics.SOC
+        new_soc = min(old_soc + 1, sp_max)
+        character.characteristics.SOC = new_soc
+        auto_applied.append(f"Manipulator's Gift: RES {old_soc} → {new_soc}")
+
+    life_table = rules.hiver_life_events()
+    event_entry = life_table.get("entries", {}).get(str(total), {})
+    event_text = (
+        f"{event_entry.get('title', '')}: {event_entry.get('text', 'Something happens.')}"
+        if isinstance(event_entry, dict) else str(event_entry)
+    )
+    character.log(
+        f"Hiver Life Event [{total}]: {event_text}"
+        + (f" — {', '.join(auto_applied)}" if auto_applied else "")
+    )
+
+    return {
+        "roll": r.to_dict(),
+        "total": total,
+        "event_text": event_text,
+        "auto_applied": auto_applied,
+        "pending_choice": pending_choice,
+    }
+
+
+def _apply_droyne_life_event(character: "Character") -> dict:
+    """Roll on the Droyne Life Events table (2D).
+
+    Called when the end-of-term 2D + caste_number roll reaches 10+.
+    """
+    r = dice.roll("2D")
+    total = r.total
+    auto_applied: list[str] = []
+    pending_choice: dict | None = None
+
+    if total == 2:
+        # Build starship — choose Engineer, Electronics, Mechanic, or rank +1
+        pending_choice = {"kind": "droyne_starship_skill"}
+        character.pending_life_event_choice = pending_choice
+        auto_applied.append("PENDING: choose Engineer, Electronics, Mechanic, or Rank +1")
+
+    elif total == 3:
+        # Leader dies — Caste skill check → rank +1 on pass, −1 on fail
+        caste_name = (character.droyne_caste or "worker").capitalize()
+        caste_level = max(
+            (sk.level for sk in character.skills
+             if sk.name.lower() == "caste" and (sk.speciality or "").lower() == (character.droyne_caste or "").lower()),
+            default=0
+        )
+        check_r = dice.roll("2D")
+        check_total = check_r.total + caste_level
+        term = character.current_term
+        if check_total >= 8:
+            if term is not None:
+                term.rank = min(term.rank + 1, 6)
+            auto_applied.append(f"Caste check [2D+{caste_level}={check_total}] PASSED: rank +1")
+        else:
+            if term is not None:
+                term.rank = max(term.rank - 1, 0)
+            auto_applied.append(f"Caste check [2D+{caste_level}={check_total}] FAILED: rank −1")
+
+    elif total == 4:
+        # Gain a Black Skill — player chooses
+        pending_choice = {"kind": "droyne_black_skill"}
+        character.pending_life_event_choice = pending_choice
+        auto_applied.append("PENDING: choose a Black Skill (Carouse, Deception, Gambler, Persuade, Streetwise)")
+
+    elif total == 5:
+        # Gain Caste skill level
+        caste_name = (character.droyne_caste or "worker").capitalize()
+        log = character.add_skill("Caste", level=1, speciality=caste_name)
+        auto_applied.append(f"Gained Caste ({caste_name}) 1: {log}")
+
+    elif total == 6:
+        # Caste check or rank −1
+        caste_level = max(
+            (sk.level for sk in character.skills
+             if sk.name.lower() == "caste"),
+            default=0
+        )
+        check_r = dice.roll("2D")
+        check_total = check_r.total + caste_level
+        if check_total >= 8:
+            auto_applied.append(f"Caste check [2D+{caste_level}={check_total}] PASSED: no ill effects")
+        else:
+            term = character.current_term
+            if term is not None:
+                term.rank = max(term.rank - 1, 0)
+            auto_applied.append(f"Caste check [2D+{caste_level}={check_total}] FAILED: rank −1")
+
+    elif total == 7:
+        # Nothing
+        auto_applied.append("The Oytrip endures. Nothing significant occurs.")
+
+    elif total == 8:
+        # Appeal check → Contact on pass
+        appeal_level = max(
+            (sk.level for sk in character.skills if sk.name.lower() == "appeal"),
+            default=0
+        )
+        check_r = dice.roll("2D")
+        check_total = check_r.total + appeal_level
+        if check_total >= 8:
+            character.associates.append(Associate(kind="contact", description="Contact [Important Leader]"))
+            auto_applied.append(f"Appeal check [2D+{appeal_level}={check_total}] PASSED: gained Contact [Important Leader]")
+        else:
+            auto_applied.append(f"Appeal check [2D+{appeal_level}={check_total}] FAILED: no contact")
+
+    elif total == 9:
+        # Outsider check → Ally on pass, Outsider 1 on fail
+        outsider_level = max(
+            (sk.level for sk in character.skills if sk.name.lower() == "outsider"),
+            default=0
+        )
+        check_r = dice.roll("2D")
+        check_total = check_r.total + outsider_level
+        if check_total >= 8:
+            character.associates.append(Associate(kind="ally", description="Ally [Outside the Oytrip]"))
+            auto_applied.append(f"Outsider check [2D+{outsider_level}={check_total}] PASSED: gained Ally [Outsider]")
+        else:
+            log = character.add_skill("Outsider", level=1)
+            auto_applied.append(f"Outsider check [2D+{outsider_level}={check_total}] FAILED: {log}")
+
+    elif total == 10:
+        # Voyage — choose Pilot, Astrogation, Engineer, or Electronics
+        pending_choice = {"kind": "droyne_voyage_skill"}
+        character.pending_life_event_choice = pending_choice
+        auto_applied.append("PENDING: choose Pilot, Astrogation, Engineer or Electronics")
+
+    elif total == 11:
+        # PSI +1
+        old_psi = character.psi
+        sp_max = int(rules.species().get(character.species_id or "", {}).get("characteristic_maximum", 15))
+        character.psi = min(old_psi + 1, sp_max)
+        auto_applied.append(f"PSI +1: {old_psi} → {character.psi}")
+
+    elif total == 12:
+        # Ancients Tech
+        log = character.add_skill("Ancients Tech", level=1)
+        auto_applied.append(f"Ancients Tech 1: {log}")
+
+    life_table = rules.droyne_life_events()
+    event_entry = life_table.get("events", {}).get(str(total), {})
+    event_text = event_entry.get("description", "Something happens.") if isinstance(event_entry, dict) else str(event_entry)
+    character.log(
+        f"Droyne Life Event [{total}]: {event_text}"
+        + (f" — {', '.join(auto_applied)}" if auto_applied else "")
+    )
+
+    return {
+        "roll": r.to_dict(),
+        "total": total,
+        "event_text": event_text,
+        "auto_applied": auto_applied,
+        "pending_choice": pending_choice,
+    }
+
+
 def apply_life_event(character: Character, career_id: Optional[str] = None) -> dict:
     """Roll 2D on the Life Events table and auto-apply everything possible.
 
@@ -3251,6 +3583,15 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
     # Homeworld override: species with their own 1D life events tables.
     if rules.life_events_for_species(character.species_id or ""):
         return _apply_homeworld_life_event(character, character.species_id)
+
+    # Hiver Federation careers use the Hiver Life Events table.
+    if career_id in rules.HIVER_CAREER_IDS:
+        return _apply_hiver_life_event(character)
+
+    # Droyne careers: life events are only triggered from end_term via a 2D+caste_number
+    # threshold check. When this function IS called for a Droyne, use the Droyne table.
+    if career_id in rules.DROYNE_CAREER_IDS:
+        return _apply_droyne_life_event(character)
 
     use_solomani = career_id in rules.SOLOMANI_CAREER_IDS
     use_vargr = career_id in rules.VARGR_CAREER_IDS
@@ -3644,6 +3985,43 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
             )
         else:
             raise ValueError(f"Unknown choice '{choice}' for asim_misfortune_choice")
+
+    elif kind == "hiver_great_manipulator":
+        # Hiver Life Event 11: choose Deception, Diplomat, or Persuade
+        valid = {"Deception", "Diplomat", "Persuade"}
+        if choice not in valid:
+            raise ValueError(f"Choice must be one of {valid!r}")
+        log = character.add_skill(choice, level=1)
+        character.log(f"Hiver Great Manipulator: gained {choice} 1 — {log}")
+
+    elif kind == "droyne_starship_skill":
+        # Droyne Life Event 2: choose Engineer, Electronics, Mechanic, or rank +1
+        if choice == "rank +1":
+            term = character.current_term
+            if term is not None:
+                term.rank = min(term.rank + 1, 6)
+            character.log("Droyne Life Event — Build Starship: rank +1")
+        elif choice in ("Engineer", "Electronics", "Mechanic"):
+            log = character.add_skill(choice, level=1)
+            character.log(f"Droyne Life Event — Build Starship: gained {choice} 1 — {log}")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for droyne_starship_skill")
+
+    elif kind == "droyne_black_skill":
+        # Droyne Life Event 4: choose a Black Skill
+        valid_black = {"Carouse", "Deception", "Gambler", "Persuade", "Streetwise"}
+        if choice not in valid_black:
+            raise ValueError(f"Choice must be one of {valid_black!r}")
+        log = character.add_skill(choice, level=1)
+        character.log(f"Droyne Life Event — Black Skill: gained {choice} 1 — {log}")
+
+    elif kind == "droyne_voyage_skill":
+        # Droyne Life Event 10: choose Pilot, Astrogation, Engineer, or Electronics
+        valid_voyage = {"Pilot", "Astrogation", "Engineer", "Electronics"}
+        if choice not in valid_voyage:
+            raise ValueError(f"Choice must be one of {valid_voyage!r}")
+        log = character.add_skill(choice, level=1)
+        character.log(f"Droyne Life Event — Voyage: gained {choice} 1 — {log}")
 
     else:
         raise ValueError(f"Unknown pending life event kind: {kind!r}")
@@ -4182,6 +4560,20 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
 
     qual = career.get("qualification", {})
     if qual.get("automatic"):
+        # Droyne caste check: career is locked to a specific caste
+        required_caste = career.get("droyne_caste")
+        if required_caste and character.droyne_caste != required_caste:
+            character.log(
+                f"Droyne caste mismatch: {career['name']} requires {required_caste} caste, "
+                f"character is {character.droyne_caste or 'uncasted'}."
+            )
+            character.failed_qualifications_this_term += 1
+            return {
+                "automatic": False, "succeeded": False,
+                "character": character.model_dump(),
+                "roll": None,
+                "reason": f"This career is only open to the {required_caste.capitalize()} caste.",
+            }
         character.log(f"Automatic qualification for {career['name']}.")
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
@@ -4519,6 +4911,22 @@ def survival_roll(character: Character) -> dict:
         survival = assignment["survival"]
         cover_dm = 0
 
+    # Hiver/no-survival careers: automatically survive every term
+    career_data = rules.careers().get(term.career_id, {})
+    if career_data.get("no_survival"):
+        term.survived = True
+        term.survival_roll_total = 99  # sentinel for "auto-passed"
+        character.log(f"{career_data.get('name', term.career_id)}: no survival check (automatic).")
+        return {
+            "roll": None,
+            "survived": True,
+            "auto_survived": True,
+            "mishap_no_eject": False,
+            "anagathics_second_roll": None,
+            "parallel_event": None,
+            "character": character.model_dump(),
+        }
+
     # Event-triggered ejection: skip the dice, career ends without mishap table
     if character.force_career_end:
         character.force_career_end = False
@@ -4777,6 +5185,16 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             character.extra_characteristics["TER"] = new_val
             msgs.append(f"TER {old}→{new_val} ({amount:+d})")
             character.log(f"Mishap/event: TER {amount:+d}")
+        elif stat == "PSI":
+            old = character.psi
+            character.psi = max(0, old + amount)
+            msgs.append(f"PSI {old}→{character.psi} ({amount:+d})")
+            character.log(f"Mishap/event: PSI {amount:+d}")
+        elif stat == "RES":
+            old = character.characteristics.SOC
+            character.characteristics.SOC = max(0, old + amount)
+            msgs.append(f"RES {old}→{character.characteristics.SOC} ({amount:+d})")
+            character.log(f"Mishap/event: RES {amount:+d}")
         else:
             old = character.characteristics.get(stat)
             new_val = max(0, old + amount)
@@ -4788,17 +5206,27 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         # Set stat to min(current, cap) — used for "SOC drops to 2" / "TER drops to 0" etc.
         stat = effect["stat"]
         cap = effect["cap"]
-        old = character.characteristics.get(stat)
-        new_val = min(old, cap)
-        if new_val != old:
-            # Save SOC before first outcast-level reduction for redemption restore
-            if stat == "SOC" and cap <= 2 and character.pre_outcast_soc == 0:
-                character.pre_outcast_soc = old
-            character.characteristics.set(stat, new_val)
-            msgs.append(f"{stat} {old}→{new_val} (capped at {cap})")
-            character.log(f"Mishap: {stat} capped at {cap}: {old}→{new_val}")
+        if stat == "PSI":
+            old = character.psi
+            new_val = min(old, cap)
+            if new_val != old:
+                character.psi = new_val
+                msgs.append(f"PSI {old}→{new_val} (capped at {cap})")
+                character.log(f"Mishap: PSI capped at {cap}: {old}→{new_val}")
+            else:
+                msgs.append(f"PSI already ≤ {cap} (stays at {old})")
         else:
-            msgs.append(f"{stat} already ≤ {cap} (stays at {old})")
+            old = character.characteristics.get(stat)
+            new_val = min(old, cap)
+            if new_val != old:
+                # Save SOC before first outcast-level reduction for redemption restore
+                if stat == "SOC" and cap <= 2 and character.pre_outcast_soc == 0:
+                    character.pre_outcast_soc = old
+                character.characteristics.set(stat, new_val)
+                msgs.append(f"{stat} {old}→{new_val} (capped at {cap})")
+                character.log(f"Mishap: {stat} capped at {cap}: {old}→{new_val}")
+            else:
+                msgs.append(f"{stat} already ≤ {cap} (stays at {old})")
 
     elif etype == "force_career_end":
         character.force_career_end = True
@@ -5096,6 +5524,17 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append("Disgraced — all Benefit rolls forfeited except one (keeping 1)")
         character.log("Mishap: forfeit all benefits except one, keeping 1")
 
+    elif etype == "rank_adjustment":
+        # Adjust current term rank by ±N (used by Droyne event/mishap effects).
+        amount = effect.get("amount", 0)
+        if term is not None:
+            old_rank = term.rank
+            term.rank = max(0, min(term.rank + amount, 6))
+            msgs.append(f"Rank {old_rank}→{term.rank} ({amount:+d})")
+            character.log(f"Rank adjusted {amount:+d}: {old_rank}→{term.rank}")
+        else:
+            msgs.append(f"Rank adjustment {amount:+d} (no active term)")
+
     elif etype == "trigger_disaster_mishap":
         # Used in skill_check on_fail: roll on mishap table.
         # career_continues=True (default) keeps the character in the career.
@@ -5195,6 +5634,55 @@ def mishap_roll(character: Character) -> dict:
             pending_set = True
             pending_choice = character.pending_career_mishap_choice
 
+    # ── Droyne continuation check ──────────────────────────────────────────
+    # All Droyne mishaps require a continuation check: 2D + Caste skill level
+    # − caste_number ≥ 2 (Simple difficulty).  If failed, ejected from Oytrip.
+    continuation_no_eject: Optional[bool] = None
+    if career.get("mishap_no_eject") and career.get("droyne_caste"):
+        caste_number = character.droyne_caste_number or 0
+        # Find the Caste skill level (generic "Caste" or "Caste (caste_name)")
+        caste_skill_level = 0
+        caste_name = (character.droyne_caste or "").lower()
+        for sk in character.skills:
+            sname = sk.name.lower()
+            spec = (sk.speciality or "").lower()
+            if sname == "caste" and (not spec or spec == caste_name):
+                caste_skill_level = max(caste_skill_level, sk.level)
+        # Also check for any Black Skills DM
+        black_skill_names = {"carouse", "deception", "gambler", "persuade", "streetwise"}
+        highest_black = 0
+        for sk in character.skills:
+            if sk.name.lower() in black_skill_names:
+                highest_black = max(highest_black, sk.level)
+        cont_dm = caste_skill_level - caste_number - highest_black
+        cont_roll = dice.roll("2D")
+        cont_total = cont_roll.total + cont_dm
+        # Simple (2+) difficulty
+        continuation_passed = cont_total >= 2
+        continuation_no_eject = continuation_passed
+        if continuation_passed:
+            # Override: career continues despite mishap
+            term.survived = True
+            term.mishap = mishap_text  # keep the mishap text but career continues
+            character.log(
+                f"Droyne continuation check [2D{cont_dm:+d}={cont_total}]: PASSED — "
+                f"career continues (Caste skill {caste_skill_level}, caste# {caste_number}, "
+                f"Black DM {-highest_black if highest_black else 0})."
+            )
+            auto_applied.append(
+                f"Continuation check: 2D{cont_dm:+d} = {cont_total} (needed 2+) — PASSED, career continues."
+            )
+        else:
+            # Ejected from Oytrip
+            term.survived = False
+            character.log(
+                f"Droyne continuation check [2D{cont_dm:+d}={cont_total}]: FAILED — "
+                f"ejected from Oytrip."
+            )
+            auto_applied.append(
+                f"Continuation check: 2D{cont_dm:+d} = {cont_total} (needed 2+) — FAILED, ejected from Oytrip."
+            )
+
     return {
         "roll": r.to_dict(),
         "mishap_number": mishap_num,
@@ -5204,6 +5692,7 @@ def mishap_roll(character: Character) -> dict:
         "injury_pending": bool(character.pending_injury_choice),
         "injury_data": injury_data,
         "frozen_watch": bool(term and term.frozen_watch),
+        "continuation_no_eject": continuation_no_eject,
         "character": character.model_dump(),
     }
 
@@ -5230,8 +5719,11 @@ def _apply_event_effects(character: "Character", career_id: str, event_num: int,
             # Roll on the career's own mishap table; career is NOT ended.
             try:
                 disaster_result = mishap_roll(character)
-                # Override: career continues despite mishap
-                if term is not None:
+                # For Droyne, the continuation check in mishap_roll already set
+                # term.survived — don't override it if the check failed.
+                cont = disaster_result.get("continuation_no_eject") if disaster_result else None
+                if term is not None and cont is not False:
+                    # Non-Droyne or Droyne who passed the continuation check: career continues.
                     term.survived = True
                     term.mishap = None
                 auto_applied.append("Disaster! Rolled on mishap table — career continues")
@@ -7131,6 +7623,556 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.log("Scholar event 3: refused, ally")
                 character.pending_career_mishap_choice = None
 
+        # ── Droyne pending choices ────────────────────────────────────────────
+
+        elif choice_id == "droyne_take_streetwise":
+            if selected == "yes":
+                msg = character.add_skill("Streetwise", level=1)
+                auto_applied.append(f"Took Streetwise 1 (Black Skill): {msg}")
+                character.log("Droyne mishap: took Streetwise 1 (Black Skill)")
+            else:
+                auto_applied.append("Declined Streetwise — no Black Skill taken")
+                character.log("Droyne mishap: declined Streetwise (Black Skill)")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id in ("droyne_worker_sacrifice", "droyne_warrior_sacrifice", "droyne_tech_sacrifice"):
+            if selected == "correct":
+                for _stat in ("STR", "DEX", "END"):
+                    _old = character.characteristics.get(_stat) or 0
+                    character.characteristics.set(_stat, _old - 1)
+                    auto_applied.append(f"{_stat} {_old}→{_old - 1} (−1)")
+                character.log(f"{choice_id}: behaved correctly — STR/DEX/END each −1; continuation check remains")
+            else:
+                character.force_career_end = True
+                auto_applied.append("Behaved incorrectly — ejected from Oytrip")
+                character.log(f"{choice_id}: behaved incorrectly — ejected")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id in ("droyne_worker_black_or_eject", "droyne_tech_black_or_eject"):
+            if selected == "obey":
+                _black_skills = ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"]
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": _black_skills,
+                    "prompt": "Choose a Black Skill to gain at level 1 (you are diminished by knowing it):",
+                }
+                auto_applied.append("Obeying Leader — choose a Black Skill below")
+                character.log(f"Droyne event ({choice_id}): chose to obey — Black Skill choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+            else:
+                character.force_career_end = True
+                auto_applied.append("Refused Leader's orders — ejected from Oytrip")
+                character.log(f"Droyne event ({choice_id}): refused — ejected")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_worker_idea":
+            if selected == "dare":
+                _skill_dm = 0
+                for _sk in character.skills:
+                    if _sk.name == "Appeal" and _sk.speciality is None:
+                        _skill_dm = _sk.level
+                        break
+                _r = dice.roll("2D", modifier=_skill_dm)
+                _term = character.current_term
+                if _r.total >= 8:
+                    if _term is not None:
+                        _old_rank = _term.rank
+                        _term.rank = min(_term.rank + 1, 6)
+                        auto_applied.append(f"Appeal 8+ passed (2D{_skill_dm:+d}={_r.total}) — rank {_old_rank}→{_term.rank} (+1)")
+                    character.log(f"Worker idea: Appeal passed ({_r.total}), rank+1")
+                else:
+                    if _term is not None:
+                        _old_rank = _term.rank
+                        _term.rank = max(0, _term.rank - 1)
+                        auto_applied.append(f"Appeal 8+ failed (2D{_skill_dm:+d}={_r.total}) — rank {_old_rank}→{_term.rank} (−1)")
+                    character.log(f"Worker idea: Appeal failed ({_r.total}), rank-1")
+                character.pending_career_mishap_choice = None
+            else:  # quiet
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Profession", "Caste"],
+                    "prompt": "Kept quiet — gain Profession or Caste 1:",
+                }
+                auto_applied.append("Kept quiet — choose Profession or Caste 1 below")
+                character.log("Worker idea: kept quiet — skill choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+
+        elif choice_id == "droyne_drone_sacrifice":
+            if selected == "risk":
+                for _stat in ("STR", "DEX", "END"):
+                    _old = character.characteristics.get(_stat) or 0
+                    character.characteristics.set(_stat, _old - 1)
+                    auto_applied.append(f"{_stat} {_old}→{_old - 1} (−1)")
+                character.log("Drone mishap: took risks — STR/DEX/END each −1")
+            else:  # shirk
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = max(0, _term.rank - 1)
+                    auto_applied.append(f"Shirked — rank {_old_rank}→{_term.rank} (−1)")
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Oytrip — shirked sacrifice]")
+                )
+                auto_applied.append("Gained Enemy [Oytrip — shirked sacrifice]")
+                character.log("Drone mishap: shirked — rank-1, Enemy added")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_drone_prediction":
+            # Roll Appeal/Prediction/Admin 8+ automatically
+            _skill_dm = 0
+            for _sk_name in ("Prediction", "Appeal", "Admin"):
+                for _sk in character.skills:
+                    if _sk.name == _sk_name and _sk.speciality is None:
+                        if _sk.level > _skill_dm:
+                            _skill_dm = _sk.level
+            _r = dice.roll("2D", modifier=_skill_dm)
+            if _r.total >= 8:
+                auto_applied.append(f"Prediction check passed (2D{_skill_dm:+d}={_r.total}) — no rank change")
+                character.log(f"Drone mishap 5: prediction check passed ({_r.total})")
+            else:
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = max(0, _term.rank - 1)
+                    auto_applied.append(f"Prediction check failed (2D{_skill_dm:+d}={_r.total}) — rank {_old_rank}→{_term.rank} (−1)")
+                _msg = character.add_skill("Outsider", level=1)
+                auto_applied.append(f"Gained Outsider 1: {_msg}")
+                character.log(f"Drone mishap 5: prediction check failed ({_r.total}), rank-1, Outsider 1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_drone_appeal_pass":
+            if selected == "rank":
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = min(_term.rank + 1, 6)
+                    auto_applied.append(f"Rank {_old_rank}→{_term.rank} (+1)")
+                character.log("Drone event 4: appeal passed — chose rank+1")
+            else:  # caste
+                _caste_name = character.droyne_caste.capitalize() if character.droyne_caste else "Drone"
+                _msg = character.add_skill("Caste", level=1, speciality=_caste_name)
+                auto_applied.append(f"Gained Caste ({_caste_name}) 1: {_msg}")
+                character.log(f"Drone event 4: appeal passed — chose Caste ({_caste_name}) 1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_tech_emergency":
+            if selected == "hardest":
+                _d3_loss = (dice.roll("1D").total + 1) // 2
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = min(_term.rank + 1, 6)
+                    auto_applied.append(f"Tried hardest — rank {_old_rank}→{_term.rank} (+1)")
+                character.pending_career_mishap_choice = {
+                    "type": "stat_choice",
+                    "options": ["STR", "DEX", "END"],
+                    "amount": -_d3_loss,
+                    "prompt": f"Emergency repairs — choose a physical stat to lose D3={_d3_loss} points:",
+                }
+                auto_applied.append(f"Lose D3={_d3_loss} from a chosen physical stat — choose below")
+                character.log(f"Tech mishap 4: tried hardest — rank+1, D3={_d3_loss} stat loss pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+            else:  # minimum
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = max(0, _term.rank - 1)
+                    auto_applied.append(f"Did minimum — rank {_old_rank}→{_term.rank} (−1)")
+                character.log("Tech mishap 4: did minimum — rank-1, no injury")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_tech_assignment_stat":
+            _stat_map = {"fixing": "DEX", "artificer": "EDU", "dreaming": "INT"}
+            _stat = _stat_map.get(selected, "INT")
+            _old = character.characteristics.get(_stat) or 0
+            character.characteristics.set(_stat, _old + 1)
+            auto_applied.append(f"{_stat} {_old}→{_old + 1} (+1)")
+            character.log(f"Tech event 9: assignment bonus — {_stat}+1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_attack":
+            # Roll Appeal 8+ automatically
+            _skill_dm = 0
+            for _sk in character.skills:
+                if _sk.name == "Appeal" and _sk.speciality is None:
+                    _skill_dm = _sk.level
+                    break
+            _r = dice.roll("2D", modifier=_skill_dm)
+            if _r.total >= 8:
+                character.pending_career_mishap_choice = {
+                    "type": "stat_choice",
+                    "options": ["STR", "DEX", "END"],
+                    "amount": -1,
+                    "prompt": "Appeal passed — fighting ended quickly; choose a physical stat to lose 1 point:",
+                }
+                auto_applied.append(f"Appeal 8+ passed (2D{_skill_dm:+d}={_r.total}) — choose stat −1 below")
+                character.log(f"Sport mishap 1: Appeal passed ({_r.total}), stat_choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+            else:
+                for _stat in ("STR", "DEX", "END"):
+                    _old = character.characteristics.get(_stat) or 0
+                    character.characteristics.set(_stat, _old - 1)
+                    auto_applied.append(f"{_stat} {_old}→{_old - 1} (−1)")
+                character.log(f"Sport mishap 1: Appeal failed ({_r.total}), STR/DEX/END each −1")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_kroyloss":
+            if selected == "return":
+                _end_val = character.characteristics.get("END") or 0
+                _end_dm = dice.characteristic_dm(_end_val)
+                _r = dice.roll("2D", modifier=_end_dm)
+                if _r.total >= 8:
+                    auto_applied.append(f"END 8+ passed (2D{_end_dm:+d}={_r.total}) — welcomed back, no ill effects")
+                    character.log(f"Sport mishap 2: return — END check passed ({_r.total})")
+                else:
+                    for _stat in ("INT", "EDU"):
+                        _old = character.characteristics.get(_stat) or 0
+                        character.characteristics.set(_stat, _old - 1)
+                        auto_applied.append(f"{_stat} {_old}→{_old - 1} (−1)")
+                    _old_psi = character.psi
+                    character.psi = max(0, _old_psi - 1)
+                    auto_applied.append(f"PSI {_old_psi}→{character.psi} (−1)")
+                    character.log(f"Sport mishap 2: return — END check failed ({_r.total}), INT/EDU/PSI each −1")
+            else:  # adventure
+                character.force_career_end = True
+                auto_applied.append("Began adventuring outside the Oytrip — career ends now")
+                character.log("Sport mishap 2: adventure — career end")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_expose":
+            if selected == "expose":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Kroyloss — exposed Leader]")
+                )
+                auto_applied.append("Gained Enemy [Kroyloss — exposed Leader]")
+                _skill_dm = 0
+                for _sk in character.skills:
+                    if _sk.name == "Appeal" and _sk.speciality is None:
+                        _skill_dm = _sk.level
+                        break
+                _r = dice.roll("2D", modifier=_skill_dm)
+                _term = character.current_term
+                if _r.total >= 8:
+                    if _term is not None:
+                        _old_rank = _term.rank
+                        _term.rank = min(_term.rank + 1, 6)
+                        auto_applied.append(f"Appeal 8+ passed (2D{_skill_dm:+d}={_r.total}) — rank {_old_rank}→{_term.rank} (+1)")
+                    character.log(f"Sport mishap 3: expose — Appeal passed ({_r.total}), rank+1")
+                else:
+                    auto_applied.append(f"Appeal 8+ failed (2D{_skill_dm:+d}={_r.total}) — continuation check required")
+                    character.log(f"Sport mishap 3: expose — Appeal failed ({_r.total}), continuation check")
+            else:  # failed to deliver
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = max(0, _term.rank - 1)
+                    auto_applied.append(f"Failed to deliver in time — rank {_old_rank}→{_term.rank} (−1); continuation check required")
+                character.log("Sport mishap 3: failed to deliver — rank-1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_outsider_rescue":
+            # Roll Outsider 8+ automatically (Contact already added by the effect chain)
+            _skill_dm = 0
+            for _sk in character.skills:
+                if _sk.name == "Outsider" and _sk.speciality is None:
+                    _skill_dm = _sk.level
+                    break
+            _r = dice.roll("2D", modifier=_skill_dm)
+            if _r.total >= 8:
+                auto_applied.append(f"Outsider 8+ passed (2D{_skill_dm:+d}={_r.total}) — no ill effects")
+                character.log(f"Sport mishap 5: Outsider check passed ({_r.total})")
+            else:
+                _term = character.current_term
+                if _term is not None:
+                    _old_rank = _term.rank
+                    _term.rank = max(0, _term.rank - 1)
+                    auto_applied.append(f"Outsider 8+ failed (2D{_skill_dm:+d}={_r.total}) — rank {_old_rank}→{_term.rank} (−1)")
+                character.log(f"Sport mishap 5: Outsider check failed ({_r.total}), rank-1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_ancients":
+            if selected == "pass":
+                _old_psi = character.psi
+                character.psi = _old_psi + 1
+                auto_applied.append(f"PSI {_old_psi}→{character.psi} (+1)")
+                _msg = character.add_skill("Ancients Tech", level=1)
+                auto_applied.append(f"Gained Ancients Tech 1: {_msg}")
+                character.log("Sport event 11: check passed — PSI+1, Ancients Tech 1")
+            elif selected == "psi":
+                _old_psi = character.psi
+                character.psi = _old_psi + 1
+                auto_applied.append(f"PSI {_old_psi}→{character.psi} (+1)")
+                character.log("Sport event 11: check failed — chose PSI+1")
+            else:  # tech
+                _msg = character.add_skill("Ancients Tech", level=1)
+                auto_applied.append(f"Gained Ancients Tech 1: {_msg}")
+                character.log("Sport event 11: check failed — chose Ancients Tech 1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_sport_outsider_or_black":
+            if selected == "outsider":
+                _msg = character.add_skill("Outsider", level=1)
+                auto_applied.append(f"Gained Outsider 1: {_msg}")
+                character.log("Sport event 9: chose Outsider 1")
+                character.pending_career_mishap_choice = None
+            else:  # black skill
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"],
+                    "prompt": "Choose a Black Skill to gain at level 1:",
+                }
+                auto_applied.append("Chose a Black Skill — make your selection below")
+                character.log("Sport event 9: chose Black Skill — skill_choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+
+        elif choice_id == "droyne_leader_attack":
+            # Roll Leadership 8+ automatically
+            _skill_dm = 0
+            for _sk in character.skills:
+                if _sk.name == "Leadership" and _sk.speciality is None:
+                    _skill_dm = _sk.level
+                    break
+            _r = dice.roll("2D", modifier=_skill_dm)
+            if _r.total >= 8:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Gun Combat", "Melee", "Tactics"],
+                    "prompt": f"Leadership check passed (2D{_skill_dm:+d}={_r.total}) — gain Gun Combat, Melee or Tactics 1:",
+                }
+                auto_applied.append(f"Leadership 8+ passed (2D{_skill_dm:+d}={_r.total}) — choose a skill below")
+                character.log(f"Leader mishap 1: Leadership passed ({_r.total}), skill choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+            else:
+                _d3_loss = (dice.roll("1D").total + 1) // 2
+                character.pending_career_mishap_choice = {
+                    "type": "stat_choice",
+                    "options": ["STR", "DEX", "END"],
+                    "amount": -_d3_loss,
+                    "prompt": f"Leadership failed (2D{_skill_dm:+d}={_r.total}) — lose D3={_d3_loss} from a physical stat; continuation check required:",
+                }
+                auto_applied.append(f"Leadership 8+ failed (2D{_skill_dm:+d}={_r.total}) — lose D3={_d3_loss} from physical stat; choose stat below")
+                character.log(f"Leader mishap 1: Leadership failed ({_r.total}), D3={_d3_loss} stat loss pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+
+        elif choice_id == "droyne_leader_worker_concern":
+            if selected == "support":
+                _msg = character.add_skill("Leadership", level=1)
+                auto_applied.append(f"Supported the worker — Leadership 1: {_msg}")
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Oytrip Member — disagreed with your support]")
+                )
+                auto_applied.append("Gained Rival [Oytrip Member]")
+                character.log("Leader event 4: supported worker — Leadership 1, Rival added")
+            else:  # discipline
+                _caste_name = character.droyne_caste.capitalize() if character.droyne_caste else "Leader"
+                _msg = character.add_skill("Caste", level=1, speciality=_caste_name)
+                auto_applied.append(f"Put them in their place — Caste ({_caste_name}) 1: {_msg}")
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Oytrip Member — respects firm leadership]")
+                )
+                auto_applied.append("Gained Ally [Oytrip Member]")
+                character.log("Leader event 4: disciplined — Caste 1, Ally added")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_leader_outsiders":
+            if selected == "educate":
+                character.force_career_end = True
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Outsider — educated by you]")
+                )
+                auto_applied.append("Chose to educate outsiders — ejected from Oytrip; gained Ally [Outsider]")
+                character.log("Leader mishap 4: educated outsiders — ejected, Ally added")
+            else:  # punish
+                _d3_enemies = (dice.roll("1D").total + 1) // 2
+                for _ in range(_d3_enemies):
+                    character.associates.append(
+                        Associate(kind="enemy", description="Enemy [Outsider — punished]")
+                    )
+                auto_applied.append(f"Punished outsiders — gained {_d3_enemies}× Enemy [Outsider]")
+                character.log(f"Leader mishap 4: punished outsiders — {_d3_enemies} Enemies added")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_leader_outsider_visit":
+            if selected == "learn":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"],
+                    "prompt": "Learnt from outsiders — choose a Black Skill to gain at level 1:",
+                }
+                auto_applied.append("Chose to learn from outsiders — choose a Black Skill below")
+                character.log("Leader event 5: learn — Black Skill choice pending")
+                return {
+                    "applied": auto_applied,
+                    "pending_choice": True,
+                    "character": character.model_dump(),
+                }
+            else:  # abstain
+                auto_applied.append("Abstained from outsider ways — no effect")
+                character.log("Leader event 5: abstained — no effect")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "droyne_leader_idea_support":
+            if selected == "support":
+                _msg = character.add_skill("Appeal", level=1)
+                auto_applied.append(f"Supported the idea — Appeal 1: {_msg}")
+                character.log("Leader event 9: supported idea — Appeal 1")
+            else:  # discipline
+                _caste_name = character.droyne_caste.capitalize() if character.droyne_caste else "Leader"
+                _msg = character.add_skill("Caste", level=1, speciality=_caste_name)
+                auto_applied.append(f"Put them in their place — Caste ({_caste_name}) 1: {_msg}")
+                character.log("Leader event 9: disciplined — Caste 1")
+            character.pending_career_mishap_choice = None
+
+        # ── Hiver pending choices ─────────────────────────────────────────────
+
+        elif choice_id in ("hiver_academic_disheartened", "hiver_generalist_threatened",
+                           "hiver_manipulator_disheartened", "hiver_merchant_disheartened"):
+            # Roll RES (SOC) check 8+ automatically
+            _res_val = character.characteristics.SOC
+            _res_dm = dice.characteristic_dm(_res_val)
+            _r = dice.roll("2D", modifier=_res_dm)
+            _passed = _r.total >= 8
+            if _passed:
+                _enemy_descs: dict[str, str] = {
+                    "hiver_academic_disheartened":    "Enemy [Thwarted Planner — persists in attacking you]",
+                    "hiver_generalist_threatened":    "Enemy [Even More Resentful Hiver]",
+                    "hiver_manipulator_disheartened": "Enemy [Persistent Opponent]",
+                    "hiver_merchant_disheartened":    "Enemy [Discrediting Party]",
+                }
+                _enemy_desc = _enemy_descs.get(choice_id, "Enemy [Opponent]")
+                character.associates.append(Associate(kind="enemy", description=_enemy_desc))
+                auto_applied.append(f"RES check passed (2D{_res_dm:+d}={_r.total}) — gained {_enemy_desc}")
+                if choice_id == "hiver_manipulator_disheartened":
+                    auto_applied.append("Manipulator mishap 2: check passed — you do NOT have to leave career")
+                character.log(f"{choice_id}: RES check passed ({_r.total}), Enemy added")
+            else:
+                # Effect = total − 8 (negative since failed); magnitude = 8 − total
+                _effect_mag = max(0, 8 - _r.total)
+                if choice_id == "hiver_manipulator_disheartened":
+                    # Lose RES (SOC) equal to negative Effect magnitude
+                    _old_res = character.characteristics.SOC
+                    character.characteristics.set("SOC", max(0, _old_res - _effect_mag))
+                    auto_applied.append(
+                        f"RES check failed (2D{_res_dm:+d}={_r.total}, effect −{_effect_mag}) "
+                        f"— RES {_old_res}→{character.characteristics.SOC} (−{_effect_mag})"
+                    )
+                    character.log(f"{choice_id}: RES check failed ({_r.total}), RES -{_effect_mag}")
+                else:
+                    # Lose Benefit rolls equal to negative Effect magnitude
+                    _lost = _effect_mag
+                    character.pending_benefit_rolls = max(0, character.pending_benefit_rolls - _lost)
+                    # If pending_benefit_rolls is depleted, drain from last career's earned rolls
+                    _remaining = _lost - min(_lost, character.pending_benefit_rolls)
+                    if _remaining > 0 and character.completed_careers:
+                        _last = character.completed_careers[-1]
+                        _drain = min(_remaining, _last.benefit_rolls_earned)
+                        _last.benefit_rolls_earned = max(0, _last.benefit_rolls_earned - _drain)
+                    auto_applied.append(
+                        f"RES check failed (2D{_res_dm:+d}={_r.total}, effect −{_effect_mag}) "
+                        f"— lost {_lost} Benefit roll(s)"
+                    )
+                    character.log(f"{choice_id}: RES check failed ({_r.total}), -{_lost} benefit rolls")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "hiver_academic_alien_cash":
+            if selected == "cash":
+                character.pending_benefit_rolls += 1
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [From Time Outside Federation]")
+                )
+                auto_applied.append("Took extra cash benefit roll; gained Rival [From Time Outside Federation]")
+                character.log("Academic event 10: took extra cash roll, Rival added")
+            else:  # ally_only
+                auto_applied.append("Just the Ally — no extra cash roll taken")
+                character.log("Academic event 10: ally only, no extra cash")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "hiver_academic_nest_threat":
+            if selected == "science_res":
+                _msg = character.add_skill("Science", level=1, speciality="sociology")
+                auto_applied.append(f"Gained Science (sociology) 1: {_msg}")
+                _old_res = character.characteristics.SOC
+                character.characteristics.set("SOC", _old_res + 1)
+                auto_applied.append(f"RES {_old_res}→{_old_res + 1} (+1)")
+                character.log("Academic event 12: chose Science (sociology) 1 + RES+1")
+            else:  # persuade
+                _msg = character.add_skill("Persuade", level=1)
+                auto_applied.append(f"Gained Persuade 1: {_msg}")
+                character.associates.append(Associate(kind="contact", description="Contact [Nest Ally]"))
+                auto_applied.append("Gained Contact [Nest Ally]")
+                character.log("Academic event 12: chose Persuade 1 + Contact [Nest Ally]")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "hiver_merchant_big_score":
+            if selected == "money":
+                _r2d = dice.roll("2D")
+                _credits_gained = _r2d.total * 100_000
+                character.credits += _credits_gained
+                auto_applied.append(
+                    f"Took the money — 2D={_r2d.total} × Cr100,000 = Cr{_credits_gained:,} "
+                    f"(total Cr{character.credits:,})"
+                )
+                character.log(f"Merchant event 5: took money, 2D={_r2d.total}, Cr{_credits_gained:,}")
+            else:  # credit
+                character.dm_next_advancement += 1
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Business Ally — shared big score]")
+                )
+                auto_applied.append("Claimed the credit — DM+1 to next Advancement roll; gained Contact [Business Ally]")
+                character.log("Merchant event 5: claimed credit, adv DM+1, Contact added")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "hiver_merchant_debt":
+            if selected == "saved":
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Mysterious Benefactor — owe a huge favour]")
+                )
+                auto_applied.append("Saved by a benefactor — career continues; gained Contact [Mysterious Benefactor]")
+                character.log("Merchant mishap 4: saved by benefactor, career continues, Contact added")
+            else:  # not_saved
+                _r2d = dice.roll("2D")
+                _debt = _r2d.total * 1_000_000  # MCr1 per point → credits
+                _cash_advance = _debt // 10
+                character.medical_debt += _debt
+                character.credits += _cash_advance
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Creditor — pursuing you for debt]")
+                )
+                auto_applied.append(
+                    f"Not saved — 2D={_r2d.total}×MCr1 = Cr{_debt:,} debt; "
+                    f"received 10% = Cr{_cash_advance:,} advance; gained Enemy [Creditor]"
+                )
+                character.log(f"Merchant mishap 4: not saved, Cr{_debt:,} debt, Cr{_cash_advance:,} cash, Enemy added")
+            character.pending_career_mishap_choice = None
+
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
 
@@ -7395,6 +8437,113 @@ def commission_roll(character: "Character") -> dict:
     }
 
 
+def _hiver_advancement_roll(character: "Character", career: dict, term) -> dict:
+    """Hiver status-table advancement (Adult → Senior → Manipulator).
+
+    Roll 2D + RES DM (RES stored as SOC):
+      ≥ 15 → advance to Manipulator (rank 2) if not already
+      10–14 → advance to Senior (rank 1) if Adult; no change if already Senior
+      ≤ 9  → no advancement this term
+
+    First time reaching Senior/Manipulator: apply the nest-type bonus from
+    the species data and set the hiver_senior_bonus_awarded / _manipulator_bonus_awarded
+    flags to prevent double-awarding.
+    """
+    res_dm = dice.characteristic_dm(character.characteristics.SOC)
+    r = dice.roll("2D", modifier=res_dm)
+    total = r.total
+    current_rank = term.rank
+
+    # Status thresholds from species data (fallback to standard values)
+    sp_data = rules.species().get(character.species_id or "", {})
+    adv_table = sp_data.get("hiver_advancement_table", {})
+    senior_min   = int(adv_table.get("senior_min", 10))
+    manipulator_min = int(adv_table.get("manipulator_min", 15))
+
+    # Determine new status
+    if total >= manipulator_min and current_rank < 2:
+        new_rank = 2
+    elif total >= senior_min and current_rank < 1:
+        new_rank = 1
+    else:
+        new_rank = current_rank  # No advancement
+
+    advanced = new_rank > current_rank
+    rank_bonus_log = None
+
+    if advanced:
+        term.rank = new_rank
+        term.advanced = True
+        term.rank_title = _rank_title(career, term.assignment_id, new_rank)
+        rank_data = _rank_data(career, term.assignment_id, new_rank)
+        if rank_data and rank_data.get("bonus"):
+            rank_bonus_log = _apply_rank_bonus(character, rank_data["bonus"])
+            term.skills_gained.append(f"Rank bonus: {rank_data['bonus']}")
+            character.log(f"  Rank bonus: {rank_bonus_log}")
+
+        # First-time Senior bonus
+        if new_rank == 1 and not character.hiver_senior_bonus_awarded:
+            character.hiver_senior_bonus_awarded = True
+            nest = character.hiver_nest_type or "generalist"
+            nest_benefits = sp_data.get("hiver_nest_benefits", {})
+            senior_bonus = nest_benefits.get(nest, {}).get("senior_bonus", "")
+            if senior_bonus:
+                bonus_log = _apply_rank_bonus(character, senior_bonus)
+                character.log(f"Hiver Senior bonus ({nest} nest): {senior_bonus} — {bonus_log}")
+                if rank_bonus_log:
+                    rank_bonus_log += f"; Senior nest bonus: {bonus_log}"
+                else:
+                    rank_bonus_log = f"Senior nest bonus: {bonus_log}"
+
+        # First-time Manipulator bonus
+        if new_rank == 2 and not character.hiver_manipulator_bonus_awarded:
+            character.hiver_manipulator_bonus_awarded = True
+            nest = character.hiver_nest_type or "generalist"
+            nest_benefits = sp_data.get("hiver_nest_benefits", {})
+            manip_bonus = nest_benefits.get(nest, {}).get("manipulator_bonus", "")
+            if manip_bonus:
+                bonus_log = _apply_rank_bonus(character, manip_bonus)
+                character.log(f"Hiver Manipulator bonus ({nest} nest): {manip_bonus} — {bonus_log}")
+                if rank_bonus_log:
+                    rank_bonus_log += f"; Manipulator nest bonus: {bonus_log}"
+                else:
+                    rank_bonus_log = f"Manipulator nest bonus: {bonus_log}"
+
+        status_name = {0: "Adult", 1: "Senior", 2: "Manipulator"}.get(new_rank, f"Rank {new_rank}")
+        character.log(
+            f"Hiver advancement [2D+RES{res_dm:+d}={total}]: "
+            f"ADVANCED to {status_name} (rank {new_rank})"
+        )
+    else:
+        term.advanced = False
+        if current_rank >= 2:
+            character.log(
+                f"Hiver advancement [2D+RES{res_dm:+d}={total}]: already Manipulator — no further advancement."
+            )
+        else:
+            status_name = {0: "Adult", 1: "Senior"}.get(current_rank, f"Rank {current_rank}")
+            threshold = senior_min if current_rank == 0 else manipulator_min
+            character.log(
+                f"Hiver advancement [2D+RES{res_dm:+d}={total}]: "
+                f"no advancement (needed {threshold}+ to advance from {status_name})."
+            )
+
+    return {
+        "roll": r.to_dict(),
+        "advanced": advanced,
+        "new_rank": term.rank,
+        "new_rank_title": term.rank_title,
+        "rank_bonus": rank_bonus_log,
+        "forced_from_career": False,
+        "monitor_dm": 0,
+        "monitor_rank_up": False,
+        "monitor_rank": character.solsec_monitor_rank,
+        "advancement_skill_roll": advanced,
+        "character": character.model_dump(),
+        "hiver_status_total": total,
+    }
+
+
 def advancement_roll(character: Character) -> dict:
     """Roll advancement. On success, rank increases.
 
@@ -7407,6 +8556,10 @@ def advancement_roll(character: Character) -> dict:
         raise ValueError("No active term")
 
     career = rules.careers()[term.career_id]
+
+    # ── Hiver careers: status-table advancement ───────────────────────────────
+    if career.get("hiver_career"):
+        return _hiver_advancement_roll(character, career, term)
 
     cover_note = ""
     if term.cover_career_id:
@@ -7473,6 +8626,17 @@ def advancement_roll(character: Character) -> dict:
     else:
         dm = _char_dm(character, char_key) + cover_dm
         char_display = None
+
+    # ── Droyne: Black Skills DM (Carouse/Deception/Gambler/Persuade/Streetwise) ──
+    # Highest Black Skill level is subtracted from advancement DM.
+    if term.career_id in rules.DROYNE_CAREER_IDS:
+        _black_skill_names = {"carouse", "deception", "gambler", "persuade", "streetwise"}
+        _highest_black = max(
+            (sk.level for sk in character.skills if sk.name.lower() in _black_skill_names),
+            default=0
+        )
+        if _highest_black > 0:
+            dm -= _highest_black
 
     # Apply permanent pre-career advancement DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -7589,9 +8753,40 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
     # Gate: assignment-specific tables
     if table.get("assignment_only") and table["assignment_only"] != term.assignment_id:
         raise ValueError(f"That skill table is for the {table['assignment_only']} assignment only")
+    # Gate: INT threshold (Droyne advanced tables — requires_int: 6)
+    if table.get("requires_int") and character.characteristics.INT < table["requires_int"]:
+        raise ValueError(f"This table requires INT {table['requires_int']}+")
+    # Gate: PSI threshold (Droyne Leader trusted_leader table — requires_psi: 8)
+    if table.get("requires_psi") and character.psi < table["requires_psi"]:
+        raise ValueError(f"This table requires PSI {table['requires_psi']}+")
+    # Gate: RES (Resolve/SOC) threshold (Hiver active tables — requires_res: 7/10)
+    if table.get("requires_res") and character.characteristics.SOC < table["requires_res"]:
+        raise ValueError(f"This table requires RES {table['requires_res']}+")
 
     r = dice.roll("1D")
     result = table.get(str(r.total), "(Unknown)")
+
+    # ── Droyne: "Caste" result → add Caste with the character's caste as speciality ──
+    if result.strip().lower() == "caste" and character.droyne_caste:
+        caste_name = character.droyne_caste.capitalize()
+        applied = character.add_skill("Caste", level=1, speciality=caste_name)
+        term.skills_gained.append(f"{table.get('name', table_key)}: Caste ({caste_name})")
+        character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: Caste ({caste_name}) — {applied}")
+        return {"roll": r.to_dict(), "result": f"Caste ({caste_name})", "applied": applied,
+                "character": character.model_dump()}
+
+    # ── "Any psionic skill" → set pending skill choice from psionic skills list ──
+    if result.strip().lower() == "any psionic skill":
+        _PSIONIC_SKILLS = ["Awareness", "Clairvoyance", "Telekinesis", "Telepathy", "Teleportation"]
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": _PSIONIC_SKILLS,
+            "prompt": "Choose a psionic skill to gain at level 1:",
+        }
+        term.skills_gained.append(f"{table.get('name', table_key)}: Any psionic skill")
+        character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: Any psionic skill — choose below")
+        return {"roll": r.to_dict(), "result": result, "applied": "Psionic skill choice pending",
+                "pending_choice": True, "character": character.model_dump()}
 
     # The result is either a skill name, a characteristic bonus ("DEX +1"), or similar.
     applied = _apply_skill_result(character, result)
@@ -9930,6 +11125,268 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "dm_advancement", "amount": 2}],
         12: [{"type": "auto_advance"}],
     },
+
+    # ---- Droyne careers ----
+    # Events 2 = Disaster (→ mishap); 7 = nothing; 12 = Ancients Tech 1
+    # All events 3 = rank+1; 8 = Recon or Survival
+    # Career-specific events follow below.
+    "droyne_worker": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
+              "on_pass": [{"type": "rank_adjustment", "amount": 1}],
+              "on_fail": [],
+              "prompt": "Appeal 8+ — success: rank +1. Either way, gain Appeal 1."},
+             {"type": "skill", "name": "Appeal", "level": 1}],
+        5:  [{"type": "pending_choice", "id": "droyne_worker_black_or_eject",
+              "prompt": "Follow Leader's orders (gain a Black Skill) or refuse and be ejected?",
+              "options": [
+                  {"id": "obey",  "label": "Obey — gain one Black Skill (Carouse/Deception/Gambler/Persuade/Streetwise)"},
+                  {"id": "refuse","label": "Refuse — ejected from the Oytrip"},
+              ]}],
+        6:  [{"type": "skill_choice", "options": ["Profession", "Drive", "Flyer", "Appeal"]}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "pending_choice", "id": "droyne_worker_idea",
+              "prompt": "Dare to suggest your idea (Appeal 8+) or keep quiet (gain Profession/Caste)?",
+              "options": [
+                  {"id": "dare",  "label": "Dare — Appeal 8+: rank+1 on pass, rank−1 on fail"},
+                  {"id": "quiet", "label": "Keep quiet — gain Profession or Caste 1"},
+              ]}],
+        10: [{"type": "skill", "name": "Outsider", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        11: [{"type": "skill_choice", "options": ["Electronics", "Engineer", "Gunner", "Vacc Suit"]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+    "droyne_warrior": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+        5:  [{"type": "skill_check", "skills": [{"name": "Gun Combat"}], "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Gun Combat", "Melee", "Heavy Weapons"]}],
+              "on_fail": [{"type": "skill", "name": "Medic", "level": 1}],
+              "prompt": "Gun Combat 8+ — pass: gain Gun Combat/Melee/Heavy Weapons; fail: gain Medic"}],
+        6:  [{"type": "skill_choice", "options": ["Gun Combat", "Heavy Weapons", "Vacc Suit", "Leadership"]}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "skill_check", "skills": [{"name": "Tactics"}], "target": 8,
+              "on_pass": [{"type": "rank_adjustment", "amount": 1}],
+              "on_fail": [{"type": "rank_adjustment", "amount": -1},
+                          {"type": "skill", "name": "Tactics", "level": 1}],
+              "prompt": "Tactics 8+ — pass: rank+1; fail: rank−1 and gain Tactics"}],
+        10: [{"type": "skill", "name": "Outsider", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        11: [{"type": "skill_choice", "options": ["Electronics", "Engineer", "Gunner", "Vacc Suit", "Pilot"]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+    "droyne_drone": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
+              "on_pass": [{"type": "pending_choice", "id": "droyne_drone_appeal_pass",
+                           "prompt": "Appeal succeeded — choose rank+1 or Caste 1:",
+                           "options": [
+                               {"id": "rank", "label": "Rank +1"},
+                               {"id": "caste","label": "Caste 1"},
+                           ]}],
+              "on_fail": [{"type": "skill", "name": "Appeal", "level": 1}],
+              "prompt": "Appeal 8+ — pass: rank+1 or Caste 1; fail: gain Appeal 1"}],
+        5:  [{"type": "skill_choice", "options": ["Outsider", "Science", "Vacc Suit"]}],
+        6:  [{"type": "skill_choice", "options": ["Profession", "Admin", "Art", "Appeal"]}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
+              "on_pass": [{"type": "rank_adjustment", "amount": 1}],
+              "on_fail": [{"type": "rank_adjustment", "amount": -1}],
+              "prompt": "Reveal alarming prediction: Appeal 8+ — pass: rank+1; fail: rank−1"}],
+        10: [{"type": "skill", "name": "Outsider", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        11: [{"type": "skill_choice", "options": ["Admin", "Appeal", "Leadership"]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+    "droyne_technician": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
+              "on_pass": [{"type": "rank_adjustment", "amount": 1}],
+              "on_fail": [{"type": "skill", "name": "Caste", "level": 1}],
+              "prompt": "Appeal 8+ — pass: rank+1; fail: Caste (technician) 1"}],
+        5:  [{"type": "pending_choice", "id": "droyne_tech_black_or_eject",
+              "prompt": "Follow Leader's orders (gain a Black Skill) or refuse and be ejected?",
+              "options": [
+                  {"id": "obey",  "label": "Obey — gain one Black Skill (Carouse/Deception/Gambler/Persuade/Streetwise)"},
+                  {"id": "refuse","label": "Refuse — ejected from the Oytrip"},
+              ]}],
+        6:  [{"type": "skill_choice", "options": ["Profession", "Drive", "Flyer", "Appeal"]}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "pending_choice", "id": "droyne_tech_assignment_stat",
+              "prompt": "Proved adept — choose your assignment bonus stat:",
+              "options": [
+                  {"id": "fixing",    "label": "Fixing — DEX +1"},
+                  {"id": "artificer", "label": "Artificer — EDU +1"},
+                  {"id": "dreaming",  "label": "Dreaming — INT +1"},
+              ]}],
+        10: [{"type": "skill", "name": "Outsider", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        11: [{"type": "skill_choice", "options": ["Electronics", "Engineer", "Gunner", "Pilot", "Vacc Suit"]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+    "droyne_sport": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
+              "on_pass": [{"type": "rank_adjustment", "amount": 1}],
+              "on_fail": [],
+              "prompt": "Workers ask you to raise concerns: Appeal 8+ — pass: rank+1. Either way: gain Appeal 1."},
+             {"type": "skill", "name": "Appeal", "level": 1}],
+        5:  [{"type": "skill_choice",
+              "options": ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"],
+              "prompt": "Sent to live among non-Droyne — gain a Black Skill (you are diminished by knowing it):"}],
+        6:  [{"type": "free_skill_choice", "prompt": "Work outside normal expertise — gain any skill from your career tables:"}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "pending_choice", "id": "droyne_sport_outsider_or_black",
+              "prompt": "Interact with non-Droyne — gain Outsider or a Black Skill?",
+              "options": [
+                  {"id": "outsider", "label": "Outsider 1"},
+                  {"id": "black",    "label": "A Black Skill (Carouse/Deception/Gambler/Persuade/Streetwise)"},
+              ]}],
+        10: [{"type": "skill_choice", "options": ["Astrogation", "Electronics", "Engineer", "Gunner", "Pilot", "Vacc Suit"]}],
+        11: [{"type": "pending_choice", "id": "droyne_sport_ancients",
+              "prompt": "Ancients Tech or Art (Droyne) 8+ — success: PSI+1 AND Ancients Tech; fail: choose one:",
+              "options": [
+                  {"id": "pass", "label": "Checked passed — PSI+1 and Ancients Tech 1"},
+                  {"id": "psi",  "label": "Check failed — choose PSI+1"},
+                  {"id": "tech", "label": "Check failed — choose Ancients Tech 1"},
+              ]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+    "droyne_leader": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "rank_adjustment", "amount": 1}],
+        4:  [{"type": "pending_choice", "id": "droyne_leader_worker_concern",
+              "prompt": "A Worker brings concerns. Support them or put them in their place?",
+              "options": [
+                  {"id": "support",   "label": "Support — gain Leadership 1 but a Rival [Oytrip member]"},
+                  {"id": "discipline","label": "Discipline — gain Caste (leader) 1 and an Ally [Oytrip member]"},
+              ]}],
+        5:  [{"type": "pending_choice", "id": "droyne_leader_outsider_visit",
+              "prompt": "Sent with a diplomatic party to a non-Droyne installation — learn their ways?",
+              "options": [
+                  {"id": "learn",   "label": "Learn — gain one Black Skill (Carouse/Deception/Gambler/Persuade/Streetwise)"},
+                  {"id": "abstain", "label": "Abstain — gain nothing"},
+              ]}],
+        6:  [{"type": "skill_choice", "options": ["Appeal", "Diplomat", "Leadership"]}],
+        8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
+        9:  [{"type": "pending_choice", "id": "droyne_leader_idea_support",
+              "prompt": "A non-Leader brings an idea with merit. Raise it to senior Leaders or discipline them?",
+              "options": [
+                  {"id": "support",   "label": "Support the idea — gain Appeal 1"},
+                  {"id": "discipline","label": "Put them in their place — gain Caste (leader) 1"},
+              ]}],
+        10: [{"type": "skill", "name": "Outsider", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        11: [{"type": "skill_choice", "options": ["Astrogation", "Tactics", "Vacc Suit"]}],
+        12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
+    },
+
+    # ---- Hiver Federation careers ----
+    # Event 7 = Life Event; Event 8 = starship skills (Pilot/Astrogation/Engineer)
+    # Event 9 = Ally + Contact; common events shared across all 4 careers
+    "hiver_academic": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
+        4:  [{"type": "dm_advancement", "amount": 4}],
+        5:  [{"type": "contact", "desc": "Contact [Possible Enemy — one of 3 is secretly an Enemy]"},
+             {"type": "contact", "desc": "Contact [Possible Enemy — one of 3 is secretly an Enemy]"},
+             {"type": "contact", "desc": "Contact [Possible Enemy — one of 3 is secretly an Enemy]"},
+             {"type": "skill", "name": "Gun Combat", "level": 1}],
+        6:  [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "RES check passed — gain a level in any skill you possess:"}],
+              "on_fail": [],
+              "prompt": "RES 8+ to gain a level in any skill you already have"}],
+        7:  [],  # Life Event — handled by API /life-event endpoint
+        8:  [{"type": "skill_choice", "options": ["Pilot", "Astrogation", "Engineer"]}],
+        9:  [{"type": "ally", "desc": "Ally [Embassy/Other Nests]"},
+             {"type": "contact", "desc": "Contact [Embassy/Other Nests]"}],
+        10: [{"type": "ally", "desc": "Ally [Alien Races]"},
+             {"type": "pending_choice", "id": "hiver_academic_alien_cash",
+              "prompt": "Spend time outside Federation — take extra cash roll (but gain Rival) or just the Ally?",
+              "options": [
+                  {"id": "cash",      "label": "Take extra cash benefit roll (gain Rival)"},
+                  {"id": "ally_only", "label": "Just the Ally"},
+              ]}],
+        11: [{"type": "skill_choice", "options": ["Animals", "Recon", "Survival"]}],
+        12: [{"type": "pending_choice", "id": "hiver_academic_nest_threat",
+              "prompt": "Nest threatened — choose reward for helping:",
+              "options": [
+                  {"id": "science_res", "label": "Science (sociology) 1 and RES +1"},
+                  {"id": "persuade",    "label": "Persuade 1 and a Contact"},
+              ]}],
+    },
+    "hiver_generalist": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
+        4:  [{"type": "dm_advancement", "amount": 4}],
+        5:  [{"type": "d_associates", "kind": "contact", "dice": "D3", "desc_prefix": "Contact"}],
+        6:  [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "RES check passed — gain a level in any skill you possess:"}],
+              "on_fail": [],
+              "prompt": "RES 8+ to gain a level in any skill you already have"}],
+        7:  [],  # Life Event
+        8:  [{"type": "skill_choice", "options": ["Pilot", "Astrogation", "Engineer"]}],
+        9:  [{"type": "ally", "desc": "Ally [Embassy/Other Nests]"},
+             {"type": "contact", "desc": "Contact [Embassy/Other Nests]"}],
+        10: [{"type": "skill_choice", "options": ["Deception", "Streetwise"]}],
+        11: [{"type": "skill_choice", "options": ["Animals", "Recon", "Survival"]}],
+        12: [{"type": "skill_choice", "options": ["Gun Combat", "Heavy Weapons"]}],
+    },
+    "hiver_manipulator": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
+        4:  [{"type": "dm_advancement", "amount": 4}],
+        5:  [{"type": "dm_advancement", "amount": 1}],
+        6:  [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "RES check passed — gain a level in any skill you possess:"}],
+              "on_fail": [],
+              "prompt": "RES 8+ to gain a level in any skill you already have"}],
+        7:  [],  # Life Event
+        8:  [{"type": "skill_choice", "options": ["Pilot", "Astrogation", "Engineer"]}],
+        9:  [{"type": "ally", "desc": "Ally [Embassy/Other Nests]"},
+             {"type": "contact", "desc": "Contact [Embassy/Other Nests]"}],
+        10: [{"type": "skill", "name": "Streetwise", "level": 1},
+             {"type": "contact", "desc": "Contact [Alien/Non-Hiver]"}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Major Endeavour]"}],
+        12: [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "dm_advancement", "amount": 4},
+                          {"type": "free_skill_choice", "prompt": "Choose any skill:"},
+                          {"type": "contact", "desc": "Contact [Outside Hiver Society]"}],
+              "on_fail": [{"type": "free_skill_choice", "prompt": "Choose any skill:"},
+                          {"type": "contact", "desc": "Contact [Outside Hiver Society]"}],
+              "prompt": "RES 8+ — pass: immediate DM+4 advancement check + skill + Contact; fail: skill + Contact"}],
+    },
+    "hiver_merchant": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
+        4:  [{"type": "dm_advancement", "amount": 4}],
+        5:  [{"type": "pending_choice", "id": "hiver_merchant_big_score",
+              "prompt": "Big score — take the money or claim the credit?",
+              "options": [
+                  {"id": "money",  "label": "Take the money — roll 2D×Cr100,000"},
+                  {"id": "credit", "label": "Claim the credit — DM+1 to all advancement in this career, gain Contact"},
+              ]}],
+        6:  [{"type": "skill_check", "skills": [{"name": "RES", "is_stat": True}], "target": 8,
+              "on_pass": [{"type": "free_skill_choice", "prompt": "RES check passed — gain a level in any skill you possess (level 0+):"}],
+              "on_fail": [],
+              "prompt": "RES 8+ to gain a level in any skill you have at level 0 or higher"}],
+        7:  [],  # Life Event
+        8:  [{"type": "skill_choice", "options": ["Pilot", "Astrogation", "Engineer"]}],
+        9:  [{"type": "ally", "desc": "Ally [Embassy/Other Nests]"},
+             {"type": "contact", "desc": "Contact [Embassy/Other Nests]"}],
+        10: [{"type": "skill", "name": "Streetwise", "level": 1},
+             {"type": "contact", "desc": "Contact [Alien/Non-Hiver]"}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Major Organisation]"}],
+        12: [{"type": "skill", "name": "Tactics", "level": 1},
+             {"type": "contact", "desc": "Contact [Outside Hiver Society]"}],
+    },
 }
 
 
@@ -10795,6 +12252,212 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         6: [{"type": "zhodani_soc_conditional",
              "if_soc_gte_10": [{"type": "rival", "desc": "Rival [Rival Entertainer]"}]}],
     },
+
+    # ---- Droyne careers ----
+    # Mishap 1: combat injury — skill choice + stat loss; continuation check (auto)
+    # Mishap 6: always rank −1 (Leader: rank −2)
+    "droyne_worker": {
+        1: [{"type": "skill_choice", "options": ["Gun Combat", "Melee", "Medic"]},
+            {"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -2}],
+        2: [],  # Junior Leader challenge — narrative, no fixed mechanical effect
+        3: [{"type": "pending_choice", "id": "droyne_worker_sacrifice",
+             "prompt": "Ordered to make great sacrifices. Behave correctly (−1 each physical stat) or incorrectly (ejected)?",
+             "options": [
+                 {"id": "correct",   "label": "Behave correctly — lose STR/DEX/END −1 each; continuation check"},
+                 {"id": "incorrect", "label": "Behave incorrectly — ejected from Oytrip"},
+             ]}],
+        4: [],  # Bad things — narrative, continuation check only (auto)
+        5: [{"type": "skill", "name": "Outsider", "level": 1},
+            {"type": "pending_choice", "id": "droyne_take_streetwise",
+             "prompt": "Stranded outside Droyne society. Take Streetwise 1 (a Black Skill)?",
+             "options": [
+                 {"id": "yes", "label": "Take Streetwise 1 (Black Skill — diminishes you)"},
+                 {"id": "no",  "label": "Decline"},
+             ]}],
+        6: [{"type": "rank_adjustment", "amount": -1}],
+    },
+    "droyne_warrior": {
+        1: [{"type": "skill_choice", "options": ["Gun Combat", "Melee", "Medic"]},
+            {"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -2}],
+        2: [],  # Junior Leader challenge — narrative
+        3: [{"type": "pending_choice", "id": "droyne_warrior_sacrifice",
+             "prompt": "Warriors took heavy losses. Behave correctly (−1 each physical stat) or betray (ejected)?",
+             "options": [
+                 {"id": "correct", "label": "Behave correctly — lose STR/DEX/END −1 each; continuation check"},
+                 {"id": "betray",  "label": "Betray your role — ejected (or commit ritual suicide)"},
+             ]}],
+        4: [],  # Bad things — narrative, continuation check only (auto)
+        5: [{"type": "skill", "name": "Outsider", "level": 1},
+            {"type": "pending_choice", "id": "droyne_take_streetwise",
+             "prompt": "Expedition gone wrong. Take Streetwise 1 (a Black Skill)?",
+             "options": [
+                 {"id": "yes", "label": "Take Streetwise 1 (Black Skill — diminishes you)"},
+                 {"id": "no",  "label": "Decline"},
+             ]}],
+        6: [{"type": "rank_adjustment", "amount": -1}],
+    },
+    "droyne_drone": {
+        1: [{"type": "skill", "name": "Medic", "level": 1},
+            {"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -2}],
+        2: [],  # Prediction/Leadership/Survival situation — narrative, complex
+        3: [{"type": "pending_choice", "id": "droyne_drone_sacrifice",
+             "prompt": "Get the young to safety: take extraordinary risks (−1 all physical stats) or let others sacrifice?",
+             "options": [
+                 {"id": "risk",  "label": "Take risks — lose STR/DEX/END −1 each; continuation check"},
+                 {"id": "shirk", "label": "Let others sacrifice — rank −1; gain Enemy [Oytrip]"},
+             ]}],
+        4: [],  # Leadership/Admin check — narrative with continuation check
+        5: [{"type": "pending_choice", "id": "droyne_drone_prediction",
+             "prompt": "Prediction check (Appeal/Prediction/Admin) 8+ — pass: rank unchanged; fail: rank −1 + Outsider 1",
+             "options": [
+                 {"id": "pass", "label": "Check passed — no rank change"},
+                 {"id": "fail", "label": "Check failed — rank −1 and Outsider 1"},
+             ]}],
+        6: [{"type": "rank_adjustment", "amount": -1}],
+    },
+    "droyne_technician": {
+        1: [{"type": "skill_choice", "options": ["Gun Combat", "Melee", "Medic"]},
+            {"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -2}],
+        2: [{"type": "rank_adjustment", "amount": -1}],  # Disrupted project — rank −1 (or eject)
+        3: [{"type": "pending_choice", "id": "droyne_tech_sacrifice",
+             "prompt": "Work under hazardous conditions: behave correctly (−1 all physical) or incorrectly (ejected)?",
+             "options": [
+                 {"id": "correct",   "label": "Behave correctly — lose STR/DEX/END −1 each; continuation check"},
+                 {"id": "incorrect", "label": "Behave incorrectly — ejected from Oytrip"},
+             ]}],
+        4: [{"type": "pending_choice", "id": "droyne_tech_emergency",
+             "prompt": "Emergency repairs — try hardest (−D3 stat, rank+1) or do minimum (no injury, rank−1)?",
+             "options": [
+                 {"id": "hardest", "label": "Try hardest — lose D3 from a physical stat, but rank+1"},
+                 {"id": "minimum", "label": "Do minimum — no injury, but rank−1"},
+             ]}],
+        5: [{"type": "skill", "name": "Outsider", "level": 1},
+            {"type": "pending_choice", "id": "droyne_take_streetwise",
+             "prompt": "Expedition gone wrong. Take Streetwise 1 (a Black Skill)?",
+             "options": [
+                 {"id": "yes", "label": "Take Streetwise 1 (Black Skill — diminishes you)"},
+                 {"id": "no",  "label": "Decline"},
+             ]}],
+        6: [{"type": "rank_adjustment", "amount": -1}],
+    },
+    "droyne_sport": {
+        1: [{"type": "pending_choice", "id": "droyne_sport_attack",
+             "prompt": "Attack during negotiations. Appeal 8+ outcome:",
+             "options": [
+                 {"id": "pass", "label": "Appeal passed — fighting ended quickly; lose −1 from one physical stat"},
+                 {"id": "fail", "label": "Appeal failed — lose −1 from each physical stat"},
+             ]}],
+        2: [{"type": "pending_choice", "id": "droyne_sport_kroyloss",
+             "prompt": "Sent to monitor ejected Leader's Kroyloss — return home or begin adventuring?",
+             "options": [
+                 {"id": "return",    "label": "Try to return: END 8+ — pass: welcome back; fail: INT/EDU/PSI −1 each"},
+                 {"id": "adventure", "label": "Begin adventuring now"},
+             ]}],
+        3: [{"type": "pending_choice", "id": "droyne_sport_expose",
+             "prompt": "Expose a Leader's incorrect actions: Appeal 8+?",
+             "options": [
+                 {"id": "expose", "label": "Expose them — gain Enemy [Kroyloss]; must roll Appeal 8+"},
+                 {"id": "fail",   "label": "Failed to deliver in time — rank −1; continuation check"},
+             ]}],
+        4: [],  # Narrative — go on a quest or be expelled
+        5: [{"type": "pending_choice", "id": "droyne_sport_outsider_rescue",
+             "prompt": "Outsider 8+ to rescue expedition members:",
+             "options": [
+                 {"id": "pass", "label": "Outsider passed — no ill effects; gained Contact [Outside Oytrip]"},
+                 {"id": "fail", "label": "Outsider failed — rank −1; gained Contact [Outside Oytrip]"},
+             ]},
+            {"type": "contact", "desc": "Contact [Outside Oytrip]"}],
+        6: [{"type": "rank_adjustment", "amount": -1}],
+    },
+    "droyne_leader": {
+        1: [{"type": "pending_choice", "id": "droyne_leader_attack",
+             "prompt": "Leadership check 8+ to respond correctly to attack:",
+             "options": [
+                 {"id": "pass", "label": "Leadership passed — gain Gun Combat/Melee/Tactics"},
+                 {"id": "fail", "label": "Leadership failed — lose D3 from a physical stat; continuation check"},
+             ]}],
+        2: [{"type": "enemy", "desc": "Enemy [Old Oytrip]"}],  # Always ejected; gain Enemy
+        3: [{"type": "stat", "stat": "STR", "amount": -1},
+            {"type": "stat", "stat": "DEX", "amount": -1},
+            {"type": "stat", "stat": "END", "amount": -1},
+            {"type": "ally", "desc": "Ally [Oytrip member]"}],
+        4: [{"type": "pending_choice", "id": "droyne_leader_outsiders",
+             "prompt": "Non-Droyne invaded. Educate them (ejected, gain Ally [Outsider]) or punish (3 Enemies)?",
+             "options": [
+                 {"id": "educate", "label": "Educate — ejected; gain Ally [Outsider]"},
+                 {"id": "punish",  "label": "Punish — gain D3 Enemies [Outsiders]"},
+             ]}],
+        5: [{"type": "skill", "name": "Outsider", "level": 1},
+            {"type": "pending_choice", "id": "droyne_take_streetwise",
+             "prompt": "Expedition gone wrong. Take Streetwise 1 (a Black Skill)?",
+             "options": [
+                 {"id": "yes", "label": "Take Streetwise 1 (Black Skill — diminishes you)"},
+                 {"id": "no",  "label": "Decline"},
+             ]}],
+        6: [{"type": "rank_adjustment", "amount": -2}],  # Leaders: rank −2
+    },
+
+    # ---- Hiver Federation careers ----
+    # Mishap 1: serious injury (roll-2 equivalent)
+    # Mishaps are broadly similar across all 4 Hiver careers
+    "hiver_academic": {
+        1: [{"type": "injury"}],  # Serious injury (equivalent to roll of 2 on Hiver Injury table)
+        2: [{"type": "pending_choice", "id": "hiver_academic_disheartened",
+             "prompt": "Repeated failures. RES check — pass: Enemy; fail: lose Benefit rolls equal to negative Effect.",
+             "options": [
+                 {"id": "pass", "label": "RES check passed — gain Enemy [Thwarted Planner]"},
+                 {"id": "fail", "label": "RES check failed — lose Benefit rolls equal to negative Effect"},
+             ]}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}],  # RES (SOC) −1
+        4: [{"type": "contact", "desc": "Contact [Mysterious Benefactor — owe a huge favour; become Enemy or Ally]"}],
+        5: [],  # Narrative — reputation blackened
+        6: [],  # Narrative — nest ceased to exist
+    },
+    "hiver_generalist": {
+        1: [{"type": "injury"}],
+        2: [{"type": "pending_choice", "id": "hiver_generalist_threatened",
+             "prompt": "Threatened with violence. RES check — pass: Enemy; fail: lose Benefit rolls equal to negative Effect.",
+             "options": [
+                 {"id": "pass", "label": "RES check passed — gain Enemy [Even More Resentful]"},
+                 {"id": "fail", "label": "RES check failed — lose Benefit rolls equal to negative Effect"},
+             ]}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        4: [{"type": "contact", "desc": "Contact [Mysterious Benefactor — owe a huge favour; become Enemy or Ally]"}],
+        5: [],  # Narrative
+        6: [],  # Narrative
+    },
+    "hiver_manipulator": {
+        1: [{"type": "injury"}],
+        2: [{"type": "pending_choice", "id": "hiver_manipulator_disheartened",
+             "prompt": "Repeated failures. RES check — pass: Enemy (must leave career); fail: lose RES equal to negative Effect.",
+             "options": [
+                 {"id": "pass", "label": "RES check passed — gain Enemy; but do NOT have to leave career"},
+                 {"id": "fail", "label": "RES check failed — lose RES (SOC) equal to negative Effect"},
+             ]}],
+        3: [{"type": "stat", "stat": "SOC", "amount": 1},   # RES +1
+            {"type": "d_associates", "kind": "rival", "dice": "D3"}],
+        4: [{"type": "rival", "desc": "Rival [Manipulator Who Helped — owe enormous favour]"}],
+        5: [],  # Narrative — ejected from home nest
+        6: [{"type": "d_associates", "kind": "rival", "dice": "D3"}],
+    },
+    "hiver_merchant": {
+        1: [{"type": "injury"}],
+        2: [{"type": "pending_choice", "id": "hiver_merchant_disheartened",
+             "prompt": "Repeated failures. RES check — pass: Enemy; fail: lose Benefit rolls equal to negative Effect.",
+             "options": [
+                 {"id": "pass", "label": "RES check passed — gain Enemy [Discrediting Party]"},
+                 {"id": "fail", "label": "RES check failed — lose Benefit rolls equal to negative Effect"},
+             ]}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        4: [{"type": "pending_choice", "id": "hiver_merchant_debt",
+             "prompt": "Financial sinkhole — in debt MCr2D×1. Mysterious benefactor saves you (stay in career, owe favour) or not?",
+             "options": [
+                 {"id": "saved",     "label": "Saved — do not leave career; gain Contact [Benefactor — owe favour]"},
+                 {"id": "not_saved", "label": "Not saved — still in debt (gain Enemy pursuing you + 10% of debt as cash)"},
+             ]}],
+        5: [],  # Narrative
+        6: [],  # Narrative
+    },
 }
 
 
@@ -11098,9 +12761,12 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         terms_in_career = sum(
             1 for h in character.term_history if h.career_id == term.career_id
         )
-        # Benefit rolls = 1 per full term + rank bonus (computed before CareerRecord so it can be stored)
+        # Benefit rolls = (N per full term) + rank bonus, where N is 1 for standard careers
+        # and career.mustering_out_rolls_per_term for careers like Hiver (2 rolls/term).
+        _leaving_career = rules.careers().get(term.career_id, {})
+        _rolls_per_term = _leaving_career.get("mustering_out_rolls_per_term", 1)
         rank_bonus = _benefit_rolls_from_rank(term.rank)
-        earned = terms_in_career + rank_bonus
+        earned = terms_in_career * _rolls_per_term + rank_bonus
         forfeit_note = ""
         if term.benefit_forfeited:
             earned = max(0, earned - 1)
@@ -11172,6 +12838,22 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
 
+    # ── Droyne end-of-term life event check (2D + caste_number ≥ 10) ────────
+    # Per Aliens of Charted Space Vol. 2 RAW: at the end of every term roll
+    # 2D with the character's caste number as a positive DM. On 10+, a life
+    # event occurs (rolled on the Droyne Life Events table).
+    droyne_life_event_result: dict | None = None
+    if term is not None and term.career_id in rules.DROYNE_CAREER_IDS:
+        _caste_num = character.droyne_caste_number or 0
+        _det_r = dice.roll("2D")
+        _det_total = _det_r.total + _caste_num
+        character.log(
+            f"Droyne end-of-term check: 2D{_caste_num:+d} = {_det_total} "
+            f"{'≥ 10 — Life Event!' if _det_total >= 10 else '< 10 — no life event'}"
+        )
+        if _det_total >= 10:
+            droyne_life_event_result = _apply_droyne_life_event(character)
+
     # ── K'kree wife acquisition roll (Average 8+ Patriarchy) ─────────────────
     # Each term in a K'kree career the patriarch rolls Patriarchy 8+ to acquire
     # a new wife. Success adds her as an Associate(kind="wife").
@@ -11216,6 +12898,7 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         "total_terms": character.total_terms,
         "pending_benefit_rolls": character.pending_benefit_rolls,
         "wife_roll": wife_roll_result,
+        "droyne_life_event": droyne_life_event_result,
         "character": character.model_dump(),
     }
 
@@ -11402,15 +13085,40 @@ def muster_out_roll(
             f"{career['name']} ({max_rolls} total including rank bonus)."
         )
 
+    # Hiver careers use a 2D table with RES (SOC) DM; enforce half-must-be-cash rule.
+    _is_hiver_career = career.get("hiver_career", False)
+    _muster_dm_char = career.get("mustering_out_dm_characteristic", "")
+    _min_cash_fraction = career.get("mustering_out_min_cash_fraction", 0.0)
+
     # Rank 5-6 bonus: DM+1 to ALL benefit rolls in this career (RAW p.53)
+    # (Hiver ranks top at 2, so this never triggers for Hiver)
     dm = 0
     rank_dm = 0
     if career_rec.final_rank >= 5:
         dm += 1
         rank_dm = 1
 
-    # Gambler bonus on cash rolls
-    if column == "cash":
+    # Hiver: add RES (SOC) characteristic DM to every roll
+    hiver_res_dm = 0
+    if _is_hiver_career and _muster_dm_char:
+        _res_val = character.characteristics.get(_muster_dm_char) or 0
+        hiver_res_dm = dice.characteristic_dm(_res_val)
+        dm += hiver_res_dm
+
+    # Hiver half-cash rule: block cash if already at/above 50% of total rolls
+    if _is_hiver_career and _min_cash_fraction > 0 and column == "cash":
+        _total_rolls = career_rec.benefit_rolls_earned
+        _max_cash = int(_total_rolls * _min_cash_fraction)
+        # Cash used for this career = benefit_rolls_used_cash; approximate from global cash_rolls_used
+        # (Simple approach: only enforce if we'd exceed 50% — future improvement can track per-career)
+        if character.cash_rolls_used >= _max_cash > 0:
+            raise ValueError(
+                f"Hiver benefit rules: at most {_max_cash} of your {_total_rolls} rolls "
+                f"({int(_min_cash_fraction * 100)}%) may be cash rolls. Already used {character.cash_rolls_used}."
+            )
+
+    # Gambler bonus on cash rolls (not applicable for Hiver)
+    if column == "cash" and not _is_hiver_career:
         if any(s.name.lower() == "gambler" for s in character.skills):
             dm += 1
     dm += character.dm_next_benefit
@@ -11424,41 +13132,62 @@ def muster_out_roll(
         character.good_fortune_benefit_dm -= 2
         good_fortune_used = True
 
-    r = dice.roll("1D", modifier=dm)
-    # Cap to the highest defined row (usually 6, some careers extend to 7 or 8)
+    # Roll: 2D for Hiver (table keyed "2"–"12"), 1D for everyone else (keyed "1"–"6"+)
+    if _is_hiver_career:
+        r = dice.roll("2D", modifier=dm)
+        min_row = 2
+    else:
+        r = dice.roll("1D", modifier=dm)
+        min_row = 1
     max_row = max(int(k) for k in table.keys() if k.isdigit())
-    key = str(max(1, min(max_row, r.total)))
+    key = str(max(min_row, min(max_row, r.total)))
     row = table.get(key)
     if row is None:
         raise ValueError(f"No row for result {key}")
 
     if column == "cash":
-        gross_cash = row["cash"]
-        # Aslan male: receive only half the cash amount
-        aslan_half_note = ""
-        if _is_aslan_male:
-            gross_cash = gross_cash // 2
-            aslan_half_note = " (half, Aslan male)"
-        cash = gross_cash
-        debt_paid = 0
-        if character.medical_debt > 0:
-            debt_paid = min(character.medical_debt, cash)
-            character.medical_debt -= debt_paid
-            cash -= debt_paid
-            character.log(
-                f"Paid Cr{debt_paid:,} in medical bills "
-                f"(Cr{character.medical_debt:,} still owed)."
+        raw_cash_value = row["cash"]
+        if raw_cash_value < 0:
+            # Negative Hiver cash = debt reduction
+            debt_reduction = abs(raw_cash_value)
+            actually_reduced = min(debt_reduction, character.medical_debt)
+            character.medical_debt = max(0, character.medical_debt - actually_reduced)
+            result_text = (
+                f"Reduced debt by Cr{actually_reduced:,} "
+                f"(Cr{character.medical_debt:,} still owed)"
             )
-        character.credits += cash
-        character.cash_rolls_used += 1
-        result_text = (
-            f"Cr{cash:,}" + (f" (after Cr{debt_paid:,} medical)" if debt_paid else "")
-            + aslan_half_note
-        )
-        character.log(
-            f"Muster out (cash)[{r.total}]: gross Cr{gross_cash:,}{aslan_half_note}, "
-            f"medical Cr{debt_paid:,}, net Cr{cash:,}."
-        )
+            character.cash_rolls_used += 1
+            character.log(
+                f"Muster out (cash)[{r.total}]: Hiver debt reduction Cr{debt_reduction:,}; "
+                f"reduced Cr{actually_reduced:,}, Cr{character.medical_debt:,} remaining."
+            )
+        else:
+            gross_cash = raw_cash_value
+            # Aslan male: receive only half the cash amount
+            aslan_half_note = ""
+            if _is_aslan_male:
+                gross_cash = gross_cash // 2
+                aslan_half_note = " (half, Aslan male)"
+            cash = gross_cash
+            debt_paid = 0
+            if character.medical_debt > 0:
+                debt_paid = min(character.medical_debt, cash)
+                character.medical_debt -= debt_paid
+                cash -= debt_paid
+                character.log(
+                    f"Paid Cr{debt_paid:,} in medical bills "
+                    f"(Cr{character.medical_debt:,} still owed)."
+                )
+            character.credits += cash
+            character.cash_rolls_used += 1
+            result_text = (
+                f"Cr{cash:,}" + (f" (after Cr{debt_paid:,} medical)" if debt_paid else "")
+                + aslan_half_note
+            )
+            character.log(
+                f"Muster out (cash)[{r.total}]: gross Cr{gross_cash:,}{aslan_half_note}, "
+                f"medical Cr{debt_paid:,}, net Cr{cash:,}."
+            )
     else:
         benefit = row["benefit"]
         skill_options = _is_skill_choice_benefit(benefit)
@@ -11540,6 +13269,16 @@ def _apply_benefit(character: Character, benefit: str) -> None:
     if re.match(r"^1\s+Clan\s+Share$", b, re.IGNORECASE):
         character.clan_shares += 1
         character.log(f"Muster benefit: 1 Clan Share (total {character.clan_shares}).")
+        return
+
+    # Hiver RES +1 = SOC +1 (Resolve is displayed as RES but stored as SOC)
+    if b == "RES +1":
+        species_data = rules.species().get(character.species_id, {})
+        max_stat = species_data.get("characteristic_maximum", 15)
+        current = character.characteristics.SOC
+        if current < max_stat:
+            character.characteristics.set("SOC", current + 1)
+            character.log(f"Muster benefit: RES (SOC) +1 (now {current + 1}).")
         return
 
     # Characteristic bonuses
@@ -11691,6 +13430,28 @@ def _rank_data(career: dict, assignment_id: str, rank: int,
     return rank_table.get(str(rank))
 
 
+def _get_stat(character: "Character", stat: str) -> int:
+    """Get a characteristic value by name, handling PSI and RES aliases."""
+    k = stat.upper()
+    if k == "PSI":
+        return character.psi
+    if k == "RES":
+        return character.characteristics.SOC
+    return character.characteristics.get(k) or 0
+
+
+def _set_stat(character: "Character", stat: str, value: int) -> None:
+    """Set a characteristic value by name, handling PSI and RES aliases."""
+    k = stat.upper()
+    if k == "PSI":
+        character.psi = max(0, value)
+        return
+    if k == "RES":
+        character.characteristics.SOC = max(0, value)
+        return
+    character.characteristics.set(k, value)
+
+
 def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
     """Parse and apply a rank-bonus string to the character.
 
@@ -11736,16 +13497,16 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
 
     # "STAT N or STAT +M" — floor-or-increment (with optional trailing text)
     m_complex = re.match(
-        r"^(SOC|STR|DEX|END|INT|EDU|PSI)\s+(\d+)\s+or\s+\1\s*\+(\d+)",
+        r"^(SOC|STR|DEX|END|INT|EDU|PSI|RES)\s+(\d+)\s+or\s+\1\s*\+(\d+)",
         text, re.IGNORECASE
     )
     if m_complex:
         stat = m_complex.group(1).upper()
         floor_val = int(m_complex.group(2))
         bonus_n = int(m_complex.group(3))
-        current = character.characteristics.get(stat)
+        current = _get_stat(character, stat)
         new_val = max(floor_val, current + bonus_n)
-        character.characteristics.set(stat, new_val)
+        _set_stat(character, stat, new_val)
         return f"{stat} {current}→{new_val} (rank bonus)"
 
     # "REP +N" — reputation characteristic used by Bounty Hunter career
@@ -11757,25 +13518,25 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         return f"REP {old_rep}→{character.reputation} (rank bonus)"
 
     # "STAT +N" or "STAT+N"
-    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s*\+(\d+)$", text, re.IGNORECASE)
+    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES)\s*\+(\d+)$", text, re.IGNORECASE)
     if m_stat:
         stat = m_stat.group(1).upper()
         n = int(m_stat.group(2))
         species_data = rules.species().get(character.species_id, {})
         max_stat = species_data.get("characteristic_maximum", 15)
-        current = character.characteristics.get(stat)
+        current = _get_stat(character, stat)
         new_val = min(max_stat, current + n)
-        character.characteristics.set(stat, new_val)
+        _set_stat(character, stat, new_val)
         return f"{stat} {current}→{new_val} (rank bonus)"
 
     # "STAT N" — raise stat to floor value (e.g. "SOC 15")
-    m_stat_floor = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI)\s+(\d+)$", text, re.IGNORECASE)
+    m_stat_floor = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES)\s+(\d+)$", text, re.IGNORECASE)
     if m_stat_floor:
         stat = m_stat_floor.group(1).upper()
         floor_val = int(m_stat_floor.group(2))
-        current = character.characteristics.get(stat)
+        current = _get_stat(character, stat)
         new_val = max(floor_val, current)
-        character.characteristics.set(stat, new_val)
+        _set_stat(character, stat, new_val)
         return f"{stat} {current}→{new_val} (floor {floor_val})"
 
     # "Skill N or Skill2 M" — player choice; auto-pick the first option
@@ -11901,15 +13662,22 @@ def _apply_skill_result(character: Character, result: str) -> str:
         character.associates.append(Associate(kind="ally", description="Met during career"))
         return "Gained an Ally"
 
-    # Characteristic bonuses ("STR +1", "DEX +1", etc.)
-    for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
+    # Characteristic bonuses ("STR +1", "DEX +1", "PSI +1", "RES +1", etc.)
+    for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC", "PSI", "RES"):
         if stripped == f"{stat} +1":
             species_data = rules.species().get(character.species_id, {})
             max_stat = species_data.get("characteristic_maximum", 15)
-            current = character.characteristics.get(stat)
+            if stat == "PSI":
+                current = character.psi
+                character.psi = min(current + 1, max_stat)
+                return f"PSI {current}→{character.psi}"
+            # RES is an alias for SOC (Hiver Resolve)
+            real_stat = "SOC" if stat == "RES" else stat
+            current = character.characteristics.get(real_stat)
             if current < max_stat:
-                character.characteristics.set(stat, current + 1)
-                return f"{stat} {current}→{current + 1}"
+                character.characteristics.set(real_stat, current + 1)
+                label = stat  # keep "RES" label for Hivers
+                return f"{label} {current}→{current + 1}"
             return f"{stat} already at max ({max_stat})"
 
     # "X or Y" — just record both options; first one is granted for simplicity

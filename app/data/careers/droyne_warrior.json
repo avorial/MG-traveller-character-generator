@@ -1,0 +1,153 @@
+{
+  "id": "droyne_warrior",
+  "name": "Warrior",
+  "description": "Warriors defend the Oytrip and its members and destroy threats when necessary.",
+  "qualification": {
+    "characteristic": null,
+    "target": null,
+    "automatic": true
+  },
+  "droyne_caste": "warrior",
+  "mishap_no_eject": true,
+  "assignments": {
+    "battling": {
+      "name": "Battling",
+      "description": "You attack and destroy the enemies of your Oytrip. You may be a bodyguard or a ground combat specialist, but either way fighting is all you know.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "END", "target": 9}
+    },
+    "guard": {
+      "name": "Guard",
+      "description": "You protect the Oytrip and its members, either in combat or in a rescue and emergency medical role.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "INT", "target": 10}
+    },
+    "voyaging": {
+      "name": "Voyaging",
+      "description": "You travel to fight for your Oytrip. You may be a combat recon specialist or a starship crewmember or some similar role that protects your Oytrip and its people.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "DEX", "target": 9}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "Gun Combat",
+      "5": "Medic",
+      "6": "Heavy Weapons"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Gun Combat",
+      "2": "Recon",
+      "3": "Melee",
+      "4": "Athletics",
+      "5": "Flight",
+      "6": "Caste"
+    },
+    "skilled_warrior": {
+      "name": "Skilled Warrior (Min INT 6+)",
+      "requires_int": 6,
+      "1": "Ancients Tech",
+      "2": "Appeal",
+      "3": "Leadership",
+      "4": "Stealth",
+      "5": "Vacc Suit",
+      "6": "Any psionic skill"
+    },
+    "battling": {
+      "name": "Battling",
+      "assignment_only": "battling",
+      "1": "Gun Combat",
+      "2": "Athletics",
+      "3": "Melee",
+      "4": "Heavy Weapons",
+      "5": "Explosives",
+      "6": "Stealth"
+    },
+    "guard": {
+      "name": "Guard",
+      "assignment_only": "guard",
+      "1": "Drive",
+      "2": "Medic",
+      "3": "Gun Combat",
+      "4": "Athletics",
+      "5": "Flyer",
+      "6": "Recon"
+    },
+    "voyaging": {
+      "name": "Voyaging",
+      "assignment_only": "voyaging",
+      "1": "Electronics",
+      "2": "Gunner",
+      "3": "Pilot",
+      "4": "Gun Combat",
+      "5": "Recon",
+      "6": "Vacc Suit"
+    }
+  },
+  "ranks": {
+    "battling": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Warrior", "bonus": null},
+      "2": {"title": "Satisfactory Warrior", "bonus": "Caste (warrior) 1"},
+      "3": {"title": "Valued Warrior", "bonus": "Gun Combat 1"},
+      "4": {"title": "Highly Valued Warrior", "bonus": "Tactics 1"},
+      "5": {"title": "Exemplary Warrior", "bonus": "INT +1"},
+      "6": {"title": "Eminent Warrior", "bonus": "Leadership 1"}
+    },
+    "guard": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Warrior", "bonus": null},
+      "2": {"title": "Satisfactory Warrior", "bonus": "Caste (warrior) 1"},
+      "3": {"title": "Valued Warrior", "bonus": "Gun Combat 1"},
+      "4": {"title": "Highly Valued Warrior", "bonus": "Tactics 1"},
+      "5": {"title": "Exemplary Warrior", "bonus": "INT +1"},
+      "6": {"title": "Eminent Warrior", "bonus": "Leadership 1"}
+    },
+    "voyaging": {
+      "0": {"title": "Excess to Requirements", "bonus": null},
+      "1": {"title": "Expendable Warrior", "bonus": null},
+      "2": {"title": "Satisfactory Warrior", "bonus": "Caste (warrior) 1"},
+      "3": {"title": "Valued Warrior", "bonus": "Gun Combat 1"},
+      "4": {"title": "Highly Valued Warrior", "bonus": "Tactics 1"},
+      "5": {"title": "Exemplary Warrior", "bonus": "INT +1"},
+      "6": {"title": "Eminent Warrior", "bonus": "Leadership 1"}
+    }
+  },
+  "mishaps": {
+    "1": "Your Oytrip comes under attack. You defend it and are wounded to an acceptable level. Gain your choice of Gun Combat, Melee or Medic but lose −D3 on STR, DEX or END due to your wounds. Make a continuation check.",
+    "2": "A junior Leader challenges the seniors in your Oytrip. You are placed on alert but there is no violence. The junior Leader is driven from the Oytrip. If they were your Leader and you go with them you are exiled from the Oytrip and joined their Kroyloss, which breaks up soon afterward. Muster out and begin adventuring now. If they were not your Leader, everything goes on as before but you must still make a continuation check.",
+    "3": "A dangerous situation arises and the Warriors took heavy losses. If you behave correctly, you lose −1 in each of STR, DEX and END and must make a continuation check. If you do not behave correctly, you betrayed your role in the Oytrip and are rightly driven from it. You may continue to betray your Oytrip by mustering out and beginning your adventuring now or may commit ritual suicide as is correct in these situations.",
+    "4": "Bad things occur. The Leaders formulate a plan and corrected the situation. You do not know the details and you are not meant to for you are a Warrior, not a Leader. Make a continuation check but suffer no other ill-effects.",
+    "5": "Your Leader undertakes an expedition that goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+    "6": "You behave incorrectly. Your rank is reduced by −1. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table.",
+    "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+    "4": "Your Leader honours you by recommending training in Ancients technology. Gain one level in Ancients Tech.",
+    "5": "Your Leader orders you to defend a position to the last drop of blood. Make a Gun Combat check. If successful, it was the enemy's blood and you gain one level of Gun Combat, Melee or Heavy Weapons. If you fail, it was your blood and you gain one level of Medic.",
+    "6": "You do good work and your Leader is pleased. Gain one level in Gun Combat, Heavy Weapons, Vacc Suit or Leadership.",
+    "7": "You guard the Oytrip. The Oytrip prospers.",
+    "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+    "9": "You showed initiative and other Warriors followed you. Make a Tactics check. If successful, you were correct and your diligence is rewarded rank +1. If you failed, rank is reduced by −1 but you learned from your mistakes; gain one level of Tactics (any).",
+    "10": "You were involved with outsiders. Some of them fought quite well, considering. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+    "11": "You are honoured to serve aboard a starship. Gain one level in any of Electronics, Engineer, Gunner, Vacc Suit or Pilot.",
+    "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You guard it diligently. Gain 1 level in Ancients Tech."
+  },
+  "mustering_out": {
+    "1": {"cash": 250, "benefit": "END +2"},
+    "2": {"cash": 500, "benefit": "STR +1"},
+    "3": {"cash": 750, "benefit": "Weapon"},
+    "4": {"cash": 1000, "benefit": "Weapon"},
+    "5": {"cash": 2500, "benefit": "Vacc Suit"},
+    "6": {"cash": 5000, "benefit": "Wings"},
+    "7": {"cash": 10000, "benefit": "Weapon"}
+  },
+  "complete": true,
+  "societies": ["droyne_oytrip"]
+}
