@@ -6453,24 +6453,215 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             character.pending_career_mishap_choice = None
 
         elif choice_id == "event_ge_officer_duel":
-            # ge_warrior_officer event 10: refuse (1D SOC loss) or accept (Melee 8+)
+            # officer duel: refuse (1D SOC loss) or accept (Melee 8+; pass DM+2 Adv [+ extras]; fail forfeit benefit)
             if selected == "refuse":
                 r1d = dice.roll("1D")
                 old_soc = character.characteristics.SOC
                 new_soc = max(0, old_soc - r1d.total)
                 character.characteristics.set("SOC", new_soc)
                 auto_applied.append(f"Refused duel — SOC {old_soc}→{new_soc} (−{r1d.total})")
-                character.log(f"Officer duel event 10: refused, SOC −{r1d.total}")
+                character.log(f"Officer duel: refused, SOC −{r1d.total}")
                 character.pending_career_mishap_choice = None
             else:
+                extra_on_pass = pending.get("extra_on_pass", [])
+                pass_note = "; gain Melee (Natural) 1" if extra_on_pass else ""
                 character.pending_career_mishap_choice = {
                     "type": "skill_check",
                     "skills": [{"name": "Melee"}],
                     "target": 8,
                     "on_nat2": [],
-                    "on_pass": [{"type": "dm_advancement", "amount": 2}],
+                    "on_pass": [{"type": "dm_advancement", "amount": 2}] + extra_on_pass,
                     "on_fail": [{"type": "forfeit_benefit"}],
-                    "prompt": "Accepted duel — roll Melee 8+: pass DM+2 Advancement; fail forfeit Benefit roll",
+                    "prompt": f"Accepted duel — roll Melee 8+: pass DM+2 Advancement{pass_note}; fail forfeit Benefit roll",
+                }
+
+        elif choice_id == "event_skill_or_stat":
+            # Generic: choose one skill from list OR a stat boost (e.g. "Admin 1 / Investigate 1 / SOC+1")
+            stat = pending.get("stat", "SOC")
+            stat_amount = pending.get("stat_amount", 1)
+            if selected == stat:
+                old = character.characteristics.get(stat)
+                character.characteristics.set(stat, old + stat_amount)
+                auto_applied.append(f"{stat} {old}→{old + stat_amount} (+{stat_amount})")
+                character.log(f"Event skill_or_stat: {stat} +{stat_amount}")
+            else:
+                sn, spec = _split_skill_speciality(selected)
+                msg = character.add_skill(sn, level=1, speciality=spec)
+                auto_applied.append(msg)
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_aslan_envoy_fight":
+            # aslan_envoy ev3: flee (SOC−1) or fight (Diplomat/Investigate/Stealth 8+)
+            if selected == "flee":
+                old = character.characteristics.SOC
+                character.characteristics.set("SOC", max(0, old - 1))
+                auto_applied.append(f"Fled — SOC {old}→{max(0, old-1)} (−1)")
+                character.log("Envoy ev3: fled, SOC−1")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Diplomat"}, {"name": "Investigate"}, {"name": "Stealth"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "dm_advancement", "amount": 2}],
+                    "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1},
+                                {"type": "dm_advancement", "amount": -2}],
+                    "prompt": "Stay and fight — roll Diplomat, Investigate or Stealth 8+: pass DM+2 Advancement; fail SOC−1 + DM−2 Advancement",
+                }
+
+        elif choice_id == "event_aslan_envoy_duel":
+            # aslan_envoy ev9: refuse (SOC−2) or challenge (Melee Natural 9+)
+            if selected == "refuse":
+                old = character.characteristics.SOC
+                character.characteristics.set("SOC", max(0, old - 2))
+                auto_applied.append(f"Refused — SOC {old}→{max(0, old-2)} (−2)")
+                character.log("Envoy ev9: refused insult, SOC−2")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Melee (natural)"}],
+                    "target": 9,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1},
+                                {"type": "dm_advancement", "amount": 2}],
+                    "on_fail": [{"type": "stat", "stat": "SOC", "amount": -2},
+                                {"type": "dm_advancement", "amount": -2}],
+                    "prompt": "Challenge to a duel — roll Melee (Natural) 9+: pass SOC+1 + DM+2 Advancement; fail SOC−2 + DM−2 Advancement",
+                }
+
+        elif choice_id == "event_aslan_envoy_conspiracy":
+            # aslan_envoy ev10: refuse (Enemy) or accept (Deception/Persuade 8+; fail mishap; pass 4-way)
+            if selected == "refuse":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Upper-Clan Conspiracy]")
+                )
+                auto_applied.append("Refused conspiracy — gained Enemy [Upper-Clan Conspiracy]")
+                character.log("Envoy ev10: refused, enemy gained")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Deception"}, {"name": "Persuade"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "pending_choice", "id": "event_aslan_conspiracy_reward",
+                                 "prompt": "Conspiracy succeeded — choose your reward:",
+                                 "options": [
+                                     {"id": "Deception", "label": "Deception 1"},
+                                     {"id": "Persuade",  "label": "Persuade 1"},
+                                     {"id": "SOC",       "label": "SOC +1"},
+                                     {"id": "TER",       "label": "TER +1"},
+                                 ]}],
+                    "on_fail": [{"type": "trigger_disaster_mishap"}],
+                    "prompt": "Joined conspiracy — roll Deception or Persuade 8+: pass choose reward; fail roll on Mishap table",
+                }
+
+        elif choice_id == "event_aslan_conspiracy_reward":
+            # 4-way: Deception 1 / Persuade 1 / SOC+1 / TER+1
+            if selected in ("Deception", "Persuade"):
+                msg = character.add_skill(selected, level=1)
+                auto_applied.append(msg)
+                character.log(f"Conspiracy reward: {selected} 1")
+            elif selected == "SOC":
+                old = character.characteristics.SOC
+                character.characteristics.set("SOC", old + 1)
+                auto_applied.append(f"SOC {old}→{old+1} (+1)")
+                character.log("Conspiracy reward: SOC+1")
+            elif selected == "TER":
+                old = character.extra_characteristics.get("TER", 0)
+                character.extra_characteristics["TER"] = old + 1
+                auto_applied.append(f"TER {old}→{old+1} (+1)")
+                character.log("Conspiracy reward: TER+1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_aslan_redemption":
+            # aslan_outcast ev11 / ge_landless_one ev11: accept/decline redemption
+            if selected == "accept":
+                character.dm_next_qualification += 99
+                auto_applied.append(
+                    "Redemption accepted — DM+99 to next Qualification roll (any career) "
+                    "and Contact [Clan Elder — You Owe a Debt] gained. "
+                    "Restore SOC to its original pre-outcast value manually."
+                )
+                character.associates.append(
+                    Associate(kind="contact", description="Contact [Clan Elder — Debt of Redemption]")
+                )
+                character.log("Redemption: accepted, qual DM+99, Contact added, SOC note")
+            else:
+                auto_applied.append("Redemption declined — no effect")
+                character.log("Redemption: declined")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "event_aslan_smuggle":
+            # aslan_space_officer/spacer/ge_fleet_officer ev4: decline or accept smuggling
+            if selected == "decline":
+                auto_applied.append("Declined to smuggle — no effect")
+                character.log("Smuggle ev4: declined")
+                character.pending_career_mishap_choice = None
+            else:
+                skills = pending.get("skills", [{"name": "Deception"}])
+                target = pending.get("target", 8)
+                benefit_count = pending.get("benefit_count", 3)
+                benefit_dice = pending.get("benefit_dice", "")   # e.g. "1D" for fleet_officer
+                fail_soc_cap = pending.get("fail_soc_cap", 0)    # 2 if ejected to SOC 2, else 0
+                fail_dm_adv = pending.get("fail_dm_adv", 0)      # e.g. -6 for spacer
+                fail_note = pending.get("fail_note", "Career ended — ejected (apply manually)")
+                skill_labels = " or ".join(s["name"] for s in skills)
+
+                on_pass_effects: list[dict] = []
+                if benefit_dice:
+                    # Roll benefit_dice to determine benefit count (fleet_officer)
+                    br = dice.roll(benefit_dice)
+                    benefit_count = br.total
+                    auto_applied.append(f"Smuggle dice: {benefit_dice}={benefit_count} Benefit rolls")
+                on_pass_effects.append({"type": "extra_benefit", "amount": benefit_count})
+
+                on_fail_effects: list[dict] = []
+                if fail_dm_adv:
+                    on_fail_effects.append({"type": "dm_advancement", "amount": fail_dm_adv})
+                if fail_soc_cap:
+                    on_fail_effects.append({"type": "stat_cap", "stat": "SOC", "cap": fail_soc_cap})
+
+                pass_note = f"pass: {benefit_count} extra Benefit rolls"
+                fail_note_str = fail_note if fail_note else (
+                    f"SOC→{fail_soc_cap} + career ended" if fail_soc_cap else f"DM{fail_dm_adv} Advancement"
+                )
+
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": skills,
+                    "target": target,
+                    "on_nat2": [],
+                    "on_pass": on_pass_effects,
+                    "on_fail": on_fail_effects,
+                    "prompt": f"Smuggling run — roll {skill_labels} {target}+: {pass_note}; fail: {fail_note_str}",
+                    "fail_note": fail_note,
+                }
+
+        elif choice_id == "event_aslan_heroism_or_prudence":
+            # aslan_spacer ev9 / ge_fleet ev9: heroism (stat 9+ avoid injury + DM+2) or prudence (Stealth 8+, avoid SOC-1)
+            heroism_stat = pending.get("heroism_stat", "END")
+            if selected == "heroism":
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": heroism_stat, "is_stat": True}],
+                    "target": 9,
+                    "on_nat2": [],
+                    "on_pass": [{"type": "dm_advancement", "amount": 2}],
+                    "on_fail": [{"type": "injury"}],
+                    "prompt": f"Heroism — roll {heroism_stat} 9+: pass DM+2 Advancement; fail roll on Injury table",
+                }
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "skill_check",
+                    "skills": [{"name": "Stealth"}],
+                    "target": 8,
+                    "on_nat2": [],
+                    "on_pass": [],
+                    "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+                    "prompt": "Prudence — roll Stealth 8+: pass nothing; fail SOC−1",
                 }
 
         elif choice_id == "event_ge_officer_merc":
@@ -7651,6 +7842,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "aslan_envoy": {
         2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "event_aslan_envoy_fight",
+              "prompt": "Your clan places you in a difficult situation — flee (SOC−1) or stay and fight (Diplomat/Investigate/Stealth 8+)?",
+              "options": [
+                  {"id": "flee",  "label": "Flee — lose SOC −1"},
+                  {"id": "fight", "label": "Fight — roll Diplomat, Investigate or Stealth 8+"},
+              ]}],
         4:  [{"type": "skill_choice", "options": ["Animals (training)", "Survival", "Stealth", "Athletics (dexterity)"]}],
         5:  [{"type": "contact", "desc": "Contact [Clan Council Member]"}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
@@ -7660,6 +7857,18 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_pass": [{"type": "ally", "desc": "Ally [Diplomatic Circles]"}],
               "on_fail": [{"type": "rival", "desc": "Rival [Diplomatic Circles]"}],
               "prompt": "Roll Carouse or Persuade 8+ — pass: Ally; fail: Rival"}],
+        9:  [{"type": "pending_choice", "id": "event_aslan_envoy_duel",
+              "prompt": "Insulted by a rival clan noble — refuse the challenge (SOC−2) or duel them (Melee (Natural) 9+)?",
+              "options": [
+                  {"id": "refuse",    "label": "Refuse — lose SOC −2"},
+                  {"id": "challenge", "label": "Challenge — roll Melee (Natural) 9+"},
+              ]}],
+        10: [{"type": "pending_choice", "id": "event_aslan_envoy_conspiracy",
+              "prompt": "Offered membership in a clan conspiracy — refuse (gain them as an Enemy) or accept (Deception/Persuade 8+)?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — gain Enemy [Conspiracy]"},
+                  {"id": "accept", "label": "Accept — roll Deception or Persuade 8+"},
+              ]}],
         11: [{"type": "pending_choice", "id": "event_ter_or_dm4",
               "prompt": "Trusted by the great lords — choose your reward:",
               "options": [
@@ -7712,6 +7921,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "ransom", "label": "Ransom them — gain TER +2"},
                   {"id": "free",   "label": "Free them — gain as a trusted Ally"},
               ]}],
+        10: [{"type": "pending_choice", "id": "event_ge_officer_duel",
+              "prompt": "Challenged to a duel by a rival — refuse (lose 1D SOC) or accept (Melee 8+)?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — lose 1D SOC"},
+                  {"id": "accept", "label": "Accept — roll Melee 8+"},
+              ]}],
         11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "Your deeds are legend — choose your reward:",
               "options": [
@@ -7728,8 +7943,24 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
                           {"type": "forfeit_benefit"}],
               "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+        4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
+              "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
+              "options": [
+                  {"id": "decline", "label": "Decline — no effect"},
+                  {"id": "accept",  "label": "Accept — roll Deception 8+"},
+              ],
+              "skills": [{"name": "Deception"}], "target": 8,
+              "benefit_count": 3, "fail_dm_adv": -6,
+              "fail_note": "DM−6 to next Advancement roll"}],
         6:  [{"type": "skill_choice", "options": ["Survival", "Streetwise", "Science", "Tolerance"]}],
         8:  [{"type": "contact", "desc": "Contact [Aslan Colonist]"}],
+        9:  [{"type": "pending_choice", "id": "event_aslan_heroism_or_prudence",
+              "prompt": "Vicious battles against clan enemies — demonstrate heroism (END 9+) or prudence (Stealth 8+)?",
+              "options": [
+                  {"id": "heroism",  "label": "Heroism — roll END 9+: pass DM+2 Advancement; fail roll on Injury table"},
+                  {"id": "prudence", "label": "Prudence — roll Stealth 8+: pass nothing lost; fail SOC−1"},
+              ],
+              "heroism_stat": "END"}],
         11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "Captain entrusts you with an important duty — choose reward:",
               "options": [
@@ -7745,6 +7976,15 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
                           {"type": "forfeit_benefit"}],
               "prompt": "Roll Tactics or Engineer 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+        4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
+              "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
+              "options": [
+                  {"id": "decline", "label": "Decline — no effect"},
+                  {"id": "accept",  "label": "Accept — roll Deception 8+"},
+              ],
+              "skills": [{"name": "Deception"}], "target": 8,
+              "benefit_count": 6, "fail_soc_cap": 2,
+              "fail_note": "Ejected from career; SOC drops to 2 (apply career end manually)"}],
         5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
@@ -7754,6 +7994,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "options": [
                   {"id": "ransom", "label": "Ransom them — gain TER +2"},
                   {"id": "free",   "label": "Free them — gain as a trusted Ally"},
+              ]}],
+        10: [{"type": "pending_choice", "id": "event_ge_officer_duel",
+              "prompt": "Challenged to a duel by a rival — refuse (lose 1D SOC) or accept (Melee 8+)?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — lose 1D SOC"},
+                  {"id": "accept", "label": "Accept — roll Melee 8+"},
               ]}],
         11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "You befriend an old admiral — choose reward:",
@@ -7832,6 +8078,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "forfeit_benefit"},
                           {"type": "enemy", "desc": "Enemy [Thieving New Crew]"}],
               "prompt": "Roll Carouse or Streetwise 8+ for new crew — pass: Ally; fail: forfeit benefit + Enemy"}],
+        10: [{"type": "skill_check", "skills": [{"name": "Survival"}, {"name": "Pilot"}], "target": 8,
+              "on_nat2": [],
+              "on_pass": [{"type": "contact", "desc": "Contact [Fringe of Aslan Space]"},
+                          {"type": "free_skill_choice",
+                           "prompt": "Survived on the fringes — gain any one skill at level 1:"}],
+              "on_fail": [{"type": "trigger_disaster_mishap"}],
+              "prompt": "Fringes of Aslan space — roll Survival or Pilot 8+: pass Contact + any skill; fail roll on Mishap table (career continues)"}],
     },
     # ---- GE Aslan careers ----
     "ge_fleet": {
@@ -7842,6 +8095,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "forfeit_benefit"}],
               "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs Hierate attack — fail: forfeit Benefit rolls"}],
         8:  [{"type": "skill_choice", "options": ["Language", "Streetwise", "Tolerance"]}],
+        9:  [{"type": "pending_choice", "id": "event_aslan_heroism_or_prudence",
+              "prompt": "Vicious battles against the Hierate — demonstrate heroism (DEX 9+) or prudence (Stealth 8+)?",
+              "options": [
+                  {"id": "heroism",  "label": "Heroism — roll DEX 9+: pass DM+2 Advancement; fail roll on Injury table"},
+                  {"id": "prudence", "label": "Prudence — roll Stealth 8+: pass nothing lost; fail SOC−1"},
+              ],
+              "heroism_stat": "DEX"}],
         10: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "Captain entrusts you with a ceremonial duty — choose reward:",
               "options": [
@@ -7864,6 +8124,15 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "enemy", "desc": "Enemy [Hierate Corsair Captain]"},
                           {"type": "forfeit_benefit"}],
               "prompt": "Roll Tactics or Engineer 8+ vs Hierate corsairs — fail: Enemy + forfeit benefit"}],
+        4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
+              "prompt": "Opportunity to skim profits from commerce raiding — decline (no effect) or accept (Deception/Admin 8+)?",
+              "options": [
+                  {"id": "decline", "label": "Decline — no effect"},
+                  {"id": "accept",  "label": "Accept — roll Deception or Admin 8+"},
+              ],
+              "skills": [{"name": "Deception"}, {"name": "Admin"}], "target": 8,
+              "benefit_dice": "1D", "fail_soc_cap": 2,
+              "fail_note": "Ejected from career; SOC drops to 2; only Landless One or Outlaw available next term (apply manually)"}],
         5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you have by one level"}],
@@ -7874,6 +8143,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "ransom", "label": "Ransom them — gain TER +2"},
                   {"id": "free",   "label": "Free them — gain as a trusted Ally"},
               ]}],
+        10: [{"type": "pending_choice", "id": "event_ge_officer_duel",
+              "prompt": "Challenged to a duel by a rival — refuse (lose 1D SOC) or accept (Melee 8+)?",
+              "options": [
+                  {"id": "refuse", "label": "Refuse — lose 1D SOC"},
+                  {"id": "accept", "label": "Accept — roll Melee 8+; pass DM+2 Advancement + Melee (Natural) 1"},
+              ],
+              "extra_on_pass": [{"type": "skill", "name": "Melee (Natural)", "level": 1}]}],
         11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "You befriend an admiral — choose reward:",
               "options": [
@@ -7976,6 +8252,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "forfeit_benefit"},
                           {"type": "enemy", "desc": "Enemy [Rival Team]"}],
               "prompt": "Roll Melee or Deception 8+ vs rival team — pass: Ally; fail: forfeit benefit + Enemy"}],
+        11: [{"type": "pending_choice", "id": "event_aslan_redemption",
+              "prompt": "Your clan offers redemption — restore SOC and qualify for another career, but owe a debt to a clan elder?",
+              "options": [
+                  {"id": "accept",  "label": "Accept — restore SOC (note manually), DM+99 to Qualification, gain Contact [Clan Elder]"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
         12: [{"type": "force_next_career", "career_id": "ge_warrior"}],
     },
     "ge_slave": {
@@ -8697,6 +8979,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
         10: [{"type": "dm_qualification", "amount": 99}],
+        11: [{"type": "pending_choice", "id": "event_aslan_redemption",
+              "prompt": "Your clan offers redemption — restore SOC and qualify for another career, but owe a debt to a clan elder?",
+              "options": [
+                  {"id": "accept",  "label": "Accept — restore SOC (note manually), DM+99 to Qualification, gain Contact [Clan Elder]"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
     },
 
     # ---- Aslan Outlaw ----
@@ -8952,8 +9240,15 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "SOC",         "label": "SOC +1"},
               ],
               "stat": "SOC", "stat_amount": 1, "dm_field": "advancement", "dm_amount": 1}],
-        10: [{"type": "skill_choice", "options": ["Admin", "Investigate", "Recon"]},
-             {"type": "stat", "stat": "SOC", "amount": 1}],
+        10: [{"type": "pending_choice", "id": "event_skill_or_stat",
+              "prompt": "Peacekeeping assignment — choose your reward:",
+              "options": [
+                  {"id": "Admin",       "label": "Admin 1"},
+                  {"id": "Investigate", "label": "Investigate 1"},
+                  {"id": "Recon",       "label": "Recon 1"},
+                  {"id": "SOC",         "label": "SOC +1"},
+              ],
+              "stat": "SOC", "stat_amount": 1}],
         11: [{"type": "ally", "desc": "Ally [Pack Leader — Saved Life]"},
              {"type": "dm_advancement", "amount": 2}],
         12: [{"type": "stat", "stat": "SOC", "amount": 1}, {"type": "auto_advance"}],
@@ -9439,10 +9734,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         6:  [{"type": "skill_choice", "options": ["Engineer", "Mechanic", "Science"]}],
         8:  [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
               "on_nat2": [],
-              "on_pass": [{"type": "skill_choice", "options": ["Animals", "Recon", "Survival"]},
-                          {"type": "contact", "desc": "Contact [Border World]"}],
+              "on_pass": [{"type": "skill_choice",
+                           "options": ["Animals", "Recon", "Survival", "Contact [Border World]"]}],
               "on_fail": [],
-              "prompt": "Tour of border worlds — roll SOC 8+: pass skill + Contact; fail nothing"}],
+              "prompt": "Tour of border worlds — roll SOC 8+: pass choose one (Animals/Recon/Survival or Contact); fail nothing"}],
         9:  [{"type": "skill_choice", "options": ["Athletics (dexterity)", "Electronics (sensors)", "Vacc Suit"]}],
         10: [{"type": "skill_check", "skills": [{"name": "Mechanic"}, {"name": "Engineer"}], "target": 8,
               "on_nat2": [],
