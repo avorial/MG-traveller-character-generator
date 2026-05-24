@@ -262,6 +262,18 @@ class Character(BaseModel):
     # Capsule description (generated in finalize phase, persisted for export)
     capsule_description: str = ""
 
+    # Pre-outcast / pre-landless SOC snapshot.
+    # Set automatically whenever SOC is first capped to ≤2 on disgrace-entry
+    # (mishap stat_cap, aslan_mgmt_accused, ge_hierate_capture, smuggle fail).
+    # Used by the redemption events to restore SOC without "apply manually".
+    pre_outcast_soc: int = 0
+
+    # Set by event on_fail effects that mean "you are ejected from this career".
+    # force_career_end: checked in survival_roll → skip dice, auto-fail.
+    # ejected_by_event:  survives into mishap_roll → skip mishap table, just end career.
+    force_career_end: bool = False
+    ejected_by_event: bool = False
+
     # Creation flow state
     phase: str = "characteristics"
     # characteristics | species | background | pre_career | career | mustering | finalize | done

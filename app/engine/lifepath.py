@@ -4519,6 +4519,23 @@ def survival_roll(character: Character) -> dict:
         survival = assignment["survival"]
         cover_dm = 0
 
+    # Event-triggered ejection: skip the dice, career ends without mishap table
+    if character.force_career_end:
+        character.force_career_end = False
+        term.survived = False
+        term.survival_roll_total = 0
+        character.log("Ejected from career by event — survival auto-failed, no mishap table roll.")
+        career_for_flag = rules.careers().get(term.career_id, {})
+        return {
+            "roll": None,
+            "survived": False,
+            "ejected": True,
+            "mishap_no_eject": False,
+            "anagathics_second_roll": None,
+            "parallel_event": None,
+            "character": character.model_dump(),
+        }
+
     char_key = survival["characteristic"]
     target = survival["target"]
     survival_dm_bonus = character.dm_next_survival
@@ -4774,11 +4791,19 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         old = character.characteristics.get(stat)
         new_val = min(old, cap)
         if new_val != old:
+            # Save SOC before first outcast-level reduction for redemption restore
+            if stat == "SOC" and cap <= 2 and character.pre_outcast_soc == 0:
+                character.pre_outcast_soc = old
             character.characteristics.set(stat, new_val)
             msgs.append(f"{stat} {old}→{new_val} (capped at {cap})")
             character.log(f"Mishap: {stat} capped at {cap}: {old}→{new_val}")
         else:
             msgs.append(f"{stat} already ≤ {cap} (stays at {old})")
+
+    elif etype == "force_career_end":
+        character.force_career_end = True
+        character.ejected_by_event = True
+        msgs.append("Career ended — ejected from this career")
 
     elif etype == "stat_choice":
         if not character.pending_career_mishap_choice:
@@ -5062,14 +5087,25 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         character.log("Mishap: forfeit all benefits except one, keeping 1")
 
     elif etype == "trigger_disaster_mishap":
-        # Used in skill_check on_fail: roll on mishap table but career continues
+        # Used in skill_check on_fail: roll on mishap table.
+        # career_continues=True (default) keeps the character in the career.
+        # career_continues=False ends the career (sets force_career_end-equivalent via ejected_by_event after mishap).
+        career_continues = effect.get("career_continues", True)
         try:
             mishap_roll(character)
-            if term is not None:
+            if career_continues and term is not None:
                 term.survived = True
                 term.mishap = None
-            msgs.append("Rolled on Mishap table — career continues")
-            character.log("Event skill-check fail: triggered mishap roll, career continues")
+                msgs.append("Rolled on Mishap table — career continues")
+                character.log("Event skill-check fail: triggered mishap roll, career continues")
+            else:
+                # Career ends: mishap table already rolled above.
+                # force_career_end → survival auto-fails.
+                # ejected_by_event → mishap_roll skips the table (already rolled).
+                character.force_career_end = True
+                character.ejected_by_event = True
+                msgs.append("Rolled on Mishap table — career ended")
+                character.log("Event skill-check fail: triggered mishap roll, career ended")
         except Exception as _exc:
             msgs.append(f"Mishap roll (event on_fail) error: {_exc}")
 
@@ -5085,6 +5121,24 @@ def mishap_roll(character: Character) -> dict:
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
+
+    # Event-triggered ejection: skip the mishap table entirely
+    if character.ejected_by_event:
+        character.ejected_by_event = False
+        term.mishap = "Ejected from career by event"
+        character.log("Mishap skipped — career ended by event ejection.")
+        return {
+            "roll": None,
+            "mishap_number": 0,
+            "mishap": term.mishap,
+            "auto_applied": ["Career ended — ejected from career by event."],
+            "pending_choice": None,
+            "injury_pending": False,
+            "injury_data": None,
+            "frozen_watch": False,
+            "character": character.model_dump(),
+        }
+
     career_id = term.career_id
     career = rules.careers()[career_id]
     mishaps = career.get("mishaps", {})
@@ -5437,6 +5491,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             if selected == "guilty":
                 # Stole: SOC reduced to 2, forced into Outcast next
                 old_soc = character.characteristics.get("SOC")
+                if old_soc > 2 and character.pre_outcast_soc == 0:
+                    character.pre_outcast_soc = old_soc
                 character.characteristics.set("SOC", min(old_soc, 2))
                 character.forced_next_career_id = "aslan_outcast"
                 character.pending_career_mishap_choice = None
@@ -5487,6 +5543,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             else:
                 # Stay in Hierate — SOC 2, gain Contact
                 old_soc = character.characteristics.get("SOC")
+                if old_soc > 2 and character.pre_outcast_soc == 0:
+                    character.pre_outcast_soc = old_soc
                 character.characteristics.set("SOC", min(old_soc, 2))
                 character.associates.append(
                     Associate(kind="contact", description="Contact [Hierate Clan Member]")
@@ -6554,8 +6612,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                                      {"id": "SOC",       "label": "SOC +1"},
                                      {"id": "TER",       "label": "TER +1"},
                                  ]}],
-                    "on_fail": [{"type": "trigger_disaster_mishap"}],
-                    "prompt": "Joined conspiracy — roll Deception or Persuade 8+: pass choose reward; fail roll on Mishap table",
+                    "on_fail": [{"type": "trigger_disaster_mishap", "career_continues": False}],
+                    "prompt": "Joined conspiracy — roll Deception or Persuade 8+: pass choose reward; fail roll on Mishap table (career ends)",
                 }
 
         elif choice_id == "event_aslan_conspiracy_reward":
@@ -6580,15 +6638,21 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             # aslan_outcast ev11 / ge_landless_one ev11: accept/decline redemption
             if selected == "accept":
                 character.dm_next_qualification += 99
-                auto_applied.append(
-                    "Redemption accepted — DM+99 to next Qualification roll (any career) "
-                    "and Contact [Clan Elder — You Owe a Debt] gained. "
-                    "Restore SOC to its original pre-outcast value manually."
-                )
+                # Restore SOC to pre-outcast value (stored when SOC was first capped to 2)
+                restore_soc = character.pre_outcast_soc if character.pre_outcast_soc > 0 else None
+                if restore_soc is not None:
+                    old_soc = character.characteristics.SOC
+                    character.characteristics.set("SOC", restore_soc)
+                    auto_applied.append(f"SOC restored {old_soc}→{restore_soc} (pre-outcast value)")
+                    character.log(f"Redemption: SOC restored to pre-outcast {restore_soc}")
+                else:
+                    auto_applied.append("SOC not restored — pre-outcast SOC unknown (no disgrace entry recorded)")
+                    character.log("Redemption: pre_outcast_soc not recorded, SOC unchanged")
                 character.associates.append(
                     Associate(kind="contact", description="Contact [Clan Elder — Debt of Redemption]")
                 )
-                character.log("Redemption: accepted, qual DM+99, Contact added, SOC note")
+                auto_applied.append("Gained Contact [Clan Elder — Debt of Redemption]; DM+99 to next Qualification roll")
+                character.log("Redemption: accepted, qual DM+99, Contact added")
             else:
                 auto_applied.append("Redemption declined — no effect")
                 character.log("Redemption: declined")
@@ -6607,12 +6671,12 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 benefit_dice = pending.get("benefit_dice", "")   # e.g. "1D" for fleet_officer
                 fail_soc_cap = pending.get("fail_soc_cap", 0)    # 2 if ejected to SOC 2, else 0
                 fail_dm_adv = pending.get("fail_dm_adv", 0)      # e.g. -6 for spacer
-                fail_note = pending.get("fail_note", "Career ended — ejected (apply manually)")
+                fail_eject = pending.get("fail_eject", False)    # True = career ends
+                fail_career_choice = pending.get("fail_career_choice", False)  # True = ge_forced_career_choice
                 skill_labels = " or ".join(s["name"] for s in skills)
 
                 on_pass_effects: list[dict] = []
                 if benefit_dice:
-                    # Roll benefit_dice to determine benefit count (fleet_officer)
                     br = dice.roll(benefit_dice)
                     benefit_count = br.total
                     auto_applied.append(f"Smuggle dice: {benefit_dice}={benefit_count} Benefit rolls")
@@ -6623,11 +6687,27 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     on_fail_effects.append({"type": "dm_advancement", "amount": fail_dm_adv})
                 if fail_soc_cap:
                     on_fail_effects.append({"type": "stat_cap", "stat": "SOC", "cap": fail_soc_cap})
+                if fail_eject:
+                    on_fail_effects.append({"type": "force_career_end"})
+                if fail_career_choice:
+                    on_fail_effects.append({"type": "pending_choice",
+                                            "id": "ge_forced_career_choice",
+                                            "prompt": "Ejected — choose your next career:",
+                                            "options": [
+                                                {"id": "landless_one", "label": "Landless One"},
+                                                {"id": "outlaw",       "label": "Outlaw"},
+                                            ]})
 
-                pass_note = f"pass: {benefit_count} extra Benefit rolls"
-                fail_note_str = fail_note if fail_note else (
-                    f"SOC→{fail_soc_cap} + career ended" if fail_soc_cap else f"DM{fail_dm_adv} Advancement"
-                )
+                fail_parts = []
+                if fail_soc_cap:
+                    fail_parts.append(f"SOC→{fail_soc_cap}")
+                if fail_eject:
+                    fail_parts.append("career ended")
+                if fail_career_choice:
+                    fail_parts.append("choose Landless One or Outlaw next")
+                if fail_dm_adv:
+                    fail_parts.append(f"DM{fail_dm_adv} Advancement")
+                fail_str = "; ".join(fail_parts) or "no effect"
 
                 character.pending_career_mishap_choice = {
                     "type": "skill_check",
@@ -6636,8 +6716,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "on_nat2": [],
                     "on_pass": on_pass_effects,
                     "on_fail": on_fail_effects,
-                    "prompt": f"Smuggling run — roll {skill_labels} {target}+: {pass_note}; fail: {fail_note_str}",
-                    "fail_note": fail_note,
+                    "prompt": f"Smuggling run — roll {skill_labels} {target}+: pass {benefit_count} Benefit rolls; fail: {fail_str}",
                 }
 
         elif choice_id == "event_aslan_heroism_or_prudence":
@@ -7947,11 +8026,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
               "options": [
                   {"id": "decline", "label": "Decline — no effect"},
-                  {"id": "accept",  "label": "Accept — roll Deception 8+"},
+                  {"id": "accept",  "label": "Accept — roll Deception 8+: pass 3 Benefit rolls; fail DM−6 Advancement"},
               ],
               "skills": [{"name": "Deception"}], "target": 8,
-              "benefit_count": 3, "fail_dm_adv": -6,
-              "fail_note": "DM−6 to next Advancement roll"}],
+              "benefit_count": 3, "fail_dm_adv": -6, "fail_eject": False}],
         6:  [{"type": "skill_choice", "options": ["Survival", "Streetwise", "Science", "Tolerance"]}],
         8:  [{"type": "contact", "desc": "Contact [Aslan Colonist]"}],
         9:  [{"type": "pending_choice", "id": "event_aslan_heroism_or_prudence",
@@ -7980,11 +8058,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
               "options": [
                   {"id": "decline", "label": "Decline — no effect"},
-                  {"id": "accept",  "label": "Accept — roll Deception 8+"},
+                  {"id": "accept",  "label": "Accept — roll Deception 8+: pass 6 Benefit rolls; fail SOC→2 + career ended"},
               ],
               "skills": [{"name": "Deception"}], "target": 8,
-              "benefit_count": 6, "fail_soc_cap": 2,
-              "fail_note": "Ejected from career; SOC drops to 2 (apply career end manually)"}],
+              "benefit_count": 6, "fail_soc_cap": 2, "fail_eject": True}],
         5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
@@ -8128,11 +8205,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Opportunity to skim profits from commerce raiding — decline (no effect) or accept (Deception/Admin 8+)?",
               "options": [
                   {"id": "decline", "label": "Decline — no effect"},
-                  {"id": "accept",  "label": "Accept — roll Deception or Admin 8+"},
+                  {"id": "accept",  "label": "Accept — roll Deception or Admin 8+: pass 1D Benefit rolls; fail SOC→2 + career ended (Landless One or Outlaw only)"},
               ],
               "skills": [{"name": "Deception"}, {"name": "Admin"}], "target": 8,
-              "benefit_dice": "1D", "fail_soc_cap": 2,
-              "fail_note": "Ejected from career; SOC drops to 2; only Landless One or Outlaw available next term (apply manually)"}],
+              "benefit_dice": "1D", "fail_soc_cap": 2, "fail_eject": True, "fail_career_choice": True}],
         5:  [{"type": "skill_choice", "options": ["Tolerance", "Diplomat", "Language", "Science"]}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "free_skill_choice", "prompt": "Increase any skill you have by one level"}],
