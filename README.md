@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-19.3-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-19.6-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -115,7 +115,7 @@ The character goes directly to finalization (skill package phase) — no further
 
 Career package choices are stored in `career_package_id` and `career_package_taken` on the character. The capsule narrative describes the package career in place of the normal career-loop paragraphs.
 
-### Careers (64 fully encoded)
+### Careers (74 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -244,6 +244,30 @@ All Zhodani careers except Prole include a **Psionic Skills** table (SOC 10+ onl
 
 See Vargr Extents mechanics below.
 
+#### Droyne Oytrip (6)
+
+| Career | Assignments |
+|---|---|
+| **Droyne Worker** | Farmer, Manufacturer, Scavenger |
+| **Droyne Warrior** | Infantry, Flyer, Guard |
+| **Droyne Drone** | Administrator, Healer, Priest |
+| **Droyne Technician** | Engineer, Artificer, Dreamer |
+| **Droyne Sport** | Traveller, Loner, Companion |
+| **Droyne Leader** | Commander, Envoy, Merchant |
+
+Droyne careers are only available to Droyne characters. Mishaps do not automatically eject the character from their career — the event determines whether the character stays or leaves. See Droyne mechanics below.
+
+#### Hiver Federation (4)
+
+| Career | Assignments |
+|---|---|
+| **Hiver Academic** | Researcher, Professor, Administrator |
+| **Hiver Generalist** | Wanderer, Trader, Survivor |
+| **Hiver Manipulator** | Investigator, Politician, Dealer |
+| **Hiver Merchant** | Broker, Free Trader, Corporate |
+
+Hiver careers are only available to Hiver characters. Mustering-out uses a 2D table (not 1D) with RES (SOC) as the DM. Negative cash benefits reduce outstanding medical debt rather than adding credits. See Hiver mechanics below.
+
 ---
 
 ### Events and mishaps — fully auto-applied
@@ -252,7 +276,7 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 - Skill gains, characteristic changes, DM bonuses, and associates (allies/contacts/rivals/enemies) are applied directly to the character.
 - **Dual-choice events** present a pick-one UI before continuing.
-- **Life Event sub-table** — careers use the standard 2D table; Solomani careers use a separate Solomani Life Events table; Vargr Extents careers use the Vargr Life Events table (with Pack Events 1D sub-table); Zhodani Consulate careers (except Prole) use the Zhodani Life Events table (with Re-education Events 1D sub-table); characters from Drinax (Floating Palace), Drinax (Wasteland), and Asim use homeworld-specific 1D tables with fully auto-applied effects.
+- **Life Event sub-table** — careers use the standard 2D table; Solomani careers use a separate Solomani Life Events table; Aslan Hierate careers use the Aslan Life Events table; K'kree careers use the K'kree Life Events table; Vargr Extents careers use the Vargr Life Events table (with Pack Events 1D sub-table); Zhodani Consulate careers (except Prole) use the Zhodani Life Events table (with Re-education Events 1D sub-table); Hiver careers use the Hiver Life Events table; Droyne careers use the Droyne life events system (end-of-term 2D+caste_number; on 10+ roll on the Droyne Life Events table); characters from Drinax (Floating Palace), Drinax (Wasteland), and Asim use homeworld-specific 1D tables with fully auto-applied effects.
 - **Injury Table** — when a mishap calls for an injury, the player chooses which characteristic absorbs the damage. Medical debt is tracked.
 - **Forced careers** — if a life event, mishap, or anagathics roll mandates a specific next career (e.g. Prisoner), the Decide phase replaces the normal muster-out/continue buttons with a mandatory "Serve Your Sentence" path. Voluntary muster-out is also blocked at the API level.
 - **Career transfers** from events are tracked and honoured.
@@ -322,6 +346,24 @@ Military careers (Army, Marine, Navy, Confederation equivalents, Zhodani Army/Na
 - **Pack Events** — The Vargr Life Events table results 6 and 8 both trigger a 1D Pack Events sub-table. Results cover pack failure (SOC−1), leaving a pack (re-qualification roll), joining a pack, power struggles (ally or rival), success (SOC+1), and leadership challenges (Leadership or SOC 10+ to take charge).
 - **Vargr draft table** — failed qualification drafts into Army (Infantry), Marines, Navy (Crew), or Law Enforcement (Enforcer).
 
+### Droyne Oytrip mechanics
+
+- **Caste system** — At species selection, a 1D roll determines the Droyne's caste: 1=Worker, 2=Warrior, 3=Drone, 4=Technician, 5=Sport, 6=Leader. The caste number is stored as `droyne_caste_number` and displayed as CAST on the character sheet instead of SOC (SOC is always 0 for Droyne). Each caste applies stat modifiers to the core characteristics.
+- **Characteristic re-roll** — All six characteristics are re-rolled at species selection using 1D+1 (not 2D). PSI is rolled as 2D and set immediately.
+- **Iskyar casting bonus** — After rolling characteristics, a casting-bonus array from the species JSON is applied as flat additions to specific stats.
+- **Droyne Life Events system** — At end of term, the engine rolls 2D+caste_number. On a result of 10+, the character rolls on the Droyne Life Events table. This replaces the standard career-routed life events roll.
+- **Mishap no-eject** — Droyne mishaps do not automatically force the character out of their career. The specific mishap result determines whether the character leaves; many results allow the character to stay in their caste career.
+- **Black Skills** — Certain Droyne skills (Carouse, Deception, Gambler, Persuade, Streetwise) are considered "Black Skills" — skills that connect Droyne to outsider culture. Gaining them incurs a social cost tracked as a DM penalty to future advancement rolls.
+
+### Hiver Federation mechanics
+
+- **RES replaces SOC** — For Hiver characters, SOC is labeled RES (Resonance) on the character sheet and in all advancement calculations. The underlying characteristic value is stored as SOC.
+- **Nest type** — At species selection, a 2D roll determines the character's nest type (industrial, economic, generalist, academic, or social). Each nest type provides specific starting bonuses applied at the Senior and Manipulator advancement milestones.
+- **Starting age 14** — Hiver characters begin character creation at age 14.
+- **2D mustering-out table** — All Hiver career mustering-out tables use a 2D roll (keys 2–12) rather than the standard 1D (keys 1–6). RES (SOC) is used as the DM. Each career grants 2 rolls per term served.
+- **Negative cash benefits** — Some Hiver muster-out results are negative credit amounts (e.g. "Reduce Large Debt −Cr700,000"). These are applied as debt reduction rather than credit gains.
+- **Permanent advancement DM** — Hiver Manipulator event 5 and Hiver Merchant event 5 (credit option) grant a permanent `dm_permanent_advancement` bonus that stacks and applies to every future advancement roll without ever being consumed.
+
 ### Additional rules
 
 - **Commissioning** — Army, Marine, Navy, and Noble careers prompt for a commission roll. Officer rank titles replace enlisted titles on success.
@@ -343,7 +385,7 @@ Military careers (Army, Marine, Navy, Confederation equivalents, Zhodani Army/Na
 - **Heroic rolls** — ⚔ HEROIC toggle on the characteristics screen; rolls 4 stats with 2D and 2 stats with 3D6 drop-lowest. Mechanic is shown below the button.
 - **Optional characteristics** — Toggle shows checkboxes for PSI / WLT / LCK / MRL / STY / TER. Select any combination and roll them separately, with heroic option.
 
-### Species (34)
+### Species (36)
 
 Species are listed in picker order (`sort_order` in each JSON) and filtered by society. Single-click a card to preview traits; double-click (or click Confirm) to apply.
 
@@ -408,11 +450,27 @@ Cetacean characters need Vacc Suit before most core careers become available; do
 
 | Species | Society | Modifiers |
 |---|---|---|
-| **Hiver Federation Human** | Hiver Federation | INT +1, EDU +1 |
 | **Two Thousand Worlds Human** | Two Thousand Worlds | END +1, SOC −1 |
 | **K'kree** | Two Thousand Worlds | STR +6, INT +2, EDU +2 |
 
 K'kree characters are the patriarch of a family group. They are centauroid obligate herbivores with Claustrophobic and Gregarious traits that generate narrative notes throughout play. Starting age 14; aging from term 6. See K'kree mechanics above.
+
+#### Hiver Federation (2)
+
+| Species | Modifiers | Notes |
+|---|---|---|
+| **Hiver** | STR −2, DEX −2, END −2, INT +2, EDU +2 | SOC replaced by RES (Resonance); nest type rolled at creation; starting age 14 |
+| **Hiver Federation Human** | INT +1, EDU +1 | Human raised in the Hiver Federation |
+
+Hiver characters replace SOC with RES on all character sheet panels and in all advancement checks. See Hiver mechanics above.
+
+#### Droyne Oytrip (1)
+
+| Species | Modifiers | Notes |
+|---|---|---|
+| **Droyne** | Characteristics rolled 1D+1; PSI 2D | Caste rolled at creation (1D); SOC always 0 (shown as CAST); Iskyar casting bonus applied; starting age 14 |
+
+Droyne characteristics are re-rolled entirely at species selection using 1D+1 per stat. The caste roll determines which career track is available and applies additional stat modifiers. See Droyne mechanics above.
 
 #### Other / Far Domains (5)
 
@@ -438,8 +496,8 @@ traveller-creator/
 │   │   ├── rules.py                # JSON loader with lru_cache, society helpers
 │   │   └── lifepath.py             # Rules engine (all phases)
 │   ├── data/
-│   │   ├── species/                # 34 species JSON files
-│   │   ├── careers/                # 64 career JSON files
+│   │   ├── species/                # 36 species JSON files
+│   │   ├── careers/                # 74 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_packages.json    # 12 background packages
@@ -449,8 +507,12 @@ traveller-creator/
 │   │       ├── injury.json
 │   │       ├── life_events.json            # Standard (Third Imperium) 2D table
 │   │       ├── solomani_life_events.json
+│   │       ├── aslan_life_events.json
+│   │       ├── kkree_life_events.json
 │   │       ├── vargr_extents_life_events.json   # Includes Pack Events 1D sub-table
 │   │       ├── zhodani_life_events.json         # Includes Re-education Events 1D sub-table
+│   │       ├── hiver_life_events.json
+│   │       ├── droyne_life_events.json
 │   │       ├── drinax_palace_life_events.json
 │   │       ├── drinax_wasteland_life_events.json
 │   │       ├── asim_life_events.json
@@ -695,9 +757,16 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `kkree_family_members` | List of family role entries |
 | `kkree_soc_rank_degree` | K'kree social caste: `"servant_of_rankholder"` / `"kinsman_of_rankholder"` / `"rankholder"` |
 | `kkree_specialist_area` | K'kree specialist area rolled at career start |
+| `droyne_caste` | Droyne caste name (`"worker"` / `"warrior"` / `"drone"` / `"technician"` / `"sport"` / `"leader"`) |
+| `droyne_caste_number` | Droyne caste roll result (1–6); used as CAST on the character sheet and as a DM penalty in the end-of-term life events check |
+| `droyne_caste_mods_applied` | Guards against double-applying caste stat modifiers |
+| `hiver_nest_type` | Hiver nest type rolled at creation (`"industrial"` / `"economic"` / `"generalist"` / `"academic"` / `"social"`) |
+| `hiver_senior_bonus_awarded` | One-time Senior rank milestone bonus for Hiver (prevents double-apply) |
+| `hiver_manipulator_bonus_awarded` | One-time Manipulator rank milestone bonus for Hiver (prevents double-apply) |
+| `dm_permanent_advancement` | Permanent advancement DM that stacks every roll and is never consumed (granted by Hiver Manipulator event 5 and Hiver Merchant event 5 credit option) |
 
 ---
 
 ## Legal
 
-*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. Rules referenced here are drawn from Mongoose Traveller 2e Core Rulebook, the Solomani Rim sourcebook, Aliens of Charted Space Volumes 1 and 5, The Glorious Empire sourcebook, and Pirates of Drinax. This project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebooks.
+*Traveller* is a trademark of Far Future Enterprises, used under licence by Mongoose Publishing. Rules referenced here are drawn from Mongoose Traveller 2e Core Rulebook, the Solomani Rim sourcebook, Aliens of Charted Space Volumes 1, 2, and 5, The Glorious Empire sourcebook, and Pirates of Drinax. This project is a fan tool for personal use at the table. Rules text in the JSON data files is paraphrased under fair use for game-aid purposes — please own the rulebooks.
