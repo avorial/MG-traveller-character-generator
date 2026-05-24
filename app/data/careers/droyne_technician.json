@@ -149,6 +149,8 @@
     "7": {"cash": 10000, "benefit": "Weapon"}
   },
   "complete": true,
+  "allowed_species": ["droyne"],
   "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+
 

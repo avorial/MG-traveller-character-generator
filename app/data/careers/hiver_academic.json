@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "hiver_academic",
   "name": "Academic",
   "description": "All Hivers are curious about pretty much everything but few devote themselves full-time to study and research. Those who do may be experimenters or researchers, or may specialise in the fields necessary to support a nest and ensure the well-being of its young.",
@@ -147,5 +147,7 @@
   "mustering_out_dm_characteristic": "SOC",
   "mustering_out_min_cash_fraction": 0.5,
   "complete": true,
+  "allowed_species": ["hiver"],
   "societies": ["hiver_federation"]
 }
+

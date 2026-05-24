@@ -3641,6 +3641,12 @@ function renderChooseCareer() {
   // K'kree characters (uses_kkree_family) must only see K'kree careers (two_thousand_worlds tag).
   const isKkree = !!(speciesDef && speciesDef.uses_kkree_family);
 
+  // Hiver characters (hiver_species) must only see Hiver careers (hiver_federation tag).
+  const isHiver = !!(speciesDef && speciesDef.hiver_species);
+
+  // Droyne characters (droyne_caste_system) must only see Droyne careers (droyne careers have allowed_species: ["droyne"]).
+  const isDroyne = !!(speciesDef && speciesDef.droyne_caste_system);
+
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
@@ -3649,9 +3655,13 @@ function renderChooseCareer() {
         if (isAslan && !(c.societies && c.societies.includes(aslanSocietyTag))) return false;
         // K'kree: only show careers tagged two_thousand_worlds
         if (isKkree && !(c.societies && c.societies.includes('two_thousand_worlds'))) return false;
+        // Hiver: only show careers tagged hiver_federation
+        if (isHiver && !(c.societies && c.societies.includes('hiver_federation'))) return false;
+        // Droyne: only show careers that allow droyne species (droyne_caste_system careers)
+        if (isDroyne && !(c.allowed_species && c.allowed_species.includes('droyne'))) return false;
         // "societies" = whitelist: only show for these societies
-        // (Aslan and K'kree characters are already filtered above — skip the generic check)
-        if (!isAslan && !isKkree && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
+        // (Aslan, K'kree, Hiver, and Droyne characters are already filtered above — skip the generic check)
+        if (!isAslan && !isKkree && !isHiver && !isDroyne && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
         if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
         // "allowed_species" = species whitelist: only show for these species

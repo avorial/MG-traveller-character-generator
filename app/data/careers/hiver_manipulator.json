@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "hiver_manipulator",
   "name": "Manipulator",
   "description": "All Hivers use manipulation on a constant basis but for most it is a means to an end. Those with more vision or who simply enjoy manipulation for its own sake may sometimes make a career out of it.",
@@ -147,5 +147,7 @@
   "mustering_out_dm_characteristic": "SOC",
   "mustering_out_min_cash_fraction": 0.5,
   "complete": true,
+  "allowed_species": ["hiver"],
   "societies": ["hiver_federation"]
 }
+
