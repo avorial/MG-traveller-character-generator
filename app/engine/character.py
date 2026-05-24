@@ -115,6 +115,7 @@ class Character(BaseModel):
     dm_next_advancement: int = 0
     dm_next_qualification: int = 0
     dm_next_benefit: int = 0
+    dm_next_survival: int = 0
 
     # Career-transfer offer from an event (e.g. army[10] "transfer to the
     # Marines without a Qualification roll"). Set when the player elects the
