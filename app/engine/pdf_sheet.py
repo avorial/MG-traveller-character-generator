@@ -136,6 +136,8 @@ def species_name(sid: str) -> str:
         "jonkeereen": "Jonkeereen", "dolphin": "Dolphin",
         "uplifted_orca": "Uplifted Orca", "droashav": "Droashav",
         "akeed": "Akeed", "sydite": "Sydite", "faar": "Faar",
+        "droyne": "Droyne",
+        "hiver": "Hiver",
     }
     return m.get(sid, sid.replace("_", " ").title())
 
@@ -161,13 +163,15 @@ def career_label(career_id: str, assignment_id: str) -> str:
 
 def get_stat(char: Character, code: str) -> int:
     ch = char.characteristics
-    if code == "STR": return ch.STR
-    if code == "DEX": return ch.DEX
-    if code == "END": return ch.END
-    if code == "INT": return ch.INT
-    if code == "EDU": return ch.EDU
-    if code == "SOC": return ch.SOC
-    if code == "PSI": return char.psi
+    if code == "STR":  return ch.STR
+    if code == "DEX":  return ch.DEX
+    if code == "END":  return ch.END
+    if code == "INT":  return ch.INT
+    if code == "EDU":  return ch.EDU
+    if code == "SOC":  return ch.SOC
+    if code == "PSI":  return char.psi
+    if code == "RES":  return ch.SOC   # Hiver: Resonance stored as SOC
+    if code == "CAST": return getattr(char, "droyne_caste_number", 0)  # Droyne caste rank
     # Extra characteristics (TER for Aslan, etc.)
     extra = getattr(char, "extra_characteristics", {}) or {}
     if code in extra:
@@ -351,7 +355,16 @@ def draw_stat_block(c, char, stats, centers_d, sec_top_d, sec_bot_d, label):
 
 def draw_stat_column(c, char):
     """Draw the full left characteristics strip on the current page."""
-    draw_stat_block(c, char, CORE_STATS, CORE_CENTERS,
+    sid = getattr(char, "species_id", "") or ""
+    if sid == "droyne":
+        core_stats = [("STR", "STRENGTH"), ("DEX", "DEXTERITY"), ("END", "ENDURANCE"),
+                      ("INT", "INTELLECT"), ("EDU", "EDUCATION"), ("CAST", "CASTE")]
+    elif sid == "hiver":
+        core_stats = [("STR", "STRENGTH"), ("DEX", "DEXTERITY"), ("END", "ENDURANCE"),
+                      ("INT", "INTELLECT"), ("EDU", "EDUCATION"), ("RES", "RESONANCE")]
+    else:
+        core_stats = CORE_STATS
+    draw_stat_block(c, char, core_stats, CORE_CENTERS,
                     CORE_TOP_D, CORE_BOT_D, "CORE CHARACTERISTICS")
 
     # Build dynamic OTHER_STATS: show tracked stats only (PSI + extras),
@@ -925,6 +938,7 @@ def draw_p2_personal_data(c, char):
     y = section_header(c, P2_R_X0, P2_R_X1, sec_top, title="PERSONAL DATA FILE")
     rh = 9.5
 
+    sid = getattr(char, "species_id", "") or ""
     rows = [
         ("NAME",     char.name or ""),
         ("HOMEWORLD", char.homeworld or ""),
@@ -947,7 +961,7 @@ def draw_p2_personal_data(c, char):
     if reputation:
         rows.append(("REPUTATION", f"{reputation:+d}"))
     # K'kree extras
-    if "kkree" in (getattr(char, "species_id", "") or "").lower():
+    if "kkree" in sid.lower():
         rank = (getattr(char, "kkree_soc_rank_degree", "") or "").replace("_", " ").title()
         if rank:
             rows.append(("SOC RANK", rank))
@@ -957,6 +971,16 @@ def draw_p2_personal_data(c, char):
         wives = getattr(char, "kkree_wives", 0)
         if wives:
             rows.append(("WIVES", str(wives)))
+    # Droyne: caste
+    elif sid == "droyne":
+        caste = getattr(char, "droyne_caste", None)
+        if caste:
+            rows.append(("CASTE", caste.title()))
+    # Hiver: nest type
+    elif sid == "hiver":
+        nest = getattr(char, "hiver_nest_type", None)
+        if nest:
+            rows.append(("NEST TYPE", nest.replace("_", " ").title()))
 
     for i, (lbl, val) in enumerate(rows):
         if y + rh > sec_bot:
@@ -973,8 +997,17 @@ def draw_p2_ucp(c, char):
     y = section_header(c, P2_R_X0, P2_R_X1, sec_top,
                        title="UNIVERSAL CHARACTER PROFILE (UCP)")
 
+    # Choose stat codes based on species (Droyne: CAST; Hiver: RES)
+    sid = getattr(char, "species_id", "") or ""
+    if sid == "droyne":
+        ucp_codes = ["STR", "DEX", "END", "INT", "EDU", "CAST"]
+    elif sid == "hiver":
+        ucp_codes = ["STR", "DEX", "END", "INT", "EDU", "RES"]
+    else:
+        ucp_codes = UCP_STAT_CODES
+
     # Six UCP hexes (one per core stat)
-    for i, (code, cx_) in enumerate(zip(UCP_STAT_CODES, UCP_CX)):
+    for i, (code, cx_) in enumerate(zip(ucp_codes, UCP_CX)):
         val = get_stat(char, code)
         ch = ucp_char(val)
 
@@ -988,7 +1021,7 @@ def draw_p2_ucp(c, char):
         c.drawCentredString(cx_, dy(UCP_CY_D) - 3.5, ch)
 
     # UCP string below hexes
-    ucp_str = "".join(ucp_char(get_stat(char, cd)) for cd in UCP_STAT_CODES)
+    ucp_str = "".join(ucp_char(get_stat(char, cd)) for cd in ucp_codes)
     if char.psi > 0:
         ucp_str += "-" + ucp_char(char.psi)
     draw_text(c, (P2_R_X0 + P2_R_X1) / 2, sec_bot - 5.0, ucp_str,
@@ -1003,9 +1036,16 @@ def draw_p2_wounds(c, char):
     rh = 9.5
 
     ch = char.characteristics
+    sid = getattr(char, "species_id", "") or ""
+    if sid == "droyne":
+        soc_entry = ("CAST", getattr(char, "droyne_caste_number", 0))
+    elif sid == "hiver":
+        soc_entry = ("RES", ch.SOC)
+    else:
+        soc_entry = ("SOC", ch.SOC)
     stat_entries = [
         ("STR", ch.STR), ("DEX", ch.DEX), ("END", ch.END),
-        ("INT", ch.INT), ("EDU", ch.EDU), ("SOC", ch.SOC),
+        ("INT", ch.INT), ("EDU", ch.EDU), soc_entry,
     ]
     # Extra characteristics (e.g. TER for Aslan)
     extra = getattr(char, "extra_characteristics", {}) or {}
