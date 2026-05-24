@@ -4805,6 +4805,16 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         character.ejected_by_event = True
         msgs.append("Career ended — ejected from this career")
 
+    elif etype == "dm_qualification_terms_in_career":
+        # Officer-caste consideration: DM to next Qualification = terms served in current career
+        if term is not None:
+            terms_count = sum(1 for t in character.term_history if t.career_id == term.career_id) + 1
+            character.dm_next_qualification += terms_count
+            msgs.append(f"Officer consideration: DM+{terms_count} to next Qualification roll ({terms_count} term(s) in career)")
+            character.log(f"Officer consideration: dm_next_qualification +{terms_count}")
+        else:
+            msgs.append("Officer consideration: could not count terms (no active term)")
+
     elif etype == "stat_choice":
         if not character.pending_career_mishap_choice:
             character.pending_career_mishap_choice = {
@@ -6533,6 +6543,27 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "prompt": f"Accepted duel — roll Melee 8+: pass DM+2 Advancement{pass_note}; fail forfeit Benefit roll",
                 }
 
+        elif choice_id == "noble_ev9_enemy":
+            # noble ev9: choose enemy type (jealous relative vs unhappy subject) + auto DM+2 advancement
+            desc = "Enemy [Jealous Relative]" if selected == "relative" else "Enemy [Unhappy Subject]"
+            character.associates.append(Associate(kind="enemy", description=desc))
+            character.dm_next_advancement += 2
+            auto_applied.append(f"Gained {desc}; DM+2 to next Advancement roll")
+            character.log(f"Noble ev9: gained {desc}, DM+2 advancement")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "vargr_loner_patron":
+            # vargr_loner ev3: accept (DM+4 qual + Contact) or decline
+            if selected == "accept":
+                character.dm_next_qualification += 4
+                character.associates.append(Associate(kind="contact", description="Contact [Patron]"))
+                auto_applied.append("Accepted job — DM+4 to next Qualification roll; gained Contact [Patron]")
+                character.log("Loner ev3: accepted patron job, qual DM+4, Contact added")
+            else:
+                auto_applied.append("Declined patron's offer — no effect")
+                character.log("Loner ev3: declined patron offer")
+            character.pending_career_mishap_choice = None
+
         elif choice_id == "event_skill_or_stat":
             # Generic: choose one skill from list OR a stat boost (e.g. "Admin 1 / Investigate 1 / SOC+1")
             stat = pending.get("stat", "SOC")
@@ -7967,6 +7998,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_pass": [{"type": "free_skill_choice", "prompt": "Gain any skill at level 1"}],
               "on_fail": [], "prompt": "Roll EDU 8+ to gain any skill"}],
         8:  [{"type": "skill_choice", "options": ["Gun Combat", "Language", "Melee", "Recon", "Survival"]}],
+        10: [{"type": "dm_qualification_terms_in_career"}],
         9:  [{"type": "pending_choice", "id": "event_aslan_military_insult",
               "prompt": "An officer insults your courage — duel (Melee Natural 8+) or prove them wrong (1D: 1–3 injured; 4+ SOC+1+DM+4+Rival)?",
               "options": [
@@ -8030,6 +8062,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ],
               "skills": [{"name": "Deception"}], "target": 8,
               "benefit_count": 3, "fail_dm_adv": -6, "fail_eject": False}],
+        5:  [{"type": "dm_qualification_terms_in_career"}],
         6:  [{"type": "skill_choice", "options": ["Survival", "Streetwise", "Science", "Tolerance"]}],
         8:  [{"type": "contact", "desc": "Contact [Aslan Colonist]"}],
         9:  [{"type": "pending_choice", "id": "event_aslan_heroism_or_prudence",
@@ -8039,6 +8072,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "prudence", "label": "Prudence — roll Stealth 8+: pass nothing lost; fail SOC−1"},
               ],
               "heroism_stat": "END"}],
+        10: [{"type": "dm_qualification_terms_in_career"}],
         11: [{"type": "pending_choice", "id": "event_skill_or_dm4",
               "prompt": "Captain entrusts you with an important duty — choose reward:",
               "options": [
@@ -8171,6 +8205,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_pass": [],
               "on_fail": [{"type": "forfeit_benefit"}],
               "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs Hierate attack — fail: forfeit Benefit rolls"}],
+        5:  [{"type": "dm_qualification_terms_in_career"}],
         8:  [{"type": "skill_choice", "options": ["Language", "Streetwise", "Tolerance"]}],
         9:  [{"type": "pending_choice", "id": "event_aslan_heroism_or_prudence",
               "prompt": "Vicious battles against the Hierate — demonstrate heroism (DEX 9+) or prudence (Stealth 8+)?",
@@ -8691,8 +8726,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "refuse", "label": "Refuse — gain the conspiracy as an Enemy"},
                   {"id": "accept", "label": "Accept — roll Deception or Persuade 8+: pass skill; fail Mishap"},
               ]}],
-        9:  [{"type": "enemy", "desc": "Enemy [Jealous Relative/Unhappy Subject]"},
-             {"type": "dm_advancement", "amount": 2}],
+        9:  [{"type": "pending_choice", "id": "noble_ev9_enemy",
+              "prompt": "Acclaimed reign — choose which Enemy you gain (+ automatic DM+2 Advancement):",
+              "options": [
+                  {"id": "relative", "label": "Enemy [Jealous Relative]"},
+                  {"id": "subject",  "label": "Enemy [Unhappy Subject]"},
+              ]}],
         10: [{"type": "skill_choice",
               "options": ["Carouse", "Diplomat", "Persuade", "Steward"]},
              {"type": "rival", "desc": "Rival [Society Rival]"},
@@ -9469,8 +9508,12 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     "vargr_loner": {
         2:  [{"type": "trigger_disaster_mishap"}],
-        3:  [{"type": "dm_qualification", "amount": 4},
-             {"type": "contact", "desc": "Contact [Patron]"}],
+        3:  [{"type": "pending_choice", "id": "vargr_loner_patron",
+              "prompt": "A patron offers you a job — accept (DM+4 Qualification + Contact) or decline?",
+              "options": [
+                  {"id": "accept",  "label": "Accept — gain DM+4 to next Qualification roll + Contact [Patron]"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
         4:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 6,
               "on_nat2": [],
               "on_pass": [{"type": "free_skill_choice",
