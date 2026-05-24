@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "droyne_leader",
   "name": "Leader",
   "description": "Leaders are the top echelon of Droyne society. They make all policy decisions and determine the fate of their subordinates.",
@@ -149,5 +149,6 @@
     "7": {"cash": 25000, "benefit": "Ship"}
   },
   "complete": true,
-  "societies": ["droyne_oytrip"]
+  "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+

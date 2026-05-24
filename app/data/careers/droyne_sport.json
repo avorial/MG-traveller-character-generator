@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "droyne_sport",
   "name": "Sport",
   "description": "Sports are scouts and emissaries, and also carry out most trading functions on behalf of an Oytrip. They are the only caste likely to be encountered operating independently.",
@@ -149,5 +149,6 @@
     "7": {"cash": 15000, "benefit": "Coyns"}
   },
   "complete": true,
-  "societies": ["droyne_oytrip"]
+  "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+

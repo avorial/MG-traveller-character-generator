@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "droyne_drone",
   "name": "Drone",
   "description": "Drones are vital to Droyne reproduction and raising young. They are also important to ritual, social and managerial functions.",
@@ -149,5 +149,6 @@
     "7": {"cash": 10000, "benefit": "Coyns"}
   },
   "complete": true,
-  "societies": ["droyne_oytrip"]
+  "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+

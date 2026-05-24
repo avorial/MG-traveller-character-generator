@@ -19,6 +19,7 @@
   "starting_age": 12,
   "aging_starts_term": 4,
   "sort_order": 600,
+  "societies": ["third_imperium", "zhodani_consulate", "other"],
   "droyne_caste_system": true,
   "droyne_caste_mods": {
     "worker":     {"STR": 2, "END": 4},

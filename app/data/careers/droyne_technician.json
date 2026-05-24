@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "droyne_technician",
   "name": "Technician",
   "description": "Technicians make, maintain and repair devices used throughout Droyne society.",
@@ -149,5 +149,6 @@
     "7": {"cash": 10000, "benefit": "Weapon"}
   },
   "complete": true,
-  "societies": ["droyne_oytrip"]
+  "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+

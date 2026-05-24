@@ -1,4 +1,4 @@
-{
+﻿{
   "id": "droyne_worker",
   "name": "Worker",
   "description": "Workers provide manual and semi-skilled labour throughout Droyne society. They build the structures, grow the food, and carry out the repetitive essential tasks that keep the Oytrip functioning.",
@@ -149,5 +149,6 @@
     "7": {"cash": 10000, "benefit": "Weapon"}
   },
   "complete": true,
-  "societies": ["droyne_oytrip"]
+  "societies": ["third_imperium", "zhodani_consulate", "other"]
 }
+
