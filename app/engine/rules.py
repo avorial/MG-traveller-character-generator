@@ -29,7 +29,7 @@ def _load_dir(subdir: str) -> dict[str, dict]:
         return result
 
     for file in sorted(path.glob("*.json")):
-        with open(file, "r", encoding="utf-8") as f:
+        with open(file, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
 
         # Deprecated stub: record the alias, don't surface the entry.
@@ -60,7 +60,7 @@ def _load_dir(subdir: str) -> dict[str, dict]:
 def _load_file(relative_path: str) -> dict:
     """Load a single JSON file."""
     path = DATA_ROOT / relative_path
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 
