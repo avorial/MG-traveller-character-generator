@@ -1,0 +1,16 @@
+name: Deploy via Portainer Webhook
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer stack update
+        run: |
+          curl -s -X POST \
+            "http://192.168.1.67:9000/api/stacks/webhooks/88863417-03bf-478c-8529-03671f36d7b9" \
+            --max-time 30
