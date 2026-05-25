@@ -1,32 +1,5 @@
 {
-    "id":  "zhodani_human",
-    "name":  "Zhodani Human",
-    "description":  "Psychic humans from the Zhodani Consulate. PSI is a social tool, not a taboo. High social order built on honesty — enforced telepathically.",
-    "characteristic_modifiers":  {
-                                     "STR":  0,
-                                     "DEX":  0,
-                                     "END":  0,
-                                     "INT":  1,
-                                     "EDU":  0,
-                                     "SOC":  1
-                                 },
-    "characteristic_maximum":  15,
-    "sort_order":  500,
-    "psionic_society":  true,
-    "psionic_society_test_dm":  1,
-    "psionic_society_soc_bonus_psi":  8,
-    "traits":  [
-                   {
-                       "name":  "Psionic Society",
-                       "description":  "All Zhodani citizens are tested for psionic potential in childhood. A Zhodani character who has not yet been tested may take the psionic potential test at any time during character creation (not just in the finalize phase), and gains DM+1 to that test reflecting their culturally conditioned comfort with psionics. If PSI is 8 or higher after testing, the character is considered a member of the Intendant or Noble caste and may add SOC+1 on top of the species modifier."
-                   },
-                   {
-                       "name":  "Consulate Education",
-                       "description":  "Zhodani schools produce well-rounded, disciplined citizens. DM+1 to any Admin or Science check benefiting from formal education and orderly thinking. Zhodani are trained to accept social hierarchy and the oversight of psionic Nobles — they may find the chaotic personal-liberty culture of the Imperium disorienting."
-                   }
-               ],
-    "aliases":  [
-                    "zhodani"
-                ],
-    "source":  "Traveller Core Rulebook; Zhodani Consulate sourcebook, Mongoose Publishing"
+  "deprecated": true,
+  "replaced_by": "zhodani",
+  "note": "Merged into the canonical 'zhodani' entry. Any save with species_id 'zhodani_human' resolves to 'zhodani'."
 }
