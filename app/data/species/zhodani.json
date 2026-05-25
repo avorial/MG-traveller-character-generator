@@ -11,8 +11,11 @@
     "SOC": 0
   },
   "characteristic_maximum": 15,
+  "psi_ruleset_choice": true,
   "rolls_psi_at_start": true,
   "psi_roll": "1D+6",
+  "psionic_society_test_dm": 1,
+  "psionic_society_soc_bonus_psi": 8,
   "characteristic_adjustments": [
     {
       "condition": "psi_gte_9_and_soc_lte_9",

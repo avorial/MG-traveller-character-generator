@@ -963,34 +963,64 @@ def apply_species(character: Character, species_id: str) -> dict:
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
 
-    # Psionic society: PSI childhood test for species like Zhodani Human (Core Rulebook).
-    # All citizens are tested; roll 2D + psionic_society_dm vs 9+. On success, PSI = roll.
-    # Distinct from rolls_psi_at_start (which unconditionally sets PSI, used by the full
-    # sourcebook Zhodani where a Noble-class PSI roll of 1D+6 is guaranteed).
-    if species_data.get("psionic_society") and not character.psi_tested:
-        test_dm = int(species_data.get("psionic_society_test_dm", 0))
-        soc_bonus_threshold = int(species_data.get("psionic_society_soc_bonus_psi", 0))
-        test_r = dice.roll("2D", modifier=test_dm, target=9)
-        character.psi_tested = True
-        if test_r.succeeded:
-            character.psi = test_r.raw_total  # PSI = raw dice (MgT rule: PSI = dice, not dice+DM)
-            character.log(
-                f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [PASS] — PSI {character.psi}"
-            )
-            if soc_bonus_threshold and character.psi >= soc_bonus_threshold:
-                old_soc = character.characteristics.get("SOC") or 0
-                character.characteristics.set("SOC", old_soc + 1)
+    # Zhodani (and any future species with psi_ruleset_choice): present a pending
+    # choice between the Sourcebook rule (guaranteed 1D+6 PSI) and the Core Rulebook
+    # optional rule (2D+DM vs 9+, chance of failure).  Both paths live in
+    # resolve_zhodani_psi_choice(); we defer here and let the player decide.
+    psi_ruleset_pending: dict | None = None
+    if species_data.get("psi_ruleset_choice") and not character.psi_tested:
+        psi_ruleset_pending = {
+            "kind": "zhodani_psi_ruleset",
+            "options": [
+                {
+                    "id": "sourcebook",
+                    "label": "Sourcebook (AoCS)",
+                    "description": (
+                        "All Zhodani have PSI. Roll 1D+6 — guaranteed PSI 7-12. "
+                        "Noble/Intendant caste system applies; Nobles and Intendants "
+                        "undergo psionic talent training before careers."
+                    ),
+                },
+                {
+                    "id": "core_rulebook",
+                    "label": "Core Rulebook optional",
+                    "description": (
+                        "Childhood PSI test: 2D+1 vs 9+. "
+                        "Pass = PSI (raw dice, not counting DM); Fail = PSI 0. "
+                        "PSI 8+ grants SOC+1 (Intendant caste)."
+                    ),
+                },
+            ],
+        }
+        character.pending_life_event_choice = psi_ruleset_pending
+    else:
+        # Non-choice psionic society: roll 2D+DM vs 9+. PSI = raw dice on success.
+        # (No species currently uses this path; kept for future data-driven species.)
+        if species_data.get("psionic_society") and not character.psi_tested:
+            test_dm = int(species_data.get("psionic_society_test_dm", 0))
+            soc_bonus_threshold = int(species_data.get("psionic_society_soc_bonus_psi", 0))
+            test_r = dice.roll("2D", modifier=test_dm, target=9)
+            character.psi_tested = True
+            if test_r.succeeded:
+                character.psi = test_r.raw_total  # PSI = raw dice (MgT rule)
                 character.log(
-                    f"PSI {character.psi} >= {soc_bonus_threshold} — Noble/Intendant caste: SOC +1 (now {old_soc + 1})"
+                    f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [PASS] — PSI {character.psi}"
                 )
-        else:
-            character.log(
-                f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [FAIL] — PSI 0"
-            )
+                if soc_bonus_threshold and character.psi >= soc_bonus_threshold:
+                    old_soc = character.characteristics.get("SOC") or 0
+                    character.characteristics.set("SOC", old_soc + 1)
+                    character.log(
+                        f"PSI {character.psi} >= {soc_bonus_threshold} — Noble/Intendant caste: SOC +1 (now {old_soc + 1})"
+                    )
+            else:
+                character.log(
+                    f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [FAIL] — PSI 0"
+                )
 
-    # Sourcebook Zhodani: unconditionally roll PSI using the species psi_roll formula.
-    # This is the full Noble/Intendant/Prole class system with guaranteed psionic ability.
-    if species_data.get("rolls_psi_at_start"):
+        # Sourcebook Zhodani: unconditionally roll PSI using the species psi_roll formula.
+        # This is the full Noble/Intendant/Prole class system with guaranteed psionic ability.
+        # Skipped when psi_ruleset_choice deferred above.
+    if species_data.get("rolls_psi_at_start") and not psi_ruleset_pending:
         psi_dice = species_data.get("psi_roll", "2D")
         psi_r = dice.roll(psi_dice)
         character.psi = psi_r.total
@@ -1124,6 +1154,96 @@ def apply_species(character: Character, species_id: str) -> dict:
         "zhodani_class": _zhodani_class(character.characteristics.get("SOC") or 0) if character.species_id == "zhodani" else None,
         "droyne_caste": droyne_caste_result,
         "hiver_nest": hiver_nest_result,
+        "pending_choice": psi_ruleset_pending,
+        "character": character.model_dump(),
+    }
+
+
+def resolve_zhodani_psi_choice(character: Character, ruleset: str) -> dict:
+    """Resolve the Zhodani PSI ruleset choice set by apply_species.
+
+    ruleset values:
+      "sourcebook"    — Sourcebook (AoCS): guaranteed 1D+6 PSI, caste system,
+                        Nobles/Intendants enter psionic training phase.
+      "core_rulebook" — Core Rulebook optional: 2D+1 vs 9+; PSI = raw dice on
+                        pass, PSI 0 on fail; PSI 8+ grants SOC+1.
+    """
+    pending = character.pending_life_event_choice
+    if not pending or pending.get("kind") != "zhodani_psi_ruleset":
+        raise ValueError("No pending Zhodani PSI ruleset choice to resolve.")
+
+    species_data = rules.species().get(character.species_id or "", {})
+    character.pending_life_event_choice = None
+
+    if ruleset == "sourcebook":
+        psi_dice = species_data.get("psi_roll", "1D+6")
+        psi_r = dice.roll(psi_dice)
+        character.psi = psi_r.total
+        character.psi_tested = True
+        character.log(f"Zhodani PSI (Sourcebook): {psi_dice} = {psi_r.total}")
+
+        sp_max = int(species_data.get("characteristic_maximum", 15))
+        for adj in species_data.get("characteristic_adjustments", []):
+            cond = adj.get("condition", "")
+            psi_val = character.psi or 0
+            soc_val = character.characteristics.get("SOC")
+            edu_val = character.characteristics.get("EDU")
+            if cond == "psi_gte_9_and_soc_lte_9":
+                if psi_val >= 9 and soc_val <= 9:
+                    character.characteristics.set("SOC", 10)
+                    character.log(adj.get("description", "SOC raised to 10"))
+            elif cond == "edu_gt_soc":
+                soc_val = character.characteristics.get("SOC")
+                if edu_val > soc_val:
+                    character.characteristics.set("EDU", soc_val)
+                    character.log(adj.get("description", f"EDU lowered to {soc_val}"))
+            elif cond == "edu_lte_7_and_soc_gte_10":
+                soc_val = character.characteristics.get("SOC")
+                edu_val = character.characteristics.get("EDU")
+                if edu_val <= 7 and soc_val >= 10:
+                    character.characteristics.set("EDU", 8)
+                    character.log(adj.get("description", "EDU raised to 8"))
+
+        if species_data.get("psionic_training_at_start"):
+            zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+            if zclass in ("noble", "intendant"):
+                character.phase = "zhodani_training"
+                character.log(
+                    f"Zhodani {zclass.capitalize()} — begins psionic talent training before careers."
+                )
+
+    elif ruleset == "core_rulebook":
+        test_dm = int(species_data.get("psionic_society_test_dm", 1))
+        soc_bonus_threshold = int(species_data.get("psionic_society_soc_bonus_psi", 8))
+        test_r = dice.roll("2D", modifier=test_dm, target=9)
+        character.psi_tested = True
+        if test_r.succeeded:
+            character.psi = test_r.raw_total  # PSI = raw dice (MgT rule: PSI = dice, not dice+DM)
+            character.log(
+                f"Zhodani PSI (Core Rulebook): 2D{test_dm:+d} = {test_r.total} [PASS] — PSI {character.psi}"
+            )
+            if soc_bonus_threshold and character.psi >= soc_bonus_threshold:
+                old_soc = character.characteristics.get("SOC") or 0
+                character.characteristics.set("SOC", old_soc + 1)
+                character.log(
+                    f"PSI {character.psi} >= {soc_bonus_threshold} — Intendant caste: SOC +1 (now {old_soc + 1})"
+                )
+        else:
+            character.log(
+                f"Zhodani PSI (Core Rulebook): 2D{test_dm:+d} = {test_r.total} [FAIL] — PSI 0"
+            )
+    else:
+        raise ValueError(f"Unknown Zhodani PSI ruleset: '{ruleset}'")
+
+    needs_zhodani_training = character.phase == "zhodani_training"
+    zhodani_class = _zhodani_class(character.characteristics.get("SOC") or 0)
+
+    return {
+        "ruleset": ruleset,
+        "psi": character.psi,
+        "psi_tested": character.psi_tested,
+        "needs_zhodani_training": needs_zhodani_training,
+        "zhodani_class": zhodani_class,
         "character": character.model_dump(),
     }
 

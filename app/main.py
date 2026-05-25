@@ -224,6 +224,10 @@ class LifeEventChoiceAction(CharacterAction):
     choice: str  # "rival" | "enemy" | "lose_benefit" | "prisoner"
 
 
+class ZhodaniPsiChoiceAction(CharacterAction):
+    ruleset: str  # "sourcebook" | "core_rulebook"
+
+
 class InjuryChoiceAction(CharacterAction):
     chosen_stat: str  # "STR" | "DEX" | "END"
 
@@ -610,6 +614,16 @@ async def api_life_event_choice(action: LifeEventChoiceAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.resolve_life_event_choice(character, action.choice)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/resolve-zhodani-psi-choice")
+async def api_resolve_zhodani_psi_choice(action: ZhodaniPsiChoiceAction):
+    """Resolve the Zhodani PSI ruleset choice (sourcebook vs core_rulebook)."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_zhodani_psi_choice(character, action.ruleset)
     except ValueError as e:
         raise HTTPException(400, str(e))
 

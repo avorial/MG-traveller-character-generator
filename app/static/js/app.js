@@ -1817,10 +1817,36 @@ function wireSocietyPhase() {
 // PHASE 2b: Species
 // ============================================================
 
+function renderZhodaniPsiChoice() {
+  const pc = uiState.zhodaniPsiPending;
+  const opts = pc.options || [];
+  return `
+    <div class="phase-panel">
+      <h2 class="phase-title">Zhodani — PSI Ruleset</h2>
+      <p style="color:var(--amber-dim);margin:0 0 18px 0">
+        Choose which rulebook's PSI mechanic to use for this character.
+      </p>
+      <div class="choice-cards" style="display:flex;gap:14px;flex-wrap:wrap">
+        ${opts.map(o => `
+          <button class="card zhodani-psi-opt" data-ruleset="${escapeAttr(o.id)}"
+                  style="flex:1;min-width:200px;text-align:left;cursor:pointer">
+            <div class="card-title">${esc(o.label)}</div>
+            <div class="card-desc" style="white-space:pre-line">${esc(o.description)}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderSpeciesPhase() {
   // If a Heritage Roll result is pending, show the result panel instead
   if (uiState.racialBackgroundResult) {
     return renderRacialBackgroundResult();
+  }
+  // If a Zhodani PSI ruleset choice is pending, show that panel
+  if (uiState.zhodaniPsiPending) {
+    return renderZhodaniPsiChoice();
   }
 
   const selected = uiState.selectedSpecies || character.species_id;
@@ -1959,6 +1985,28 @@ function wireSpeciesPhase() {
     return;
   }
 
+  // Zhodani PSI ruleset choice — wire the two option cards
+  if (uiState.zhodaniPsiPending) {
+    document.querySelectorAll('.zhodani-psi-opt').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ruleset = btn.getAttribute('data-ruleset');
+        try {
+          const response = await apiCall('/api/character/resolve-zhodani-psi-choice', { ruleset });
+          await applyResponse(response);
+          uiState.zhodaniPsiPending = null;
+          if (response && response.needs_zhodani_training) {
+            // phase already set to 'zhodani_training' by engine
+          } else {
+            character.phase = 'background';
+          }
+          saveCharacter();
+          renderAll();
+        } catch (e) { alert(e.message); }
+      });
+    });
+    return;
+  }
+
   // Shared apply logic — used by both double-click on card and the confirm button.
   async function applySelectedSpecies() {
     if (!uiState.selectedSpecies) return;
@@ -1972,6 +2020,12 @@ function wireSpeciesPhase() {
     }
     const response = await apiCall('/api/character/apply-species', { species_id: uiState.selectedSpecies });
     await applyResponse(response);
+    // Zhodani PSI ruleset choice: show the two-option panel before progressing
+    if (response && response.pending_choice?.kind === 'zhodani_psi_ruleset') {
+      uiState.zhodaniPsiPending = response.pending_choice;
+      renderStage();
+      return;
+    }
     // Aslan Hierate: skip background/pre_career, go directly to aslan_setup
     if (response && response.needs_aslan_setup) {
       // phase is already set to 'aslan_setup' by the engine
