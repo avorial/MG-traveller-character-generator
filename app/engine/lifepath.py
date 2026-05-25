@@ -7128,11 +7128,22 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 ter_old = character.extra_characteristics.get("TER", 0)
                 character.extra_characteristics["TER"] = ter_old + 1
                 auto_applied.append(f"TER {ter_old}→{ter_old + 1} (+1)")
-                auto_applied.append("SOC restored to original value (apply manually — record SOC at career start)")
+                if character.pre_outcast_soc > 0:
+                    old_soc = character.characteristics.SOC
+                    character.characteristics.set("SOC", character.pre_outcast_soc)
+                    auto_applied.append(f"SOC restored to pre-outcast value: {old_soc}→{character.pre_outcast_soc}")
+                    character.log(f"Outlaw redemption (male): SOC {old_soc}→{character.pre_outcast_soc} (restored)")
+                else:
+                    auto_applied.append("SOC restoration: pre-outcast SOC not recorded — no change made")
+                    character.log("Outlaw redemption (male): pre_outcast_soc=0, SOC not restored")
                 auto_applied.append("Must leave this career after this term")
                 character.log("Outlaw event 11: male redemption, TER+1, SOC restore, career ends next term")
             elif selected == "female":
-                auto_applied.append("May reroll SOC (apply manually — roll 2D + modifiers)")
+                soc_roll = dice.roll("2D")
+                old_soc = character.characteristics.SOC
+                character.characteristics.set("SOC", soc_roll.total)
+                auto_applied.append(f"SOC rerolled: 2D={soc_roll.total} (was {old_soc}) → SOC now {soc_roll.total}")
+                character.log(f"Outlaw redemption (female): SOC rerolled {old_soc}→{soc_roll.total}")
                 auto_applied.append("Must leave this career after this term")
                 character.log("Outlaw event 11: female redemption, SOC reroll, career ends next term")
             else:
@@ -7177,10 +7188,14 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             sub_r = dice.roll("1D")
             sub = sub_r.total
             if sub <= 2:
+                all_career_ids = list(rules.careers().keys())
+                for cid in all_career_ids:
+                    if cid not in character.banned_career_ids:
+                        character.banned_career_ids.append(cid)
                 auto_applied.append(
-                    f"Mishap 4 (1D={sub}, 1-2): Your fault — ejected; cannot begin another career. Apply manually."
+                    f"Mishap 4 (1D={sub}, 1-2): Your fault — ejected; permanently banned from all further careers."
                 )
-                character.log(f"K'kree Noble mishap 4: 1D={sub}, fault — ejected, no further career")
+                character.log(f"K'kree Noble mishap 4: 1D={sub}, fault — ejected, all careers banned")
             elif sub <= 4:
                 character.associates.append(
                     Associate(kind="enemy", description="Enemy [Superior — Blamed You]")
