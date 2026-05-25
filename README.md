@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-19.6-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-20.8-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -37,6 +37,7 @@ uvicorn app.main:app --reload
 4. **Background skills** — Skill picks gated by EDU DM, or take a **Background Package** (see below) for a curated skill bundle in lieu of individual picks.
 5. **Pre-career education** — Optional phase before the career loop (see below).
 6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics offer → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses. On the **first** career pick only, a **Career Package** can be chosen instead (see below) — skips the loop entirely and goes straight to finalization.
+   - *Zhodani Noble and Intendant characters* enter an interactive **psionic training phase** before careers begin. They attempt up to 6 talents from the Consulate training table (2D + PSI DM + talent DM vs 8+; each attempt applies a cumulative DM−1). Proles skip this phase.
 7. **Mustering out** — Cash and benefit rolls per career. Each career's roll allowance is terms served + rank bonus (ranks 1–2: +1, ranks 3–4: +2, ranks 5+: +3). Retirement pension calculated automatically for 5+ terms served.
 8. **Skill packages** — Optional package pick at the end of mustering out.
 9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
@@ -305,11 +306,12 @@ Military careers (Army, Marine, Navy, Confederation equivalents, Zhodani Army/Na
 
 ### Zhodani Consulate mechanics
 
-- **PSI roll at creation** — Zhodani characters roll 2D for PSI immediately after species selection, before any career begins.
-- **Social class** — Three classes based on SOC and PSI:
-  - *Prole* (SOC 9−) — no access to Psionic Skills tables; careers capped at certain ranks; uses standard Core life events
-  - *Intendant* (SOC 10) — Psionic Skills tables available; if PSI 9+ is rolled at creation, a Prole is automatically elevated to Intendant
-  - *Noble* (SOC 11+) — full career access; EDU raised to minimum 8 at creation
+- **PSI roll at creation** — Zhodani characters roll 1D+6 for PSI immediately after species selection, before any career begins.
+- **Psionic training phase** — Nobles and Intendants enter an interactive training phase before the career loop. Up to 6 talents from the Consulate training table may be attempted. Each attempt rolls 2D + PSI DM + talent DM vs 8+, with a cumulative DM−1 per previous attempt. Proles skip this phase.
+- **Social class** — Three classes based on SOC:
+  - *Prole* (SOC 9−) — no access to Psionic Skills tables; certain careers capped at rank 3; uses standard Core life events
+  - *Intendant* (SOC 10) — Psionic Skills tables available; accesses psionic training phase
+  - *Noble* (SOC 11+) — full career access; EDU raised to minimum 8 at creation; DM+1 to all advancement rolls; auto-promoted at end of first term
 - **Characteristic adjustments** — at creation: EDU cannot exceed SOC; if SOC 10+ and EDU < 8, EDU is raised to 8.
 - **No career-change penalty** — Zhodani characters do not accumulate the −1 DM per previously failed qualification that Imperial characters do.
 - **Psionic Skills table** — each non-Prole career includes a fourth specialist table usable by SOC 10+ characters only. Skills include Awareness, Clairvoyance, Telepathy, Telekinesis, Teleportation, and PSI+1.
@@ -491,7 +493,7 @@ traveller-creator/
 ├── app/
 │   ├── main.py                     # FastAPI routes
 │   ├── engine/
-│   │   ├── dice.py                 # 2D/1D/D3 rolling, characteristic DMs
+│   │   ├── dice.py                 # 2D/1D/D3 rolling, characteristic DMs, GM forced-roll queue
 │   │   ├── character.py            # Pydantic Character model (JSON-serializable)
 │   │   ├── rules.py                # JSON loader with lru_cache, society helpers
 │   │   └── lifepath.py             # Rules engine (all phases)
@@ -526,8 +528,13 @@ traveller-creator/
 │   └── static/
 │       ├── css/style.css           # CRT terminal aesthetic; light theme; font-size scales
 │       └── js/app.js               # Client-side phase controller (vanilla JS)
+├── tests/
+│   ├── test_dice.py                # Dice unit tests including ContextVar isolation
+│   ├── test_api_smoke.py           # FastAPI TestClient smoke tests (all key endpoints)
+│   └── test_data_schemas.py        # Parametrized JSON schema validation (all careers/species/tables)
 ├── Dockerfile
 ├── docker-compose.yml
+├── pytest.ini
 ├── requirements.txt
 ├── VERSION
 └── README.md
@@ -583,7 +590,8 @@ Optional fields:
 | `"background_skills": ["Melee 0", ...]` | Override the normal background-skills phase with a fixed species skill list |
 | `"uses_cha": true` | Replace SOC label with CHA; re-roll as 1D+2 at creation (Vargr Extents) |
 | `"no_career_change_penalty": true` | Skip the −1 DM per failed qualification penalty |
-| `"rolls_psi_at_start": true` | Roll 2D for PSI before career selection (Zhodani) |
+| `"psionic_training_at_start": true` | Nobles/Intendants enter a psionic talent training phase before careers (Zhodani) |
+| `"psi_roll": "1D+6"` | Dice expression used to roll PSI at species selection (default `"2D"`) |
 
 ### Adding or editing a career
 
@@ -644,6 +652,17 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/background-package` | Apply a background package in lieu of individual skill picks |
 | `/api/character/apply-skill-package` | Apply a skill package at finalization |
 
+### Aslan Hierate setup (POST)
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/character/aslan/begin-setup` | Start the Aslan background setup flow |
+| `/api/character/aslan/choose-gender` | Set male / female (gates career access) |
+| `/api/character/aslan/roll-clan` | Roll clan type (Hierate) or skip (Glorious Empire) |
+| `/api/character/aslan/roll-ancestry` | Roll ancestral deeds DM |
+| `/api/character/aslan/roll-family` | Roll family position |
+| `/api/character/aslan/roll-rite` | Roll Rite of Passage score |
+
 ### Pre-career education (POST)
 
 | Endpoint | Purpose |
@@ -669,6 +688,7 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/event` | Event table roll and resolution |
 | `/api/character/mishap` | Mishap table roll and resolution |
 | `/api/character/career-mishap-choice` | Resolve an interactive mishap choice |
+| `/api/character/career-event-choice` | Resolve an interactive event choice |
 | `/api/character/commission` | Commission roll (Army / Marine / Navy) |
 | `/api/character/advance` | Advancement roll |
 | `/api/character/skill-roll` | Roll on a specific skill table |
@@ -691,6 +711,13 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/injury-choice` | Player chooses which stat absorbs injury damage |
 | `/api/character/home-forces` | Enrol in or resign from Home Forces Reserves |
 | `/api/character/solsec-monitor` | Toggle SolSec Monitor status |
+
+### Zhodani psionic training (POST)
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/character/zhodani/train-talent` | Attempt one talent from the training table |
+| `/api/character/zhodani/finish-training` | End training and advance to the career phase |
 
 ### Life events & psionics (POST)
 
