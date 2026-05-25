@@ -3195,9 +3195,15 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                     "Family Affairs (3-4): Arranged marriage — choose whether to accept"
                 )
             else:
-                character.pending_benefit_rolls += 1
+                pending_choice = {
+                    "kind": "family_inheritance",
+                    "options": [
+                        {"id": "benefit", "label": "Extra Benefit roll"},
+                        {"id": "soc", "label": "SOC +1"},
+                    ],
+                }
                 auto_applied.append(
-                    "Family Affairs (5-6): Inheritance — extra Benefit roll added (or apply SOC+1 manually)"
+                    "Family Affairs (5-6): Inheritance — PENDING: choose extra Benefit roll or SOC+1"
                 )
 
         elif total == 3:
@@ -4143,6 +4149,7 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
       romantic_split          → "rival" | "enemy"
       betrayal_no_associates  → "rival" | "enemy"
       crime_choice            → "lose_benefit" | "prisoner"
+      family_inheritance      → "benefit" | "soc"
     """
     pending = character.pending_life_event_choice
     if not pending:
@@ -4320,6 +4327,18 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
             raise ValueError(f"Choice must be one of {valid_voyage!r}")
         log = character.add_skill(choice, level=1)
         character.log(f"Droyne Life Event — Voyage: gained {choice} 1 — {log}")
+
+    elif kind == "family_inheritance":
+        # Life Event 2 (Family Affairs 5-6): extra Benefit roll OR SOC+1
+        if choice == "benefit":
+            character.pending_benefit_rolls += 1
+            character.log("Family Affairs — Inheritance: gained 1 extra Benefit roll")
+        elif choice == "soc":
+            old_soc = character.characteristics.get("SOC")
+            character.characteristics.set("SOC", old_soc + 1)
+            character.log(f"Family Affairs — Inheritance: SOC {old_soc}→{character.characteristics.get('SOC')}")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for family_inheritance")
 
     else:
         raise ValueError(f"Unknown pending life event kind: {kind!r}")
@@ -6904,7 +6923,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             # bounty hunter mishap 2: accept (Cr50k + REP-1) or refuse (enemy + D3 enemies)
             if selected == "accept":
                 character.reputation = max(0, character.reputation - 1)
-                auto_applied.append(f"Accepted deal — REP −1 (now {character.reputation}), gain Cr50,000 (apply manually)")
+                character.credits += 50000
+                auto_applied.append(f"Accepted deal — REP −1 (now {character.reputation}), gained Cr50,000 (credits now {character.credits:,}).")
                 character.log("BH mishap 2: accepted deal, REP-1")
             else:
                 character.reputation = max(0, character.reputation - 1)
@@ -7060,8 +7080,9 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "target": 8,
                     "on_nat2": [],
                     "on_pass": [{"type": "extra_benefit", "amount": 3}],
-                    "on_fail": [{"type": "stat", "stat": "END", "amount": -2}],
-                    "prompt": "Claim the reward — roll Deception 8+: pass 3 extra Benefit rolls; fail END−2 (ejected from career — apply manually)",
+                    "on_fail": [{"type": "stat", "stat": "END", "amount": -2},
+                                {"type": "force_career_end"}],
+                    "prompt": "Claim the reward — roll Deception 8+: pass 3 extra Benefit rolls; fail END−2 and ejected from career",
                 }
 
         elif choice_id == "aslan_outlaw_pass_reward":
