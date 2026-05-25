@@ -928,6 +928,25 @@ def apply_species(character: Character, species_id: str) -> dict:
         character.characteristics.set("SOC", cha_roll)
         character.log(f"CHA (SOC) re-rolled as 1D+2 = {cha_roll} (was {old_soc})")
 
+    # Species with custom characteristic dice (e.g. Ladybug, Selenite): re-roll those
+    # stats using the species-defined formulas immediately after species is applied.
+    # Droyne has its own caste-system path that handles characteristic_dice separately.
+    char_dice_map = species_data.get("characteristic_dice", {})
+    if char_dice_map and not species_data.get("droyne_caste_system"):
+        reroll_parts: list[str] = []
+        for stat, formula in char_dice_map.items():
+            if formula is None:
+                character.characteristics.set(stat, 0)
+                reroll_parts.append(f"{stat} → 0")
+            else:
+                cr = dice.roll(formula)
+                character.characteristics.set(stat, cr.total)
+                reroll_parts.append(f"{stat} ({formula}) = {cr.total}")
+        character.log(
+            f"{species_data['name']} characteristic re-roll: "
+            + ", ".join(reroll_parts)
+        )
+
     # Hiver: RES replaces SOC, rolled as 1D+6 (range 7–12) when the species is chosen.
     if species_data.get("res_replaces_soc"):
         res_r = dice.roll("1D+6")
