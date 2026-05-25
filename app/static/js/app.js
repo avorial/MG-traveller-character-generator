@@ -783,13 +783,19 @@ function renderSheet() {
     ? (SPECIES.find((s) => s.id === character.species_id) || { name: '—' })
     : { name: 'Unknown' };
 
+  const _socLabel = speciesDef.res_replaces_soc ? 'RES'
+                  : speciesDef.uses_cha ? 'CHA'
+                  : speciesDef.no_soc ? null   // Droyne — no SOC at all
+                  : 'SOC';
   const statCells = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
+    .filter(stat => stat !== 'SOC' || _socLabel !== null)
     .map((stat) => {
       const val = stats[stat];
       const dm = charDM(val);
+      const label = stat === 'SOC' ? _socLabel : stat;
       return `
         <div class="stat-cell">
-          <span class="stat-label">${stat}</span>
+          <span class="stat-label">${label}</span>
           <span class="stat-value">${val}</span>
           <span class="stat-dm">DM ${formatDM(dm)}</span>
         </div>
