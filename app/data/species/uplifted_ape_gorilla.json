@@ -1,0 +1,28 @@
+{
+    "id": "uplifted_ape_gorilla",
+    "name": "Uplifted Ape — Gorilla",
+    "description": "A transgenic hybrid of gorilla, chimpanzee and some human genes, first perfected by Old Earth Union genetic engineers on Terra. Gorillas are much stronger than their chimpanzee cousins. Several million Uplifted Apes live on Solomani worlds. All Core Rulebook careers are open to them.",
+    "characteristic_modifiers": {
+        "STR": 1,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": -1
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Heightened Senses",
+            "description": "Apes have better senses of hearing and smell than humans and gain DM+1 to any Recon and Survival checks they have to make."
+        },
+        {
+            "name": "Strong",
+            "description": "Gorillas are much stronger than humans and gain the Athletics (strength) 2 skill."
+        }
+    ],
+    "background_skills": ["Athletics (strength) 2"],
+    "sort_order": 94,
+    "aliases": ["ape_gorilla", "gorilla"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

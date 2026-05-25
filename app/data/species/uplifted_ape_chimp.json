@@ -1,0 +1,27 @@
+{
+    "id": "uplifted_ape_chimp",
+    "name": "Uplifted Ape — Chimpanzee",
+    "description": "A transgenic hybrid of gorilla, chimpanzee and some human genes, first perfected by Old Earth Union genetic engineers on Terra. Chimpanzees are smaller and more agile than their gorilla cousins. Several million Uplifted Apes live on Solomani worlds. All Core Rulebook careers are open to them.",
+    "characteristic_modifiers": {
+        "STR": 1,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": -1
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Heightened Senses",
+            "description": "Apes have better senses of hearing and smell than humans and gain DM+1 to any Recon and Survival checks they have to make."
+        },
+        {
+            "name": "Small (–1)",
+            "description": "Chimpanzees are short in stature and present a difficult target. Attack rolls made against a chimpanzee suffer DM–1."
+        }
+    ],
+    "sort_order": 93,
+    "aliases": ["ape_chimp", "chimp"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}
