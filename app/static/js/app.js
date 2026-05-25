@@ -650,6 +650,27 @@ function formatDM(dm) {
   return `${dm}`;
 }
 
+// Return the display label for the SOC characteristic for a given character.
+// Returns 'RES' (Hiver), 'CHA' (Vargr), null (Droyne — no SOC), or 'SOC'.
+// Checks species_id first (set after apply_species); falls back to society_id
+// for single-species societies so the rolling phase shows the right label too.
+function socLabelForChar(char) {
+  const spId = char && char.species_id;
+  if (spId) {
+    const sp = SPECIES.find(s => s.id === spId);
+    if (sp) {
+      if (sp.res_replaces_soc) return 'RES';
+      if (sp.uses_cha) return 'CHA';
+      if (sp.no_soc) return null;
+    }
+  }
+  // Pre-species fallback: infer from society for single-species societies
+  const socId = char && char.society_id;
+  if (socId === 'vargr_extents') return 'CHA';
+  if (socId === 'droyne_oytrip') return null;
+  return 'SOC';
+}
+
 // ------------------------------------------------------------
 // Roll readout — shared across every phase so the dice are always visible
 // ------------------------------------------------------------
@@ -783,10 +804,7 @@ function renderSheet() {
     ? (SPECIES.find((s) => s.id === character.species_id) || { name: '—' })
     : { name: 'Unknown' };
 
-  const _socLabel = speciesDef.res_replaces_soc ? 'RES'
-                  : speciesDef.uses_cha ? 'CHA'
-                  : speciesDef.no_soc ? null   // Droyne — no SOC at all
-                  : 'SOC';
+  const _socLabel = socLabelForChar(character);
   const statCells = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
     .filter(stat => stat !== 'SOC' || _socLabel !== null)
     .map((stat) => {
@@ -1370,7 +1388,9 @@ function rollQuality(total) {
 
 function renderCharacteristicsPhase() {
   const hasRolled = Object.values(character.characteristics).some(v => v > 0);
-  const STATS = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'];
+  const _socLbl = socLabelForChar(character);
+  const STATS = ['STR', 'DEX', 'END', 'INT', 'EDU', ...(_socLbl ? ['SOC'] : [])];
+  const STAT_LABELS = { STR:'STR', DEX:'DEX', END:'END', INT:'INT', EDU:'EDU', SOC: _socLbl || 'SOC' };
 
   // Compute best / worst stat so they can be highlighted in the grid and called out.
   let bestStat = null, worstStat = null, total = 0, totalDM = 0;
@@ -1398,11 +1418,11 @@ function renderCharacteristicsPhase() {
         return `
           <div class="stat-cell-rolled ${extra.join(' ')}"
                data-stat="${stat}">
-            <span class="stat-label">${stat}</span>
+            <span class="stat-label">${STAT_LABELS[stat]}</span>
             <span class="stat-value">${val}</span>
             <span class="stat-dm">DM ${formatDM(dm)}</span>
             ${(uiState.gmMode || character.boon_rolls_remaining > 0) ? `
-              <button class="boon-btn" data-boon-stat="${stat}" title="Re-roll ${stat}, keep the higher value">BOON</button>
+              <button class="boon-btn" data-boon-stat="${stat}" title="Re-roll ${STAT_LABELS[stat]}, keep the higher value">BOON</button>
             ` : ''}
           </div>
         `;
@@ -1421,8 +1441,8 @@ function renderCharacteristicsPhase() {
       <div class="rq-stats">
         <span class="rq-stat"><span class="rq-k">TOTAL</span><span class="rq-v">${total}</span><span class="rq-cmp">of 72 avg 42</span></span>
         <span class="rq-stat"><span class="rq-k">NET DM</span><span class="rq-v">${formatDM(totalDM)}</span></span>
-        <span class="rq-stat"><span class="rq-k">BEST</span><span class="rq-v">${bestStat} ${character.characteristics[bestStat]}</span></span>
-        <span class="rq-stat"><span class="rq-k">WORST</span><span class="rq-v">${worstStat} ${character.characteristics[worstStat]}</span></span>
+        <span class="rq-stat"><span class="rq-k">BEST</span><span class="rq-v">${STAT_LABELS[bestStat]} ${character.characteristics[bestStat]}</span></span>
+        <span class="rq-stat"><span class="rq-k">WORST</span><span class="rq-v">${STAT_LABELS[worstStat]} ${character.characteristics[worstStat]}</span></span>
       </div>
       <div class="rq-note">${q.note}</div>
     </div>
@@ -1434,11 +1454,11 @@ function renderCharacteristicsPhase() {
     <div class="swap-row">
       <span class="swap-label">REARRANGE</span>
       <select id="swap-a" class="swap-select">
-        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapA || 'EDU') ? 'selected' : ''}>${s} (${character.characteristics[s]})</option>`).join('')}
+        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapA || 'EDU') ? 'selected' : ''}>${STAT_LABELS[s]} (${character.characteristics[s]})</option>`).join('')}
       </select>
       <span class="swap-arrow">↔</span>
       <select id="swap-b" class="swap-select">
-        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapB || 'STR') ? 'selected' : ''}>${s} (${character.characteristics[s]})</option>`).join('')}
+        ${STATS.map(s => `<option value="${s}" ${s === (uiState.swapB || 'STR') ? 'selected' : ''}>${STAT_LABELS[s]} (${character.characteristics[s]})</option>`).join('')}
       </select>
       <button class="btn" id="btn-swap-stats">SWAP</button>
     </div>
