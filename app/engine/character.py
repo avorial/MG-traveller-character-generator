@@ -265,6 +265,10 @@ class Character(BaseModel):
     psi_tested: bool = False
     psi_trained_talents: list[str] = Field(default_factory=list)
 
+    # Skills this species can never gain (e.g. Broker, Gambler for Dolphins/Orca).
+    # Populated from species JSON "forbidden_skills" field when species is applied.
+    forbidden_skills: list[str] = Field(default_factory=list)
+
     # Career package (optional alternative to normal careers)
     career_package_id: Optional[str] = None
     career_package_taken: bool = False
@@ -330,6 +334,13 @@ class Character(BaseModel):
         have the parent skill ("Gun Combat") at level 0. The parent
         is auto-seeded here so the sheet shows it.
         """
+        # Species forbidden skills — silently skip rather than error, since the
+        # grant may come from a generic table roll that the character can't avoid.
+        if self.forbidden_skills:
+            if name in self.forbidden_skills:
+                return f"Skipped {name} (forbidden by species)"
+            if speciality and f"{name} ({speciality})" in self.forbidden_skills:
+                return f"Skipped {name} ({speciality}) (forbidden by species)"
         disp = f"{name}{f' ({speciality})' if speciality else ''}"
         for existing in self.skills:
             if existing.name == name and existing.speciality == speciality:

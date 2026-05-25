@@ -414,12 +414,19 @@ def test_psionics(character: "Character") -> dict:
             "This character has already been tested for psionics."
         )
 
+    # Check for species-level psionic block (e.g. Hivers).
+    species_data = rules.species().get(character.species_id or "", {})
+    if species_data.get("no_psionics"):
+        raise ValueError(
+            f"{species_data.get('name', 'This species')} cannot develop psionic ability."
+        )
+
     data = rules.psionics()
     pot = data["potential_test"]
     dm = -character.total_terms  # -1 per term
 
     # Check for species-level psionic bane (e.g. Bwaps).
-    species_data = rules.species().get(character.species_id, {})
+    species_data = rules.species().get(character.species_id or "", {})
     has_psionic_bane = species_data.get("psionic_bane", False)
 
     if has_psionic_bane:
@@ -927,6 +934,19 @@ def apply_species(character: Character, species_id: str) -> dict:
         old_soc = character.characteristics.SOC
         character.characteristics.set("SOC", res_r.total)
         character.log(f"RES (SOC) rolled as 1D+6 = {res_r.total} (was {old_soc})")
+
+    # Store species forbidden skills on the character so add_skill can enforce them.
+    forbidden = species_data.get("forbidden_skills", []) or []
+    if forbidden:
+        character.forbidden_skills = list(forbidden)
+        character.log(f"Species forbidden skills: {', '.join(forbidden)}")
+
+    # Extra background skills granted unconditionally by species (e.g. Caprisap: Astrogation 0).
+    for extra_skill in (species_data.get("extra_background_skills", []) or []):
+        sn, spec = _split_skill_speciality(extra_skill.strip())
+        character.add_skill(sn, level=0, speciality=spec)
+        display = f"{sn} ({spec})" if spec else sn
+        character.log(f"Species extra background skill: {display} 0")
 
     # Auto-grant species background skills (e.g. Vargr: Melee (Infighting) 0).
     species_bg_skills = species_data.get("background_skills", [])
@@ -4691,6 +4711,71 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         )
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
+    # ── Species / career access controls ──────────────────────────────────────
+    # These gates apply before any qualification roll and before auto-qualify paths.
+    _qual_sp_data = rules.species().get(character.species_id or "", {})
+
+    def _qual_block(reason: str) -> dict:
+        character.log(f"Qualification blocked: {reason}")
+        character.failed_qualifications_this_term += 1
+        return {"automatic": False, "succeeded": False,
+                "character": character.model_dump(), "roll": None, "reason": reason}
+
+    # Species blocked_careers (e.g. Dolphins cannot enter Merchant/Noble/Drifter)
+    if career_id in (_qual_sp_data.get("blocked_careers") or []):
+        return _qual_block(f"{_qual_sp_data.get('name', 'This species')} cannot enter {career['name']}.")
+
+    # Species allowed_species_careers whitelist (e.g. Dolphins can only enter dolphin_civilian/dolphin_military)
+    _sp_allowed = _qual_sp_data.get("allowed_species_careers") or []
+    if _sp_allowed and career_id not in _sp_allowed:
+        return _qual_block(
+            f"{_qual_sp_data.get('name', 'This species')} can only enter species-specific careers "
+            f"({', '.join(_sp_allowed)})."
+        )
+
+    # vacc_suit_required_for_core_careers: must have Vacc Suit 0+ to enter standard core careers
+    if _qual_sp_data.get("vacc_suit_required_for_core_careers"):
+        _CORE_CAREERS = {"agent", "army", "citizen", "drifter", "entertainer",
+                         "marine", "merchant", "navy", "noble", "rogue", "scholar", "scout"}
+        if career_id in _CORE_CAREERS:
+            _has_vacc = any(
+                sk.name.lower() == "vacc suit" and sk.speciality is None
+                for sk in character.skills
+            )
+            if not _has_vacc:
+                return _qual_block(
+                    f"Vacc Suit 0 required before {_qual_sp_data.get('name', 'this species')} "
+                    f"can enter {career['name']}."
+                )
+
+    # Career blocked_societies (e.g. Imperial careers blocked to Solomani Confederation)
+    if character.society_id in (career.get("blocked_societies") or []):
+        return _qual_block(f"{career['name']} is not available to {character.society_id} characters.")
+
+    # Career blocked_species
+    if character.species_id in (career.get("blocked_species") or []):
+        return _qual_block(
+            f"{career['name']} is not available to "
+            f"{_qual_sp_data.get('name', character.species_id)}."
+        )
+
+    # Career allowed_species whitelist
+    _career_allowed_species = career.get("allowed_species") or []
+    if _career_allowed_species and character.species_id not in _career_allowed_species:
+        return _qual_block(f"{career['name']} is restricted to specific species.")
+
+    # Aslan gender_restriction (e.g. envoy = male-only, management = female-only)
+    _gender_req = career.get("gender_restriction")
+    if _gender_req and character.gender and character.gender != _gender_req:
+        return _qual_block(
+            f"{career['name']} is only available to {_gender_req} characters."
+        )
+
+    # Zhodani prole_career: Nobles and Intendants cannot enter Prole careers
+    if career.get("prole_career") and character.species_id == "zhodani":
+        if _zhodani_class(character.characteristics.get("SOC") or 0) in ("noble", "intendant"):
+            return _qual_block("Zhodani Nobles and Intendants cannot enter Prole careers.")
+
     qual = career.get("qualification", {})
     if qual.get("automatic"):
         # Droyne caste check: career is locked to a specific caste
@@ -4707,6 +4792,69 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
                 "roll": None,
                 "reason": f"This career is only open to the {required_caste.capitalize()} caste.",
             }
+        # Hiver career nest-type qualification.
+        # Careers with hiver_open_to=['any'] allow all nest types automatically.
+        # Careers with a specific nest list require either a matching nest OR a
+        # minimum-qualification roll (with the species-level DM penalties).
+        _hiver_open_to = career.get("hiver_open_to") or []
+        if _hiver_open_to and "any" not in _hiver_open_to:
+            _nest = character.hiver_nest_type or ""
+            if _nest not in _hiver_open_to:
+                # Check full qualification skills first (bypasses penalty entirely)
+                _full_qual = career.get("hiver_full_qualification") or []
+                def _skill_at_level(skill_str: str) -> bool:
+                    parts = skill_str.rsplit(" ", 1)
+                    if len(parts) == 2 and parts[1].isdigit():
+                        return any(
+                            sk.name == parts[0].strip() and sk.level >= int(parts[1])
+                            for sk in character.skills
+                        )
+                    return False
+                _fully_qual = _full_qual and all(_skill_at_level(s) for s in _full_qual)
+                if _fully_qual:
+                    character.log(
+                        f"Hiver career {career['name']}: nest mismatch waived — "
+                        f"fully qualified ({', '.join(_full_qual)})."
+                    )
+                    # Falls through to automatic return below
+                else:
+                    # Roll minimum qualification check with penalty DM
+                    _hiver_penalties = rules.species().get("hiver", {}).get(
+                        "hiver_qualification_penalties", {}
+                    )
+                    _min_qual = career.get("hiver_min_qualification") or {}
+                    _char_key = _min_qual.get("characteristic", "EDU")
+                    _min_target = int(_min_qual.get("target", 8))
+                    _char_dm_val = dice.characteristic_dm(
+                        character.characteristics.get(_char_key) or 0
+                    )
+                    _meets_dm = int(_hiver_penalties.get("meets_minimum", -2))
+                    _fails_dm = int(_hiver_penalties.get("does_not_meet_minimum", -6))
+                    _roll_dm = _char_dm_val + _meets_dm
+                    _r = dice.roll("2D", modifier=_roll_dm, target=_min_target)
+                    character.log(
+                        f"Hiver career {career['name']}: wrong nest ({_nest!r}, needs "
+                        f"{_hiver_open_to}). Min qual: {_char_key} {_min_target}+, "
+                        f"2D{_roll_dm:+d} = {_r.total} — "
+                        f"{'PASS' if _r.succeeded else 'FAIL'}."
+                    )
+                    if not _r.succeeded:
+                        character.failed_qualifications_this_term += 1
+                        return {
+                            "automatic": False, "succeeded": False,
+                            "character": character.model_dump(),
+                            "roll": _r.to_dict(),
+                            "reason": (
+                                f"Failed minimum qualification for {career['name']}: "
+                                f"wrong nest type and {_char_key} check failed."
+                            ),
+                        }
+                    return {
+                        "automatic": False, "succeeded": True,
+                        "character": character.model_dump(),
+                        "roll": _r.to_dict(),
+                    }
+
         character.log(f"Automatic qualification for {career['name']}.")
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
@@ -4967,6 +5115,14 @@ def start_term(
     if character.starts_commissioned_career_id == career_id:
         character.starts_commissioned_career_id = None
 
+    # all_commissioned: some careers auto-commission all characters at first term
+    # (e.g. Zhodani Guard — all ranks are officer equivalents).
+    if career.get("all_commissioned") and first_term_in_this_career and not term.commissioned:
+        term.commissioned = True
+        term.rank = 1
+        term.rank_title = _rank_title(career, assignment_id, 1, commissioned=True)
+        character.log(f"Auto-commissioned on entry to {career['name']} (all_commissioned career).")
+
     cover_note = ""
     if cover_career_id:
         cover_career = rules.careers().get(cover_career_id, {})
@@ -4989,10 +5145,19 @@ def start_term(
         term.skills_gained.append(f"Rank 0 bonus: {bonus0}")
         character.log(f"  Rank 0 bonus: {rank0_log}")
 
-    # Basic training: auto-apply all 6 service_skills entries at level 0.
+    # Basic training: auto-apply all 6 skill entries at level 0.
+    # basic_training_from_specialist: use the specialist table for this assignment
+    # instead of the service_skills table (e.g. Zhodani Prole career).
     basic_training_skills: list[str] = []
     if first_term_in_this_career and not commissioned_start:
-        service_table = career.get("skill_tables", {}).get("service_skills", {})
+        if career.get("basic_training_from_specialist"):
+            _asgn_table_key = f"{assignment_id}_skills"
+            service_table = career.get("skill_tables", {}).get(_asgn_table_key, {})
+            if not service_table:
+                # Fall back to service_skills if specialist table not found
+                service_table = career.get("skill_tables", {}).get("service_skills", {})
+        else:
+            service_table = career.get("skill_tables", {}).get("service_skills", {})
         for i in range(1, 7):
             entry = service_table.get(str(i), "")
             if not entry:
@@ -8838,17 +9003,27 @@ def advancement_roll(character: Character) -> dict:
     monitor_rank_up = False
     rank_bonus_log = None
     if term.advanced:
-        # Zhodani Prole/Intendant in Government career: rank capped at 3
-        if (character.species_id == "zhodani"
-                and term.career_id in rules.ZHODANI_CAREER_IDS
-                and term.career_id == "zhodani_government"):
+        # Zhodani Prole/Intendant: career-specific rank cap (read from career JSON).
+        _prole_max_rank = career.get("prole_intendant_max_rank")
+        if _prole_max_rank is not None and character.species_id == "zhodani":
             _zclass_adv = _zhodani_class(character.characteristics.get("SOC") or 0)
-            if _zclass_adv in ("prole", "intendant") and term.rank >= 3:
+            if _zclass_adv in ("prole", "intendant") and term.rank >= int(_prole_max_rank):
                 term.advanced = False
                 character.log(
-                    f"Zhodani {_zclass_adv.capitalize()} rank cap: Government rank capped at 3."
+                    f"Zhodani {_zclass_adv.capitalize()} rank cap: "
+                    f"{career.get('name', term.career_id)} rank capped at {_prole_max_rank}."
                 )
                 r_auto_note += " [rank cap]"
+
+        # Career soc_cap: SOC cannot rise above this value via rank bonuses in this career.
+        _soc_cap = career.get("soc_cap")
+        if _soc_cap is not None:
+            current_soc = character.characteristics.get("SOC") or 0
+            if current_soc > int(_soc_cap):
+                character.characteristics.set("SOC", int(_soc_cap))
+                character.log(
+                    f"SOC capped at {_soc_cap} (career soc_cap). Was {current_soc}."
+                )
     if term.advanced:
         term.rank += 1
         term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
@@ -9027,6 +9202,13 @@ def attempt_anagathics(character: "Character") -> dict:
     """
     if character.phase != "career":
         raise ValueError("Anagathics can only be attempted during the career phase.")
+
+    # Species-level anagathics block (e.g. Hivers).
+    _sp_data = rules.species().get(character.species_id or "", {})
+    if _sp_data.get("no_anagathics"):
+        raise ValueError(
+            f"{_sp_data.get('name', 'This species')} cannot use anagathics."
+        )
 
     already_active = character.anagathics_active
 
