@@ -963,8 +963,33 @@ def apply_species(character: Character, species_id: str) -> dict:
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
 
-    # Zhodani Consulate: roll PSI at the start of character creation.
-    # The psi_roll formula lives in the species JSON (default "2D"; Zhodani use "1D+6").
+    # Psionic society: PSI childhood test for species like Zhodani Human (Core Rulebook).
+    # All citizens are tested; roll 2D + psionic_society_dm vs 9+. On success, PSI = roll.
+    # Distinct from rolls_psi_at_start (which unconditionally sets PSI, used by the full
+    # sourcebook Zhodani where a Noble-class PSI roll of 1D+6 is guaranteed).
+    if species_data.get("psionic_society") and not character.psi_tested:
+        test_dm = int(species_data.get("psionic_society_test_dm", 0))
+        soc_bonus_threshold = int(species_data.get("psionic_society_soc_bonus_psi", 0))
+        test_r = dice.roll("2D", modifier=test_dm, target=9)
+        character.psi_tested = True
+        if test_r.succeeded:
+            character.psi = test_r.raw_total  # PSI = raw dice (MgT rule: PSI = dice, not dice+DM)
+            character.log(
+                f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [PASS] — PSI {character.psi}"
+            )
+            if soc_bonus_threshold and character.psi >= soc_bonus_threshold:
+                old_soc = character.characteristics.get("SOC") or 0
+                character.characteristics.set("SOC", old_soc + 1)
+                character.log(
+                    f"PSI {character.psi} >= {soc_bonus_threshold} — Noble/Intendant caste: SOC +1 (now {old_soc + 1})"
+                )
+        else:
+            character.log(
+                f"Psionic society childhood test: 2D{test_dm:+d} = {test_r.total} [FAIL] — PSI 0"
+            )
+
+    # Sourcebook Zhodani: unconditionally roll PSI using the species psi_roll formula.
+    # This is the full Noble/Intendant/Prole class system with guaranteed psionic ability.
     if species_data.get("rolls_psi_at_start"):
         psi_dice = species_data.get("psi_roll", "2D")
         psi_r = dice.roll(psi_dice)

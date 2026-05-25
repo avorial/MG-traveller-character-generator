@@ -13,6 +13,8 @@
     "characteristic_maximum":  15,
     "sort_order":  500,
     "psionic_society":  true,
+    "psionic_society_test_dm":  1,
+    "psionic_society_soc_bonus_psi":  8,
     "traits":  [
                    {
                        "name":  "Psionic Society",
