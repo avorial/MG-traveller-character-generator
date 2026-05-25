@@ -10183,7 +10183,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         11: [{"type": "pending_choice", "id": "event_aslan_redemption",
               "prompt": "Your clan offers redemption — restore SOC and qualify for another career, but owe a debt to a clan elder?",
               "options": [
-                  {"id": "accept",  "label": "Accept — restore SOC (note manually), DM+99 to Qualification, gain Contact [Clan Elder]"},
+                  {"id": "accept",  "label": "Accept — restore SOC to pre-outcast value, DM+99 to Qualification, gain Contact [Clan Elder]"},
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
         12: [{"type": "force_next_career", "career_id": "ge_warrior"}],
@@ -10676,9 +10676,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "skill_check",
               "skills": [{"name": "Pilot"}, {"name": "Persuade"}], "target": 8,
               "on_pass": [{"type": "skill", "name": "Electronics (sensors)", "level": 1}],
-              "on_fail": [],
+              "on_fail": [{"type": "force_career_end"}],
               "prompt": "Ambushed (Enemy gained regardless) — roll Pilot 8+ (run) or Persuade 10+ (treat); "
-                        "fail lose right to reenlist this term (apply manually); pass gain Electronics (sensors) 1"}],
+                        "fail: cannot continue in career this term; pass: gain Electronics (sensors) 1"}],
         4:  [{"type": "skill_choice",
               "options": ["Animals (riding)", "Survival", "Recon", "Science"]}],
         5:  [{"type": "dm_benefit", "amount": 1}],
@@ -10914,7 +10914,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         11: [{"type": "pending_choice", "id": "event_aslan_redemption",
               "prompt": "Your clan offers redemption — restore SOC and qualify for another career, but owe a debt to a clan elder?",
               "options": [
-                  {"id": "accept",  "label": "Accept — restore SOC (note manually), DM+99 to Qualification, gain Contact [Clan Elder]"},
+                  {"id": "accept",  "label": "Accept — restore SOC to pre-outcast value, DM+99 to Qualification, gain Contact [Clan Elder]"},
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
     },
@@ -10955,7 +10955,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Chance at redemption (career ends after this term) — choose your path:",
               "options": [
                   {"id": "male",   "label": "Male: TER+1 + restore SOC (note SOC manually)"},
-                  {"id": "female", "label": "Female (unmarried): reroll SOC (apply manually)"},
+                  {"id": "female", "label": "Female (unmarried): reroll SOC (2D auto-rolled)"},
                   {"id": "none",   "label": "Decline — no effect"},
               ]}],
     },
