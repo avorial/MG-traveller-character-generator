@@ -4848,6 +4848,11 @@ function wireCareerPhase() {
         eventEffects: response.event_effects || [],
         pendingEventChoice: response.pending_event_choice || null,
         disasterMishap: response.disaster_mishap || null,
+        // When the event has a pending_choice handler, all associate grants are
+        // applied by the choice resolver — suppress text-parsed associate ops to
+        // avoid duplicate picker UIs and duplicate associates.
+        suppressAssocOps: !!(response.pending_event_choice &&
+                             response.pending_event_choice.type === 'pending_choice'),
       };
 
       // Auto-add unambiguous single Ally grants without requiring the picker.
@@ -7649,7 +7654,10 @@ function renderEventStep() {
     const _assocSourceText = (_csr && _csr.success !== null && _csr.success !== undefined)
       ? (_csr.branchText || '')
       : (lr.eventText || '');
-    const rawAssociateOps = parseEventAssociateOps(_assocSourceText);
+    // When a pending_choice handler owns all associate grants, skip text-parsed
+    // ops entirely — the choice resolver auto-applies them and shows them in
+    // auto_applied messages, so a picker here would create duplicates.
+    const rawAssociateOps = lr.suppressAssocOps ? [] : parseEventAssociateOps(_assocSourceText);
     if (!Array.isArray(lr.assocQtyRolls)) lr.assocQtyRolls = [];
     const associateOps = [];
     rawAssociateOps.forEach((op, rawIdx) => {
