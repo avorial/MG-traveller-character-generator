@@ -846,7 +846,7 @@ function renderSheet() {
 
   const traits = (character.traits || []);
   const traitsHTML = traits.length
-    ? `<ul class="traits-list">${traits.map(t => `<li><strong>${t.name}:</strong> ${t.description}</li>`).join('')}</ul>`
+    ? `<ul class="traits-list">${traits.map(t => `<li><strong>${esc(t.name)}:</strong> ${esc(t.description)}</li>`).join('')}</ul>`
     : '<p class="empty">No species traits</p>';
 
   const careersHTML = character.completed_careers.length
@@ -900,7 +900,7 @@ function renderSheet() {
         </span>
         <input type="text" class="sheet-uwp" id="char-uwp" placeholder="UWP — e.g. A788899-C" value="${escapeAttr(character.homeworld_uwp)}" title="Universal World Profile" />
         <div class="sheet-meta">
-          <span>SPECIES<br><strong>${species.name}</strong></span>
+          <span>SPECIES<br><strong>${esc(species.name)}</strong></span>
           <span>AGE<br><strong>${character.age}</strong></span>
           <span>TERMS<br><strong>${character.total_terms}</strong></span>
           <span>CREDITS<br><strong>Cr${character.credits.toLocaleString()}</strong></span>
@@ -1145,6 +1145,9 @@ function escapeHTML(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/** Shorthand: safely escape any value for innerHTML interpolation. Handles null/undefined. */
+const esc = s => escapeHTML(String(s ?? ''));
+
 /** Escape for use inside a quoted HTML attribute (e.g. value="..."). */
 function escapeAttr(s) {
   return escapeHTML(String(s || '')).replace(/"/g, '&quot;');
@@ -1384,7 +1387,7 @@ function renderStage() {
       wireDonePhase();
       break;
     default:
-      stage.innerHTML = `<div class="stage-content"><p>Unknown phase: ${character.phase}</p></div>`;
+      stage.innerHTML = `<div class="stage-content"><p>Unknown phase: ${esc(character.phase)}</p></div>`;
   }
 }
 
@@ -1849,11 +1852,11 @@ function renderSpeciesPhase() {
   const selectedSp = SPECIES.find(s => s.id === selected);
   const traitsPanel = selectedSp && selectedSp.traits.length ? `
     <div class="species-traits-panel">
-      <h4>Species Traits — ${selectedSp.name}</h4>
+      <h4>Species Traits — ${esc(selectedSp.name)}</h4>
       ${selectedSp.traits.map(t => `
         <div class="trait">
-          <span class="trait-name">${t.name}</span>
-          <span class="trait-desc">${t.description}</span>
+          <span class="trait-name">${esc(t.name)}</span>
+          <span class="trait-desc">${esc(t.description)}</span>
         </div>
       `).join('')}
     </div>
@@ -1869,7 +1872,7 @@ function renderSpeciesPhase() {
       <div class="species-intro">
         <p>
           ${activeSociety
-            ? `Showing species available to characters raised in the <strong>${activeSociety.name}</strong>.`
+            ? `Showing species available to characters raised in the <strong>${esc(activeSociety.name)}</strong>.`
             : 'Showing all available species.'
           }
           Species modifiers apply once, now, to the characteristics you just rolled.
@@ -1920,18 +1923,18 @@ function renderRacialBackgroundResult() {
 
       <div class="result-block" style="border:1px solid var(--accent);border-radius:6px;padding:16px;margin-bottom:20px">
         <div style="font-size:11px;letter-spacing:2px;color:var(--accent);margin-bottom:6px">RESULT</div>
-        <div style="font-size:20px;font-weight:700">${result.result_name}</div>
+        <div style="font-size:20px;font-weight:700">${esc(result.result_name)}</div>
         ${mods ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">Characteristic modifiers: ${mods}</div>` : ''}
-        ${resolvedSp?.description ? `<p style="font-size:13px;margin-top:10px">${resolvedSp.description}</p>` : ''}
+        ${resolvedSp?.description ? `<p style="font-size:13px;margin-top:10px">${esc(resolvedSp.description)}</p>` : ''}
       </div>
 
       ${resolvedSp?.traits?.length ? `
         <div class="species-traits-panel">
-          <h4>Heritage Traits — ${resolvedSp.name}</h4>
+          <h4>Heritage Traits — ${esc(resolvedSp.name)}</h4>
           ${resolvedSp.traits.map(t => `
             <div class="trait">
-              <span class="trait-name">${t.name}</span>
-              <span class="trait-desc">${t.description}</span>
+              <span class="trait-name">${esc(t.name)}</span>
+              <span class="trait-desc">${esc(t.description)}</span>
             </div>
           `).join('')}
         </div>
@@ -2707,8 +2710,8 @@ function renderPreCareerPhase() {
     ];
     const cards = curricula.map(c => `
       <button class="card" data-pc-curriculum="${c.id}">
-        <div class="card-title">${c.name}</div>
-        <div class="card-desc">${c.desc}</div>
+        <div class="card-title">${esc(c.name)}</div>
+        <div class="card-desc">${esc(c.desc)}</div>
       </button>
     `).join('');
     return `
@@ -3651,13 +3654,13 @@ function renderZhodaniTrainingPhase() {
 
     return `
       <tr class="${attempted ? 'attempted' : ''}">
-        <td><strong>${t.name}</strong></td>
+        <td><strong>${esc(t.name)}</strong></td>
         <td class="text-center">${t.dm >= 0 ? '+' : ''}${t.dm}</td>
         <td class="text-center" title="${dmBreak}">2D${dmLabel} vs 8+</td>
         <td>${statusBadge}</td>
         <td>
           ${!attempted
-            ? `<button class="btn btn-sm primary" data-train-talent="${t.name}">ATTEMPT</button>`
+            ? `<button class="btn btn-sm primary" data-train-talent="${escapeAttr(t.name)}">ATTEMPT</button>`
             : ''}
         </td>
       </tr>`;
@@ -3666,9 +3669,9 @@ function renderZhodaniTrainingPhase() {
   const lastResult = uiState.zhodaniTrainResult || null;
   const resultHTML = lastResult ? `
     <div class="roll-result-block">
-      <div class="roll-result-label">${lastResult.talent} — ${lastResult.succeeded ? '✓ Gained!' : '✗ Failed'}</div>
+      <div class="roll-result-label">${esc(lastResult.talent)} — ${lastResult.succeeded ? '✓ Gained!' : '✗ Failed'}</div>
       <div class="roll-result-dice">2D${lastResult.total_dm >= 0 ? '+' : ''}${lastResult.total_dm} = <strong>${lastResult.roll.total}</strong> vs 8+</div>
-      ${lastResult.succeeded ? `<div class="roll-result-note">Added <strong>${lastResult.talent}</strong> as Psionic (${lastResult.talent}) 0.</div>` : ''}
+      ${lastResult.succeeded ? `<div class="roll-result-note">Added <strong>${esc(lastResult.talent)}</strong> as Psionic (${esc(lastResult.talent)}) 0.</div>` : ''}
     </div>` : '';
 
   return `
@@ -3882,17 +3885,17 @@ function renderChooseCareer() {
     if (riteLocked) {
       return `
         <div class="card rite-locked" title="Requires Rite Score ${qual.target}+ (yours: ${riteScore})">
-          <div class="card-title">${c.name}</div>
+          <div class="card-title">${esc(c.name)}</div>
           <div class="card-meta">RITE ${qual.target}+ · SCORE ${qual.target} REQUIRED (YOURS: ${riteScore})</div>
-          <div class="card-desc">${c.description}</div>
+          <div class="card-desc">${esc(c.description)}</div>
         </div>
       `;
     }
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">
-        <div class="card-title">${c.name}</div>
+        <div class="card-title">${esc(c.name)}</div>
         <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}${riteScore !== null && qual.characteristic === 'RITE_OF_PASSAGE' ? ` · YOUR SCORE: ${riteScore}` : ''}</div>
-        <div class="card-desc">${c.description}</div>
+        <div class="card-desc">${esc(c.description)}</div>
       </button>
     `;
   }).join('');
@@ -5884,9 +5887,9 @@ function renderActiveTerm() {
 
   const banner = `
     <div class="term-banner">
-      <span class="term-part"><strong>${career.name}</strong> · ${assignment.name}</span>
+      <span class="term-part"><strong>${esc(career.name)}</strong> · ${esc(assignment.name)}</span>
       <span class="term-part">TERM <strong>${term.overall_term_number}</strong> · AGE <strong>${character.age}</strong></span>
-      <span class="term-part">RANK <strong>${term.rank}</strong>${term.rank_title ? ` — ${term.rank_title}` : ''}</span>
+      <span class="term-part">RANK <strong>${term.rank}</strong>${term.rank_title ? ` — ${esc(term.rank_title)}` : ''}</span>
     </div>
   `;
 
@@ -6038,7 +6041,7 @@ function renderQualifyResult() {
     return `
       <div class="panel-header"><span class="led"></span><span>QUALIFICATION — AUTOMATIC</span></div>
       <div class="stage-content">
-        <div class="phase-label">${career.name}</div>
+        <div class="phase-label">${esc(career.name)}</div>
         <h2 class="phase-title">Welcome Aboard</h2>
         <p class="phase-subtitle">Automatic qualification. No roll required.</p>
         ${renderAssignmentPicker(career)}
@@ -6051,7 +6054,7 @@ function renderQualifyResult() {
     return `
       <div class="panel-header"><span class="led"></span><span>QUALIFICATION — PASS</span></div>
       <div class="stage-content">
-        <div class="phase-label">${career.name}</div>
+        <div class="phase-label">${esc(career.name)}</div>
         <h2 class="phase-title">Accepted</h2>
         <div class="roll-readout">
           <span class="dice">[${r.dice.join(', ')}]</span>
@@ -6068,7 +6071,7 @@ function renderQualifyResult() {
     return `
       <div class="panel-header"><span class="led"></span><span>QUALIFICATION — FAIL</span></div>
       <div class="stage-content">
-        <div class="phase-label">${career.name}</div>
+        <div class="phase-label">${esc(career.name)}</div>
         <h2 class="phase-title">Rejected</h2>
         <div class="roll-readout">
           <span class="dice">[${r.dice.join(', ')}]</span>
@@ -6162,13 +6165,13 @@ function renderAssignmentPicker(career) {
         ${coverCareers.map(c => `
           <button class="card${uiState.selectedCoverCareer === c.id ? ' selected' : ''}" data-cover-career="${c.id}"
             style="padding:10px 12px">
-            <div class="card-title" style="font-size:12px">${c.name}</div>
+            <div class="card-title" style="font-size:12px">${esc(c.name)}</div>
           </button>
         `).join('')}
       </div>
       ${uiState.selectedCoverCareer ? `
         <p style="font-size:11px;color:var(--accent);margin-top:8px">
-          ✓ Cover: <strong>${CAREERS.find(c=>c.id===uiState.selectedCoverCareer)?.name}</strong>
+          ✓ Cover: <strong>${esc(CAREERS.find(c=>c.id===uiState.selectedCoverCareer)?.name)}</strong>
           — survival and advancement use this career's stats (DM-1 / DM+1).
         </p>` : `
         <p style="font-size:11px;color:var(--text-dim);margin-top:8px">Select a cover career above to continue.</p>
@@ -6187,9 +6190,9 @@ function renderAssignmentPicker(career) {
     }
     return `
     <button class="card ${uiState.selectedAssignment === id ? 'selected' : ''}" data-assignment="${id}">
-      <div class="card-title">${a.name}</div>
+      <div class="card-title">${esc(a.name)}</div>
       <div class="card-meta">SURV ${a.survival.characteristic} ${a.survival.target}+ · ADV ${a.advancement.characteristic} ${a.advancement.target}+</div>
-      <div class="card-desc">${a.description}</div>
+      <div class="card-desc">${esc(a.description)}</div>
     </button>`;
   }).join('');
 
@@ -6369,7 +6372,7 @@ function renderSkillChoice() {
     }).join('');
     return `
       <button class="btn skill-table-btn ${gated ? 'ghost' : ''}" data-skill-table="${key}" ${gated ? 'disabled' : ''}>
-        <span class="stable-name">${t.name || key}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>
+        <span class="stable-name">${esc(t.name || key)}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>
         ${previewItems ? `<span class="stable-preview">${previewItems}</span>` : ''}
       </button>
     `;
@@ -8339,7 +8342,7 @@ function renderAdvanceStep() {
         <div class="phase-label">Commission Roll — ${lr.succeeded ? 'COMMISSIONED' : 'FAILED'}</div>
         <h2 class="phase-title" style="color:${lr.succeeded ? 'var(--success,#7fd87f)' : 'var(--danger)'}">
           ${lr.succeeded
-            ? `Commissioned! Rank 1${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
+            ? `Commissioned! Rank 1${lr.newRankTitle ? ` — ${esc(lr.newRankTitle)}` : ''}`
             : 'Commission Failed'}
         </h2>
         ${rollReadoutHTML(lr.data, { label: `${commChar} ${commTarget}+` })}
@@ -8393,12 +8396,12 @@ function renderAdvanceStep() {
           const isStatBump = /^(STR|DEX|END|INT|EDU|SOC|PSI)\s*[+-]\d+$/i.test(String(entry).trim());
           return `<span class="stable-preview-cell ${isStatBump ? 'is-stat' : ''}"><span class="stable-preview-n">${n}</span><span class="stable-preview-v">${escapeHTML(String(entry))}</span></span>`;
         }).join('');
-        return `<button class="btn skill-table-btn ${gated ? 'ghost' : ''}" data-adv-skill-table="${key}" ${gated ? 'disabled' : ''}><span class="stable-name">${t.name || key}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>${previewItems ? `<span class="stable-preview">${previewItems}</span>` : ''}</button>`;
+        return `<button class="btn skill-table-btn ${gated ? 'ghost' : ''}" data-adv-skill-table="${key}" ${gated ? 'disabled' : ''}><span class="stable-name">${esc(t.name || key)}${t.requires_edu ? ` <span class="stable-req">(EDU ${t.requires_edu}+)</span>` : ''}</span>${previewItems ? `<span class="stable-preview">${previewItems}</span>` : ''}</button>`;
       }).join('');
       return `
         <div class="stage-content">
           <div class="phase-label">Advancement — Promoted · Bonus Skill Roll</div>
-          <h2 class="phase-title">Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}</h2>
+          <h2 class="phase-title">Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${esc(lr.newRankTitle)}` : ''}</h2>
           ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
             <span class="event-label" style="color:var(--success,#7fd87f)">ADVANCEMENT BONUS</span>
@@ -8413,7 +8416,7 @@ function renderAdvanceStep() {
       <div class="stage-content">
         <div class="phase-label">Advancement — ${advanced ? 'Promoted' : 'No Change'}</div>
         <h2 class="phase-title">${advanced
-          ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${lr.newRankTitle}` : ''}`
+          ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${esc(lr.newRankTitle)}` : ''}`
           : 'No Advancement This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
         ${(advanced && lr.rankBonus) ? `
@@ -8465,7 +8468,7 @@ function renderAdvanceStep() {
   return `
     <div class="stage-content">
       <div class="phase-label">Term ${term.overall_term_number} Complete</div>
-      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}${term.rank_title ? ` — ${term.rank_title}` : ''}` : term.advanced ? `Promoted to Rank ${term.rank}${term.rank_title ? ` — ${term.rank_title}` : ''}` : 'No Promotion This Term'}</h2>
+      <h2 class="phase-title">${term.commissioned ? `Commissioned — Rank ${term.rank}${term.rank_title ? ` — ${esc(term.rank_title)}` : ''}` : term.advanced ? `Promoted to Rank ${term.rank}${term.rank_title ? ` — ${esc(term.rank_title)}` : ''}` : 'No Promotion This Term'}</h2>
       <p class="phase-body" style="color:var(--text-dim);font-size:11px">Advancement roll already resolved — see the log for the result.</p>
       <p class="phase-body">Continue in this career or muster out?</p>
       ${decideActions}
@@ -8485,7 +8488,7 @@ function renderDecideStep() {
       <h2 class="phase-title">Continue or Muster Out?</h2>
       <p class="phase-subtitle">You've survived your term. Another four years, or a new chapter?</p>
       <p class="phase-body">${term.advanced
-        ? `You advanced to rank <strong>${term.rank}</strong>${term.rank_title ? ` — <strong>${term.rank_title}</strong>` : ''}.`
+        ? `You advanced to rank <strong>${term.rank}</strong>${term.rank_title ? ` — <strong>${esc(term.rank_title)}</strong>` : ''}.`
         : "You didn't advance this term."}</p>
       ${character.total_terms + 1 >= 4 ? `
         <p class="phase-body" style="color:var(--danger);font-style:italic">
@@ -8494,8 +8497,8 @@ function renderDecideStep() {
       ` : ''}
       ${forcedNext ? `
         <div class="event-box" style="border-color:var(--danger);margin-top:14px">
-          <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${forcedNextName.toUpperCase()}</span>
-          A conviction (or equivalent) forces you into the <strong>${forcedNextName}</strong> career next term.
+          <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${esc(forcedNextName).toUpperCase()}</span>
+          A conviction (or equivalent) forces you into the <strong>${esc(forcedNextName)}</strong> career next term.
           You cannot muster out or continue in your current career — you must serve your sentence first.
         </div>
         <div class="phase-actions" style="margin-top:12px">
@@ -8503,8 +8506,8 @@ function renderDecideStep() {
         </div>
       ` : `
         <div class="phase-actions">
-          <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${career.name.toUpperCase()}</button>
-          <button class="btn" id="btn-leave-career">MUSTER OUT OF ${career.name.toUpperCase()}</button>
+          <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${esc(career.name).toUpperCase()}</button>
+          <button class="btn" id="btn-leave-career">MUSTER OUT OF ${esc(career.name).toUpperCase()}</button>
         </div>
       `}
       ${anagathicsBoxHTML('btn-buy-anagathics')}
