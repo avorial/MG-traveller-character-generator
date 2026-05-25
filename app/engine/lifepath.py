@@ -6691,17 +6691,15 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.dm_next_benefit += 1
                 auto_applied.append("DM+1 to next Benefit roll")
             else:
-                auto_applied.append(
-                    "Transfer to Army/Confederation Army without Qualification roll — apply manually"
-                )
+                character.pending_transfer_career_id = "army"
+                auto_applied.append("Transfer offer accepted — will auto-qualify for Army next term (no Qualification roll).")
             character.pending_career_mishap_choice = None
 
         elif choice_id == "event_navy_transfer":
             # navy event 10: skill choice OR transfer to Marines note
             if selected == "transfer":
-                auto_applied.append(
-                    "Transfer to Marines without Qualification roll — apply manually"
-                )
+                character.pending_transfer_career_id = "marines"
+                auto_applied.append("Transfer accepted — will auto-qualify for Marines next term (no Qualification roll).")
                 character.pending_career_mishap_choice = None
             else:
                 character.pending_career_mishap_choice = {
@@ -6821,9 +6819,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         elif choice_id == "event_citizen_free_transfer":
             # citizen/drifter event 11: skill OR free career transfer
             if selected == "transfer":
-                auto_applied.append(
-                    "Free transfer to any non-military career without Qualification roll — apply manually"
-                )
+                character.pending_transfer_career_id = "any"
+                auto_applied.append("Free transfer accepted — will auto-qualify for any non-military career next term (no Qualification roll).")
                 character.pending_career_mishap_choice = None
             else:
                 character.pending_career_mishap_choice = {
@@ -7934,8 +7931,10 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         elif choice_id == "event_army_guard_transfer":
             # zhodani_army event 5: leave and auto-qualify Guard, or stay
             if selected == "transfer":
-                auto_applied.append("Left Army — will automatically qualify for Guard career next term (apply manually)")
-                character.log("Army event 5: transferring to Guard next term")
+                character.force_career_end = True
+                character.pending_transfer_career_id = "zhodani_guard"
+                auto_applied.append("Left Army — will auto-qualify for Zhodani Guard next term (no Qualification roll).")
+                character.log("Army event 5: force career end, auto-qualify zhodani_guard")
             else:
                 auto_applied.append("Stayed in Army — no transfer")
                 character.log("Army event 5: stayed in Army")
@@ -7944,8 +7943,10 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         elif choice_id == "event_guard_tp_transfer":
             # zhodani_guard event 5: leave and auto-qualify Thought Police, or stay
             if selected == "transfer":
-                auto_applied.append("Left Guard — will automatically qualify for Agent (Thought Police) career next term (apply manually)")
-                character.log("Guard event 5: transferring to Thought Police next term")
+                character.force_career_end = True
+                character.pending_transfer_career_id = "zhodani_agent"
+                auto_applied.append("Left Guard — will auto-qualify for Thought Police (Agent) next term (no Qualification roll).")
+                character.log("Guard event 5: force career end, auto-qualify thought police")
             else:
                 auto_applied.append("Stayed in Guard — no transfer")
                 character.log("Guard event 5: stayed in Guard")
