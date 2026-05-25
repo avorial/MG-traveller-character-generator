@@ -1821,15 +1821,15 @@ function renderZhodaniPsiChoice() {
   const pc = uiState.zhodaniPsiPending;
   const opts = pc.options || [];
   return `
-    <div class="phase-panel">
+    <div class="panel-header"><span class="led"></span><span>PHASE 02b — SPECIES SELECTION</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Zhodani Consulate</div>
       <h2 class="phase-title">Zhodani — PSI Ruleset</h2>
-      <p style="color:var(--amber-dim);margin:0 0 18px 0">
-        Choose which rulebook's PSI mechanic to use for this character.
-      </p>
-      <div class="choice-cards" style="display:flex;gap:14px;flex-wrap:wrap">
+      <p class="phase-subtitle">Choose which rulebook's PSI mechanic to use for this character.</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
         ${opts.map(o => `
           <button class="card zhodani-psi-opt" data-ruleset="${escapeAttr(o.id)}"
-                  style="flex:1;min-width:200px;text-align:left;cursor:pointer">
+                  style="flex:1;min-width:220px;text-align:left;cursor:pointer">
             <div class="card-title">${esc(o.label)}</div>
             <div class="card-desc" style="white-space:pre-line">${esc(o.description)}</div>
           </button>
@@ -2010,33 +2010,35 @@ function wireSpeciesPhase() {
   // Shared apply logic — used by both double-click on card and the confirm button.
   async function applySelectedSpecies() {
     if (!uiState.selectedSpecies) return;
-    const sp = SPECIES.find(s => s.id === uiState.selectedSpecies);
-    if (sp?.racial_background_roll) {
-      const response = await apiCall('/api/character/racial-background-roll', {});
+    try {
+      const sp = SPECIES.find(s => s.id === uiState.selectedSpecies);
+      if (sp?.racial_background_roll) {
+        const response = await apiCall('/api/character/racial-background-roll', {});
+        await applyResponse(response);
+        uiState.racialBackgroundResult = response;
+        renderStage();
+        return;
+      }
+      const response = await apiCall('/api/character/apply-species', { species_id: uiState.selectedSpecies });
       await applyResponse(response);
-      uiState.racialBackgroundResult = response;
-      renderStage();
-      return;
-    }
-    const response = await apiCall('/api/character/apply-species', { species_id: uiState.selectedSpecies });
-    await applyResponse(response);
-    // Zhodani PSI ruleset choice: show the two-option panel before progressing
-    if (response && response.pending_choice?.kind === 'zhodani_psi_ruleset') {
-      uiState.zhodaniPsiPending = response.pending_choice;
-      renderStage();
-      return;
-    }
-    // Aslan Hierate: skip background/pre_career, go directly to aslan_setup
-    if (response && response.needs_aslan_setup) {
-      // phase is already set to 'aslan_setup' by the engine
-    } else if (response && response.needs_zhodani_training) {
-      // Zhodani Noble/Intendant: psionic training before background
-      // phase is already set to 'zhodani_training' by the engine
-    } else {
-      character.phase = 'background';
-    }
-    saveCharacter();
-    renderAll();
+      // Zhodani PSI ruleset choice: show the two-option panel before progressing
+      if (response && response.pending_choice?.kind === 'zhodani_psi_ruleset') {
+        uiState.zhodaniPsiPending = response.pending_choice;
+        renderStage();
+        return;
+      }
+      // Aslan Hierate: skip background/pre_career, go directly to aslan_setup
+      if (response && response.needs_aslan_setup) {
+        // phase is already set to 'aslan_setup' by the engine
+      } else if (response && response.needs_zhodani_training) {
+        // Zhodani Noble/Intendant: psionic training before background
+        // phase is already set to 'zhodani_training' by the engine
+      } else {
+        character.phase = 'background';
+      }
+      saveCharacter();
+      renderAll();
+    } catch (e) { alert(e.message); }
   }
 
   document.querySelectorAll('[data-species]').forEach(card => {
