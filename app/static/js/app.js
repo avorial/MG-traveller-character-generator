@@ -6528,9 +6528,9 @@ function parseEventSkillOptions(text) {
   // Open-ended "any skill" grants are handled by parseEventWildcardSkill —
   // which returns a dynamic list based on character / career. Return null
   // here so the caller knows to try the wildcard parser instead.
-  if (/any\s+(?:one\s+)?skill\s+you\s+already\s+have/i.test(text)
+  if (/any\s+(?:one\s+)?skill\s+you\s+(?:already\s+have|possess)/i.test(text)
       || /any\s+skill\s+of\s+your\s+choice/i.test(text)
-      || /gain\s+(?:one\s+level\s+(?:in|of)\s+)?any\s+(?:skill|service\s+skill)/i.test(text)
+      || /gain\s+(?:(?:one|a)\s+level\s+(?:in|of)\s+)?any\s+(?:skill|service\s+skill)/i.test(text)
       || /any\s+(?:one\s+)?skill\s+from\s+the\s+(?:service|officer|advanced\s+education)/i.test(text)
       || /any\s+science\s+specialty/i.test(text)) {
     return null;
@@ -6783,10 +6783,15 @@ function getSkillLevelFor(skillName, speciality) {
   }
   // Check if it's a characteristic name (STR/DEX/etc.) — use the stat DM.
   const CHAR_KEYS = ['STR','DEX','END','INT','EDU','SOC'];
-  if (CHAR_KEYS.includes(skillName.toUpperCase())) {
-    const stat = character?.characteristics?.[skillName.toUpperCase()] ?? 7;
+  const upper = skillName.toUpperCase();
+  if (CHAR_KEYS.includes(upper)) {
+    const stat = character?.characteristics?.[upper] ?? 7;
     return charDM(stat);
   }
+  // Aliases: RES (Hiver Resolve) → SOC; PSI → psi; REP → reputation
+  if (upper === 'RES') return charDM(character?.characteristics?.SOC ?? 7);
+  if (upper === 'PSI') return charDM(character?.psi ?? 0);
+  if (upper === 'REP') return charDM(character?.reputation ?? 0);
   return -3; // untrained
 }
 
@@ -7188,7 +7193,7 @@ function renderEventStep() {
     const _eTransfer = parseEventTransferOffer(lr.eventText || '');
     const _eChosen = lr.eventChoicePath;
     const _ePickerOpts = _eSkillOpts || _eWildOpts;
-    const _eShowPicker = !_eChosen && (
+    const _eShowPicker = !_eChosen && !lr.pendingEventChoice && (
       (_ePickerOpts && _ePickerOpts.length > 0) ||
       (_eWild && (_eDmAlt || pendingGrants.length > 0)) ||
       (_eTransfer && !pendingGrants.length)  // transfer alone (no competing DM)

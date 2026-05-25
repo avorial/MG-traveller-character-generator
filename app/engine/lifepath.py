@@ -902,10 +902,17 @@ def apply_species(character: Character, species_id: str) -> dict:
 
     # Vargr Extents: CHA replaces SOC. Re-roll SOC as 1D+2 (not the standard 2D).
     if species_data.get("uses_cha"):
-        cha_roll = dice.roll_1d() + 2
+        cha_roll = dice.roll_d6() + 2
         old_soc = character.characteristics.SOC
         character.characteristics.set("SOC", cha_roll)
         character.log(f"CHA (SOC) re-rolled as 1D+2 = {cha_roll} (was {old_soc})")
+
+    # Hiver: RES replaces SOC, rolled as 1D+6 (range 7–12) when the species is chosen.
+    if species_data.get("res_replaces_soc"):
+        res_r = dice.roll("1D+6")
+        old_soc = character.characteristics.SOC
+        character.characteristics.set("SOC", res_r.total)
+        character.log(f"RES (SOC) rolled as 1D+6 = {res_r.total} (was {old_soc})")
 
     # Auto-grant species background skills (e.g. Vargr: Melee (Infighting) 0).
     species_bg_skills = species_data.get("background_skills", [])
@@ -8194,12 +8201,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         skill_dm = 0
         is_stat = any(s.get("is_stat") and s["name"] == skill_name for s in skills_list)
         if is_stat:
-            # PSI is on character.psi, not in Characteristics
-            if skill_name.upper() == "PSI":
-                val = character.psi
-            else:
-                val = character.characteristics.get(skill_name)
-            skill_dm = dice.characteristic_dm(val)
+            # Use _char_dm so RES→SOC, PSI→psi, REP→reputation all resolve correctly
+            skill_dm = _char_dm(character, skill_name)
         else:
             for s in character.skills:
                 if s.name == skill_name and s.speciality is None:
