@@ -3272,14 +3272,15 @@ def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
                     "Good Fortune (3-4): Star Guard commission — choose: sell for cash OR take a Navy commission"
                 )
             else:
-                character.equipment.append(
-                    Equipment(
-                        name="Antique Weapon (Drinax Armoury)",
-                        notes="Choose: Ancient Rapier or Laser Pistol — apply choice manually",
-                    )
-                )
+                character.pending_life_event_choice = {
+                    "kind": "drinax_weapon_choice",
+                    "options": [
+                        {"id": "rapier", "label": "Ancient Rapier"},
+                        {"id": "laser_pistol", "label": "Laser Pistol"},
+                    ],
+                }
                 auto_applied.append(
-                    "Good Fortune (5-6): Ancient weapon from Palace armoury — choose rapier or laser pistol (noted in equipment)"
+                    "Good Fortune (5-6): Choose your weapon from the Palace armoury — Ancient Rapier or Laser Pistol."
                 )
 
         elif total == 6:
@@ -4328,6 +4329,14 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
         log = character.add_skill(choice, level=1)
         character.log(f"Droyne Life Event — Voyage: gained {choice} 1 — {log}")
 
+    elif kind == "drinax_weapon_choice":
+        weapon_id = choice if choice in ("rapier", "laser_pistol") else "rapier"
+        weapon_name = "Ancient Rapier" if weapon_id == "rapier" else "Laser Pistol"
+        character.equipment.append(
+            Equipment(name=weapon_name, notes="From Drinax Palace armoury (Good Fortune event)")
+        )
+        character.log(f"Drinax weapon choice: {weapon_name}")
+
     elif kind == "family_inheritance":
         # Life Event 2 (Family Affairs 5-6): extra Benefit roll OR SOC+1
         if choice == "benefit":
@@ -4939,6 +4948,23 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if career.get("prole_career") and character.species_id == "zhodani":
         if _zhodani_class(character.characteristics.get("SOC") or 0) in ("noble", "intendant"):
             return _qual_block("Zhodani Nobles and Intendants cannot enter Prole careers.")
+
+    # Ihatei core-career restriction: character must join a Core Rulebook career
+    # (societies absent, empty, or includes "third_imperium").
+    if character.next_career_must_be_core:
+        career_societies = career.get("societies") or []
+        is_core = (
+            not career_societies
+            or "third_imperium" in career_societies
+        )
+        if not is_core:
+            return _qual_block(
+                "Having joined the ihatei, you must qualify for a Core Rulebook career this term "
+                f"({career['name']} is restricted to {', '.join(career_societies)})."
+            )
+        # Career is core — consume the flag (allow this qualification to proceed)
+        character.next_career_must_be_core = False
+        character.log(f"Ihatei core-career restriction satisfied by {career['name']} — flag cleared.")
 
     qual = career.get("qualification", {})
     if qual.get("automatic"):
@@ -7047,8 +7073,9 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.associates.append(
                     Associate(kind="ally", description="Ally [Ihatei — joined retinue]")
                 )
-                auto_applied.append("Joined ihatei — gained Ally [Ihatei]. Must qualify for a Core Rulebook career next term (apply manually).")
-                character.log("Outcast event 9: joined ihatei, ally")
+                character.next_career_must_be_core = True
+                auto_applied.append("Joined ihatei — gained Ally [Ihatei]. Must qualify for a Core Rulebook career next term.")
+                character.log("Outcast event 9: joined ihatei, ally, next career must be core rulebook")
             else:
                 auto_applied.append("Declined — no effect")
             character.pending_career_mishap_choice = None
@@ -12527,8 +12554,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
              "on_nat2": [],
              "on_pass": [{"type": "force_next_career", "career_id": "dolphin_military"}],
-             "on_fail": [],
-             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (note manually)"}],
+             "on_fail": [{"type": "force_career_end"}],
+             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (ejected from career)"}],
         4: [{"type": "stat", "stat": "SOC", "amount": -1},
             {"type": "enemy", "desc": "Enemy [Purist Political Militant]"}],
         5: [{"type": "stat", "stat": "END", "amount": -2}],
@@ -12569,8 +12596,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
              "on_nat2": [],
              "on_pass": [{"type": "force_next_career", "career_id": "dolphin_military"}],
-             "on_fail": [],
-             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (note manually)"}],
+             "on_fail": [{"type": "force_career_end"}],
+             "prompt": "War/insurgency — roll Gun Combat or Melee 8+: pass auto-drafted into Dolphin Military next term; fail exile (ejected from career)"}],
         4: [{"type": "stat", "stat": "SOC", "amount": -1},
             {"type": "enemy", "desc": "Enemy [Purist Political Militant]"}],
         5: [{"type": "stat", "stat": "END", "amount": -2}],

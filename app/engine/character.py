@@ -143,6 +143,12 @@ class Character(BaseModel):
     # only allow this career until it is consumed.
     forced_next_career_id: Optional[str] = None
 
+    # Ihatei restriction — set when an Aslan joins the ihatei's retinue.
+    # When True, the character must enter a Core Rulebook career next term
+    # (one with no societies field, or societies includes "third_imperium").
+    # Consumed when qualification for a core career succeeds.
+    next_career_must_be_core: bool = False
+
     # Careers permanently banned from re-entry (e.g. Scout event 2 failure).
     banned_career_ids: list[str] = Field(default_factory=list)
 

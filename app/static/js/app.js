@@ -3866,10 +3866,18 @@ function renderChooseCareer() {
   // Droyne characters (droyne_caste_system) must only see Droyne careers (droyne careers have allowed_species: ["droyne"]).
   const isDroyne = !!(speciesDef && speciesDef.droyne_caste_system);
 
+  const mustBeCore = !!(character.next_career_must_be_core);
+
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
         if (banned.has(c.id)) return false;
+        // Ihatei restriction: only core rulebook careers (no societies, or includes third_imperium)
+        if (mustBeCore) {
+          const socs = c.societies || [];
+          const isCore = socs.length === 0 || socs.includes('third_imperium');
+          if (!isCore) return false;
+        }
         // Aslan: only show careers whitelisted for this Aslan society tag
         if (isAslan && !(c.societies && c.societies.includes(aslanSocietyTag))) return false;
         // K'kree: only show careers tagged two_thousand_worlds
@@ -3899,6 +3907,10 @@ function renderChooseCareer() {
   const forcedBanner = forcedId ? `
     <p class="phase-body" style="color:var(--danger);font-weight:bold">
       ⚠ You must enter the <strong>${forcedCareerName}</strong> career this term — this is mandatory.
+    </p>` : '';
+  const coreBanner = mustBeCore && !forcedId ? `
+    <p class="phase-body" style="color:var(--amber);font-weight:bold">
+      ⚠ Ihatei restriction: you must qualify for a Core Rulebook career this term (alien/society-specific careers are hidden).
     </p>` : '';
   const bannedBanner = banned.size && !forcedId ? `
     <p class="phase-body" style="color:var(--amber-dim);font-size:11px">
@@ -3971,6 +3983,7 @@ function renderChooseCareer() {
       <div class="phase-label">Term ${character.total_terms + 1} · Age ${character.age}</div>
       <h2 class="phase-title">Choose a Career</h2>
       ${forcedBanner}
+      ${coreBanner}
       ${bannedBanner}
       ${vaccLockBanner}
       <p class="phase-subtitle">${character.total_terms === 0
