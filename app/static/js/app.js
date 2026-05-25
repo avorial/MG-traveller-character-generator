@@ -5332,6 +5332,15 @@ function wireCareerPhase() {
       if (response.event_effects) {
         uiState.lastRoll.eventEffects = (uiState.lastRoll.eventEffects || []).concat(response.event_effects);
       }
+      if (response.disaster_mishap) {
+        uiState.lastRoll.disasterMishap = response.disaster_mishap;
+      }
+      if (response.skill_check) {
+        uiState.lastRoll.skillCheckResult = response.skill_check;
+      }
+      if (response.auto_applied && response.auto_applied.length) {
+        uiState.lastRoll.eventEffects = (uiState.lastRoll.eventEffects || []).concat(response.auto_applied);
+      }
     }
     renderAll();
   }
@@ -7974,7 +7983,6 @@ function renderEventStep() {
         ${disasterMishapHTML}
         ${pendingEventChoiceHTML}
         ${pendingCareerLifeEventHTML}
-        ${showPicker || (contested && !lr.eventContestedResolved) || (csr && csr.success && csr.pendingSkillPick && !csr.skillChosen) || forcesMishap || associateOps.length || (autoProm && !autoProm.skipped) || isEntertainerEv5 || eventEffectsMsgs.length || pendingEventChoice || pendingLifeEventChoice ? '' : `<p class="phase-body empty"><em>Apply any resulting benefits manually to your notes — only "DM+N to next X roll" grants and stat changes are auto-applied.</em></p>`}
         <div class="phase-actions">
           ${actionsHTML}
         </div>

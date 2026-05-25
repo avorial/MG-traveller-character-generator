@@ -8659,12 +8659,34 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         # Apply consequences
         consequences = on_nat2 if nat2 else (on_pass if passed else on_fail)
         new_pending_set = False
+        disaster_mishap_result: Optional[dict] = None
         for sub_effect in consequences:
             if sub_effect.get("type") == "injury":
                 # injury must be applied directly — _apply_mishap_effect only does `pass` for it
                 inj = apply_injury(character)
                 if inj:
                     auto_applied.append(f"Injury: {inj.get('description', 'injured')}")
+            elif sub_effect.get("type") == "trigger_disaster_mishap":
+                # Call mishap_roll directly so we can capture the full result dict and
+                # correctly detect whether it set a new pending choice.
+                career_continues = sub_effect.get("career_continues", True)
+                try:
+                    disaster_mishap_result = mishap_roll(character)
+                    if career_continues and term is not None:
+                        term.survived = True
+                        term.mishap = None
+                        auto_applied.append("Rolled on Mishap table — career continues")
+                        character.log("Event skill-check fail: triggered mishap roll, career continues")
+                    else:
+                        character.force_career_end = True
+                        character.ejected_by_event = True
+                        auto_applied.append("Rolled on Mishap table — career ended")
+                        character.log("Event skill-check fail: triggered mishap roll, career ended")
+                    # If the mishap itself set a pending choice, preserve it
+                    if character.pending_career_mishap_choice is not None:
+                        new_pending_set = True
+                except Exception as _exc:
+                    auto_applied.append(f"Mishap roll (event on_fail) error: {_exc}")
             else:
                 msgs, was_pending = _apply_mishap_effect(character, sub_effect, term)
                 auto_applied.extend(msgs)
@@ -8687,6 +8709,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 "passed": passed,
                 "nat2": nat2,
             },
+            "disaster_mishap": disaster_mishap_result,
             "injury_pending": bool(character.pending_injury_choice),
             "injury_data": injury_data,
             "character": character.model_dump(),
