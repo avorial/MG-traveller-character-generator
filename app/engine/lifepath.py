@@ -5238,6 +5238,13 @@ def start_term(
     elif merchant_auto_rank:
         starting_rank = auto_rank
         commissioned_start = True  # treat as a commissioned start for term setup purposes
+    elif character.pending_transfer_rank is not None and is_new_career:
+        # Rank carried over from a career-transfer event (e.g. Zhodani Merchant → Zhodani Navy)
+        starting_rank = character.pending_transfer_rank
+        character.pending_transfer_rank = None
+        if starting_rank > 0:
+            commissioned_start = True  # suppress basic training; log as ranked entry
+        character.log(f"Rank {starting_rank} carried over from career transfer.")
     elif not is_new_career and character.current_term is not None:
         starting_rank = character.current_term.rank
     else:
@@ -8039,10 +8046,18 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             character.pending_career_mishap_choice = None
 
         elif choice_id == "event_zhodani_merchant_drafted":
-            # zhodani_merchant event 3: leave merchant + auto-qualify Navy, or stay (applied manually)
-            # The event forces leaving merchant anyway, but player can note the Navy path
-            auto_applied.append("Government drafted your ship — must leave Merchant career this term. May automatically qualify for Navy (Zhodani) next term (apply manually).")
-            character.log("Merchant event 3: drafted, leaving merchant, Navy auto-qualify noted")
+            # zhodani_merchant event 3: leave merchant + auto-qualify Zhodani Navy at same rank
+            current_rank = character.current_term.rank if character.current_term else 0
+            character.force_career_end = True
+            character.pending_transfer_career_id = "zhodani_navy"
+            character.pending_transfer_rank = current_rank
+            auto_applied.append(
+                f"Government drafted your ship — must leave Merchant career. "
+                f"Auto-qualifies for Zhodani Navy next term at Rank {current_rank}."
+            )
+            character.log(
+                f"Merchant event 3: drafted, leaving merchant, auto-qualify Zhodani Navy at rank {current_rank}"
+            )
             character.pending_career_mishap_choice = None
 
         elif choice_id == "event_scholar_conscience":

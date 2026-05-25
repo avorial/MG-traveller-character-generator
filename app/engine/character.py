@@ -133,6 +133,11 @@ class Character(BaseModel):
     # is skipped for the matching target career).
     pending_transfer_career_id: Optional[str] = None
 
+    # Rank to carry into the next career via a transfer (e.g. Zhodani Merchant
+    # event 3 → Zhodani Navy at same rank). Consumed when start_term fires for
+    # the new career immediately after pending_transfer_career_id is consumed.
+    pending_transfer_rank: Optional[int] = None
+
     # Forced next career — set by pre-career education events (e.g. event 4
     # natural 2 → Prisoner, event 11 Drifter / Draft). The career picker will
     # only allow this career until it is consumed.
