@@ -1822,6 +1822,28 @@ function wireSocietyPhase() {
 // PHASE 2b: Species
 // ============================================================
 
+function renderSpeciesSkillGrantChoice() {
+  const pc = uiState.speciesSkillGrantPending;
+  const opts = pc.options || [];
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 02b — SPECIES SELECTION</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Species Ability</div>
+      <h2 class="phase-title">Choose Your Combat Skill</h2>
+      <p class="phase-subtitle">${esc(pc.prompt || 'Choose one skill granted by your species:')}</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
+        ${opts.map(o => `
+          <button class="card species-skill-grant-opt" data-skill-choice="${escapeAttr(o.id)}"
+                  style="flex:1;min-width:200px;text-align:left;cursor:pointer">
+            <div class="card-title">${esc(o.label)}</div>
+            <div class="card-desc">${esc(o.description)}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderZhodaniPsiChoice() {
   const pc = uiState.zhodaniPsiPending;
   const opts = pc.options || [];
@@ -1848,6 +1870,10 @@ function renderSpeciesPhase() {
   // If a Heritage Roll result is pending, show the result panel instead
   if (uiState.racialBackgroundResult) {
     return renderRacialBackgroundResult();
+  }
+  // If a species skill grant choice is pending (e.g. Dynchia Warrior People)
+  if (uiState.speciesSkillGrantPending) {
+    return renderSpeciesSkillGrantChoice();
   }
   // If a Zhodani PSI ruleset choice is pending, show that panel
   if (uiState.zhodaniPsiPending) {
@@ -1994,6 +2020,24 @@ function wireSpeciesPhase() {
     return;
   }
 
+  // Species skill grant choice — wire the option cards (e.g. Dynchia)
+  if (uiState.speciesSkillGrantPending) {
+    document.querySelectorAll('.species-skill-grant-opt').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const skillChoice = btn.getAttribute('data-skill-choice');
+        try {
+          const response = await apiCall('/api/character/life-event-choice', { choice: skillChoice });
+          await applyResponse(response);
+          uiState.speciesSkillGrantPending = null;
+          character.phase = 'background';
+          saveCharacter();
+          renderAll();
+        } catch (e) { alert(e.message); }
+      });
+    });
+    return;
+  }
+
   // Zhodani PSI ruleset choice — wire the two option cards
   if (uiState.zhodaniPsiPending) {
     document.querySelectorAll('.zhodani-psi-opt').forEach(btn => {
@@ -2030,6 +2074,12 @@ function wireSpeciesPhase() {
       }
       const response = await apiCall('/api/character/apply-species', { species_id: uiState.selectedSpecies });
       await applyResponse(response);
+      // Species skill grant choice (e.g. Dynchia Warrior People)
+      if (response && response.pending_choice?.kind === 'species_skill_grant') {
+        uiState.speciesSkillGrantPending = response.pending_choice;
+        renderStage();
+        return;
+      }
       // Zhodani PSI ruleset choice: show the two-option panel before progressing
       if (response && response.pending_choice?.kind === 'zhodani_psi_ruleset') {
         uiState.zhodaniPsiPending = response.pending_choice;

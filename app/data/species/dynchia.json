@@ -1,0 +1,43 @@
+{
+    "id": "dynchia",
+    "name": "Dynchia",
+    "description": "The Dynchia are a spacefaring species found throughout Charted Space, most common near their home region. They organise around clan affiliation and performance-based trials, and struggle with hierarchical command structures grounded in different values. A Dynchia would be entirely at home in the Scout Service, aboard a free trader, or in a loosely organised mercenary group — but joining a rigid military organisation outside their own society is difficult. They have no real concept of gender specialisation and are genuinely baffled by racism or sexism, not opposing it so much as being unable to understand it at all.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 1,
+        "END": 0,
+        "INT": 0,
+        "EDU": 1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "characteristic_dice": {
+        "STR": "1D+3"
+    },
+    "career_qualify_dms": {
+        "army": -2,
+        "navy": -2,
+        "marine": -2
+    },
+    "species_skill_grant_choice": ["Gun Combat 1", "Melee 1"],
+    "species_skill_grant_prompt": "Warrior People: all adult Dynchia have passed their trials. Choose one combat skill gained before your first career:",
+    "traits": [
+        {
+            "name": "Mature Technology",
+            "description": "A Dynchia with access to a workshop and the right skills can modify any device up to TL12 to work more like their own people would build it. The process requires a rebuild involving few original components and costs 50–150% of the item's original price. At the end, the item is around 10% better in one area — which might be aesthetic or functional (10% faster, extra damage, extra ammo, or simply better looking)."
+        },
+        {
+            "name": "Warrior People",
+            "description": "All adult Dynchia have passed their trials and are confident of their own abilities. DM-1 applies to all social interactions with someone of dubious honour or who lacks proven capabilities. All Dynchia gain one level in Gun Combat or Melee before starting a career (choose at character creation)."
+        }
+    ],
+    "species_notes": [
+        "STR rolled as 1D+3 (range 4–9) instead of standard 2D6.",
+        "Army, Navy, and Marines qualification: DM-2 (outside Dynchia society, these careers prefer the best).",
+        "Merchant commission and promotion rolls: DM-2 for merchant-line assignments larger than a free trader crew (Merchant Marine, Broker). Free Trader assignment is not penalised. Apply this manually as a GM note.",
+        "Navy and Marines commission and promotion rolls: DM-2 applies outside the Comitia."
+    ],
+    "sort_order": 101,
+    "aliases": ["dynchia"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

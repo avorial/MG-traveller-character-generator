@@ -1165,6 +1165,24 @@ def apply_species(character: Character, species_id: str) -> dict:
 
     needs_zhodani_training = character.phase == "zhodani_training"
 
+    # Species skill grant choice (e.g. Dynchia: gain Gun Combat 1 OR Melee 1).
+    # Only fires when no other pending choice is already set.
+    species_skill_choice_pending: dict | None = None
+    skill_grant_choices = species_data.get("species_skill_grant_choice", [])
+    if skill_grant_choices and not character.pending_life_event_choice:
+        skill_grant_prompt = species_data.get(
+            "species_skill_grant_prompt", "Choose a skill granted by your species:"
+        )
+        species_skill_choice_pending = {
+            "kind": "species_skill_grant",
+            "prompt": skill_grant_prompt,
+            "options": [
+                {"id": s, "label": s, "description": f"Gain {s}"}
+                for s in skill_grant_choices
+            ],
+        }
+        character.pending_life_event_choice = species_skill_choice_pending
+
     return {
         "applied": applied,
         "traits": character.traits,
@@ -1173,7 +1191,7 @@ def apply_species(character: Character, species_id: str) -> dict:
         "zhodani_class": _zhodani_class(character.characteristics.get("SOC") or 0) if character.species_id == "zhodani" else None,
         "droyne_caste": droyne_caste_result,
         "hiver_nest": hiver_nest_result,
-        "pending_choice": psi_ruleset_pending,
+        "pending_choice": psi_ruleset_pending or species_skill_choice_pending,
         "character": character.model_dump(),
     }
 
@@ -4368,6 +4386,24 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
         else:
             raise ValueError(f"Unknown choice '{choice}' for family_inheritance")
 
+    elif kind == "species_skill_grant":
+        # e.g. Dynchia Warrior People: gain Gun Combat 1 OR Melee 1
+        options = pending.get("options", [])
+        valid_ids = {o["id"] for o in options}
+        if choice not in valid_ids:
+            raise ValueError(
+                f"Invalid choice '{choice}' for species_skill_grant. "
+                f"Valid options: {', '.join(sorted(valid_ids))}"
+            )
+        # Parse "Skill (spec) N" or "Skill N"
+        parts = choice.rsplit(" ", 1)
+        skill_str = parts[0].strip()
+        level = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+        sn, spec = _split_skill_speciality(skill_str)
+        character.add_skill(sn, level=level, speciality=spec)
+        disp = f"{sn}{f' ({spec})' if spec else ''} {level}"
+        character.log(f"Species skill (Warrior People): gained {disp}")
+
     else:
         raise ValueError(f"Unknown pending life event kind: {kind!r}")
 
@@ -5370,6 +5406,17 @@ def start_term(
         term.skills_gained.append(f"Rank 0 bonus: {bonus0}")
         character.log(f"  Rank 0 bonus: {rank0_log}")
 
+    # Career-start skills: auto-applied on the very first term in this career.
+    # Used by careers like Girug'kagh Translator (Steward 1 + Diplomat 1 at entry).
+    career_start_skill_log: list[str] = []
+    if first_term_in_this_career:
+        career_start_skills = career.get("career_start_skills", [])
+        if career_start_skills:
+            career_start_skill_log = _apply_enrollment_auto_skills(character, career_start_skills)
+            for msg in career_start_skill_log:
+                character.log(f"  Career start skill: {msg}")
+            term.skills_gained.extend([f"Career start: {s}" for s in career_start_skills])
+
     # Basic training: auto-apply all 6 skill entries at level 0.
     # basic_training_from_specialist: use the specialist table for this assignment
     # instead of the service_skills table (e.g. Zhodani Prole career).
@@ -5406,6 +5453,8 @@ def start_term(
         result["academy_commission_roll"] = academy_commission_roll
     if basic_training_skills:
         result["basic_training_skills"] = basic_training_skills
+    if career_start_skill_log:
+        result["career_start_skills"] = career_start_skill_log
     return result
 
 

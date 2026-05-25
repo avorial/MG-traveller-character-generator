@@ -5,7 +5,7 @@
       "name": "Third Imperium",
       "subtitle": "The dominant human polity in Charted Space",
       "description": "Eleven thousand worlds spanning dozens of sectors. Citizens of the Third Imperium grow up navigating Imperial law, bureaucracy, and a cosmopolitan culture shaped by centuries of trade. Characters from here have the widest range of species options — humans, Vargr, Aslan, and a dozen other sophonts all hold Imperial citizenship.",
-      "species_ids": ["imperial_human", "imperial_vargr", "imperial_aslan", "imperial_bwap", "jonkeereen", "luriani", "sydite", "akeed", "capry_female", "capry_big_male", "capry_small_male", "droashav", "faar", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap", "uplifted_ape_chimp", "uplifted_ape_gorilla", "selenite", "aquamorph", "gurungan", "ladybug"]
+      "species_ids": ["imperial_human", "imperial_vargr", "imperial_aslan", "imperial_bwap", "jonkeereen", "luriani", "sydite", "akeed", "capry_female", "capry_big_male", "capry_small_male", "droashav", "faar", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap", "uplifted_ape_chimp", "uplifted_ape_gorilla", "selenite", "aquamorph", "gurungan", "ladybug", "dynchia"]
     },
     {
       "id": "solomani_confederation",
@@ -47,7 +47,7 @@
       "name": "Two Thousand Worlds",
       "subtitle": "The K'Kree herd-empire — and those who must live within it",
       "description": "The Two Thousand Worlds is the vast interstellar empire of the K'Kree — six-limbed centauroid obligate herbivores who regard meat-eaters with deep revulsion. Humans who inhabit K'Kree space are rare, operate under strict dietary laws, and are considered of low status. Play as a K'Kree patriarch and track your family group across four castes: Pastoral, Servant, Merchant, and Noble.",
-      "species_ids": ["two_thousand_worlds_human", "kkree"]
+      "species_ids": ["two_thousand_worlds_human", "kkree", "girug_kagh"]
     },
     {
       "id": "vargr_extents",

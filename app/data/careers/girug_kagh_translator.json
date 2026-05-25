@@ -1,0 +1,96 @@
+{
+    "id": "girug_kagh_translator",
+    "name": "Translator (Girug'kagh)",
+    "description": "Girug'kagh translators serve as emissaries and diplomatic intermediaries for K'kree overlords. They work for life as part of a K'kree entourage, with no conventional rank structure or mustering-out benefits. They receive Steward 1 and Diplomat 1 automatically at the start of their career.",
+    "qualification": {"characteristic": "INT", "target": 5},
+    "career_start_skills": ["Steward 1", "Diplomat 1"],
+    "mustering_out_rolls_per_term": 0,
+    "assignments": {
+        "translator": {
+            "name": "Translator",
+            "description": "You serve as a linguistic and diplomatic emissary for K'kree patrons, navigating alien cultures on their behalf.",
+            "survival": {"characteristic": "INT", "target": 5},
+            "advancement": {"characteristic": "EDU", "target": 12}
+        }
+    },
+    "skill_tables": {
+        "personal_development": {
+            "name": "Personal Development",
+            "1": "STR +1",
+            "2": "DEX +1",
+            "3": "DEX +1",
+            "4": "END +1",
+            "5": "INT +1",
+            "6": "EDU +1"
+        },
+        "service_skills": {
+            "name": "Service Skills",
+            "1": "Mechanic",
+            "2": "Steward",
+            "3": "Flyer (Grav)",
+            "4": "Language",
+            "5": "Profession",
+            "6": "Streetwise"
+        },
+        "translator": {
+            "name": "Translator",
+            "1": "Mechanic",
+            "2": "Steward",
+            "3": "Flyer (Grav)",
+            "4": "Language",
+            "5": "Profession",
+            "6": "Streetwise"
+        },
+        "education": {
+            "name": "Education",
+            "1": "Admin",
+            "2": "Electronics",
+            "3": "Language",
+            "4": "Diplomat",
+            "5": "Persuade",
+            "6": "Broker"
+        }
+    },
+    "ranks": {
+        "translator": {
+            "0": {"title": "Translator", "bonus": null},
+            "1": {"title": "Senior Translator", "bonus": null},
+            "2": {"title": "Lead Translator", "bonus": null},
+            "3": {"title": "Master Translator", "bonus": null}
+        }
+    },
+    "mishaps": {
+        "1": "You offend your K'kree patron through a cultural misunderstanding. Lose this job but gain a Contact in the alien culture you were navigating.",
+        "2": "A diplomatic incident forces your recall. Gain an Enemy among the foreign delegation.",
+        "3": "You are caught in crossfire during a hostile negotiation. Roll on the Injury table.",
+        "4": "Your patron K'kree dies. You must find a new patron or leave service. Gain a Contact from the old patron's household.",
+        "5": "You accidentally reveal confidential K'kree information. Gain an Enemy from your patron's rivals.",
+        "6": "You suffer a crisis of loyalty. You may leave service freely — but gain a K'kree Enemy who considers you a traitor."
+    },
+    "events": {
+        "2": "Disaster! Roll on the Mishap table but you are not ejected from the career.",
+        "3": "A tricky negotiation tests every skill you have. Roll Diplomat 8+. Success: gain DM+2 on your next advancement roll. Failure: gain a Rival.",
+        "4": "You accompany your patron on a deep-space voyage. Gain Vacc Suit 1 or Pilot (spacecraft) 1.",
+        "5": "Extended posting on an alien world. Gain Language 1 or Survival 1.",
+        "6": "Your patron requires you to manage a complex household dispute. Gain Steward 1 or Admin 1.",
+        "7": "Life Event. Roll on the Life Events table.",
+        "8": "You attend a major K'kree ceremony. Gain a Contact among K'kree dignitaries and SOC +1.",
+        "9": "A foreign dignitary takes a liking to you. Gain an Ally.",
+        "10": "Your skill in a critical situation impresses your patron. Gain DM+2 on your next advancement roll.",
+        "11": "Your patron elevates you to a position of particular trust. Gain SOC +1 and Diplomat 1.",
+        "12": "You broker a historic agreement between the K'kree and another species. Gain one rank and SOC +1."
+    },
+    "mustering_out": {
+        "1": {"cash": 0, "benefit": "Contact"},
+        "2": {"cash": 0, "benefit": "Contact"},
+        "3": {"cash": 0, "benefit": "Ally"},
+        "4": {"cash": 0, "benefit": "EDU +1"},
+        "5": {"cash": 0, "benefit": "EDU +1"},
+        "6": {"cash": 0, "benefit": "SOC +1"},
+        "7": {"cash": 0, "benefit": "SOC +1"}
+    },
+    "complete": true,
+    "societies": ["two_thousand_worlds"],
+    "allowed_species": ["girug_kagh"],
+    "notes": "Girug'kagh only. Translators receive Steward 1 and Diplomat 1 automatically at career start. No cash mustering-out benefits — service is considered lifelong."
+}

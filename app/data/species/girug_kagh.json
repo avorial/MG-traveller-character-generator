@@ -1,0 +1,34 @@
+{
+    "id": "girug_kagh",
+    "name": "Girug'kagh",
+    "description": "The Girug'kagh are unlikely to be encountered outside the Two Thousand Worlds or away from their K'kree overlords. Small groups are sometimes placed as trade or diplomatic emissaries and allowed to conduct K'kree business with little supervision — the K'kree are quite confident of their subjects' loyalty. Girug'kagh display a peculiar mixture of subservience and arrogance: total deference to their overlords and haughty disdain for almost everyone else. Their behaviour has been compared to that of an English butler — conveying an air of contempt while behaving with complete propriety.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "characteristic_dice": {
+        "STR": "1D+2",
+        "END": "1D+2",
+        "DEX": "1D+7"
+    },
+    "traits": [
+        {
+            "name": "Kr'rrir",
+            "description": "Any Traveller with this trait is recognised by a K'kree as being a 'good subject' — they smell right and display the correct level of abject servitude, enabling K'kree to feel comfortable around them. A character with Kr'rrir suffers DM-6 on any checks that go against their loyalty to the K'kree, even if they want to disobey or harm them. They would be bypassed by rampaging K'kree warriors or even protected by them, whether or not protection was needed."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 1D+2 (range 3–8); DEX rolled as 1D+7 (range 8–13).",
+        "Kr'rrir: DM-6 on any check that goes against loyalty to the K'kree — apply whenever relevant.",
+        "Most Girug'kagh encountered outside the Two Thousand Worlds are Translators: they receive no mustering-out benefits and their service is considered lifelong.",
+        "SOC indicates the level of K'kree society the Girug'kagh serves, more than personal standing."
+    ],
+    "sort_order": 102,
+    "aliases": ["girug_kagh", "girug"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}
