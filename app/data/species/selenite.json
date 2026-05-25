@@ -18,6 +18,9 @@
             "description": "Selenites are naturally adept at operating in low gravity and microgravity environments. They receive DM+2 to all checks connected with physical activity in low-gravity conditions, such as moving quickly between handholds. A Selenite will not lose orientation when operating in a complex 3-dimensional space and can navigate derelict starships or debris fields without effort."
         }
     ],
+    "species_notes": [
+        "STR rolled as 2D3+1 (range 3–7) and END rolled as 1D+1 (range 2–7) — both lower than the human average."
+    ],
     "sort_order": 95,
     "aliases": ["selenites"],
     "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"

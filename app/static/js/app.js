@@ -848,6 +848,10 @@ function renderSheet() {
   const traitsHTML = traits.length
     ? `<ul class="traits-list">${traits.map(t => `<li><strong>${esc(t.name)}:</strong> ${esc(t.description)}</li>`).join('')}</ul>`
     : '<p class="empty">No species traits</p>';
+  const _spForNotes = SPECIES.find(s => s.id === character.species_id);
+  const speciesNotesHTML = (_spForNotes && _spForNotes.species_notes && _spForNotes.species_notes.length)
+    ? `<ul class="species-notes-list">${_spForNotes.species_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>`
+    : '';
 
   const careersHTML = character.completed_careers.length
     ? `<ul class="skill-list">${character.completed_careers.map(c => {
@@ -1039,6 +1043,7 @@ function renderSheet() {
       <div class="sheet-section">
         <h3>Species Traits</h3>
         ${traitsHTML}
+        ${speciesNotesHTML}
       </div>
 
       ${character.medical_debt > 0 ? `
@@ -1876,6 +1881,9 @@ function renderSpeciesPhase() {
   }).join('');
 
   const selectedSp = SPECIES.find(s => s.id === selected);
+  const _spNotes = selectedSp && selectedSp.species_notes && selectedSp.species_notes.length
+    ? `<div class="species-notes-panel"><h5>Mechanical Notes</h5><ul class="species-notes-list">${selectedSp.species_notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`
+    : '';
   const traitsPanel = selectedSp && selectedSp.traits.length ? `
     <div class="species-traits-panel">
       <h4>Species Traits — ${esc(selectedSp.name)}</h4>
@@ -1885,8 +1893,9 @@ function renderSpeciesPhase() {
           <span class="trait-desc">${esc(t.description)}</span>
         </div>
       `).join('')}
+      ${_spNotes}
     </div>
-  ` : (selectedSp ? '<p class="empty" style="margin-top:14px">No special traits. The baseline Traveller experience.</p>' : '');
+  ` : (selectedSp ? `<p class="empty" style="margin-top:14px">No special traits. The baseline Traveller experience.</p>${_spNotes}` : '');
 
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 02b — SPECIES SELECTION</span></div>

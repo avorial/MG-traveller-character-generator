@@ -33,6 +33,11 @@
         "zhodani_navy": -2,
         "zhodani_guard": -2
     },
+    "species_notes": [
+        "Characteristics use non-standard dice: STR 1D+2, END 1D+2, SOC 1D+2, INT 2D3, EDU 2D3, DEX 2D+3.",
+        "Gentle Soul: apply DM−2 to all combat and confrontation checks, including leadership and bargaining.",
+        "You Beautiful Thing: apply DM+2 when seeking assistance. When targeted for an attack, roll 2D — on a straight 12 the attacker hesitates and does not strike."
+    ],
     "sort_order": 98,
     "aliases": ["ladybugs"],
     "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
