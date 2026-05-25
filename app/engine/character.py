@@ -372,6 +372,9 @@ class Character(BaseModel):
             if not has_parent:
                 self.skills.append(Skill(name=name, level=0, speciality=None))
 
+        # Keep the list A-Z: sort by name, then speciality (None sorts before any string).
+        self.skills.sort(key=lambda s: (s.name.lower(), s.speciality or ""))
+
         return f"Gained {name}{f' ({speciality})' if speciality else ''} {new_level}"
 
     def log(self, message: str) -> None:
