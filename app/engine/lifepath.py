@@ -314,6 +314,20 @@ _VALID_CHARS = {"STR", "DEX", "END", "INT", "EDU", "SOC"}
 _STAT_KEYS: frozenset[str] = frozenset({"STR", "DEX", "END", "INT", "EDU", "SOC", "PSI"})
 
 
+def _zhodani_class(soc: int) -> str:
+    """Return the Zhodani social class for a given SOC value.
+
+    Noble: SOC 11+  — undergoes psionic training; auto-advances first term; DM+1 advancement.
+    Intendant: SOC 10 — undergoes psionic training; Government rank capped at 3.
+    Prole: SOC 9-  — no psionic training; Government rank capped at 3.
+    """
+    if soc >= 11:
+        return "noble"
+    if soc == 10:
+        return "intendant"
+    return "prole"
+
+
 def _char_dm(character: "Character", char_key: str) -> int:
     """Return the DM for a characteristic, including REP, PSI, and RES.
 
@@ -929,12 +943,14 @@ def apply_species(character: Character, species_id: str) -> dict:
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
 
-    # Zhodani Consulate: roll 2D for PSI at the start of character creation.
+    # Zhodani Consulate: roll PSI at the start of character creation.
+    # The psi_roll formula lives in the species JSON (default "2D"; Zhodani use "1D+6").
     if species_data.get("rolls_psi_at_start"):
-        psi_r = dice.roll("2D")
+        psi_dice = species_data.get("psi_roll", "2D")
+        psi_r = dice.roll(psi_dice)
         character.psi = psi_r.total
         character.psi_tested = True
-        character.log(f"Zhodani: PSI rolled 2D = {psi_r.total}")
+        character.log(f"Zhodani: PSI rolled {psi_dice} = {psi_r.total}")
         # Apply characteristic adjustments based on PSI / SOC / EDU interplay.
         sp_max = int(species_data.get("characteristic_maximum", 15))
         for adj in species_data.get("characteristic_adjustments", []):
@@ -957,6 +973,16 @@ def apply_species(character: Character, species_id: str) -> dict:
                 if edu_val <= 7 and soc_val >= 10:
                     character.characteristics.set("EDU", 8)
                     character.log(adj.get("description", "EDU raised to 8"))
+
+        # After characteristic adjustments: Nobles and Intendants undergo psionic
+        # training before background skills / careers begin.
+        if species_data.get("psionic_training_at_start"):
+            zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+            if zclass in ("noble", "intendant"):
+                character.phase = "zhodani_training"
+                character.log(
+                    f"Zhodani {zclass.capitalize()} — begins psionic talent training before careers."
+                )
 
     # Droyne caste system: re-roll characteristics using species-defined dice,
     # roll caste (1D), apply casting bonus, and apply caste modifiers.
@@ -1043,10 +1069,14 @@ def apply_species(character: Character, species_id: str) -> dict:
         if "TER" not in character.extra_characteristics:
             character.extra_characteristics["TER"] = 0
 
+    needs_zhodani_training = character.phase == "zhodani_training"
+
     return {
         "applied": applied,
         "traits": character.traits,
         "needs_aslan_setup": needs_aslan_setup,
+        "needs_zhodani_training": needs_zhodani_training,
+        "zhodani_class": _zhodani_class(character.characteristics.get("SOC") or 0) if character.species_id == "zhodani" else None,
         "droyne_caste": droyne_caste_result,
         "hiver_nest": hiver_nest_result,
         "character": character.model_dump(),
@@ -1083,6 +1113,102 @@ def racial_background_roll(character: Character) -> dict:
     apply_result["result_name"] = result_name
     apply_result["resolved_species_id"] = resolved_id
     return apply_result
+
+
+def zhodani_train_talent(character: Character, talent_name: str) -> dict:
+    """Attempt to learn one psionic talent during Zhodani pre-career training.
+
+    Roll 2D + PSI DM + talent DM − (number of talents already attempted this
+    session) vs 8+.  On success the talent is added at level 0 as a skill.
+    On failure the talent is simply not gained.
+
+    The cumulative penalty is tracked by counting entries in psi_trained_talents
+    that contain the suffix "/attempted" OR successful gains — i.e. the number
+    of checks made so far (both passes and fails).  We store attempted-but-failed
+    talents with a trailing "/failed" marker so they can be shown in the UI but
+    distinguished from gained talents.
+    """
+    if character.phase != "zhodani_training":
+        raise ValueError("Not in Zhodani training phase")
+    if character.species_id != "zhodani":
+        raise ValueError("Only Zhodani characters undergo psionic training")
+
+    zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+    if zclass == "prole":
+        raise ValueError("Proles do not undergo psionic training")
+
+    # Load talent table from species data
+    species_data = rules.species().get("zhodani", {})
+    talent_table = species_data.get("psionic_training_table", {})
+    talents_list = talent_table.get("talents", [])
+    talent_entry = next((t for t in talents_list if t["name"].lower() == talent_name.lower()), None)
+    if talent_entry is None:
+        raise ValueError(f"Unknown talent: {talent_name}")
+
+    # Count attempts already made this session (both successes and failures)
+    attempts_so_far = sum(
+        1 for t in (character.psi_trained_talents or [])
+        if not t.endswith("/pending")
+    )
+
+    psi_dm = dice.characteristic_dm(character.psi)
+    talent_dm = int(talent_entry.get("dm", 0))
+    cumulative_dm = -attempts_so_far
+    total_dm = psi_dm + talent_dm + cumulative_dm
+
+    r = dice.roll("2D", modifier=total_dm, target=8)
+    succeeded = bool(r.succeeded)
+
+    dm_parts = []
+    if psi_dm != 0:
+        dm_parts.append(f"PSI DM{psi_dm:+d}")
+    if talent_dm != 0:
+        dm_parts.append(f"talent DM{talent_dm:+d}")
+    if cumulative_dm != 0:
+        dm_parts.append(f"cumulative DM{cumulative_dm:+d}")
+    dm_note = f" [{', '.join(dm_parts)}]" if dm_parts else ""
+
+    if succeeded:
+        # Add as a skill at level 0 (psionic talents are top-level skills in MgT 2e)
+        character.add_skill(talent_name, level=0)
+        character.psi_trained_talents.append(talent_name)
+        character.log(
+            f"Zhodani psionic training: {talent_name} — "
+            f"2D{total_dm:+d}=8+ roll: {r.total}{dm_note} — GAINED (level 0)"
+        )
+    else:
+        # Record the failure so we can show it in the UI
+        character.psi_trained_talents.append(f"{talent_name}/failed")
+        character.log(
+            f"Zhodani psionic training: {talent_name} — "
+            f"2D{total_dm:+d}=8+ roll: {r.total}{dm_note} — failed"
+        )
+
+    return {
+        "talent": talent_name,
+        "roll": r.to_dict(),
+        "succeeded": succeeded,
+        "psi_dm": psi_dm,
+        "talent_dm": talent_dm,
+        "cumulative_dm": cumulative_dm,
+        "attempts_so_far": attempts_so_far,
+        "character": character.model_dump(),
+    }
+
+
+def finish_zhodani_training(character: Character) -> dict:
+    """End psionic training and advance to the background-skills phase."""
+    if character.phase != "zhodani_training":
+        raise ValueError("Not in Zhodani training phase")
+    character.phase = "background"
+    gained = [t for t in (character.psi_trained_talents or []) if not t.endswith("/failed")]
+    if gained:
+        character.log(
+            f"Zhodani psionic training complete — talents gained: {', '.join(gained)}"
+        )
+    else:
+        character.log("Zhodani psionic training complete — no talents gained.")
+    return {"character": character.model_dump()}
 
 
 def set_background_skills(character: Character, chosen: list[str]) -> dict:
@@ -8682,12 +8808,48 @@ def advancement_roll(character: Character) -> dict:
         monitor_dm = 1
         dm += monitor_dm
 
-    r = dice.roll("2D", modifier=dm, target=target)
-    term.advanced = bool(r.succeeded)
+    # Zhodani Noble: DM+1 to all advancement rolls
+    zhodani_noble_dm = 0
+    if character.species_id == "zhodani":
+        _zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+        if _zclass == "noble":
+            zhodani_noble_dm = 1
+            dm += zhodani_noble_dm
+
+    # Zhodani Noble auto-advance: automatically promoted at end of first term in any career.
+    # (RAW: "second term if they were drafted" — we use term_number == 1 as first term.)
+    zhodani_noble_auto = False
+    if (character.species_id == "zhodani"
+            and _zhodani_class(character.characteristics.get("SOC") or 0) == "noble"
+            and term.term_number == 1
+            and not term.advanced):
+        zhodani_noble_auto = True
+
+    if zhodani_noble_auto:
+        # Fake a succeeded roll for logging purposes; forced_from_career still applies
+        r = dice.roll("2D", modifier=dm, target=target)
+        r_auto_note = " [Noble auto-advance]"
+        term.advanced = True
+    else:
+        r = dice.roll("2D", modifier=dm, target=target)
+        r_auto_note = ""
+        term.advanced = bool(r.succeeded)
 
     monitor_rank_up = False
     rank_bonus_log = None
-    if r.succeeded:
+    if term.advanced:
+        # Zhodani Prole/Intendant in Government career: rank capped at 3
+        if (character.species_id == "zhodani"
+                and term.career_id in rules.ZHODANI_CAREER_IDS
+                and term.career_id == "zhodani_government"):
+            _zclass_adv = _zhodani_class(character.characteristics.get("SOC") or 0)
+            if _zclass_adv in ("prole", "intendant") and term.rank >= 3:
+                term.advanced = False
+                character.log(
+                    f"Zhodani {_zclass_adv.capitalize()} rank cap: Government rank capped at 3."
+                )
+                r_auto_note += " [rank cap]"
+    if term.advanced:
         term.rank += 1
         term.rank_title = _rank_title(career, term.assignment_id, term.rank, commissioned=term.commissioned)
         rank_data = _rank_data(career, term.assignment_id, term.rank, commissioned=term.commissioned)
@@ -8710,7 +8872,7 @@ def advancement_roll(character: Character) -> dict:
             )
 
     # K'kree: track SOC rank degree advancement on success
-    if char_key == "PATRIARCHY" and r.succeeded:
+    if char_key == "PATRIARCHY" and term.advanced:
         if character.kkree_soc_rank_degree == "servant_of_rankholder":
             character.kkree_soc_rank_degree = "kinsman_of_rankholder"
             character.log("K'kree SOC rank degree: advanced to Kinsman-of-Rankholder.")
@@ -8723,15 +8885,24 @@ def advancement_roll(character: Character) -> dict:
 
     _char_key_display = char_display if char_key == "PATRIARCHY" else char_key
     monitor_note = f" [Monitor DM+{monitor_dm}]" if monitor_dm else ""
+    noble_note = f" [Noble DM+{zhodani_noble_dm}]" if zhodani_noble_dm else ""
+    promoted_str = (
+        "Noble AUTO-ADVANCE to rank " + str(term.rank) + (" — " + term.rank_title if term.rank_title else "")
+        if zhodani_noble_auto and term.advanced
+        else "PROMOTED to rank " + str(term.rank) + (" — " + term.rank_title if term.rank_title else "")
+        if term.advanced
+        else "no promotion"
+    )
     msg = (
-        f"Advancement ({_char_key_display} {target}+{'+' + str(pending) if pending else ''}){cover_note}{monitor_note}: "
+        f"Advancement ({_char_key_display} {target}+{'+' + str(pending) if pending else ''}){cover_note}{monitor_note}{noble_note}{r_auto_note}: "
         f"2D{dm:+d} = {r.total} "
-        f"[{'PROMOTED to rank ' + str(term.rank) + (' — ' + term.rank_title if term.rank_title else '') if r.succeeded else 'no promotion'}]"
+        f"[{promoted_str}]"
     )
     character.log(msg)
 
     # RAW: if roll result < terms served in this career, must leave career
-    forced_from_career = r.total < term.term_number
+    # (Noble auto-advance: exempt from forced-leave since the roll always counts)
+    forced_from_career = (not zhodani_noble_auto) and (r.total < term.term_number)
     if forced_from_career:
         character.log(
             f"Advancement roll {r.total} is less than terms served ({term.term_number}) "
@@ -8740,7 +8911,7 @@ def advancement_roll(character: Character) -> dict:
 
     return {
         "roll": r.to_dict(),
-        "advanced": r.succeeded,
+        "advanced": term.advanced,
         "new_rank": term.rank,
         "new_rank_title": term.rank_title,
         "rank_bonus": rank_bonus_log,
@@ -8748,7 +8919,9 @@ def advancement_roll(character: Character) -> dict:
         "monitor_rank_up": monitor_rank_up,
         "monitor_rank": character.solsec_monitor_rank,
         "forced_from_career": forced_from_career,
-        "advancement_skill_roll": r.succeeded,
+        "advancement_skill_roll": term.advanced,
+        "zhodani_noble_auto": zhodani_noble_auto,
+        "zhodani_noble_dm": zhodani_noble_dm,
         "character": character.model_dump(),
     }
 

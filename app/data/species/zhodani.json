@@ -12,7 +12,7 @@
   },
   "characteristic_maximum": 15,
   "rolls_psi_at_start": true,
-  "psi_roll": "2D",
+  "psi_roll": "1D+6",
   "characteristic_adjustments": [
     {
       "condition": "psi_gte_9_and_soc_lte_9",

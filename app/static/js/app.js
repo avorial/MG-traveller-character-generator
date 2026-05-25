@@ -310,6 +310,8 @@ let uiState = {
   pendingSkillGrant: null,
   // Aslan setup: intermediate roll result display (cleared when player clicks Continue)
   aslanRollResult: null,
+  // Zhodani training: last talent train result (cleared when phase ends)
+  zhodaniTrainResult: null,
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
@@ -385,6 +387,8 @@ async function freshCharacter() {
     bgExpandedCascade: null,
     pendingSkillGrant: null,
     pendingMishapNoEject: false,
+    aslanRollResult: null,
+    zhodaniTrainResult: null,
     lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
     mobileTab: 'stage',
   };
@@ -528,6 +532,8 @@ function renderSavesModal() {
         bgExpandedCascade: null,
         pendingSkillGrant: null,
         pendingMishapNoEject: false,
+        aslanRollResult: null,
+        zhodaniTrainResult: null,
         lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
         mobileTab: 'stage',
       };
@@ -901,6 +907,13 @@ function renderSheet() {
           ${character.gender ? `<span>GENDER<br><strong>${character.gender === 'male' ? '♂ Male' : '♀ Female'}</strong></span>` : ''}
           ${(character.aslan_setup_status && character.aslan_setup_status.rite_score != null && character.aslan_setup_status.phase === 'done') ? `<span title="Aslan Rite of Passage Score — used as DM for career qualification">RITE<br><strong>${character.aslan_setup_status.rite_score}</strong></span>` : ''}
           ${(() => { const t = nobleTitle(character.species_id, character.characteristics?.SOC); return t ? `<span class="noble-title-badge" title="Imperial Noble Title">TITLE<br><strong>${t}</strong></span>` : ''; })()}
+          ${(() => {
+            if (character.species_id !== 'zhodani') return '';
+            const soc = character.characteristics?.SOC ?? 0;
+            const zc = soc >= 11 ? 'Noble' : soc === 10 ? 'Intendant' : 'Prole';
+            const zcColor = soc >= 11 ? 'var(--accent)' : soc === 10 ? 'var(--amber)' : 'var(--muted)';
+            return `<span title="Zhodani social class" style="color:${zcColor}">CLASS<br><strong>${zc}</strong></span>`;
+          })()}
         </div>
       </div>
 
@@ -1349,6 +1362,10 @@ function renderStage() {
     case 'aslan_setup':
       stage.innerHTML = renderAslanSetupPhase();
       wireAslanSetupPhase();
+      break;
+    case 'zhodani_training':
+      stage.innerHTML = renderZhodaniTrainingPhase();
+      wireZhodaniTrainingPhase();
       break;
     case 'career':
       stage.innerHTML = renderCareerPhase();
@@ -1955,6 +1972,9 @@ function wireSpeciesPhase() {
     // Aslan Hierate: skip background/pre_career, go directly to aslan_setup
     if (response && response.needs_aslan_setup) {
       // phase is already set to 'aslan_setup' by the engine
+    } else if (response && response.needs_zhodani_training) {
+      // Zhodani Noble/Intendant: psionic training before background
+      // phase is already set to 'zhodani_training' by the engine
     } else {
       character.phase = 'background';
     }
@@ -3594,6 +3614,120 @@ function wireAslanSetupPhase() {
     character.phase = 'career';
     saveCharacter();
     renderAll();
+  });
+}
+
+// ============================================================
+// ZHODANI PSIONIC TRAINING PHASE
+// ============================================================
+
+function renderZhodaniTrainingPhase() {
+  const sp = SPECIES.find(s => s.id === character.species_id) || {};
+  const training = sp.psionic_training_table || {};
+  const talents = training.talents || [];
+  const soc = character.characteristics?.SOC ?? 0;
+  const zclass = soc >= 11 ? 'Noble' : 'Intendant';
+  const psi = character.psi ?? 0;
+  const psiDm = charDM(psi);
+
+  // Parse trained/failed from psi_trained_talents
+  const trainedList = character.psi_trained_talents || [];
+  const gainedSet = new Set(trainedList.filter(t => !t.endsWith('/failed')));
+  const failedSet = new Set(trainedList.filter(t => t.endsWith('/failed')).map(t => t.replace('/failed', '')));
+  const attemptsCount = trainedList.length; // both gains and fails count toward cumulative DM
+
+  const rows = talents.map(t => {
+    const gained = gainedSet.has(t.name);
+    const failed = failedSet.has(t.name);
+    const attempted = gained || failed;
+    const cumDm = -attemptsCount + (attempted ? 0 : 0); // next check will include current attempt count
+    const nextCumDm = -attemptsCount; // DM for the NEXT attempt (current attempt count before rolling)
+    const totalDm = psiDm + t.dm + nextCumDm;
+    const dmLabel = `${totalDm >= 0 ? '+' : ''}${totalDm}`;
+    const dmBreak = `PSI DM${psiDm >= 0 ? '+' : ''}${psiDm}, talent DM${t.dm >= 0 ? '+' : ''}${t.dm}, cumulative DM${nextCumDm >= 0 ? '+' : ''}${nextCumDm}`;
+    let statusBadge = '';
+    if (gained) statusBadge = `<span class="badge badge-success">GAINED</span>`;
+    else if (failed) statusBadge = `<span class="badge badge-danger">FAILED</span>`;
+
+    return `
+      <tr class="${attempted ? 'attempted' : ''}">
+        <td><strong>${t.name}</strong></td>
+        <td class="text-center">${t.dm >= 0 ? '+' : ''}${t.dm}</td>
+        <td class="text-center" title="${dmBreak}">2D${dmLabel} vs 8+</td>
+        <td>${statusBadge}</td>
+        <td>
+          ${!attempted
+            ? `<button class="btn btn-sm primary" data-train-talent="${t.name}">ATTEMPT</button>`
+            : ''}
+        </td>
+      </tr>`;
+  }).join('');
+
+  const lastResult = uiState.zhodaniTrainResult || null;
+  const resultHTML = lastResult ? `
+    <div class="roll-result-block">
+      <div class="roll-result-label">${lastResult.talent} — ${lastResult.succeeded ? '✓ Gained!' : '✗ Failed'}</div>
+      <div class="roll-result-dice">2D${lastResult.total_dm >= 0 ? '+' : ''}${lastResult.total_dm} = <strong>${lastResult.roll.total}</strong> vs 8+</div>
+      ${lastResult.succeeded ? `<div class="roll-result-note">Added <strong>${lastResult.talent}</strong> as Psionic (${lastResult.talent}) 0.</div>` : ''}
+    </div>` : '';
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>ZHODANI PSIONIC TRAINING</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Pre-Career</div>
+      <div class="phase-title">Psionic Talent Training — ${zclass}</div>
+      <p class="phase-body">
+        Zhodani ${zclass}s undergo psionic training before entering careers.
+        For each talent, roll 2D + PSI DM + Talent DM − (checks made so far) vs 8+.
+        On success, you gain the talent at level 0. You may attempt any or all talents in any order.
+      </p>
+      <div class="phase-stats-row">
+        <span>PSI: <strong>${psi}</strong></span>
+        <span>PSI DM: <strong>${psiDm >= 0 ? '+' : ''}${psiDm}</strong></span>
+        <span>Attempts so far: <strong>${attemptsCount}</strong></span>
+        <span>Cumulative DM now: <strong>${attemptsCount > 0 ? `-${attemptsCount}` : '0'}</strong></span>
+      </div>
+      ${resultHTML}
+      <table class="skills-table" style="margin:12px 0">
+        <thead><tr>
+          <th>Talent</th><th class="text-center">Talent DM</th><th class="text-center">Roll Required</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="phase-actions">
+        <button class="btn secondary" id="btn-zhodani-finish-training">FINISH TRAINING →</button>
+      </div>
+    </div>`;
+}
+
+function wireZhodaniTrainingPhase() {
+  document.querySelectorAll('[data-train-talent]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const talentName = btn.dataset.trainTalent;
+      try {
+        const data = await apiCall('/api/character/zhodani/train-talent', { talent_name: talentName });
+        character = data.character;
+        const total_dm = (data.psi_dm || 0) + (data.talent_dm || 0) + (data.cumulative_dm || 0);
+        uiState.zhodaniTrainResult = {
+          talent: talentName,
+          succeeded: data.succeeded,
+          roll: data.roll,
+          total_dm,
+        };
+        saveCharacter();
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
+  document.getElementById('btn-zhodani-finish-training')?.addEventListener('click', async () => {
+    try {
+      const data = await apiCall('/api/character/zhodani/finish-training', {});
+      character = data.character;
+      uiState.zhodaniTrainResult = null;
+      saveCharacter();
+      renderAll();
+    } catch (e) { alert(e.message); }
   });
 }
 

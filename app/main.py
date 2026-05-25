@@ -486,6 +486,33 @@ async def api_aslan_roll_rite(action: CharacterAction):
 
 
 # ---------------------------------------------------------------------------
+# Zhodani psionic training phase
+# ---------------------------------------------------------------------------
+
+
+class ZhodaniTrainTalentAction(CharacterAction):
+    talent_name: str
+
+
+@app.post("/api/character/zhodani/train-talent")
+async def api_zhodani_train_talent(action: ZhodaniTrainTalentAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.zhodani_train_talent(character, action.talent_name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/zhodani/finish-training")
+async def api_zhodani_finish_training(action: CharacterAction):
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.finish_zhodani_training(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# ---------------------------------------------------------------------------
 
 
 @app.post("/api/character/apply-skill-package")
