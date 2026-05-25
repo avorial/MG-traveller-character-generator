@@ -40,7 +40,7 @@
       "name": "Zhodani Consulate",
       "subtitle": "A psionic meritocracy beyond the Spinward frontier",
       "description": "The Zhodani are humans who embraced psionics thousands of years ago and built their entire society around it. Consulate citizens are routinely tested for psionic potential; those who possess it rise in status. The Consulate is orderly, egalitarian within its caste system, and regarded with deep suspicion by the Imperium.",
-      "species_ids": ["zhodani_human"]
+      "species_ids": ["zhodani"]
     },
     {
       "id": "two_thousand_worlds",
