@@ -4925,6 +4925,15 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             f"({', '.join(_sp_allowed)})."
         )
 
+    # Species allowed_career_ids whitelist (e.g. Floriani Feskal/Barnai — restricted career lists)
+    _sp_career_allowed = _qual_sp_data.get("allowed_career_ids") or []
+    if _sp_career_allowed and career_id not in _sp_career_allowed:
+        _readable = ", ".join(c.capitalize() for c in _sp_career_allowed
+                              if c not in ("drifter", "prisoner"))
+        return _qual_block(
+            f"{_qual_sp_data.get('name', 'This species')} may only enter: {_readable}."
+        )
+
     # vacc_suit_required_for_core_careers: must have Vacc Suit 0+ to enter standard core careers
     if _qual_sp_data.get("vacc_suit_required_for_core_careers"):
         _CORE_CAREERS = {"agent", "army", "citizen", "drifter", "entertainer",
@@ -13529,6 +13538,27 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
             "wives_total": _current_wives,
         }
 
+    # ── Barnai (Floriani) end-of-term Noble obligation check ─────────────────
+    # Each term the Barnai rolls 2D. On a straight 12 they must serve one term
+    # as Noble before choosing their next career. Only fires when continuing.
+    barnai_noble_result: dict | None = None
+    if _sp_data.get("barnai_noble_check") and not leaving:
+        _barnai_r = dice.roll("2D")
+        if _barnai_r.total >= 12:
+            character.pending_transfer_career_id = "noble"
+            character.log(
+                f"Barnai social obligation: 2D={_barnai_r.total} — 12+! "
+                f"Must serve one term as Noble before next career."
+            )
+        else:
+            character.log(
+                f"Barnai social obligation check: 2D={_barnai_r.total} — no obligation this term."
+            )
+        barnai_noble_result = {
+            "roll": _barnai_r.to_dict(),
+            "obligated": _barnai_r.total >= 12,
+        }
+
     return {
         "aging": aging_log,
         "anagathics_active": character.anagathics_active,
@@ -13540,6 +13570,7 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         "pending_benefit_rolls": character.pending_benefit_rolls,
         "wife_roll": wife_roll_result,
         "droyne_life_event": droyne_life_event_result,
+        "barnai_noble": barnai_noble_result,
         "character": character.model_dump(),
     }
 

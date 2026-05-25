@@ -61,7 +61,7 @@
       "name": "Other / Far Domains",
       "subtitle": "Sword Worlds, Trojan Reach, Drinax, and beyond",
       "description": "The frontiers of Charted Space are home to dozens of smaller human states, pocket empires, and isolated communities. The Sword Worlds are a confederation of worlds with a fierce Scandinavian-influenced culture. The Kingdom of Drinax, the Trojan Reach, Reft Sector, and other border regions produce hard, self-reliant people shaped by distance from any major power.",
-      "species_ids": ["sword_worlds_human", "frontier_human", "drinax_palace_human", "drinax_wasteland_human", "asim_human", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap"]
+      "species_ids": ["sword_worlds_human", "frontier_human", "drinax_palace_human", "drinax_wasteland_human", "asim_human", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap", "floriani_feskal", "floriani_barnai"]
     }
   ]
 }

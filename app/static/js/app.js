@@ -3876,11 +3876,17 @@ function renderChooseCareer() {
   const isDroyne = !!(speciesDef && speciesDef.droyne_caste_system);
 
   const mustBeCore = !!(character.next_career_must_be_core);
+  // Species career whitelist (e.g. Floriani Feskal/Barnai)
+  const speciesAllowedCareers = (speciesDef && speciesDef.allowed_career_ids && speciesDef.allowed_career_ids.length)
+    ? new Set(speciesDef.allowed_career_ids)
+    : null;
 
   const careerList = forcedId
     ? CAREERS.filter(c => c.id === forcedId)
     : CAREERS.filter(c => {
         if (banned.has(c.id)) return false;
+        // Species career whitelist
+        if (speciesAllowedCareers && !speciesAllowedCareers.has(c.id)) return false;
         // Ihatei restriction: only core rulebook careers (no societies, or includes third_imperium)
         if (mustBeCore) {
           const socs = c.societies || [];
@@ -3924,6 +3930,10 @@ function renderChooseCareer() {
   const bannedBanner = banned.size && !forcedId ? `
     <p class="phase-body" style="color:var(--amber-dim);font-size:11px">
       Banned from re-entry: ${[...banned].map(id => id.toUpperCase()).join(', ')}
+    </p>` : '';
+  const speciesCareerBanner = speciesAllowedCareers && !forcedId ? `
+    <p class="phase-body" style="color:var(--amber);font-size:11px">
+      ⚠ ${esc(speciesDef.name)} career restriction: only permitted careers are shown.
     </p>` : '';
   const vaccLockBanner = isCetacean && !hasVaccSuit && !forcedId ? `
     <p class="phase-body" style="color:var(--amber);font-size:11px">
@@ -3993,6 +4003,7 @@ function renderChooseCareer() {
       <h2 class="phase-title">Choose a Career</h2>
       ${forcedBanner}
       ${coreBanner}
+      ${speciesCareerBanner}
       ${bannedBanner}
       ${vaccLockBanner}
       <p class="phase-subtitle">${character.total_terms === 0

@@ -1,0 +1,30 @@
+{
+    "id": "floriani_barnai",
+    "name": "Floriani — Barnai",
+    "description": "The Barnai are the intellectual and leadership caste of the Floriani. Smaller and physically weaker than the Feskals who serve them, the Barnai are gifted with sharp minds and a talent for organisation and scholarship. Each Barnai is attended by a number of Feskal servants equal to 1 plus their SOC DM.",
+    "characteristic_modifiers": {
+        "STR": -2,
+        "DEX": 0,
+        "END": -2,
+        "INT": 2,
+        "EDU": 2,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "allowed_career_ids": ["agent", "army", "citizen", "merchant", "navy", "noble", "scholar", "scout", "drifter", "prisoner"],
+    "barnai_noble_check": true,
+    "traits": [
+        {
+            "name": "Caste (Barnai)",
+            "description": "Barnai are the intellectual and leadership caste of the Floriani. They direct Feskal servants and have access to a wide range of careers, but carry social obligations to the nobility of their species."
+        }
+    ],
+    "species_notes": [
+        "Career restriction: Barnai may only enter Agent, Army, Citizen, Merchant, Navy, Noble, Scholar, or Scout careers.",
+        "Noble obligation: at the end of each term roll 2D — on a natural 12, the Barnai must serve one term as Noble before choosing their next career.",
+        "Feskal retinue: a Barnai is accompanied by a number of Feskal servants equal to 1 + their SOC DM (minimum 0). This is a narrative detail for the referee to apply."
+    ],
+    "sort_order": 100,
+    "aliases": ["barnai"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

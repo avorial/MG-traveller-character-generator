@@ -1,0 +1,27 @@
+{
+    "id": "floriani_feskal",
+    "name": "Floriani — Feskal",
+    "description": "The Feskals are the larger, physically powerful caste of the Floriani species. Bred for manual labour and military service, they possess great strength and endurance but limited intellect and formal education. Feskals serve as workers and warriors, fulfilling their role as the backbone of Floriani society under the direction of the Barnai.",
+    "characteristic_modifiers": {
+        "STR": 2,
+        "DEX": 0,
+        "END": 2,
+        "INT": -2,
+        "EDU": -2,
+        "SOC": -2
+    },
+    "characteristic_maximum": 15,
+    "allowed_career_ids": ["army", "navy", "merchant", "citizen", "drifter", "prisoner"],
+    "traits": [
+        {
+            "name": "Caste (Feskal)",
+            "description": "Feskals are the labouring and military caste of the Floriani. They are physically imposing but have limited access to education and social advancement. A Feskal is always in service to a Barnai master."
+        }
+    ],
+    "species_notes": [
+        "Career restriction: Feskals may only enter Army, Navy, Merchant, or Citizen careers."
+    ],
+    "sort_order": 99,
+    "aliases": ["feskal"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}
