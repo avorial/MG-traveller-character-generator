@@ -5,6 +5,7 @@ Traveller uses 2D (two six-sided dice) for most rolls, occasionally 1D, D3, 3D.
 Rolls are typically 2D + DMs vs a target number.
 """
 
+import contextvars
 import random
 import re
 from dataclasses import dataclass
@@ -16,23 +17,30 @@ from typing import Optional
 # In GM mode the client sends a list of raw dice totals that override the
 # random rolls consumed in sequence. Set by the API layer before each
 # lifepath call; cleared by middleware after the response is sent.
+#
+# Uses a contextvars.ContextVar so each async request gets its own isolated
+# queue — concurrent requests can never bleed GM rolls into each other.
 
-_forced_rolls: list[int] = []
+_forced_rolls_var: contextvars.ContextVar[list[int]] = contextvars.ContextVar(
+    "forced_rolls", default=[]
+)
 
 
 def set_forced_rolls(rolls: list[int]) -> None:
-    global _forced_rolls
-    _forced_rolls = [int(r) for r in rolls]
+    _forced_rolls_var.set([int(r) for r in rolls])
 
 
 def clear_forced_rolls() -> None:
-    global _forced_rolls
-    _forced_rolls = []
+    _forced_rolls_var.set([])
 
 
 def _pop_forced() -> Optional[int]:
-    global _forced_rolls
-    return _forced_rolls.pop(0) if _forced_rolls else None
+    current = _forced_rolls_var.get()
+    if not current:
+        return None
+    val = current[0]
+    _forced_rolls_var.set(current[1:])
+    return val
 
 
 @dataclass

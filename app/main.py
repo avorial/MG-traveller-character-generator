@@ -1085,3 +1085,23 @@ async def api_generate_npc():
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
+# ---------------------------------------------------------------------------
+# Ops / admin endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/health")
+async def api_health():
+    """Health-check endpoint (used by Docker HEALTHCHECK and monitoring)."""
+    return {"status": "ok", "version": APP_VERSION}
+
+
+@app.post("/api/reload-rules")
+async def api_reload_rules():
+    """Flush all JSON rule caches so edits are picked up without a restart.
+    Only meaningful in development — in production the rules are baked at
+    image build time and this is a no-op for correctness purposes.
+    """
+    rules.reload()
+    return {"reloaded": True, "version": APP_VERSION}
+
