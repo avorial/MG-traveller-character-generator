@@ -1,0 +1,39 @@
+{
+    "id": "ladybug",
+    "name": "Ladybug",
+    "description": "Gentle, docile beings considered examples of nature's beauty by almost all sentient species. Their limited intellect and docility make them unusual Travellers but exceptions exist. Ladybugs can function in human society, wearing the same clothes and using the same furniture.",
+    "characteristic_modifiers": {"STR": 0, "DEX": 0, "END": 0, "INT": 0, "EDU": 0, "SOC": 0},
+    "characteristic_maximum": 15,
+    "characteristic_dice": {
+        "STR": "1D+2",
+        "END": "1D+2",
+        "SOC": "1D+2",
+        "INT": "2D3",
+        "EDU": "2D3",
+        "DEX": "2D+3"
+    },
+    "traits": [
+        {
+            "name": "Gentle Soul",
+            "description": "Ladybugs are gentle and docile creatures. All checks involving combat or confrontation — including activities such as leadership or bargaining — are subject to DM-2."
+        },
+        {
+            "name": "You Beautiful Thing",
+            "description": "Ladybugs are considered examples of nature's beauty by almost all sentient species. Whenever one asks for help or looks like they need it, they receive DM+2 on all checks to obtain assistance. In addition, any time one is targeted for an attack the Ladybug may roll 2D — on a straight 12+ the attacker hesitates, snatches their weapon off target, or otherwise refuses to destroy such a beautiful thing."
+        }
+    ],
+    "career_qualify_dms": {
+        "army": -2,
+        "marines": -2,
+        "navy": -2,
+        "confederation_army": -2,
+        "confederation_marine": -2,
+        "solomani_marine": -2,
+        "zhodani_army": -2,
+        "zhodani_navy": -2,
+        "zhodani_guard": -2
+    },
+    "sort_order": 98,
+    "aliases": ["ladybugs"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

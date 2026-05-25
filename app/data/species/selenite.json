@@ -1,0 +1,24 @@
+{
+    "id": "selenite",
+    "name": "Selenite",
+    "description": "Genetically engineered from humans but considered a separate species, Selenites are long-limbed and lightly built for low-gravity environments. Most populations live on paraterraformed worlds in Alpha Crucis, particularly Velscur. Most Selenites working off-world are found in space industries.",
+    "characteristic_modifiers": {"STR": 0, "DEX": 2, "END": 0, "INT": 0, "EDU": 0, "SOC": 0},
+    "characteristic_maximum": 15,
+    "characteristic_dice": {
+        "STR": "2D3+1",
+        "END": "1D+1"
+    },
+    "traits": [
+        {
+            "name": "Great Indoors",
+            "description": "Selenites are deeply uncomfortable outside a controlled environment. When outdoors on a planet, whenever there is evidence of an uncontrolled environment (sudden rain, strong wind, etc.) a Selenite must make a Routine (6+) INT check or become disturbed — hunkering down in fear or making panicky demands for reassurance. Dangerous phenomena such as lightning or a hurricane require a harder check; failure may cause the Selenite to completely freak out."
+        },
+        {
+            "name": "Low-G",
+            "description": "Selenites are naturally adept at operating in low gravity and microgravity environments. They receive DM+2 to all checks connected with physical activity in low-gravity conditions, such as moving quickly between handholds. A Selenite will not lose orientation when operating in a complex 3-dimensional space and can navigate derelict starships or debris fields without effort."
+        }
+    ],
+    "sort_order": 95,
+    "aliases": ["selenites"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

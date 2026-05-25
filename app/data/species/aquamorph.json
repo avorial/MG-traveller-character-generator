@@ -1,0 +1,24 @@
+{
+    "id": "aquamorph",
+    "name": "Aquamorph",
+    "description": "Variant humans adapted for aquatic environments. Aquamorphs can operate all standard equipment with minor alterations. Their STR is considered halved when operating out of water — a roleplay and referee-adjudicated penalty, not applied automatically by the engine.",
+    "characteristic_modifiers": {"STR": 0, "DEX": 0, "END": 0, "INT": 0, "EDU": 0, "SOC": 0},
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Aquatic Adaptation",
+            "description": "Aquamorphs gain DM+2 on all checks associated with swimming and do not suffer penalties that a normal human would when attempting tasks underwater. They can breathe underwater indefinitely and dive safely to 30 metres."
+        },
+        {
+            "name": "Underwater Hearing",
+            "description": "Aquamorphs gain DM+2 to Recon checks when underwater. However, they suffer DM-2 on Recon checks when operating on land."
+        },
+        {
+            "name": "Halved STR on Land",
+            "description": "When operating out of water, an Aquamorph's STR is considered to be halved for all purposes (lifting, melee damage, carrying capacity, etc.). This is a Referee-adjudicated penalty — the engine does not apply it automatically."
+        }
+    ],
+    "sort_order": 96,
+    "aliases": ["aquamorphs"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

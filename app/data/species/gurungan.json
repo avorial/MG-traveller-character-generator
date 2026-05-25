@@ -1,0 +1,32 @@
+{
+    "id": "gurungan",
+    "name": "Gurungan",
+    "description": "Fully aquatic sophonts with DEX+2. Gurungan are capable of joining all careers but their aquatic nature creates significant challenges when operating on land for extended periods.",
+    "characteristic_modifiers": {"STR": 0, "DEX": 2, "END": 0, "INT": 0, "EDU": 0, "SOC": 0},
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Aquatic",
+            "description": "Gurungan are fully aquatic and can breathe underwater naturally. When out of water, they are reduced to a speed of two metres and must pass an END check every minute or suffer 1D damage. This END test begins at Easy (4+) but increases one difficulty step every minute. Being fully moisturised will stop the difficulty increasing but will not reset back to Easy (4+) until the Gurungan has been fully immersed in water for at least five minutes."
+        },
+        {
+            "name": "Bite",
+            "description": "All Gurungan have sharp teeth that make for an effective close combat weapon. This bite uses the Melee (natural) skill and does 1D damage."
+        },
+        {
+            "name": "Deep Diver (1,000m)",
+            "description": "Gurungan can dive deep underwater to a depth of 1,000 metres without risk."
+        },
+        {
+            "name": "Sonar (120m)",
+            "description": "Gurungan use a highly sensitive sonar sense to navigate their environment, effectively allowing them to 'see' underwater or in complete darkness to a range of 120 metres."
+        },
+        {
+            "name": "Swimmer (8m)",
+            "description": "Gurungan are good swimmers and can move through water at a speed of eight metres."
+        }
+    ],
+    "sort_order": 97,
+    "aliases": ["gurungans"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}
