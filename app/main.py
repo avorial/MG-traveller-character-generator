@@ -1091,6 +1091,44 @@ async def api_export_pdf(action: CharacterAction):
     )
 
 
+@app.post("/api/robot/new")
+async def api_robot_new():
+    """Create a fresh robot character that starts in the robot_build phase."""
+    from .engine.character import Character
+    char = Character()
+    char.character_type = "robot"
+    char.phase = "robot_build"
+    return {"character": char.model_dump()}
+
+
+class RobotFinalizeAction(BaseModel):
+    """Robot finalize: client sends the character + the computed robot_config."""
+    character: Character
+    robot_config: dict
+
+
+@app.post("/api/robot/finalize")
+async def api_robot_finalize(action: RobotFinalizeAction):
+    """Store the robot config on the character, set characteristics, and mark done."""
+    character = action.character.model_copy(deep=True)
+    cfg = action.robot_config
+    character.robot_config = cfg
+    character.character_type = "robot"
+    if cfg.get("name"):
+        character.name = cfg["name"]
+    character.age = 0
+    # Skills: merge robot skills into character skills list
+    from .engine.character import Skill
+    character.skills = []
+    for sk in cfg.get("skills", []):
+        name = sk.get("name", "")
+        level = int(sk.get("level", 0))
+        if name:
+            character.skills.append(Skill(name=name, level=level))
+    character.phase = "done"
+    return {"character": character.model_dump()}
+
+
 @app.post("/api/character/export-foundry")
 async def api_export_foundry(action: CharacterAction):
     """Generate and return a FoundryVTT MGT2e-compatible actor JSON."""

@@ -208,6 +208,450 @@ const EXTRA_STATS = [
   { id: 'TER', label: 'Territory', desc: 'Influence and turf' },
 ];
 
+// ============================================================
+// ROBOT BUILDER — rules data + calculation engine
+// ============================================================
+
+const ROBOT_RULES = {
+  chassis: [
+    { id:"size-1", size:1, name:"Size 1", slots:1, hits:1, attackDm:-4, equivalent:"Rat", basicCost:100, traits:["Small (-4)"] },
+    { id:"size-2", size:2, name:"Size 2", slots:2, hits:4, attackDm:-3, equivalent:"Cat", basicCost:200, traits:["Small (-3)"] },
+    { id:"size-3", size:3, name:"Size 3", slots:4, hits:8, attackDm:-2, equivalent:"Dog", basicCost:400, traits:["Small (-2)"] },
+    { id:"size-4", size:4, name:"Size 4", slots:8, hits:12, attackDm:-1, equivalent:"Bwap/Droyne/Goat", basicCost:800, traits:["Small (-1)"] },
+    { id:"size-5", size:5, name:"Size 5", slots:16, hits:20, attackDm:0, equivalent:"Human/Vargr", basicCost:1000, traits:[] },
+    { id:"size-6", size:6, name:"Size 6", slots:32, hits:32, attackDm:1, equivalent:"Aslan/Cow", basicCost:2000, traits:["Large (+1)"] },
+    { id:"size-7", size:7, name:"Size 7", slots:64, hits:50, attackDm:2, equivalent:"K'kree/Bear", basicCost:4000, traits:["Large (+2)"] },
+    { id:"size-8", size:8, name:"Size 8", slots:128, hits:72, attackDm:3, equivalent:"Virushi/Rhino", basicCost:8000, traits:["Large (+3)"] }
+  ],
+  locomotion: [
+    { id:"none", name:"None (Stationary)", minTl:5, agility:null, traits:[], endurance:216, multiplier:1, notes:"Adds 25% available slots." },
+    { id:"wheels", name:"Wheels", minTl:5, agility:0, traits:[], endurance:72, multiplier:2, notes:"Prepared surface movement." },
+    { id:"wheels-atv", name:"Wheels, ATV", minTl:5, agility:0, traits:["ATV"], endurance:72, multiplier:3, notes:"Rough-terrain wheel movement." },
+    { id:"tracks", name:"Tracks", minTl:5, agility:-1, traits:["ATV"], endurance:72, multiplier:2, notes:"Rugged tracked movement." },
+    { id:"grav", name:"Grav", minTl:9, agility:1, traits:["Flyer (Idle)"], endurance:24, multiplier:20, notes:"Flying grav locomotion." },
+    { id:"aeroplane", name:"Aeroplane", minTl:5, agility:1, traits:["Flyer (Idle)"], endurance:12, multiplier:12, notes:"Requires runway." },
+    { id:"aquatic", name:"Aquatic", minTl:6, agility:-2, traits:["Seafarer"], endurance:72, multiplier:4, notes:"Liquid surface movement." },
+    { id:"vtol", name:"VTOL", minTl:7, agility:0, traits:["Flyer (Idle)"], endurance:24, multiplier:14, notes:"Vertical take-off flight." },
+    { id:"walker", name:"Walker", minTl:8, agility:0, traits:["ATV"], endurance:72, multiplier:10, notes:"Legged movement." },
+    { id:"hovercraft", name:"Hovercraft", minTl:7, agility:1, traits:["ACV"], endurance:24, multiplier:10, notes:"Air cushion movement." },
+    { id:"thruster", name:"Thruster", minTl:7, agility:1, traits:[], endurance:2, multiplier:20, notes:"Secondary locomotion; 0.1G." }
+  ],
+  brains: [
+    { id:"primitive-7",    family:"Primitive",     name:"Primitive TL7",       minTl:7,  computer:0,  cost:10000,   intelligence:1,  skillDm:-2, capabilities:["Programmable"] },
+    { id:"primitive-8",    family:"Primitive",     name:"Primitive TL8+",      minTl:8,  computer:0,  cost:100,     intelligence:1,  skillDm:-2, capabilities:["Programmable"] },
+    { id:"basic-8",        family:"Basic",         name:"Basic TL8",           minTl:8,  computer:1,  cost:20000,   intelligence:3,  skillDm:-1, capabilities:["Limited language","Security/0"] },
+    { id:"hunter-8",       family:"Hunter/Killer", name:"Hunter/Killer TL8",   minTl:8,  computer:1,  cost:30000,   intelligence:3,  skillDm:-1, capabilities:["Limited Friend or Foe","Security/1","Recon/0"] },
+    { id:"basic-10",       family:"Basic",         name:"Basic TL10+",         minTl:10, computer:1,  cost:4000,    intelligence:4,  skillDm:-1, capabilities:["Limited language","Security/0"] },
+    { id:"hunter-10",      family:"Hunter/Killer", name:"Hunter/Killer TL10+", minTl:10, computer:1,  cost:6000,    intelligence:4,  skillDm:-1, capabilities:["Limited Friend or Foe","Security/1","Recon/0"] },
+    { id:"advanced-10",    family:"Advanced",      name:"Advanced TL10",       minTl:10, computer:2,  cost:100000,  intelligence:6,  skillDm:0,  capabilities:["Intelligent Interface","Expert/1","Security/1"] },
+    { id:"advanced-11",    family:"Advanced",      name:"Advanced TL11",       minTl:11, computer:2,  cost:50000,   intelligence:7,  skillDm:0,  capabilities:["Intelligent Interface","Expert/1","Security/1"] },
+    { id:"advanced-12",    family:"Advanced",      name:"Advanced TL12+",      minTl:12, computer:2,  cost:10000,   intelligence:8,  skillDm:0,  capabilities:["Intelligent Interface","Expert/1","Security/1"] },
+    { id:"very-advanced-12",family:"Very Advanced",name:"Very Advanced TL12",  minTl:12, computer:3,  cost:500000,  intelligence:9,  skillDm:1,  capabilities:["Intellect Interface","Expert/2","Security/2"] },
+    { id:"very-advanced-13",family:"Very Advanced",name:"Very Advanced TL13",  minTl:13, computer:4,  cost:500000,  intelligence:10, skillDm:1,  capabilities:["Intellect Interface","Expert/2","Security/2"] },
+    { id:"very-advanced-14",family:"Very Advanced",name:"Very Advanced TL14+", minTl:14, computer:5,  cost:500000,  intelligence:11, skillDm:1,  capabilities:["Intellect Interface","Expert/2","Security/2"] },
+    { id:"self-aware-15",  family:"Self-Aware",    name:"Self-Aware TL15",     minTl:15, computer:10, cost:1000000, intelligence:12, skillDm:2,  capabilities:["Near sentient","Expert/3","Security/3"] },
+    { id:"self-aware-16",  family:"Self-Aware",    name:"Self-Aware TL16+",    minTl:16, computer:15, cost:1000000, intelligence:13, skillDm:2,  capabilities:["Near sentient","Expert/3","Security/3"] },
+    { id:"conscious-17",   family:"Conscious",     name:"Conscious TL17",      minTl:17, computer:20, cost:5000000, intelligence:15, skillDm:3,  capabilities:["Conscious Intelligence","Security/3"] },
+    { id:"conscious-18",   family:"Conscious",     name:"Conscious TL18+",     minTl:18, computer:30, cost:1000000, intelligence:15, skillDm:3,  capabilities:["Conscious Intelligence","Security/3"] }
+  ],
+  bandwidthUpgrades: [
+    { id:"bw-basic-1",  name:"Basic/H-K +1",        minTl:8,  bandwidth:1,  slots:1, cost:5000    },
+    { id:"bw-adv-2",    name:"Advanced TL10 +2",     minTl:10, bandwidth:2,  slots:1, cost:5000    },
+    { id:"bw-adv-3",    name:"Advanced TL11 +3",     minTl:11, bandwidth:3,  slots:1, cost:10000   },
+    { id:"bw-adv-4",    name:"Advanced TL12 +4",     minTl:12, bandwidth:4,  slots:1, cost:20000   },
+    { id:"bw-va-6",     name:"Very Advanced +6",     minTl:12, bandwidth:6,  slots:1, cost:50000   },
+    { id:"bw-va-8",     name:"Very Advanced +8",     minTl:12, bandwidth:8,  slots:1, cost:100000  },
+    { id:"bw-sa-10",    name:"Self-Aware +10",       minTl:15, bandwidth:10, slots:1, cost:500000  },
+    { id:"bw-sa-15",    name:"Self-Aware +15",       minTl:15, bandwidth:15, slots:1, cost:1000000 },
+    { id:"bw-sa-20",    name:"Self-Aware +20",       minTl:15, bandwidth:20, slots:1, cost:2500000 },
+    { id:"bw-con-30",   name:"Conscious TL17 +30",   minTl:17, bandwidth:30, slots:1, cost:5000000 },
+    { id:"bw-con-40",   name:"Conscious TL17 +40",   minTl:17, bandwidth:40, slots:1, cost:10000000 },
+    { id:"bw-con-50",   name:"Conscious TL18 +50",   minTl:18, bandwidth:50, slots:1, cost:5000000 }
+  ],
+  armorByTl: [
+    { minTl:6,  maxTl:8,  baseProtection:2, maxProtection:20, slotPercent:0.010, maxPerSlot:1, costPerSlot:250  },
+    { minTl:9,  maxTl:11, baseProtection:3, maxProtection:30, slotPercent:0.005, maxPerSlot:2, costPerSlot:1000 },
+    { minTl:12, maxTl:14, baseProtection:4, maxProtection:40, slotPercent:0.004, maxPerSlot:3, costPerSlot:1500 },
+    { minTl:15, maxTl:17, baseProtection:4, maxProtection:50, slotPercent:0.003, maxPerSlot:4, costPerSlot:2500 },
+    { minTl:18, maxTl:99, baseProtection:5, maxProtection:60, slotPercent:0.0025,maxPerSlot:5, costPerSlot:5000 }
+  ],
+  systems: [
+    { id:"visual",     name:"Visual Spectrum Sensor",   slots:0, cost:0,     bandwidth:0, notes:"Default suite item." },
+    { id:"voder",      name:"Voder Speaker",             slots:0, cost:0,     bandwidth:0, notes:"Default suite item." },
+    { id:"auditory",   name:"Auditory Sensor",           slots:0, cost:0,     bandwidth:0, notes:"Default suite item." },
+    { id:"wireless",   name:"Wireless Data Link",        slots:0, cost:0,     bandwidth:0, notes:"Default suite item." },
+    { id:"transceiver",name:"Transceiver, 5km",          slots:0, cost:0,     bandwidth:0, notes:"Default suite item." },
+    { id:"pris",       name:"PRIS Sensor",               minTl:12, slots:0, cost:2000,  bandwidth:0, traits:["IR/UV Vision"], notes:"IR/UV visual sensor." },
+    { id:"thermal",    name:"Thermal Sensor",            minTl:6,  slots:0, cost:500,   bandwidth:0, traits:["IR Vision"], notes:"Infrared thermal vision." },
+    { id:"env-processor",name:"Environment Processor",  minTl:10, slots:0, cost:10000, bandwidth:0, traits:["Heightened Senses"], notes:"Sensor processor + Recon 0." },
+    { id:"vacuum-protection",name:"Vacuum Protection",  minTl:7,  slots:0, costPerBaseSlot:600,  bandwidth:0, notes:"Includes hostile environment." },
+    { id:"hostile-protection",name:"Hostile Env Protection", minTl:6, slots:0, costPerBaseSlot:300, bandwidth:0, notes:"Hostile atmosphere/temp." },
+    { id:"reflec",     name:"Reflec Armour",             minTl:10, slots:0, costPerBaseSlot:100,  bandwidth:0, traits:["Reflec"], notes:"+10 vs laser; conflicts with camo." },
+    { id:"gecko",      name:"Gecko Grippers",            minTl:9,  slots:0, costPerBaseSlot:500,  bandwidth:0, notes:"Wall/ceiling adhesion." },
+    { id:"magnetic",   name:"Magnetic Grippers",         minTl:8,  slots:0, costPerBaseSlot:10,   bandwidth:0, notes:"Adheres to metallic surfaces." },
+    { id:"encryption", name:"Encryption Module",         minTl:6,  slots:0, cost:4000,  bandwidth:0, notes:"Hardens comms and data." },
+    { id:"drone-interface",name:"Drone Interface",       minTl:6,  slots:0, cost:100,   bandwidth:0, notes:"Remote control interface." },
+    { id:"atmospheric-sensor",name:"Atmospheric Sensor",minTl:8,  slots:0, cost:100,   bandwidth:0, notes:"Pressure/composition data." },
+    { id:"auditory-broad",name:"Auditory Sensor, Broad",minTl:8,  slots:0, cost:200,   bandwidth:0, traits:["Heightened Senses"], notes:"Broad frequency audio." },
+    { id:"geiger",     name:"Geiger Counter",            minTl:8,  slots:0, cost:400,   bandwidth:0, notes:"Radiation detection." },
+    { id:"light-intensifier-basic",name:"Light Intensifier, Basic",minTl:7,slots:0,cost:500,bandwidth:0,notes:"Low-light mono vision." },
+    { id:"light-intensifier-advanced",name:"Light Intensifier, Adv",minTl:9,slots:0,cost:1250,bandwidth:0,traits:["IR Vision"],notes:"Light amp + thermal." },
+    { id:"olfactory-basic",name:"Olfactory Sensor, Basic",minTl:8,slots:0,cost:1000,bandwidth:0,notes:"Generalised smell." },
+    { id:"olfactory-improved",name:"Olfactory Sensor, Imp",minTl:10,slots:0,cost:3500,bandwidth:0,traits:["Heightened Senses"],notes:"Improved olfactory." },
+    { id:"tightbeam",  name:"Tightbeam Communicator",   minTl:8,  slots:1, cost:2000,  bandwidth:0, notes:"LoS 5,000km laser comm." },
+    { id:"satellite-uplink",name:"Satellite Uplink",    minTl:6,  slots:2, cost:1000,  bandwidth:0, notes:"Satellite/ship comms." },
+    { id:"active-camouflage",name:"Active Camouflage",  minTl:15, slots:1, costPerBaseSlot:10000,bandwidth:0,traits:["Invisible","Stealth 4"],notes:"DM-4 to Recon/sensors." },
+    { id:"corrosive-protection",name:"Corrosive Env Protection",minTl:9,slots:1,costPerBaseSlot:600,bandwidth:0,notes:"Corrosive atmosphere prot." },
+    { id:"radiation-protection",name:"Radiation Env Protection",minTl:7,slots:1,costPerBaseSlot:600,bandwidth:0,notes:"+50×TL rads protection." },
+    { id:"self-repairing",name:"Self-Repairing Chassis",minTl:11,slotsPercent:0.05,costPerBaseSlot:1000,bandwidth:0,notes:"Repairs minor damage." },
+    { id:"quick-charger",name:"Quick Charger",          minTl:8,  slots:1, cost:200,   bandwidth:0, notes:"Full recharge in 1 hour." },
+    { id:"recon-sensor-basic",name:"Recon Sensor, Basic",minTl:7,slots:2,cost:1000,bandwidth:0,notes:"Recon 1 from sensors." },
+    { id:"recon-sensor-improved",name:"Recon Sensor, Imp",minTl:8,slots:1,cost:100,bandwidth:0,notes:"Recon 1 from sensors." },
+    { id:"recon-sensor-enhanced",name:"Recon Sensor, Enh",minTl:10,slots:1,cost:10000,bandwidth:0,notes:"Recon 2 from sensors." },
+    { id:"recon-sensor-advanced",name:"Recon Sensor, Adv",minTl:12,slots:1,cost:20000,bandwidth:0,notes:"Recon 3 from sensors." },
+    { id:"small-weapon-mount",name:"Weapon Mount, Small",minTl:5,slots:1,cost:500,bandwidth:0,notes:"Pistol/melee/grenade." },
+    { id:"medium-weapon-mount",name:"Weapon Mount, Medium",minTl:5,slots:2,cost:1000,bandwidth:0,notes:"Rifle/larger melee." },
+    { id:"heavy-weapon-mount",name:"Weapon Mount, Heavy",minTl:5,slots:10,cost:5000,bandwidth:0,notes:"Portable heavy weapons." },
+    { id:"toolkit",    name:"Specialised Toolkit",      slots:1, cost:5000,  bandwidth:0, notes:"Tool set for a specific task." },
+    { id:"medikit",    name:"Medikit",                  slots:1, cost:5000,  bandwidth:0, notes:"Medical hardware." },
+    { id:"fire-control-basic",name:"Fire Control, Basic",minTl:6,slots:1,cost:1000,bandwidth:0,notes:"Basic targeting system." }
+  ],
+  skills: [
+    { name:"Admin",       minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Advocate",    minTl:10, bandwidth:0, baseCost:500  },
+    { name:"Animals",     minTl:9,  bandwidth:0, baseCost:200  },
+    { name:"Art",         minTl:10, bandwidth:0, baseCost:500  },
+    { name:"Astrogation", minTl:12, bandwidth:1, baseCost:500  },
+    { name:"Athletics",   minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Broker",      minTl:10, bandwidth:0, baseCost:200  },
+    { name:"Carouse",     minTl:11, bandwidth:1, baseCost:500  },
+    { name:"Deception",   minTl:13, bandwidth:1, baseCost:1000 },
+    { name:"Diplomat",    minTl:10, bandwidth:1, baseCost:500  },
+    { name:"Drive",       minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Electronics", minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Engineer",    minTl:9,  bandwidth:0, baseCost:200  },
+    { name:"Explosives",  minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Flyer",       minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Gun Combat",  minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Gunner",      minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Heavy Weapons",minTl:8, bandwidth:0, baseCost:100  },
+    { name:"Investigate", minTl:11, bandwidth:1, baseCost:500  },
+    { name:"Language",    minTl:9,  bandwidth:0, baseCost:200  },
+    { name:"Leadership",  minTl:13, bandwidth:1, baseCost:1000 },
+    { name:"Mechanic",    minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Medic",       minTl:9,  bandwidth:0, baseCost:200  },
+    { name:"Melee",       minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Navigation",  minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Persuade",    minTl:11, bandwidth:1, baseCost:500  },
+    { name:"Pilot",       minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Recon",       minTl:10, bandwidth:0, baseCost:500  },
+    { name:"Science",     minTl:9,  bandwidth:0, baseCost:200  },
+    { name:"Seafarer",    minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Stealth",     minTl:10, bandwidth:0, baseCost:500  },
+    { name:"Steward",     minTl:8,  bandwidth:0, baseCost:100  },
+    { name:"Streetwise",  minTl:13, bandwidth:1, baseCost:1000 },
+    { name:"Survival",    minTl:10, bandwidth:0, baseCost:200  },
+    { name:"Tactics",     minTl:8,  bandwidth:0, baseCost:100  }
+  ]
+};
+
+const ROBOT_DEFAULT_CONFIG = {
+  name: "New Robot", purpose: "", techLevel: 12, notes: "",
+  chassisId: "size-5", brainId: "advanced-12", locomotionId: "walker",
+  bandwidthUpgradeId: "",
+  frameMods:    { armorAdded:0, reduceProtection:false, efficiency:false, powerPacks:0, resilientHits:0, lightHits:0 },
+  brainMods:    { intBoost:0, hardened:false },
+  mobilityMods: { agilityBoost:0, speedMod:0, vehicleSpeed:false, vehicleSpeedBoosts:0, secondaryLocomotionId:"" },
+  manipulators: [],
+  systems: ["visual","voder","auditory","wireless","transceiver"],
+  customOptions: [],
+  weapons: [],
+  skills: [{ name:"Recon", level:1 }],
+  finalCost: { percent:0, flat:0 }
+};
+
+// ── robot helpers ──────────────────────────────────────────────
+function rbFindRule(list, id) { return list.find(x => x.id === id); }
+function rbN(v, fb=0) { const n=Number(v); return Number.isFinite(n)?n:fb; }
+function rbClamp(v,mn,mx) { return Math.max(mn, Math.min(mx, rbN(v))); }
+function rbFmtCr(v) { return `Cr ${Math.round(v||0).toLocaleString()}`; }
+
+function robotNormalize(c) {
+  if (!c) c = {};
+  const d = ROBOT_DEFAULT_CONFIG;
+  const n = { ...structuredClone(d), ...c,
+    frameMods:    { ...d.frameMods,    ...(c.frameMods    || {}) },
+    brainMods:    { ...d.brainMods,    ...(c.brainMods    || {}) },
+    mobilityMods: { ...d.mobilityMods, ...(c.mobilityMods || {}) },
+    finalCost:    { ...d.finalCost,    ...(c.finalCost    || {}) }
+  };
+  if (!rbFindRule(ROBOT_RULES.chassis, n.chassisId)) n.chassisId = d.chassisId;
+  if (!rbFindRule(ROBOT_RULES.brains, n.brainId)) n.brainId = d.brainId;
+  if (!rbFindRule(ROBOT_RULES.locomotion, n.locomotionId)) n.locomotionId = d.locomotionId;
+  n.frameMods.armorAdded     = rbClamp(n.frameMods.armorAdded, 0, 60);
+  n.frameMods.powerPacks     = rbClamp(n.frameMods.powerPacks, 0, 3);
+  n.frameMods.resilientHits  = Math.max(0, rbN(n.frameMods.resilientHits));
+  n.frameMods.lightHits      = Math.max(0, rbN(n.frameMods.lightHits));
+  n.brainMods.intBoost       = rbClamp(n.brainMods.intBoost, 0, 3);
+  n.mobilityMods.agilityBoost= rbClamp(n.mobilityMods.agilityBoost, 0, 4);
+  n.mobilityMods.speedMod    = rbClamp(n.mobilityMods.speedMod, -12, 12);
+  n.mobilityMods.vehicleSpeedBoosts = rbClamp(n.mobilityMods.vehicleSpeedBoosts, 0, 3);
+  n.manipulators = (n.manipulators||[]).map(m=>({
+    size:  Math.max(1, rbN(m.size, 5)),
+    count: Math.max(1, rbN(m.count, 1)),
+    strBoost: Math.max(0, rbN(m.strBoost)),
+    dexBoost: Math.max(0, rbN(m.dexBoost))
+  }));
+  n.systems = (n.systems||[]).filter(id => rbFindRule(ROBOT_RULES.systems, id));
+  n.customOptions = (n.customOptions||[]).map(o=>({
+    name: o.name||"Custom Option", minTl: Math.max(0,rbN(o.minTl)),
+    slots: Math.max(0,rbN(o.slots)), cost: rbN(o.cost), traits: o.traits||"", notes: o.notes||""
+  }));
+  n.weapons = (n.weapons||[]).map(w=>({
+    name: w.name||"Weapon", mount: w.mount||"small",
+    slots: Math.max(0,rbN(w.slots,1)), cost: rbN(w.cost), traits: w.traits||""
+  }));
+  n.skills = (n.skills||[]).map(s=>({
+    name: ROBOT_RULES.skills.find(x=>x.name===s.name)?.name || d.skills[0].name,
+    level: rbClamp(s.level, 0, 4)
+  }));
+  return n;
+}
+
+function robotArmorRow(tl) {
+  return ROBOT_RULES.armorByTl.find(r=>tl>=r.minTl&&tl<=r.maxTl) || ROBOT_RULES.armorByTl[0];
+}
+function robotSlotsFromPct(chassis, pct) {
+  if (!chassis||pct<=0) return 0;
+  return Math.max(1, Math.ceil(chassis.slots*pct));
+}
+function robotBrainSlotCost(chassis, brain, tl) {
+  if (!chassis||!brain||brain.computer===0) return 0;
+  const free = Math.max(1, brain.computer - Math.max(0, tl - brain.minTl));
+  return chassis.size >= free ? 0 : 1;
+}
+function robotManipSlots(chassis, mSize) {
+  if (!chassis) return 0;
+  const diff = mSize - chassis.size;
+  const ratio = diff>=2?0.4:diff===1?0.2:diff===0?0.1:diff===-1?0.05:diff===-2?0.02:0.01;
+  return Math.max(1, Math.ceil(chassis.slots*ratio));
+}
+function robotManipStats(tl, size, strBoost=0, dexBoost=0) {
+  const baseStr=(2*size)-1, baseDex=Math.ceil(tl/2+1);
+  return { baseStr, baseDex, str:baseStr+strBoost, dex:baseDex+dexBoost,
+           maxStr:baseStr*2, maxDex:tl+3 };
+}
+function robotIntUpgrade(brain, bwUpgrade, intBoost) {
+  if (!brain||intBoost<=0) return {boost:0,bandwidth:0,cost:0,finalInt:brain?.intelligence||0,overCapacity:false};
+  const bandwidth=intBoost*(intBoost+1)/2;
+  const finalInt=brain.intelligence+intBoost;
+  let cost=1;
+  for (let s=brain.intelligence+1;s<=finalInt;s++) cost*=s;
+  cost*=1000;
+  if (finalInt>=12) cost*=2;
+  const totalBW=(brain.computer||0)+(bwUpgrade?.bandwidth||0);
+  return {boost:intBoost,bandwidth,cost,finalInt,overCapacity:bandwidth>totalBW};
+}
+function robotSysCost(system, chassis) {
+  if (Number.isFinite(system.costPerBaseSlot)) return system.costPerBaseSlot*(chassis?.slots||0);
+  return system.cost||0;
+}
+function robotSysSlots(system, chassis) {
+  if (Number.isFinite(system.slotsPercent)) return robotSlotsFromPct(chassis,system.slotsPercent);
+  return system.slots||0;
+}
+
+function calculateRobotConfig(cfg) {
+  const tl = rbN(cfg.techLevel, 12);
+  const chassis    = rbFindRule(ROBOT_RULES.chassis, cfg.chassisId);
+  const brain      = rbFindRule(ROBOT_RULES.brains,  cfg.brainId);
+  const locomotion = rbFindRule(ROBOT_RULES.locomotion, cfg.locomotionId);
+  const bwUpgrade  = rbFindRule(ROBOT_RULES.bandwidthUpgrades, cfg.bandwidthUpgradeId);
+  const secLoco    = rbFindRule(ROBOT_RULES.locomotion, cfg.mobilityMods?.secondaryLocomotionId);
+  const armor      = robotArmorRow(tl);
+  const baseChassisCost = (chassis?.basicCost||0)*(locomotion?.multiplier||1);
+
+  const addedProt  = rbN(cfg.frameMods?.armorAdded);
+  const armorSlots = addedProt>0
+    ? Math.max(Math.ceil((chassis?.slots||0)*armor.slotPercent*addedProt), Math.ceil(addedProt/armor.maxPerSlot), 1) : 0;
+  const armorCost  = armorSlots*armor.costPerSlot;
+  const protection = armor.baseProtection-(cfg.frameMods?.reduceProtection?1:0)+addedProt;
+  const ppSlots    = robotSlotsFromPct(chassis,0.1)*rbN(cfg.frameMods?.powerPacks);
+  const ppCost     = ppSlots*500;
+  const resSlots   = rbN(cfg.frameMods?.resilientHits);
+  const resCost    = resSlots*baseChassisCost*0.05;
+  const lightHits  = rbN(cfg.frameMods?.lightHits);
+  const lightSave  = lightHits*50*(locomotion?.multiplier||1);
+  const protSave   = cfg.frameMods?.reduceProtection ? baseChassisCost*0.1 : 0;
+  const effCost    = cfg.frameMods?.efficiency ? baseChassisCost*0.5 : 0;
+
+  const agilBoost  = rbN(cfg.mobilityMods?.agilityBoost);
+  const speedMod   = rbN(cfg.mobilityMods?.speedMod);
+  const vsbBoosts  = rbN(cfg.mobilityMods?.vehicleSpeedBoosts);
+  const agilCost   = baseChassisCost*[0,1,2,4,8][agilBoost];
+  const speedCost  = baseChassisCost*0.1*speedMod;
+  const vsbSlots   = cfg.mobilityMods?.vehicleSpeed ? robotSlotsFromPct(chassis,0.25)+(robotSlotsFromPct(chassis,0.1)*vsbBoosts) : 0;
+  const vsbCost    = cfg.mobilityMods?.vehicleSpeed ? baseChassisCost*(2**vsbBoosts) : 0;
+  const secSlots   = secLoco ? robotSlotsFromPct(chassis,0.25) : 0;
+  const secCost    = secLoco ? secSlots*500*secLoco.multiplier : 0;
+
+  const brainCost  = brain?.cost||0;
+  const bwCost     = bwUpgrade?.cost||0;
+  const intellect  = robotIntUpgrade(brain, bwUpgrade, rbN(cfg.brainMods?.intBoost));
+  const hardCost   = cfg.brainMods?.hardened ? (brainCost+bwCost)*0.5 : 0;
+
+  const manipulators=(cfg.manipulators||[]).map(m=>{
+    const sz=rbN(m.size,chassis?.size||1), cnt=rbN(m.count,1),
+          sb=rbN(m.strBoost), db=rbN(m.dexBoost);
+    const stats=robotManipStats(tl,sz,sb,db);
+    const mslots=robotManipSlots(chassis,sz)*cnt;
+    return {...m,...stats,size:sz,count:cnt,strBoost:sb,dexBoost:db,slots:mslots,
+            cost:100*sz*cnt+100*sz*(sb**2)*cnt+200*sz*(db**2)*cnt};
+  });
+
+  const systems=(cfg.systems||[]).map(id=>rbFindRule(ROBOT_RULES.systems,id)).filter(Boolean).map(s=>({
+    ...s, calcSlots:robotSysSlots(s,chassis), calcCost:robotSysCost(s,chassis) }));
+  const customOpts=(cfg.customOptions||[]).map(o=>({...o,calcSlots:rbN(o.slots),calcCost:rbN(o.cost)}));
+  const weapons=(cfg.weapons||[]).map(w=>({...w,calcSlots:rbN(w.slots),calcCost:rbN(w.cost)}));
+  const skills=(cfg.skills||[]).map(entry=>{
+    const sk=ROBOT_RULES.skills.find(s=>s.name===entry.name)||ROBOT_RULES.skills[0];
+    const lv=rbN(entry.level);
+    return {...entry,skillDef:sk,level:lv,cost:sk.baseCost*(10**lv),bandwidth:sk.bandwidth+lv,minTl:sk.minTl+lv};
+  });
+
+  const availSlots=(chassis?.slots||0)+(locomotion?.id==="none"?Math.ceil((chassis?.slots||0)*0.25):0);
+  const usedSlots=
+    robotBrainSlotCost(chassis,brain,tl)+(bwUpgrade?.slots||0)+armorSlots+ppSlots+resSlots+vsbSlots+secSlots+
+    manipulators.reduce((s,m)=>s+m.slots,0)+
+    systems.reduce((s,x)=>s+x.calcSlots,0)+
+    customOpts.reduce((s,o)=>s+o.calcSlots,0)+
+    weapons.reduce((s,w)=>s+w.calcSlots,0);
+  const usedBW=intellect.bandwidth+systems.reduce((s,x)=>s+(x.bandwidth||0),0)+skills.reduce((s,sk)=>s+sk.bandwidth,0);
+
+  let endurance=locomotion?.endurance||0;
+  if (tl>=15) endurance*=2; else if (tl>=12) endurance*=1.5;
+  if (cfg.frameMods?.efficiency) endurance*=2;
+  endurance*=(1+rbN(cfg.frameMods?.powerPacks));
+  endurance*=speedMod>=0?Math.max(0,1-(speedMod*0.1)):1+(Math.abs(speedMod)*0.1);
+
+  const agility=(locomotion?.agility||0)+agilBoost;
+  const tacticalSpeed=Math.max(0,5+(locomotion?.agility||0)+agilBoost+speedMod);
+
+  const preFinalCost=baseChassisCost+brainCost+bwCost+intellect.cost+hardCost+
+    armorCost+effCost+ppCost+resCost-lightSave-protSave+agilCost+speedCost+vsbCost+secCost+
+    manipulators.reduce((s,m)=>s+m.cost,0)+systems.reduce((s,x)=>s+x.calcCost,0)+
+    customOpts.reduce((s,o)=>s+o.calcCost,0)+weapons.reduce((s,w)=>s+w.calcCost,0)+
+    skills.reduce((s,sk)=>s+sk.cost,0);
+  const finalCost=Math.max(0,(preFinalCost*(1+rbN(cfg.finalCost?.percent)/100))+rbN(cfg.finalCost?.flat));
+
+  const traits=[...(chassis?.traits||[]),...(locomotion?.traits||[]),...(secLoco?.traits||[]),
+    ...(protection>0?[`Armour (+${protection})`]:[]),...(cfg.brainMods?.hardened?["Hardened"]:[]),
+    ...systems.flatMap(x=>x.traits||[])];
+
+  return { chassis, brain, locomotion, secLoco, bwUpgrade, baseChassisCost,
+    armor:{...armor,addedProt,armorSlots,armorCost,protection},
+    intellect, manipulators, systems, customOpts, weapons, skills,
+    slots:{used:usedSlots,total:availSlots},
+    bandwidth:{used:usedBW,total:(brain?.computer||0)+(bwUpgrade?.bandwidth||0),inherent:brain?.computer||0},
+    cost:finalCost,
+    hits:(chassis?.hits||0)+resSlots-lightHits,
+    endurance:Math.round(endurance), agility, tacticalSpeed,
+    traits:[...new Set(traits)] };
+}
+
+function validateRobotConfig(cfg, calc) {
+  const msgs=[];
+  msgs.push(calc.slots.used>calc.slots.total
+    ?{type:"error",text:`Slots exceeded by ${calc.slots.used-calc.slots.total}.`}
+    :{type:"ok",text:`${calc.slots.total-calc.slots.used} slots remaining.`});
+  msgs.push(calc.bandwidth.used>calc.bandwidth.total
+    ?{type:"error",text:`Bandwidth exceeded by ${calc.bandwidth.used-calc.bandwidth.total}.`}
+    :{type:"ok",text:`${calc.bandwidth.total-calc.bandwidth.used} bandwidth remaining.`});
+  if (calc.hits<=0) msgs.push({type:"error",text:"Hits must remain above 0."});
+  if (calc.intellect.overCapacity) msgs.push({type:"error",text:"INT upgrade needs more bandwidth than brain has."});
+  if (!cfg.name?.trim()) msgs.push({type:"warn",text:"Give the robot a name before finalizing."});
+  return msgs;
+}
+
+// Derive Foundry-compatible characteristic object from a robot calc result
+function robotFoundryChars(cfg, calc) {
+  const firstM=calc.manipulators[0]||{
+    str:((calc.chassis?.size||5)*2)-1,
+    dex:Math.ceil((rbN(cfg.techLevel,12)/2)+1)
+  };
+  const vals={
+    STR:Math.max(0,Math.round(firstM.str||0)),
+    DEX:Math.max(0,Math.round((firstM.dex||0)+calc.agility)),
+    END:Math.max(0,Math.round(calc.hits||0)),
+    INT:Math.max(0,Math.round(calc.intellect.finalInt||0)),
+    EDU:Math.max(0,Math.round(calc.bandwidth.total||0)),
+    SOC:0
+  };
+  return vals;
+}
+
+// Create a FoundryVTT actor JSON from a robot character (client-side)
+function createRobotFoundryExport(cfg) {
+  cfg = robotNormalize(cfg);
+  const calc = calculateRobotConfig(cfg);
+  const tl = rbN(cfg.techLevel, 12);
+
+  function rbFoundryId(seed) {
+    const src=`${seed}-${Date.now()}-${Math.random()}`;
+    let h=0;
+    for (let i=0;i<src.length;i++) { h=((h<<5)-h)+src.charCodeAt(i); h|=0; }
+    return `${Math.abs(h).toString(16)}${Math.random().toString(16).slice(2)}`.slice(0,16).padEnd(16,"0");
+  }
+  function rbItem(name,notes,cost=0) {
+    const now=Date.now();
+    return {name,type:"item",system:{tl,weight:0,cost:Math.round(cost||0),notes:notes||"",active:false,quantity:1,status:"carried",legality:9,description:notes||""},
+      _id:rbFoundryId(name),img:"systems/mgt2e/icons/items/item.svg",effects:[],folder:null,sort:0,flags:{},
+      _stats:{compendiumSource:null,duplicateSource:null,exportSource:null,coreVersion:"13.351",systemId:"mgt2e",systemVersion:"0.21.0.0",lastModifiedBy:null,createdTime:now,modifiedTime:now},
+      ownership:{default:0}};
+  }
+
+  const chars=robotFoundryChars(cfg,calc);
+  const itemRows=[
+    rbItem(calc.chassis?.name||"Robot Chassis",`Size ${calc.chassis?.size||"?"}; ${calc.chassis?.slots||0} slots; base hits ${calc.chassis?.hits||0}.`,calc.baseChassisCost),
+    rbItem(calc.brain?.name||"Robot Brain",`${calc.brain?.capabilities?.join(", ")||""}; Computer/${calc.brain?.computer??0}; INT ${calc.intellect.finalInt}.`,(calc.brain?.cost||0)+calc.intellect.cost),
+    rbItem(calc.locomotion?.name||"Locomotion",`${calc.locomotion?.notes||""}; endurance ${calc.endurance} hours.`,0),
+    rbItem("Robot Armour",`Protection +${calc.armor.protection}; ${calc.armor.armorSlots} slots.`,calc.armor.armorCost)
+  ];
+  calc.manipulators.forEach(m=>itemRows.push(rbItem(`${m.count}×Size ${m.size} Manipulator`,`STR ${m.str}; DEX ${m.dex}; slots ${m.slots}.`,m.cost)));
+  calc.systems.forEach(s=>itemRows.push(rbItem(s.name,`${s.notes||""}. Slots ${s.calcSlots}.`,s.calcCost)));
+  calc.customOpts.forEach(o=>itemRows.push(rbItem(o.name,`${o.notes||""}. Slots ${o.calcSlots}.`,o.calcCost)));
+  calc.weapons.forEach(w=>itemRows.push(rbItem(w.name,`${w.mount} mount. Slots ${w.calcSlots}.`,w.calcCost)));
+
+  const skills=calc.skills.reduce((all,sk)=>{
+    const id=sk.name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,32)||"skill";
+    return {...all,[id]:{id,value:String(sk.level),trained:true}};
+  },{});
+
+  const charsFull=["STR","DEX","END","INT","EDU","SOC","CHA","TER","PSI","WLT","LCK","MRL","STY","RES","FOL","REP"].reduce((a,k)=>({...a,[k]:{value:chars[k]||0,current:chars[k]||0,show:k in chars,default:false}}),{});
+
+  return {
+    name:cfg.name||"Traveller Robot", type:"traveller",
+    img:"systems/mgt2e/icons/actors/traveller.svg",
+    system:{
+      speed:{base:calc.tacticalSpeed,value:calc.tacticalSpeed},
+      initiative:{base:calc.agility,value:calc.agility},
+      size:calc.chassis?.attackDm||0, rads:0, weightCarried:0, heavyLoad:50, maxLoad:100, modifiers:{},
+      hits:{value:calc.hits,max:calc.hits,damage:0,tmpDamage:0},
+      description:`<p>${escapeHTML(cfg.purpose||"")}</p><p>${calc.chassis?.name||""} ${calc.locomotion?.name||""} robot; Hits ${calc.hits}; Protection +${calc.armor.protection}; Speed ${calc.tacticalSpeed}m. Brain: ${calc.brain?.name||""}; INT ${calc.intellect.finalInt}. Cost: ${rbFmtCr(calc.cost)}.</p>`,
+      settings:{hideUntrained:false,onlyBackground:false,resetOnRoll:false,columns:"3",lockCharacteristics:false,sortByCategory:false,lockSkills:false,autoAge:true,autoHits:true},
+      characteristics:charsFull, skills, damage:{STR:{value:0},DEX:{value:0},END:{value:0,tmp:0}},
+      sophont:{age:"0",species:"Robot",speciesTraits:calc.traits.join(", "),gender:"None",weight:0,height:0,profession:cfg.purpose||"Robot",homeworld:""},
+      finance:{cash:"0",pension:"0",medicalDebt:"0",mortgage:"0",livingCosts:"0",otherIncome:"0",shipShares:0,description:`Construction cost: ${rbFmtCr(calc.cost)}`},
+      terms:0,startAge:0,termLength:0,entryYear:1105,entryAge:0,currentYear:1105,birthYear:1105
+    },
+    items:itemRows, effects:[], folder:null,
+    flags:{mgt2e:{}},
+    prototypeToken:{name:cfg.name||"Traveller Robot",displayName:0,actorLink:true,width:1,height:1}
+  };
+}
+
+// ── end robot builder engine ──────────────────────────────────
+
 // Skills that require a specialty when gained at level 1 (MgT 2e cascade skills).
 // Maps bare skill name → list of common specialties.
 const CASCADE_SKILLS = {
@@ -285,6 +729,8 @@ let uiState = {
     travellerSpecialties: {},   // { key: specialty } for any-skills in chosen pair
     benefitId: null,            // 1-6
   },
+  // Robot builder tab ('frame'|'brain'|'mobility'|'equipment'|'skills'|'finalize')
+  robotTab: 'frame',
   // Optional extra characteristics panel
   extraStatsEnabled: false,
   extraStatsSelected: new Set(),   // which ids are checked
@@ -1351,6 +1797,10 @@ function renderStage() {
       stage.innerHTML = renderCharacteristicsPhase();
       wireCharacteristicsPhase();
       break;
+    case 'robot_build':
+      stage.innerHTML = renderRobotBuildPhase();
+      wireRobotBuildPhase();
+      break;
     case 'society':
       stage.innerHTML = renderSocietyPhase();
       wireSocietyPhase();
@@ -1410,6 +1860,543 @@ function rollQuality(total) {
   if (total >= 30) return { tier: 'Lean',        note: 'below average — consider a reroll or a rearrange', cls: 'q-lean' };
   return                    { tier: 'Rough',      note: 'brutal rolls — strongly consider rerolling', cls: 'q-rough' };
 }
+
+// ============================================================
+// ROBOT BUILDER PHASE
+// ============================================================
+
+function getRobotConfig() {
+  if (!character.robot_config) character.robot_config = structuredClone(ROBOT_DEFAULT_CONFIG);
+  return robotNormalize(character.robot_config);
+}
+
+function saveRobotConfig(cfg) {
+  character.robot_config = cfg;
+  saveCharacter();
+}
+
+function renderRobotBuildPhase() {
+  const cfg = getRobotConfig();
+  const calc = calculateRobotConfig(cfg);
+  const tab = uiState.robotTab || 'frame';
+  const tl = rbN(cfg.techLevel, 12);
+
+  const tabs = [
+    { id:'frame',     label:'FRAME'       },
+    { id:'brain',     label:'BRAIN'       },
+    { id:'mobility',  label:'MOBILITY'    },
+    { id:'equipment', label:'EQUIPMENT'   },
+    { id:'skills',    label:'SKILLS'      },
+    { id:'finalize',  label:'FINALIZE'    }
+  ];
+
+  // ── live totals bar (always shown) ──
+  const slotsOver = calc.slots.used > calc.slots.total;
+  const bwOver    = calc.bandwidth.used > calc.bandwidth.total;
+  const totalsBar = `
+    <div class="robot-totals">
+      <div class="robot-total-cell ${slotsOver?'over':''}">
+        <span class="robot-total-key">SLOTS</span>
+        <span class="robot-total-val">${calc.slots.used}/${calc.slots.total}</span>
+      </div>
+      <div class="robot-total-cell ${bwOver?'over':''}">
+        <span class="robot-total-key">BANDWIDTH</span>
+        <span class="robot-total-val">${calc.bandwidth.used}/${calc.bandwidth.total}</span>
+      </div>
+      <div class="robot-total-cell">
+        <span class="robot-total-key">HITS</span>
+        <span class="robot-total-val">${calc.hits}</span>
+      </div>
+      <div class="robot-total-cell">
+        <span class="robot-total-key">PROTECTION</span>
+        <span class="robot-total-val">+${calc.armor.protection}</span>
+      </div>
+      <div class="robot-total-cell">
+        <span class="robot-total-key">SPEED</span>
+        <span class="robot-total-val">${calc.tacticalSpeed}m</span>
+      </div>
+      <div class="robot-total-cell">
+        <span class="robot-total-key">COST</span>
+        <span class="robot-total-val" style="font-size:14px">${rbFmtCr(calc.cost)}</span>
+      </div>
+    </div>`;
+
+  // ── tab content ──
+  let content = '';
+
+  if (tab === 'frame') {
+    const chassisCards = ROBOT_RULES.chassis.map(ch => `
+      <div class="robot-option-card ${ch.id===cfg.chassisId?'selected':''}" data-rb-chassis="${ch.id}">
+        <div class="robot-option-name">${ch.name}</div>
+        <div class="robot-option-meta">
+          <span class="robot-option-pill">${ch.slots} slots</span>
+          <span class="robot-option-pill">${ch.hits} hits</span>
+          <span class="robot-option-pill">${rbFmtCr(ch.basicCost)}</span>
+        </div>
+        <div class="robot-option-meta" style="margin-top:3px">${escapeHTML(ch.equivalent)}</div>
+      </div>`).join('');
+    const locoCards = ROBOT_RULES.locomotion.map(lo => `
+      <div class="robot-option-card ${lo.id===cfg.locomotionId?'selected':''}" data-rb-loco="${lo.id}">
+        <div class="robot-option-name">${lo.name}</div>
+        <div class="robot-option-meta">
+          <span class="robot-option-pill">TL ${lo.minTl}+</span>
+          <span class="robot-option-pill">×${lo.multiplier}</span>
+          ${lo.agility!=null?`<span class="robot-option-pill">Agility ${lo.agility>=0?'+':''}${lo.agility}</span>`:''}
+        </div>
+        <div class="robot-option-meta" style="margin-top:3px">${escapeHTML(lo.notes)}</div>
+      </div>`).join('');
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Chassis Size</h3>
+        <div class="robot-option-grid">${chassisCards}</div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Locomotion</h3>
+        <div class="robot-option-grid">${locoCards}</div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Frame Modifications</h3>
+        <div class="robot-fields">
+          <div class="robot-field">
+            <label>Added Armour (protection pts)</label>
+            <input type="number" id="rb-armor-added" min="0" max="60" value="${cfg.frameMods.armorAdded}">
+          </div>
+          <div class="robot-field">
+            <label>Power Packs (0–3)</label>
+            <input type="number" id="rb-power-packs" min="0" max="3" value="${cfg.frameMods.powerPacks}">
+          </div>
+          <div class="robot-field">
+            <label>Resilient Hits (added slots)</label>
+            <input type="number" id="rb-resilient-hits" min="0" value="${cfg.frameMods.resilientHits}">
+          </div>
+          <div class="robot-field">
+            <label>Light Hits (removed hits)</label>
+            <input type="number" id="rb-light-hits" min="0" value="${cfg.frameMods.lightHits}">
+          </div>
+          <div class="robot-field">
+            <label>Reduce Base Protection<br><small style="color:var(--muted)">-1 prot, saves 10% cost</small></label>
+            <input type="checkbox" id="rb-reduce-prot" ${cfg.frameMods.reduceProtection?'checked':''}>
+          </div>
+          <div class="robot-field">
+            <label>Efficiency Module<br><small style="color:var(--muted)">×2 endurance, +50% cost</small></label>
+            <input type="checkbox" id="rb-efficiency" ${cfg.frameMods.efficiency?'checked':''}>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (tab === 'brain') {
+    const brainCards = ROBOT_RULES.brains.map(br => `
+      <div class="robot-option-card ${br.id===cfg.brainId?'selected':''}" data-rb-brain="${br.id}">
+        <div class="robot-option-name">${br.name}</div>
+        <div class="robot-option-meta">
+          <span class="robot-option-pill">TL ${br.minTl}+</span>
+          <span class="robot-option-pill">INT ${br.intelligence}</span>
+          <span class="robot-option-pill">Computer/${br.computer}</span>
+          <span class="robot-option-pill">${rbFmtCr(br.cost)}</span>
+        </div>
+        <div class="robot-option-meta" style="margin-top:3px">${escapeHTML((br.capabilities||[]).join(", "))}</div>
+      </div>`).join('');
+    const bwOptions = `<option value="">None</option>${ROBOT_RULES.bandwidthUpgrades.map(bw=>`<option value="${bw.id}" ${bw.id===cfg.bandwidthUpgradeId?'selected':''}>${bw.name} (${rbFmtCr(bw.cost)})</option>`).join('')}`;
+    const brain = rbFindRule(ROBOT_RULES.brains, cfg.brainId);
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Brain Type</h3>
+        <div class="robot-option-grid">${brainCards}</div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Brain Modifications</h3>
+        <div class="robot-fields">
+          <div class="robot-field">
+            <label>Bandwidth Upgrade</label>
+            <select id="rb-bw-upgrade">${bwOptions}</select>
+          </div>
+          <div class="robot-field">
+            <label>INT Boost (0–3)<br><small style="color:var(--muted)">Uses bandwidth</small></label>
+            <input type="number" id="rb-int-boost" min="0" max="3" value="${cfg.brainMods.intBoost}">
+          </div>
+          <div class="robot-field">
+            <label>Hardened Brain<br><small style="color:var(--muted)">+50% brain cost</small></label>
+            <input type="checkbox" id="rb-hardened" ${cfg.brainMods.hardened?'checked':''}>
+          </div>
+        </div>
+        ${brain?`<p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">
+          Current INT: ${calc.intellect.finalInt} &nbsp;|&nbsp; Bandwidth: ${calc.bandwidth.used}/${calc.bandwidth.total}
+        </p>`:''}
+      </div>`;
+  }
+
+  if (tab === 'mobility') {
+    const secLocoOptions = `<option value="">None</option>${ROBOT_RULES.locomotion.map(lo=>`<option value="${lo.id}" ${lo.id===cfg.mobilityMods.secondaryLocomotionId?'selected':''}>${lo.name}</option>`).join('')}`;
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Tactical Movement</h3>
+        <div class="robot-fields">
+          <div class="robot-field">
+            <label>Agility Boost (0–4)<br><small style="color:var(--muted)">×1/2/4/8 chassis cost</small></label>
+            <input type="number" id="rb-agility-boost" min="0" max="4" value="${cfg.mobilityMods.agilityBoost}">
+          </div>
+          <div class="robot-field">
+            <label>Speed Modifier (−12 to +12)<br><small style="color:var(--muted)">±10% cost per point</small></label>
+            <input type="number" id="rb-speed-mod" min="-12" max="12" value="${cfg.mobilityMods.speedMod}">
+          </div>
+        </div>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">
+          Agility DM: ${calc.agility>=0?'+':''}${calc.agility} &nbsp;|&nbsp; Tactical speed: ${calc.tacticalSpeed}m &nbsp;|&nbsp; Endurance: ${calc.endurance}h
+        </p>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Vehicle Speed</h3>
+        <div class="robot-fields">
+          <div class="robot-field">
+            <label>Vehicle Speed Mode<br><small style="color:var(--muted)">Replaces tactical speed</small></label>
+            <input type="checkbox" id="rb-vehicle-speed" ${cfg.mobilityMods.vehicleSpeed?'checked':''}>
+          </div>
+          <div class="robot-field">
+            <label>Speed Band Boosts (0–3)</label>
+            <input type="number" id="rb-vsb-boosts" min="0" max="3" value="${cfg.mobilityMods.vehicleSpeedBoosts}" ${cfg.mobilityMods.vehicleSpeed?'':'disabled'}>
+          </div>
+        </div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Secondary Locomotion</h3>
+        <div class="robot-fields">
+          <div class="robot-field">
+            <label>Secondary System</label>
+            <select id="rb-sec-loco">${secLocoOptions}</select>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (tab === 'equipment') {
+    // Manipulators
+    const manipRows = cfg.manipulators.map((m,i) => {
+      const stats = robotManipStats(tl, rbN(m.size,5), rbN(m.strBoost), rbN(m.dexBoost));
+      return `
+        <div class="robot-row-card">
+          <label>Size<input type="number" data-rb-msize="${i}" min="1" max="10" value="${m.size}"></label>
+          <label>Count<input type="number" data-rb-mcount="${i}" min="1" max="12" value="${m.count}"></label>
+          <label>STR+<input type="number" data-rb-mstr="${i}" min="0" max="20" value="${m.strBoost}"></label>
+          <label>DEX+<input type="number" data-rb-mdex="${i}" min="0" max="20" value="${m.dexBoost}"></label>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">STR${stats.str}/DEX${stats.dex}</span>
+          <button class="robot-remove-btn" data-rb-remove-manip="${i}">✕</button>
+        </div>`;
+    }).join('');
+    // Systems checklist
+    const sysChecks = ROBOT_RULES.systems.map(sys => {
+      const checked = cfg.systems.includes(sys.id);
+      const cost = robotSysCost(sys, calc.chassis);
+      const slots = robotSysSlots(sys, calc.chassis);
+      return `
+        <div class="robot-check-row">
+          <input type="checkbox" data-rb-sys="${sys.id}" ${checked?'checked':''}>
+          <div class="robot-check-label">
+            <div class="robot-check-name">${escapeHTML(sys.name)}</div>
+            <div class="robot-check-desc">${escapeHTML(sys.notes||'')}${sys.minTl?` TL${sys.minTl}+.`:''} ${slots>0?`${slots} slots.`:''} ${cost>0?rbFmtCr(cost)+'.':''}</div>
+          </div>
+        </div>`;
+    }).join('');
+    // Custom options
+    const customRows = cfg.customOptions.map((o,i) => `
+      <div class="robot-row-card">
+        <label>Name<input type="text" data-rb-cfield="name" data-rb-cidx="${i}" value="${escapeHTML(o.name)}"></label>
+        <label>TL<input type="number" data-rb-cfield="minTl" data-rb-cidx="${i}" min="0" value="${o.minTl}"></label>
+        <label>Slots<input type="number" data-rb-cfield="slots" data-rb-cidx="${i}" min="0" value="${o.slots}"></label>
+        <label>Cost<input type="number" data-rb-cfield="cost" data-rb-cidx="${i}" step="100" value="${o.cost}"></label>
+        <button class="robot-remove-btn" data-rb-remove-custom="${i}">✕</button>
+      </div>`).join('');
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Manipulators</h3>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:8px">Default: 2×Size ${calc.chassis?.size||5} manipulators included in chassis.</p>
+        ${manipRows || '<p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">No extra manipulators added.</p>'}
+        <button class="btn ghost" id="rb-add-manip" style="margin-top:4px">+ ADD MANIPULATOR</button>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Installed Systems</h3>
+        <div class="robot-check-grid">${sysChecks}</div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Custom Options / Weapons</h3>
+        ${customRows || '<p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">No custom options added.</p>'}
+        <button class="btn ghost" id="rb-add-custom" style="margin-top:4px">+ ADD CUSTOM OPTION</button>
+      </div>`;
+  }
+
+  if (tab === 'skills') {
+    const skillRows = cfg.skills.map((sk,i) => {
+      const skillOpts = ROBOT_RULES.skills.map(s=>`<option value="${escapeHTML(s.name)}" ${s.name===sk.name?'selected':''}>${escapeHTML(s.name)}</option>`).join('');
+      const levelOpts = [0,1,2,3,4].map(l=>`<option value="${l}" ${l===rbN(sk.level)?'selected':''}>${l}</option>`).join('');
+      const pkg = ROBOT_RULES.skills.find(s=>s.name===sk.name)||ROBOT_RULES.skills[0];
+      const lv=rbN(sk.level);
+      const bw=pkg.bandwidth+lv;
+      const cost=pkg.baseCost*(10**lv);
+      return `
+        <div class="robot-row-card">
+          <label>Skill<select data-rb-skname="${i}">${skillOpts}</select></label>
+          <label>Level<select data-rb-sklevel="${i}">${levelOpts}</select></label>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${bw>0?`BW ${bw}`:''} ${rbFmtCr(cost)}</span>
+          <button class="robot-remove-btn" data-rb-remove-skill="${i}">✕</button>
+        </div>`;
+    }).join('');
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Skill Software Packages</h3>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:8px">
+          Each skill costs bandwidth equal to skill level. Max level 3 per package (Level 4 requires Referee approval).
+        </p>
+        ${skillRows || '<p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">No skill packages installed.</p>'}
+        <button class="btn ghost" id="rb-add-skill" style="margin-top:4px">+ ADD SKILL PACKAGE</button>
+      </div>`;
+  }
+
+  if (tab === 'finalize') {
+    const chars = robotFoundryChars(cfg, calc);
+    const validation = validateRobotConfig(cfg, calc);
+    const hasErrors = validation.some(m=>m.type==='error');
+    const charCells = ['STR','DEX','END','INT','EDU','SOC'].map(k=>`
+      <div class="robot-char-cell">
+        <span class="robot-char-key">${k}</span>
+        <span class="robot-char-val">${chars[k]||0}</span>
+      </div>`).join('');
+    content = `
+      <div class="robot-section">
+        <h3 class="robot-section-title">Robot Identity</h3>
+        <div class="robot-fields">
+          <div class="robot-field" style="flex:1">
+            <label>Designation (Name)</label>
+            <input type="text" id="rb-name" value="${escapeHTML(cfg.name||'')}" placeholder="New Robot" style="min-width:200px">
+          </div>
+          <div class="robot-field" style="flex:2">
+            <label>Purpose / Role</label>
+            <input type="text" id="rb-purpose" value="${escapeHTML(cfg.purpose||'')}" placeholder="Combat/Labour/Medical..." style="min-width:200px">
+          </div>
+          <div class="robot-field">
+            <label>Tech Level</label>
+            <input type="number" id="rb-tl" min="5" max="20" value="${tl}">
+          </div>
+        </div>
+        <div class="robot-field" style="width:100%">
+          <label>Notes</label>
+          <input type="text" id="rb-notes" value="${escapeHTML(cfg.notes||'')}" placeholder="Additional notes..." style="width:100%;min-width:200px">
+        </div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Derived Characteristics (for Foundry / Sheet)</h3>
+        <div class="robot-char-grid">${charCells}</div>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">
+          STR = manipulator STR &nbsp;|&nbsp; DEX = manipulator DEX + agility &nbsp;|&nbsp; END = hits &nbsp;|&nbsp; INT = brain INT &nbsp;|&nbsp; EDU = total bandwidth
+        </p>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Build Validation</h3>
+        <div class="robot-validation">
+          ${validation.map(m=>`<div class="robot-val-item ${m.type}">${escapeHTML(m.text)}</div>`).join('')}
+        </div>
+      </div>
+      <div class="robot-summary-block">
+        <h4>Frame</h4>
+        <p>${calc.chassis?.name||'None'} / ${calc.locomotion?.name||'None'} · Hits ${calc.hits} · Protection +${calc.armor.protection} · Speed ${calc.tacticalSpeed}m · Endurance ${calc.endurance}h</p>
+      </div>
+      <div class="robot-summary-block">
+        <h4>Brain</h4>
+        <p>${calc.brain?.name||'None'} · INT ${calc.intellect.finalInt} · Computer/${calc.brain?.computer??0} · BW ${calc.bandwidth.used}/${calc.bandwidth.total}</p>
+      </div>
+      <div class="robot-summary-block">
+        <h4>Skills</h4>
+        <p>${calc.skills.map(sk=>`${sk.name} ${sk.level}`).join(', ')||'None'}</p>
+      </div>
+      <div class="robot-summary-block">
+        <h4>Traits</h4>
+        <p>${calc.traits.join(', ')||'None'}</p>
+      </div>
+      <div class="phase-actions" style="margin-top:14px">
+        <button class="btn primary" id="rb-finalize-btn" ${hasErrors?'disabled':''}>FINALIZE ROBOT →</button>
+        <button class="btn ghost" id="rb-back-btn">← BACK TO DICE</button>
+      </div>
+      ${hasErrors?'<p style="font-family:var(--font-mono);font-size:10px;color:var(--danger);margin-top:6px">Fix errors above before finalizing.</p>':''}`;
+  }
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>ROBOT CONSTRUCTION — ${escapeHTML(cfg.name||'New Robot')} · TL${tl}</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Robot Build Phase</div>
+      <h2 class="phase-title">Build Your Robot</h2>
+
+      ${totalsBar}
+
+      <div class="robot-tabs">
+        ${tabs.map(t=>`<button class="robot-tab-btn ${t.id===tab?'active':''}" data-robot-tab="${t.id}">${t.label}</button>`).join('')}
+      </div>
+
+      ${content}
+    </div>`;
+}
+
+function wireRobotBuildPhase() {
+  // Tab switching
+  document.querySelectorAll('[data-robot-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      uiState.robotTab = btn.dataset.robotTab;
+      renderAll();
+    });
+  });
+
+  const cfg = getRobotConfig();
+
+  // ── FRAME tab ──
+  document.querySelectorAll('[data-rb-chassis]').forEach(el => {
+    el.addEventListener('click', () => {
+      cfg.chassisId = el.dataset.rbChassis;
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  document.querySelectorAll('[data-rb-loco]').forEach(el => {
+    el.addEventListener('click', () => {
+      cfg.locomotionId = el.dataset.rbLoco;
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  const wireNumericField = (id, obj, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => { obj[key] = rbN(el.value); saveRobotConfig(cfg); renderAll(); });
+  };
+  const wireCheckField = (id, obj, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => { obj[key] = el.checked; saveRobotConfig(cfg); renderAll(); });
+  };
+  wireNumericField('rb-armor-added',   cfg.frameMods, 'armorAdded');
+  wireNumericField('rb-power-packs',   cfg.frameMods, 'powerPacks');
+  wireNumericField('rb-resilient-hits',cfg.frameMods, 'resilientHits');
+  wireNumericField('rb-light-hits',    cfg.frameMods, 'lightHits');
+  wireCheckField('rb-reduce-prot',     cfg.frameMods, 'reduceProtection');
+  wireCheckField('rb-efficiency',      cfg.frameMods, 'efficiency');
+
+  // ── BRAIN tab ──
+  document.querySelectorAll('[data-rb-brain]').forEach(el => {
+    el.addEventListener('click', () => {
+      cfg.brainId = el.dataset.rbBrain;
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  const bwEl = document.getElementById('rb-bw-upgrade');
+  if (bwEl) bwEl.addEventListener('change', () => { cfg.bandwidthUpgradeId = bwEl.value; saveRobotConfig(cfg); renderAll(); });
+  wireNumericField('rb-int-boost', cfg.brainMods, 'intBoost');
+  wireCheckField('rb-hardened',    cfg.brainMods, 'hardened');
+
+  // ── MOBILITY tab ──
+  wireNumericField('rb-agility-boost', cfg.mobilityMods, 'agilityBoost');
+  wireNumericField('rb-speed-mod',     cfg.mobilityMods, 'speedMod');
+  wireCheckField('rb-vehicle-speed',   cfg.mobilityMods, 'vehicleSpeed');
+  wireNumericField('rb-vsb-boosts',    cfg.mobilityMods, 'vehicleSpeedBoosts');
+  const secLoEl = document.getElementById('rb-sec-loco');
+  if (secLoEl) secLoEl.addEventListener('change', () => { cfg.mobilityMods.secondaryLocomotionId = secLoEl.value; saveRobotConfig(cfg); renderAll(); });
+
+  // ── EQUIPMENT tab — manipulators ──
+  document.querySelectorAll('[data-rb-msize],[data-rb-mcount],[data-rb-mstr],[data-rb-mdex]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = rbN(inp.dataset.rbMsize ?? inp.dataset.rbMcount ?? inp.dataset.rbMstr ?? inp.dataset.rbMdex);
+      if (inp.dataset.rbMsize  !== undefined) cfg.manipulators[i].size     = Math.max(1, rbN(inp.value));
+      if (inp.dataset.rbMcount !== undefined) cfg.manipulators[i].count    = Math.max(1, rbN(inp.value));
+      if (inp.dataset.rbMstr   !== undefined) cfg.manipulators[i].strBoost = Math.max(0, rbN(inp.value));
+      if (inp.dataset.rbMdex   !== undefined) cfg.manipulators[i].dexBoost = Math.max(0, rbN(inp.value));
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  document.querySelectorAll('[data-rb-remove-manip]').forEach(btn => {
+    btn.addEventListener('click', () => { cfg.manipulators.splice(rbN(btn.dataset.rbRemoveManip),1); saveRobotConfig(cfg); renderAll(); });
+  });
+  document.getElementById('rb-add-manip')?.addEventListener('click', () => {
+    const chassis = rbFindRule(ROBOT_RULES.chassis, cfg.chassisId);
+    cfg.manipulators.push({ size: chassis?.size||5, count:1, strBoost:0, dexBoost:0 });
+    saveRobotConfig(cfg); renderAll();
+  });
+  // systems checkboxes
+  document.querySelectorAll('[data-rb-sys]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.rbSys;
+      cfg.systems = cb.checked ? [...new Set([...cfg.systems,id])] : cfg.systems.filter(x=>x!==id);
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  // custom options
+  document.querySelectorAll('[data-rb-cfield]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = rbN(inp.dataset.rbCidx), field = inp.dataset.rbCfield;
+      if (!cfg.customOptions[i]) return;
+      cfg.customOptions[i][field] = ['minTl','slots','cost'].includes(field) ? rbN(inp.value) : inp.value;
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  document.querySelectorAll('[data-rb-remove-custom]').forEach(btn => {
+    btn.addEventListener('click', () => { cfg.customOptions.splice(rbN(btn.dataset.rbRemoveCustom),1); saveRobotConfig(cfg); renderAll(); });
+  });
+  document.getElementById('rb-add-custom')?.addEventListener('click', () => {
+    cfg.customOptions.push({ name:'Custom Option', minTl:rbN(cfg.techLevel,12), slots:0, cost:0, traits:'', notes:'' });
+    saveRobotConfig(cfg); renderAll();
+  });
+
+  // ── SKILLS tab ──
+  document.querySelectorAll('[data-rb-skname],[data-rb-sklevel]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = rbN(inp.dataset.rbSkname ?? inp.dataset.rbSklevel);
+      if (inp.dataset.rbSkname  !== undefined) cfg.skills[i].name  = inp.value;
+      if (inp.dataset.rbSklevel !== undefined) cfg.skills[i].level = rbN(inp.value);
+      saveRobotConfig(cfg); renderAll();
+    });
+  });
+  document.querySelectorAll('[data-rb-remove-skill]').forEach(btn => {
+    btn.addEventListener('click', () => { cfg.skills.splice(rbN(btn.dataset.rbRemoveSkill),1); saveRobotConfig(cfg); renderAll(); });
+  });
+  document.getElementById('rb-add-skill')?.addEventListener('click', () => {
+    cfg.skills.push({ name: ROBOT_RULES.skills[0].name, level:0 });
+    saveRobotConfig(cfg); renderAll();
+  });
+
+  // ── FINALIZE tab ──
+  const nameEl = document.getElementById('rb-name');
+  if (nameEl) nameEl.addEventListener('change', () => { cfg.name = nameEl.value; saveRobotConfig(cfg); renderAll(); });
+  const purposeEl = document.getElementById('rb-purpose');
+  if (purposeEl) purposeEl.addEventListener('change', () => { cfg.purpose = purposeEl.value; saveRobotConfig(cfg); renderAll(); });
+  const tlEl = document.getElementById('rb-tl');
+  if (tlEl) tlEl.addEventListener('change', () => { cfg.techLevel = rbN(tlEl.value, 12); saveRobotConfig(cfg); renderAll(); });
+  const notesEl = document.getElementById('rb-notes');
+  if (notesEl) notesEl.addEventListener('change', () => { cfg.notes = notesEl.value; saveRobotConfig(cfg); renderAll(); });
+
+  document.getElementById('rb-back-btn')?.addEventListener('click', () => {
+    // Return to new biological character (fresh start)
+    if (!confirm('Go back to dice rolling? Your robot build will be saved but you will start a new character.')) return;
+    character.phase = 'characteristics';
+    character.character_type = 'biological';
+    saveCharacter();
+    renderAll();
+  });
+
+  document.getElementById('rb-finalize-btn')?.addEventListener('click', async () => {
+    const finalCfg = robotNormalize(character.robot_config);
+    const calc = calculateRobotConfig(finalCfg);
+    const chars = robotFoundryChars(finalCfg, calc);
+    // Set characteristics on the character before sending
+    character.characteristics = { STR:chars.STR, DEX:chars.DEX, END:chars.END, INT:chars.INT, EDU:chars.EDU, SOC:chars.SOC };
+    try {
+      const resp = await fetch('/api/robot/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ character, robot_config: finalCfg })
+      });
+      if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Finalize failed'); }
+      const data = await resp.json();
+      character = data.character;
+      saveCharacter();
+      renderAll();
+    } catch(e) { alert('Failed to finalize robot: ' + e.message); }
+  });
+}
+
+// ── end robot builder phase ──────────────────────────────────
 
 function renderCharacteristicsPhase() {
   const hasRolled = Object.values(character.characteristics).some(v => v > 0);
@@ -1544,6 +2531,8 @@ function renderCharacteristicsPhase() {
           <span class="heroic-mechanic">${uiState.heroicRoll ? '4 stats: 2D · 2 stats: 3D6 drop lowest' : '4×2D + 2 stats rolled 3D6, drop lowest die'}</span>
         </button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
+        <div class="robot-divider">— or build something that doesn't roll dice —</div>
+        <button class="btn" id="btn-build-robot">⚙ BUILD A ROBOT</button>
       </div>
 
       <!-- Optional extra characteristics -->
@@ -1598,6 +2587,17 @@ function wireCharacteristicsPhase() {
     character.phase = 'society';
     saveCharacter();
     renderAll();
+  });
+  document.getElementById('btn-build-robot').addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/robot/new', { method: 'POST' });
+      const data = await response.json();
+      character = data.character;
+      character.robot_config = structuredClone(ROBOT_DEFAULT_CONFIG);
+      uiState.robotTab = 'frame';
+      saveCharacter();
+      renderAll();
+    } catch(e) { alert('Failed to start robot build: ' + e.message); }
   });
 
   // Extra stats toggle — direct DOM show/hide, no full re-render (avoids scroll reset)
@@ -9066,6 +10066,48 @@ function wireSkillPackagePhase() {
 // ============================================================
 
 function renderDonePhase() {
+  // ── Robot done phase ──────────────────────────────────────────────────────
+  if (character.character_type === 'robot') {
+    const cfg = robotNormalize(character.robot_config || {});
+    const calc = calculateRobotConfig(cfg);
+    const chars = robotFoundryChars(cfg, calc);
+    const charCells = ['STR','DEX','END','INT','EDU','SOC'].map(k=>`
+      <div class="robot-char-cell">
+        <span class="robot-char-key">${k}</span>
+        <span class="robot-char-val">${chars[k]||0}</span>
+      </div>`).join('');
+    return `
+      <div class="panel-header"><span class="led"></span><span>ROBOT COMPLETE — ${escapeHTML(cfg.name||'New Robot')}</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Construction Complete · TL${rbN(cfg.techLevel,12)}</div>
+        <h2 class="phase-title">${escapeHTML(cfg.name||'New Robot')}</h2>
+        <p class="phase-subtitle">${escapeHTML(cfg.purpose||'No purpose specified.')} Construction cost: ${rbFmtCr(calc.cost)}.</p>
+        <div class="robot-char-grid">${charCells}</div>
+        <div class="robot-summary-block">
+          <h4>Frame</h4>
+          <p>${calc.chassis?.name||'?'} / ${calc.locomotion?.name||'?'} · Hits ${calc.hits} · Protection +${calc.armor.protection} · Speed ${calc.tacticalSpeed}m · Endurance ${calc.endurance}h</p>
+        </div>
+        <div class="robot-summary-block">
+          <h4>Brain</h4>
+          <p>${calc.brain?.name||'?'} · INT ${calc.intellect.finalInt} · Computer/${calc.brain?.computer??0} · BW ${calc.bandwidth.used}/${calc.bandwidth.total}</p>
+        </div>
+        <div class="robot-summary-block">
+          <h4>Skills</h4>
+          <p>${calc.skills.map(sk=>`${sk.name} ${sk.level}`).join(', ')||'None'}</p>
+        </div>
+        <div class="robot-summary-block">
+          <h4>Traits</h4>
+          <p>${calc.traits.join(', ')||'None'}</p>
+        </div>
+        <div class="phase-actions" style="margin-top:14px">
+          <button class="btn primary" id="btn-export-robot-foundry">⬇ EXPORT TO FOUNDRY</button>
+          <button class="btn ghost" id="btn-export-prominent">EXPORT JSON</button>
+          <button class="btn" id="btn-back-to-robot-build">← EDIT ROBOT</button>
+        </div>
+      </div>`;
+  }
+
+  // ── Normal (biological) done phase ─────────────────────────────────────────
   const existingConns = (character.associates || []).filter(a => (a.description || '').startsWith('Connection: '));
 
   return `
@@ -9211,6 +10253,33 @@ function renderPsionicsCard() {
 }
 
 function wireDonePhase() {
+  // ── Robot done phase wiring ──
+  const btnRobotFoundry = document.getElementById('btn-export-robot-foundry');
+  if (btnRobotFoundry) {
+    btnRobotFoundry.addEventListener('click', () => {
+      try {
+        const cfg = robotNormalize(character.robot_config || {});
+        const actor = createRobotFoundryExport(cfg);
+        const payload = JSON.stringify(actor, null, 2);
+        const blob = new Blob([payload], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(cfg.name||'robot').toLowerCase().replace(/[^a-z0-9]+/g,'-')}-foundry.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) { alert('Export failed: ' + e.message); }
+    });
+  }
+  const btnBackRobot = document.getElementById('btn-back-to-robot-build');
+  if (btnBackRobot) btnBackRobot.addEventListener('click', () => {
+    character.phase = 'robot_build';
+    uiState.robotTab = 'finalize';
+    saveCharacter();
+    renderAll();
+  });
+
+  // ── Normal done phase wiring ──
   const btnExport = document.getElementById('btn-export-prominent');
   if (btnExport) btnExport.addEventListener('click', exportCharacter);
 

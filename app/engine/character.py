@@ -314,9 +314,17 @@ class Character(BaseModel):
     force_career_end: bool = False
     ejected_by_event: bool = False
 
+    # Robot character type
+    # "biological" — normal Traveller (default)
+    # "robot"      — built via the robot construction phase; bypasses lifepath
+    character_type: str = "biological"
+    # Stored robot construction config (set during robot_build phase).
+    # Structure mirrors ROBOT_DEFAULT_CONFIG on the client.
+    robot_config: Optional[dict] = None
+
     # Creation flow state
     phase: str = "characteristics"
-    # characteristics | species | background | pre_career | career | mustering | finalize | done
+    # characteristics | robot_build | species | background | pre_career | career | mustering | finalize | done
     notes: list[str] = Field(default_factory=list)
     dead: bool = False
     death_reason: Optional[str] = None
