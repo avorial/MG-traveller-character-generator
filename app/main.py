@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
-from .engine import pdf_export, pdf_sheet
+from .engine import pdf_export, pdf_sheet, foundry_export
 
 
 BASE_DIR = Path(__file__).parent
@@ -1088,6 +1088,23 @@ async def api_export_pdf(action: CharacterAction):
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
+    )
+
+
+@app.post("/api/character/export-foundry")
+async def api_export_foundry(action: CharacterAction):
+    """Generate and return a FoundryVTT MGT2e-compatible actor JSON."""
+    character = action.character.model_copy(deep=True)
+    try:
+        actor = foundry_export.character_to_foundry(character)
+    except Exception as e:
+        raise HTTPException(500, f"Foundry export failed: {e}")
+    import json as _json
+    name = (character.name or "traveller").replace(" ", "_")
+    return Response(
+        content=_json.dumps(actor, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{name}_foundry.json"'},
     )
 
 

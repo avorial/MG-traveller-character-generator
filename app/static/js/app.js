@@ -9144,6 +9144,7 @@ function renderDonePhase() {
       <div class="phase-actions">
         <button class="btn primary" id="btn-export-pdf">⬇ EXPORT PDF</button>
         <button class="btn ghost" id="btn-export-prominent">EXPORT JSON</button>
+        <button class="btn ghost" id="btn-export-foundry">⬇ EXPORT TO FOUNDRY</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
       </div>
     </div>
@@ -9215,6 +9216,8 @@ function wireDonePhase() {
 
   const btnPdf = document.getElementById('btn-export-pdf');
   if (btnPdf) btnPdf.addEventListener('click', exportPDF);
+  const btnFoundry = document.getElementById('btn-export-foundry');
+  if (btnFoundry) btnFoundry.addEventListener('click', exportFoundry);
   const btnBack = document.getElementById('btn-back-careers');
   if (btnBack) btnBack.addEventListener('click', () => {
     character.phase = 'career';
@@ -9378,6 +9381,32 @@ async function exportPDF() {
     alert('PDF export failed: ' + e.message);
   } finally {
     if (btn) { btn.textContent = '⬇ EXPORT PDF'; btn.disabled = false; }
+  }
+}
+
+async function exportFoundry() {
+  const btn = document.getElementById('btn-export-foundry');
+  if (btn) { btn.textContent = 'GENERATING…'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/character/export-foundry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ character }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(character.name || 'traveller').replace(/\s+/g, '_')}_foundry.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Foundry export failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '⬇ EXPORT TO FOUNDRY'; btn.disabled = false; }
   }
 }
 
