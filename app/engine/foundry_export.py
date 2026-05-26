@@ -330,6 +330,7 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     # ------------------------------------------------------------------
     # 4. Finance
     # ------------------------------------------------------------------
+    ship_shares = int(getattr(char, "ship_shares", 0) or 0)
     finance: dict[str, Any] = {
         "cash":        str(int(getattr(char, "credits", 0) or 0)),
         "pension":     str(int(getattr(char, "pension_per_year", 0) or 0)),
@@ -337,7 +338,8 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         "mortgage":    "0",
         "livingCosts": "0",
         "otherIncome": "0",
-        "description": "",
+        "shipShares":  ship_shares,
+        "description": f"Ship Shares: {ship_shares}" if ship_shares else "",
     }
 
     # ------------------------------------------------------------------
@@ -366,10 +368,24 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     desc_html = "<p>" + capsule.replace("\n\n", "</p>\n<p>").replace("\n", "<br>") + "</p>" if capsule else ""
 
     # ------------------------------------------------------------------
-    # 7. Associates → items
+    # 7. Build items list (associates, terms, equipment)
     # ------------------------------------------------------------------
     items: list[dict] = []
     term_history = getattr(char, "term_history", None) or []
+
+    def _item_stats() -> dict:
+        """Minimal _stats block that Foundry requires to accept imported items."""
+        return {
+            "compendiumSource": None,
+            "duplicateSource":  None,
+            "exportSource":     None,
+            "coreVersion":      "13.351",
+            "systemId":         "mgt2e",
+            "systemVersion":    "0.21.0.0",
+            "lastModifiedBy":   None,
+        }
+
+    # Associates (contacts / allies / rivals / enemies)
     for assoc in (getattr(char, "associates", None) or []):
         if isinstance(assoc, dict):
             kind = str(assoc.get("kind", "contact")).lower()
@@ -381,7 +397,6 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         defaults = _ASSOCIATE_DEFAULTS.get(kind, _ASSOCIATE_DEFAULTS["contact"])
         display_name = desc if desc else f"Unnamed {kind.title()}"
 
-        item_id = _short_id()
         items.append({
             "name": display_name,
             "type": "associate",
@@ -396,38 +411,36 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
                 "relation":    kind,
                 "description": desc,
             },
-            "_id":      item_id,
+            "_id":      _short_id(),
             "img":      "systems/mgt2e/icons/items/item.svg",
             "effects":  [],
             "folder":   None,
             "sort":     0,
             "flags":    {},
+            "_stats":   _item_stats(),
+            "ownership": {"default": 0},
         })
 
-    # ------------------------------------------------------------------
-    # 7b. Term history → type:"term" items
-    # ------------------------------------------------------------------
+    # Career terms
     for term in term_history:
         if isinstance(term, dict):
-            t_num      = int(term.get("overall_term_number", term.get("term_number", 1)))
-            t_career   = str(term.get("career_id", "") or "").replace("_", " ").title()
-            t_assign   = str(term.get("assignment_id", "") or "").replace("_", " ").title()
-            t_rank     = str(term.get("rank_title", "") or "")
-            t_events   = term.get("events", []) or []
+            t_num    = int(term.get("overall_term_number", term.get("term_number", 1)))
+            t_career = str(term.get("career_id", "") or "").replace("_", " ").title()
+            t_assign = str(term.get("assignment_id", "") or "").replace("_", " ").title()
+            t_rank   = str(term.get("rank_title", "") or "")
+            t_events = term.get("events", []) or []
         else:
-            t_num      = int(getattr(term, "overall_term_number", getattr(term, "term_number", 1)))
-            t_career   = str(getattr(term, "career_id", "") or "").replace("_", " ").title()
-            t_assign   = str(getattr(term, "assignment_id", "") or "").replace("_", " ").title()
-            t_rank     = str(getattr(term, "rank_title", "") or "")
-            t_events   = getattr(term, "events", []) or []
+            t_num    = int(getattr(term, "overall_term_number", getattr(term, "term_number", 1)))
+            t_career = str(getattr(term, "career_id", "") or "").replace("_", " ").title()
+            t_assign = str(getattr(term, "assignment_id", "") or "").replace("_", " ").title()
+            t_rank   = str(getattr(term, "rank_title", "") or "")
+            t_events = getattr(term, "events", []) or []
 
         assignment_str = f"{t_career}: {t_assign}" if t_assign else t_career
         if t_rank:
             assignment_str += f" ({t_rank})"
         event_lines = "\n".join(f"• {e}" for e in t_events) if t_events else ""
-        desc = assignment_str
-        if event_lines:
-            desc += "\n" + event_lines
+        term_desc = assignment_str + ("\n" + event_lines if event_lines else "")
 
         items.append({
             "name": f"Term {t_num}: {assignment_str}",
@@ -441,14 +454,47 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
                     "randomLength": "",
                 },
                 "name":        "Term",
-                "description": desc,
+                "description": term_desc,
             },
-            "_id":    _short_id(),
-            "img":    "systems/mgt2e/icons/misc/career.svg",
-            "effects": [],
-            "folder":  None,
-            "sort":    0,
-            "flags":   {},
+            "_id":      _short_id(),
+            "img":      "systems/mgt2e/icons/misc/career.svg",
+            "effects":  [],
+            "folder":   None,
+            "sort":     0,
+            "flags":    {},
+            "_stats":   _item_stats(),
+            "ownership": {"default": 0},
+        })
+
+    # Equipment
+    for eq in (getattr(char, "equipment", None) or []):
+        if isinstance(eq, dict):
+            eq_name  = str(eq.get("name", "Item"))
+            eq_qty   = int(eq.get("quantity", 1) or 1)
+            eq_notes = str(eq.get("notes", "") or "")
+        else:
+            eq_name  = str(getattr(eq, "name", "Item"))
+            eq_qty   = int(getattr(eq, "quantity", 1) or 1)
+            eq_notes = str(getattr(eq, "notes", "") or "")
+
+        items.append({
+            "name": eq_name,
+            "type": "equipment",
+            "system": {
+                "description": eq_notes,
+                "quantity":    eq_qty,
+                "cost":        0,
+                "weight":      0,
+                "tl":          0,
+            },
+            "_id":      _short_id(),
+            "img":      "systems/mgt2e/icons/items/item.svg",
+            "effects":  [],
+            "folder":   None,
+            "sort":     0,
+            "flags":    {},
+            "_stats":   _item_stats(),
+            "ownership": {"default": 0},
         })
 
     # ------------------------------------------------------------------
