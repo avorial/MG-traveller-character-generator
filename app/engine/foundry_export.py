@@ -230,27 +230,41 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     # ------------------------------------------------------------------
     # 1. Characteristics
     # ------------------------------------------------------------------
-    chars_raw = char.characteristics or {}
+    chars_raw = char.characteristics  # Characteristics model — use _cval() helper
     psi_val  = int(getattr(char, "psi", 0) or 0)
+
+    def _cval(key: str, default: int = 0) -> int:
+        """Get a characteristic value, supporting both the Characteristics model and plain dicts."""
+        if chars_raw is None:
+            return default
+        if isinstance(chars_raw, dict):
+            return int(chars_raw.get(key, default) or default)
+        # Characteristics model: .get() takes only the key, returns None for unknowns
+        v = chars_raw.get(key)
+        if v is None:
+            # Also check extra_characteristics on the character
+            extra = getattr(char, "extra_characteristics", {}) or {}
+            v = extra.get(key)
+        return int(v) if v is not None else default
 
     def _char_entry(val: int, show: bool = True) -> dict:
         return {"value": val, "current": val, "show": show, "default": False}
 
     characteristics: dict[str, Any] = {
-        "STR": _char_entry(int(chars_raw.get("STR", 7))),
-        "DEX": _char_entry(int(chars_raw.get("DEX", 7))),
-        "END": _char_entry(int(chars_raw.get("END", 7))),
-        "INT": _char_entry(int(chars_raw.get("INT", 7))),
-        "EDU": _char_entry(int(chars_raw.get("EDU", 7))),
-        "SOC": _char_entry(int(chars_raw.get("SOC", 7))),
-        "CHA": _char_entry(int(chars_raw.get("CHA", 0)), show=False),
-        "TER": _char_entry(int(chars_raw.get("TER", 0)), show=False),
+        "STR": _char_entry(_cval("STR", 7)),
+        "DEX": _char_entry(_cval("DEX", 7)),
+        "END": _char_entry(_cval("END", 7)),
+        "INT": _char_entry(_cval("INT", 7)),
+        "EDU": _char_entry(_cval("EDU", 7)),
+        "SOC": _char_entry(_cval("SOC", 7)),
+        "CHA": _char_entry(_cval("CHA", 0), show=False),
+        "TER": _char_entry(_cval("TER", 0), show=False),
         "PSI": _char_entry(psi_val, show=psi_val > 0),
-        "WLT": _char_entry(int(chars_raw.get("WLT", 0)), show=False),
-        "LCK": _char_entry(int(chars_raw.get("LCK", 0)), show=False),
-        "MRL": _char_entry(int(chars_raw.get("MRL", 0)), show=False),
-        "STY": _char_entry(int(chars_raw.get("STY", 0)), show=False),
-        "RES": _char_entry(int(chars_raw.get("RES", 0)), show=False),
+        "WLT": _char_entry(_cval("WLT", 0), show=False),
+        "LCK": _char_entry(_cval("LCK", 0), show=False),
+        "MRL": _char_entry(_cval("MRL", 0), show=False),
+        "STY": _char_entry(_cval("STY", 0), show=False),
+        "RES": _char_entry(_cval("RES", 0), show=False),
         "FOL": _char_entry(0, show=False),
         "REP": _char_entry(0, show=False),
     }
@@ -308,9 +322,9 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     # ------------------------------------------------------------------
     # 3. Hits (STR + DEX + END)
     # ------------------------------------------------------------------
-    str_v = int(chars_raw.get("STR", 7))
-    dex_v = int(chars_raw.get("DEX", 7))
-    end_v = int(chars_raw.get("END", 7))
+    str_v = _cval("STR", 7)
+    dex_v = _cval("DEX", 7)
+    end_v = _cval("END", 7)
     hits_max = str_v + dex_v + end_v
 
     # ------------------------------------------------------------------
