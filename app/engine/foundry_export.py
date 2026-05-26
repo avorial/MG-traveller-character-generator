@@ -8,6 +8,7 @@ the file system).
 from __future__ import annotations
 
 import re
+import time
 import uuid
 from typing import Any
 
@@ -373,9 +374,11 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     items: list[dict] = []
     term_history = getattr(char, "term_history", None) or []
 
-    def _item_stats() -> dict:
-        """Minimal _stats block that Foundry requires to accept imported items."""
-        return {
+    _now_ms = int(time.time() * 1000)
+
+    def _item_stats(with_timestamps: bool = False) -> dict:
+        """_stats block that Foundry requires to accept imported items."""
+        s: dict = {
             "compendiumSource": None,
             "duplicateSource":  None,
             "exportSource":     None,
@@ -384,6 +387,10 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             "systemVersion":    "0.21.0.0",
             "lastModifiedBy":   None,
         }
+        if with_timestamps:
+            s["createdTime"]  = _now_ms
+            s["modifiedTime"] = _now_ms
+        return s
 
     # Associates (contacts / allies / rivals / enemies)
     for assoc in (getattr(char, "associates", None) or []):
@@ -421,16 +428,14 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             "ownership": {"default": 0},
         })
 
-    # Career terms
-    for term in term_history:
+    # Career terms — use sequential 1-based index for Foundry's term.number
+    for seq_idx, term in enumerate(term_history, start=1):
         if isinstance(term, dict):
-            t_num    = int(term.get("overall_term_number", term.get("term_number", 1)))
             t_career = str(term.get("career_id", "") or "").replace("_", " ").title()
             t_assign = str(term.get("assignment_id", "") or "").replace("_", " ").title()
             t_rank   = str(term.get("rank_title", "") or "")
             t_events = term.get("events", []) or []
         else:
-            t_num    = int(getattr(term, "overall_term_number", getattr(term, "term_number", 1)))
             t_career = str(getattr(term, "career_id", "") or "").replace("_", " ").title()
             t_assign = str(getattr(term, "assignment_id", "") or "").replace("_", " ").title()
             t_rank   = str(getattr(term, "rank_title", "") or "")
@@ -443,11 +448,11 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         term_desc = assignment_str + ("\n" + event_lines if event_lines else "")
 
         items.append({
-            "name": f"Term {t_num}: {assignment_str}",
+            "name": f"Term {seq_idx}: {assignment_str}",
             "type": "term",
             "system": {
                 "term": {
-                    "number":       t_num,
+                    "number":       seq_idx,
                     "termLength":   4,
                     "assignment":   assignment_str,
                     "randomTerm":   False,
@@ -462,7 +467,7 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             "folder":   None,
             "sort":     0,
             "flags":    {},
-            "_stats":   _item_stats(),
+            "_stats":   _item_stats(with_timestamps=True),
             "ownership": {"default": 0},
         })
 
@@ -479,13 +484,17 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
 
         items.append({
             "name": eq_name,
-            "type": "equipment",
+            "type": "item",
             "system": {
-                "description": eq_notes,
-                "quantity":    eq_qty,
-                "cost":        0,
-                "weight":      0,
                 "tl":          0,
+                "weight":      0,
+                "cost":        0,
+                "notes":       eq_notes,
+                "active":      False,
+                "quantity":    eq_qty,
+                "status":      "carried",
+                "legality":    9,
+                "description": eq_notes,
             },
             "_id":      _short_id(),
             "img":      "systems/mgt2e/icons/items/item.svg",
@@ -493,7 +502,7 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             "folder":   None,
             "sort":     0,
             "flags":    {},
-            "_stats":   _item_stats(),
+            "_stats":   _item_stats(with_timestamps=True),
             "ownership": {"default": 0},
         })
 
