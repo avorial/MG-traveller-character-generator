@@ -369,6 +369,7 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     # 7. Associates → items
     # ------------------------------------------------------------------
     items: list[dict] = []
+    term_history = getattr(char, "term_history", None) or []
     for assoc in (getattr(char, "associates", None) or []):
         if isinstance(assoc, dict):
             kind = str(assoc.get("kind", "contact")).lower()
@@ -401,6 +402,53 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             "folder":   None,
             "sort":     0,
             "flags":    {},
+        })
+
+    # ------------------------------------------------------------------
+    # 7b. Term history → type:"term" items
+    # ------------------------------------------------------------------
+    for term in term_history:
+        if isinstance(term, dict):
+            t_num      = int(term.get("overall_term_number", term.get("term_number", 1)))
+            t_career   = str(term.get("career_id", "") or "").replace("_", " ").title()
+            t_assign   = str(term.get("assignment_id", "") or "").replace("_", " ").title()
+            t_rank     = str(term.get("rank_title", "") or "")
+            t_events   = term.get("events", []) or []
+        else:
+            t_num      = int(getattr(term, "overall_term_number", getattr(term, "term_number", 1)))
+            t_career   = str(getattr(term, "career_id", "") or "").replace("_", " ").title()
+            t_assign   = str(getattr(term, "assignment_id", "") or "").replace("_", " ").title()
+            t_rank     = str(getattr(term, "rank_title", "") or "")
+            t_events   = getattr(term, "events", []) or []
+
+        assignment_str = f"{t_career}: {t_assign}" if t_assign else t_career
+        if t_rank:
+            assignment_str += f" ({t_rank})"
+        event_lines = "\n".join(f"• {e}" for e in t_events) if t_events else ""
+        desc = assignment_str
+        if event_lines:
+            desc += "\n" + event_lines
+
+        items.append({
+            "name": f"Term {t_num}: {assignment_str}",
+            "type": "term",
+            "system": {
+                "term": {
+                    "number":       t_num,
+                    "termLength":   4,
+                    "assignment":   assignment_str,
+                    "randomTerm":   False,
+                    "randomLength": "",
+                },
+                "name":        "Term",
+                "description": desc,
+            },
+            "_id":    _short_id(),
+            "img":    "systems/mgt2e/icons/misc/career.svg",
+            "effects": [],
+            "folder":  None,
+            "sort":    0,
+            "flags":   {},
         })
 
     # ------------------------------------------------------------------
@@ -449,13 +497,13 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             },
             "sophont":  sophont,
             "finance":  finance,
-            "terms":    total_terms,
-            "startAge": 18,
+            "terms":      total_terms,
+            "startAge":   18,
             "termLength": 4,
-            "entryYear": 1105,
-            "entryAge":  18,
-            "currentYear": 1105 + total_terms * 4,
-            "birthYear":   1105 + total_terms * 4 - age,
+            "entryYear":  1105,
+            "entryAge":   age,
+            "currentYear": 1105,
+            "birthYear":   1105 - age,
         },
         "items":  items,
         "effects": [],
