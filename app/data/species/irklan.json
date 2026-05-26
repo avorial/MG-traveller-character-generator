@@ -1,0 +1,37 @@
+{
+    "id": "irklan",
+    "name": "Irklan",
+    "description": "A harsh and pitiless people, Irklan who wander into interstellar society work in risky and challenging occupations — occasionally taking assassination contracts, not for the money, but for the challenge of direct confrontation. They will not strike from ambush or behind when killing for hire; a challenge requires the victim be confronted directly and given a chance to resist in hand-to-hand combat. When on the defensive, however, they show no such scruples. Irklan favour personal weapons — blades and blowguns — and openly scorn firearms and advanced technology. They conceal their affiliation carefully from government officials.",
+    "characteristic_modifiers": {
+        "STR": 1,
+        "DEX": 1,
+        "END": 1,
+        "INT": 0,
+        "EDU": -2,
+        "SOC": -2
+    },
+    "characteristic_maximum": 15,
+    "allowed_career_ids": ["drifter", "prisoner"],
+    "aging_bonus_dm": 1,
+    "background_skills": ["Awareness 0"],
+    "traits": [
+        {
+            "name": "Age Resistance",
+            "description": "Irklan are supremely fit and receive DM+1 to all rolls on the Aging table."
+        },
+        {
+            "name": "Control",
+            "description": "This trait is equivalent to the psionic talent of Awareness. All Irklan have a PSI characteristic equal to their END (for the purpose of this trait only), and the Awareness skill at level 0. This is not considered psionic training and does not grant the full range of PSI abilities."
+        }
+    ],
+    "species_notes": [
+        "Career restriction: Irklan may only take the Drifter career (Barbarian or Wanderer assignment).",
+        "Control: the Irklan's effective PSI for Awareness checks equals their current END score. This is not true psionics — they cannot develop other psionic talents.",
+        "Any award of Jack-of-all-Trades skill may be taken as Awareness instead.",
+        "Any award of Seafarer skill must be taken as Survival instead.",
+        "Age Resistance: DM+1 on all Aging table rolls — applied automatically."
+    ],
+    "sort_order": 106,
+    "aliases": ["irklan", "irklansa"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

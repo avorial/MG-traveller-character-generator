@@ -3907,6 +3907,7 @@ function renderChooseCareer() {
   const isCetacean = speciesId === 'dolphin' || speciesId === 'uplifted_orca';
   // Does this character have Vacc Suit skill at any level?
   const hasVaccSuit = (character.skills || []).some(s => (s.name || '').toLowerCase() === 'vacc suit' && s.level >= 1);
+  // blocked_careers applies to ALL species (cetaceans use it too, plus have the vacc suit gate below)
   const cetaceanBlockedCareers = new Set((speciesDef && speciesDef.blocked_careers) || []);
 
   // Aslan characters (uses_clan_shares) must only see Aslan-specific careers.
@@ -3962,8 +3963,8 @@ function renderChooseCareer() {
         }
         // "blocked_species" = species blacklist: hide for these species
         if (c.blocked_species && c.blocked_species.includes(speciesId)) return false;
-        // Cetacean species: block careers flagged in their species JSON
-        if (isCetacean && cetaceanBlockedCareers.has(c.id)) return false;
+        // Species blocked_careers: hide for any species that lists them (not just cetaceans)
+        if (cetaceanBlockedCareers.has(c.id)) return false;
         // Cetacean species: non-cetacean-specific careers require Vacc Suit first
         if (isCetacean && (!c.allowed_species || c.allowed_species.length === 0) && !hasVaccSuit) return false;
         return true;

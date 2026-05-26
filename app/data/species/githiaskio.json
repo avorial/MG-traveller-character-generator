@@ -1,0 +1,34 @@
+{
+    "id": "githiaskio",
+    "name": "Githiaskio",
+    "description": "Aquatic beings psychologically so similar to humans that almost all their activities are identical — only conducted underwater. Githiaskio work best with tools made specifically for their tentacles, but can use human equipment if necessary (without the DEX DM bonus, though no penalty applies). They are found throughout Charted Space and slot into virtually any career, though interstellar organisations tend to assign them to submarine specialist units, aquatic exploratory ships, or water-world base duty.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Aquatic",
+            "description": "Githiaskio are fully aquatic beings optimised for underwater movement. They may operate on the surface but require environmental support (sealed suits or support suits) to function in air under gravity for extended periods."
+        },
+        {
+            "name": "Tentacle Tools",
+            "description": "Githiaskio work best with custom-made tools designed for their tentacles. When using standard human equipment, they do not benefit from any positive DEX DM (though they suffer no penalties). Custom Githiaskio tools and weapons cost the same as human equivalents near Githiaski, but elsewhere must usually be custom-made at an additional 10–60% (2D×5%) cost increase."
+        }
+    ],
+    "species_notes": [
+        "Human equipment: no DEX DM bonus applies, but no penalty either.",
+        "Custom tools cost 2D×5% more outside the Githiaski region.",
+        "Sealed environments cost Cr2,000 per ton of living space to convert.",
+        "Powered support suits for out-of-water operation: Cr300,000 each — clumsy and uncomfortable.",
+        "Army and Marines tend to form submarine specialist units with Githiaskio attached at corps or army level."
+    ],
+    "sort_order": 103,
+    "aliases": ["githiaskio"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

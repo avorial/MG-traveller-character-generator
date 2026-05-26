@@ -1,0 +1,31 @@
+{
+    "id": "halkan",
+    "name": "Halkan",
+    "description": "Brought to Halka from Terra by the Ancients, Halkans have evolved to survive on their adoptive homeworld. Their skin is virtually devoid of pigment, giving them an almost albino appearance. They are taller than the average human but slender, with a tendency to hunch when standing. Halkans are generally peaceful and avoid resolving conflicts with violence whenever possible. Most Halkans have a narrow focus and limited exposure to wider galactic knowledge.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": -1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "species_career_start_skills": {
+        "citizen": ["Profession (Farming) 1"]
+    },
+    "traits": [
+        {
+            "name": "Reduced Light Vision",
+            "description": "Halkans do not see in the infrared or ultraviolet spectrums, but their eyes pick out details in the visible light spectrum with enhanced acuity. Halkans gain DM+1 when making Recon and similar perception checks in all but total darkness. However, they are sensitive to bright light and receive DM-1 on checks in such conditions unless wearing protective sunglasses."
+        }
+    ],
+    "species_notes": [
+        "Combat skill reroll: whenever a Melee, Gun Combat, or Heavy Weapons skill would be received from any source, reroll it. If the reroll produces another combat skill, take it as normal — only a non-combat skill replaces the original.",
+        "Scout career: limit to Surveyor and Explorer assignments only; Courier is not available to Halkans.",
+        "Citizen (Worker or Colonist) first term: gain Profession (Farming) 1 automatically — applied at career start."
+    ],
+    "sort_order": 104,
+    "aliases": ["halkan", "halkans"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}

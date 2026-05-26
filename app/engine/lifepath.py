@@ -5417,6 +5417,21 @@ def start_term(
                 character.log(f"  Career start skill: {msg}")
             term.skills_gained.extend([f"Career start: {s}" for s in career_start_skills])
 
+    # Species-conditional career start skills (e.g. Halkan Citizen: Profession (Farming) 1).
+    # Applied on first entry to a matching career regardless of assignment.
+    sp_data_for_start = rules.species().get(character.species_id or "", {})
+    sp_career_start_map = sp_data_for_start.get("species_career_start_skills", {})
+    sp_career_start_log: list[str] = []
+    if first_term_in_this_career and career_id in sp_career_start_map:
+        sp_career_start_log = _apply_enrollment_auto_skills(
+            character, sp_career_start_map[career_id]
+        )
+        for msg in sp_career_start_log:
+            character.log(f"  Species career start skill: {msg}")
+        term.skills_gained.extend(
+            [f"Species career start: {s}" for s in sp_career_start_map[career_id]]
+        )
+
     # Basic training: auto-apply all 6 skill entries at level 0.
     # basic_training_from_specialist: use the specialist table for this assignment
     # instead of the service_skills table (e.g. Zhodani Prole career).
@@ -13643,6 +13658,8 @@ def _apply_aging(character: Character) -> dict:
     _aging_mult = int(_sp_data.get("aging_dm_multiplier", 1))
     dm = -(_aging_mult * character.total_terms)  # "the older you are, the heavier the effects"
     dm += max(0, character.anagathics_terms_used)
+    # Species aging bonus (e.g. Irklan Age Resistance: DM+1)
+    dm += int(_sp_data.get("aging_bonus_dm", 0))
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
 

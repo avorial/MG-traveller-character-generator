@@ -1,0 +1,48 @@
+{
+    "id": "virushi",
+    "name": "Virushi",
+    "description": "Gentle, compassionate giants who do not indulge in aggressive speech or behaviour. Extremely polite and soft-spoken, the Virushi prefer negotiation to combat and rarely carry weapons — though they will fight when lives of friends are at stake, apologetically and with whatever force is necessary. Psionic powers are not uncommon among the Virushi, but like all Imperial citizens their development is suppressed. Despite their philosophy of non-violence, they are formidably armoured and physically powerful beings.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 20,
+    "characteristic_dice": {
+        "STR": "1D+10",
+        "END": "1D+10",
+        "DEX": "2D+2",
+        "SOC": "2D-2"
+    },
+    "blocked_careers": ["army", "navy", "marine"],
+    "career_qualify_dms": {
+        "scout": 1
+    },
+    "traits": [
+        {
+            "name": "Weapons Aversion",
+            "description": "Virushi have little knowledge of or aptitude for using weapons. The first skill level earned in Gun Combat, Gunner, Heavy Weapons, or Melee is always received at level 0 regardless of what was rolled; after that the skill improves normally."
+        },
+        {
+            "name": "Walking Tank",
+            "description": "All Virushi have Protection 4 from their natural armour and can make two attacks with natural weapons (tail lash or stomps) per combat round. Each attack uses Melee (natural) and inflicts 2D damage."
+        },
+        {
+            "name": "Poor Senses",
+            "description": "Soft sounds are inaudible to Virushi and peripheral vision is very limited — responding to anything behind them requires a ponderous turn. Virushi suffer DM-2 on all Recon and Survival checks using natural senses outside their normal environment. This penalty does not apply to vision in very bright light or hearing in a dense atmosphere."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 1D+10 (range 11–16); DEX as 2D+2 (range 4–14); SOC as 2D-2 (range 0–10). Maximum STR and END is 20.",
+        "Blocked careers: Army, Navy, and Marines are not available to Virushi.",
+        "Scout enlistment: DM+1.",
+        "SOC increases gained during careers are applied to EDU instead — Virushi do not accumulate social standing from service.",
+        "Weapons Aversion: the first level gained in any of Gun Combat, Gunner, Heavy Weapons, or Melee is always treated as level 0. Apply this when any such skill is first received from a career table or event."
+    ],
+    "sort_order": 105,
+    "aliases": ["virushi"],
+    "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
+}
