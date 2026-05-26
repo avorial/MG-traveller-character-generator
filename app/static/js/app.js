@@ -413,7 +413,8 @@ function robotNormalize(c) {
   }));
   n.skills = (n.skills||[]).map(s=>({
     name: ROBOT_RULES.skills.find(x=>x.name===s.name)?.name || d.skills[0].name,
-    level: rbClamp(s.level, 0, 4)
+    level: rbClamp(s.level, 0, 4),
+    specialty: s.specialty || ''
   }));
   return n;
 }
@@ -623,8 +624,9 @@ function createRobotFoundryExport(cfg) {
   calc.weapons.forEach(w=>itemRows.push(rbItem(w.name,`${w.mount} mount. Slots ${w.calcSlots}.`,w.calcCost)));
 
   const skills=calc.skills.reduce((all,sk)=>{
-    const id=sk.name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,32)||"skill";
-    return {...all,[id]:{id,value:String(sk.level),trained:true}};
+    const base=sk.name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,28)||"skill";
+    const id=sk.specialty?`${base}${sk.specialty.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,8)}`:base;
+    return {...all,[id]:{id,value:String(sk.level),trained:true,speciality:sk.specialty||""}};
   },{});
 
   const charsFull=["STR","DEX","END","INT","EDU","SOC","CHA","TER","PSI","WLT","LCK","MRL","STY","RES","FOL","REP"].reduce((a,k)=>({...a,[k]:{value:chars[k]||0,current:chars[k]||0,show:k in chars,default:false}}),{});
@@ -1935,24 +1937,10 @@ function renderRobotBuildPhase() {
         </div>
         <div class="robot-option-meta" style="margin-top:3px">${escapeHTML(ch.equivalent)}</div>
       </div>`).join('');
-    const locoCards = ROBOT_RULES.locomotion.map(lo => `
-      <div class="robot-option-card ${lo.id===cfg.locomotionId?'selected':''}" data-rb-loco="${lo.id}">
-        <div class="robot-option-name">${lo.name}</div>
-        <div class="robot-option-meta">
-          <span class="robot-option-pill">TL ${lo.minTl}+</span>
-          <span class="robot-option-pill">×${lo.multiplier}</span>
-          ${lo.agility!=null?`<span class="robot-option-pill">Agility ${lo.agility>=0?'+':''}${lo.agility}</span>`:''}
-        </div>
-        <div class="robot-option-meta" style="margin-top:3px">${escapeHTML(lo.notes)}</div>
-      </div>`).join('');
     content = `
       <div class="robot-section">
         <h3 class="robot-section-title">Chassis Size</h3>
         <div class="robot-option-grid">${chassisCards}</div>
-      </div>
-      <div class="robot-section">
-        <h3 class="robot-section-title">Locomotion</h3>
-        <div class="robot-option-grid">${locoCards}</div>
       </div>
       <div class="robot-section">
         <h3 class="robot-section-title">Frame Modifications</h3>
@@ -2027,10 +2015,25 @@ function renderRobotBuildPhase() {
   }
 
   if (tab === 'mobility') {
+    const locoCards = ROBOT_RULES.locomotion.map(lo => `
+      <div class="robot-option-card ${lo.id===cfg.locomotionId?'selected':''}" data-rb-loco="${lo.id}">
+        <div class="robot-option-name">${lo.name}</div>
+        <div class="robot-option-meta">
+          <span class="robot-option-pill">TL ${lo.minTl}+</span>
+          <span class="robot-option-pill">×${lo.multiplier} cost</span>
+          ${lo.agility!=null?`<span class="robot-option-pill">Agility ${lo.agility>=0?'+':''}${lo.agility}</span>`:''}
+          <span class="robot-option-pill">${lo.endurance}h</span>
+        </div>
+        <div class="robot-option-meta" style="margin-top:3px">${escapeHTML(lo.notes)}</div>
+      </div>`).join('');
     const secLocoOptions = `<option value="">None</option>${ROBOT_RULES.locomotion.map(lo=>`<option value="${lo.id}" ${lo.id===cfg.mobilityMods.secondaryLocomotionId?'selected':''}>${lo.name}</option>`).join('')}`;
     content = `
       <div class="robot-section">
-        <h3 class="robot-section-title">Tactical Movement</h3>
+        <h3 class="robot-section-title">Primary Locomotion</h3>
+        <div class="robot-option-grid">${locoCards}</div>
+      </div>
+      <div class="robot-section">
+        <h3 class="robot-section-title">Enhancements</h3>
         <div class="robot-fields">
           <div class="robot-field">
             <label>Agility Boost (0–4)<br><small style="color:var(--muted)">×1/2/4/8 chassis cost</small></label>
@@ -2040,14 +2043,6 @@ function renderRobotBuildPhase() {
             <label>Speed Modifier (−12 to +12)<br><small style="color:var(--muted)">±10% cost per point</small></label>
             <input type="number" id="rb-speed-mod" min="-12" max="12" value="${cfg.mobilityMods.speedMod}">
           </div>
-        </div>
-        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">
-          Agility DM: ${calc.agility>=0?'+':''}${calc.agility} &nbsp;|&nbsp; Tactical speed: ${calc.tacticalSpeed}m &nbsp;|&nbsp; Endurance: ${calc.endurance}h
-        </p>
-      </div>
-      <div class="robot-section">
-        <h3 class="robot-section-title">Vehicle Speed</h3>
-        <div class="robot-fields">
           <div class="robot-field">
             <label>Vehicle Speed Mode<br><small style="color:var(--muted)">Replaces tactical speed</small></label>
             <input type="checkbox" id="rb-vehicle-speed" ${cfg.mobilityMods.vehicleSpeed?'checked':''}>
@@ -2057,6 +2052,9 @@ function renderRobotBuildPhase() {
             <input type="number" id="rb-vsb-boosts" min="0" max="3" value="${cfg.mobilityMods.vehicleSpeedBoosts}" ${cfg.mobilityMods.vehicleSpeed?'':'disabled'}>
           </div>
         </div>
+        <p style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">
+          Agility DM: ${calc.agility>=0?'+':''}${calc.agility} &nbsp;|&nbsp; Tactical speed: ${calc.tacticalSpeed}m &nbsp;|&nbsp; Endurance: ${calc.endurance}h
+        </p>
       </div>
       <div class="robot-section">
         <h3 class="robot-section-title">Secondary Locomotion</h3>
@@ -2132,10 +2130,18 @@ function renderRobotBuildPhase() {
       const lv=rbN(sk.level);
       const bw=pkg.bandwidth+lv;
       const cost=pkg.baseCost*(10**lv);
+      // Specialty dropdown for cascade skills (reuses the main CASCADE_SKILLS map)
+      const specialties = CASCADE_SKILLS[sk.name] || null;
+      const specHtml = specialties ? `
+        <label>Specialty<select data-rb-skspec="${i}">
+          <option value="">— any —</option>
+          ${specialties.map(sp=>`<option value="${escapeHTML(sp)}" ${sp===(sk.specialty||'')?'selected':''}>${escapeHTML(sp)}</option>`).join('')}
+        </select></label>` : '';
       return `
         <div class="robot-row-card">
           <label>Skill<select data-rb-skname="${i}">${skillOpts}</select></label>
           <label>Level<select data-rb-sklevel="${i}">${levelOpts}</select></label>
+          ${specHtml}
           <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${bw>0?`BW ${bw}`:''} ${rbFmtCr(cost)}</span>
           <button class="robot-remove-btn" data-rb-remove-skill="${i}">✕</button>
         </div>`;
@@ -2205,7 +2211,7 @@ function renderRobotBuildPhase() {
       </div>
       <div class="robot-summary-block">
         <h4>Skills</h4>
-        <p>${calc.skills.map(sk=>`${sk.name} ${sk.level}`).join(', ')||'None'}</p>
+        <p>${calc.skills.map(sk=>`${sk.name}${sk.specialty?` (${sk.specialty})`:''} ${sk.level}`).join(', ')||'None'}</p>
       </div>
       <div class="robot-summary-block">
         <h4>Traits</h4>
@@ -2340,11 +2346,15 @@ function wireRobotBuildPhase() {
   });
 
   // ── SKILLS tab ──
-  document.querySelectorAll('[data-rb-skname],[data-rb-sklevel]').forEach(inp => {
+  document.querySelectorAll('[data-rb-skname],[data-rb-sklevel],[data-rb-skspec]').forEach(inp => {
     inp.addEventListener('change', () => {
-      const i = rbN(inp.dataset.rbSkname ?? inp.dataset.rbSklevel);
-      if (inp.dataset.rbSkname  !== undefined) cfg.skills[i].name  = inp.value;
+      const i = rbN(inp.dataset.rbSkname ?? inp.dataset.rbSklevel ?? inp.dataset.rbSkspec);
+      if (inp.dataset.rbSkname  !== undefined) {
+        cfg.skills[i].name = inp.value;
+        cfg.skills[i].specialty = ''; // reset specialty when skill changes
+      }
       if (inp.dataset.rbSklevel !== undefined) cfg.skills[i].level = rbN(inp.value);
+      if (inp.dataset.rbSkspec  !== undefined) cfg.skills[i].specialty = inp.value;
       saveRobotConfig(cfg); renderAll();
     });
   });
@@ -10093,7 +10103,7 @@ function renderDonePhase() {
         </div>
         <div class="robot-summary-block">
           <h4>Skills</h4>
-          <p>${calc.skills.map(sk=>`${sk.name} ${sk.level}`).join(', ')||'None'}</p>
+          <p>${calc.skills.map(sk=>`${sk.name}${sk.specialty?` (${sk.specialty})`:''} ${sk.level}`).join(', ')||'None'}</p>
         </div>
         <div class="robot-summary-block">
           <h4>Traits</h4>
