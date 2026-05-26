@@ -2531,8 +2531,8 @@ function renderCharacteristicsPhase() {
           <span class="heroic-mechanic">${uiState.heroicRoll ? '4 stats: 2D · 2 stats: 3D6 drop lowest' : '4×2D + 2 stats rolled 3D6, drop lowest die'}</span>
         </button>
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
-        <div class="robot-divider">— or build something that doesn't roll dice —</div>
-        <button class="btn" id="btn-build-robot">⚙ BUILD A ROBOT</button>
+        <div class="robot-divider">— or —</div>
+        <button class="btn" id="btn-build-robot">I WANT TO PLAY A ROBOT</button>
       </div>
 
       <!-- Optional extra characteristics -->
