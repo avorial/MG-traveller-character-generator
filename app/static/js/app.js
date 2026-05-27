@@ -5031,12 +5031,7 @@ function renderChooseCareer() {
         if (!isAslan && !isKkree && !isHiver && !isDroyne && c.societies && c.societies.length > 0 && !c.societies.includes(soc)) return false;
         // "blocked_societies" = blacklist: hide for these societies
         if (c.blocked_societies && c.blocked_societies.includes(soc)) return false;
-        // "allowed_species" = species whitelist: only show for these species
-        if (c.allowed_species && c.allowed_species.length > 0) {
-          if (!speciesId || !c.allowed_species.includes(speciesId)) return false;
-        }
-        // "blocked_species" = species blacklist: hide for these species
-        if (c.blocked_species && c.blocked_species.includes(speciesId)) return false;
+        // "allowed_species" / "blocked_species" — don't hard-hide; show as locked cards instead.
         // Species blocked_careers: hide for any species that lists them (not just cetaceans)
         if (cetaceanBlockedCareers.has(c.id)) return false;
         // Cetacean species: non-cetacean-specific careers require Vacc Suit first
@@ -5104,6 +5099,23 @@ function renderChooseCareer() {
       `;
     }
     const wasEjected = ejectedCareerIds.has(c.id);
+
+    // Species lock: blocked_species lists this character, or allowed_species excludes them
+    const speciesBlocked = (c.blocked_species && c.blocked_species.includes(speciesId));
+    const speciesNotAllowed = (c.allowed_species && c.allowed_species.length > 0 && (!speciesId || !c.allowed_species.includes(speciesId)));
+    const speciesLocked = speciesBlocked || speciesNotAllowed;
+    if (speciesLocked) {
+      const lockReason = c.species_lock_reason ||
+        (speciesBlocked ? `Not available to this species` : `Restricted to specific species`);
+      return `
+        <div class="card species-locked" title="${esc(lockReason)}">
+          <div class="card-title">${esc(c.name)} <span class="species-lock-flag">✕ RESTRICTED</span></div>
+          <div class="card-meta">${qualText}</div>
+          <div class="card-desc" style="color:var(--fg-dim)">${esc(lockReason)}</div>
+        </div>
+      `;
+    }
+
     if (wasEjected) classes.push('career-ejected');
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">

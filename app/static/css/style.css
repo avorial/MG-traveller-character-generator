@@ -1053,6 +1053,25 @@ body.hide-card-desc .card-desc { display: none !important; }
   padding: 2px 6px;
 }
 
+/* Species-restricted career cards */
+.card.species-locked {
+  border-color: #7a4fa8;
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  position: relative;
+}
+.species-lock-flag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: #b48be0;
+  letter-spacing: 0.12em;
+  border: 1px solid #7a4fa8;
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 /* Previously ejected career cards */
 .card.career-ejected {
   border-color: var(--danger);
