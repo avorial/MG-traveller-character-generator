@@ -8660,8 +8660,9 @@ function renderEventStep() {
     );
     // DMs embedded as alternatives in the skill picker (prisoner[5] pattern)
     const pendingGrantsInPicker = _eShowPicker && pendingGrants.length > 0 && !_eDmAlt;
-    // Competing rewards with no skill picker: DM vs DM, or DM vs transfer
-    const showDualChoice = !_eChosen && !_eShowPicker && (
+    // Competing rewards with no skill picker: DM vs DM, or DM vs transfer.
+    // Suppress entirely when a pending_event_choice card-picker already owns the decision.
+    const showDualChoice = !_eChosen && !_eShowPicker && !lr.pendingEventChoice && (
       pendingGrants.length >= 2 ||
       (pendingGrants.length >= 1 && !!_eTransfer)
     );
@@ -8682,7 +8683,7 @@ function renderEventStep() {
           ` : ''}
         </div>
       </div>
-    ` : (!pendingGrantsInPicker && pendingGrants.length) ? `
+    ` : (!pendingGrantsInPicker && !lr.pendingEventChoice && pendingGrants.length) ? `
       <div class="dm-pending-box">
         <span class="event-label">DM grants (conditional — resolve manually)</span>
         ${pendingGrants.map(g => `
