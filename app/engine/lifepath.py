@@ -5666,36 +5666,16 @@ def event_roll(character: Character) -> dict:
     key = str(r.total)
     event_text = events.get(key, "(No event encoded for this roll — see rulebook or the career JSON file.)")
 
-    # Life Event sub-table handling — route to career-appropriate table.
-    if event_text.lower().startswith("life event"):
-        life_r = dice.roll("2D")
-        career_id_for_evt = term.career_id if term else ""
-        life_table_data = rules.life_events_for_career(career_id_for_evt)
-        life_data = life_table_data.get("entries", life_table_data).get(str(life_r.total))
-        if life_data:
-            event_text = f"Life Event — {life_data['title']}: {life_data['text']}"
-            if life_data.get("sub_table"):
-                sub_r = dice.roll("1D")
-                sub_text = life_data["sub_table"].get(str(sub_r.total))
-                event_text += f" [{sub_r.dice[0]}] {sub_text}"
-
-    term.events.append(event_text)
-    character.log(f"Event [2D={r.total}]: {event_text}")
-
-    # Auto-apply any unconditional "DM+N to your next X" grants in the
-    # event text so the player doesn't have to remember them between phases.
+    # Parse unconditional DM/stat/promotion grants from the ORIGINAL event text
+    # (before any life-event expansion) so we don't double-apply grants that
+    # apply_life_event() handles programmatically.
     dm_grants = _apply_event_dms(character, event_text)
     for g in dm_grants:
         if g.get("applied"):
             character.log(f"  → Auto-applied DM{g['dm']:+d} to next {g['target'].capitalize()} roll.")
 
-    # Auto-apply any unconditional stat bonuses ("SOC +1" etc.). Only handles
-    # the rare cases like entertainer[12]; conditional/choice events are
-    # surfaced as pending but not applied.
     stat_bonuses = _apply_event_stat_bonuses(character, event_text)
 
-    # Auto-apply "automatically promoted" events (event [12] in most careers).
-    # Bumps rank, records the rank bonus, and prevents double-advancement.
     auto_promotion = _apply_event_auto_promotion(character, event_text)
     if auto_promotion and not auto_promotion.get("skipped"):
         character.log(
@@ -5703,12 +5683,29 @@ def event_roll(character: Character) -> dict:
             f" ({auto_promotion.get('rank_title') or '—'})."
         )
 
+    # Life Event sub-table handling — call apply_life_event() so effects are
+    # actually applied (contacts, stat changes, DMs, pending choices).
+    # This replaces the old code that only expanded the display text.
+    life_event_result: dict | None = None
+    if event_text.lower().startswith("life event"):
+        life_event_result = apply_life_event(character)
+        event_text = f"Life Event — {life_event_result['event_text']}"
+
+    term.events.append(event_text)
+    character.log(f"Event [2D={r.total}]: {event_text}")
+
     # Apply structured event effects from _EVENT_EFFECTS (skill grants, choices, etc.)
     event_effects_applied, disaster_mishap = _apply_event_effects(
         character, term.career_id, r.total, term
     )
     for msg in event_effects_applied:
         character.log(f"  → Event effect: {msg}")
+
+    # Prepend life event auto-applied messages so they appear first in the UI
+    if life_event_result:
+        life_auto = life_event_result.get("auto_applied", [])
+        if life_auto:
+            event_effects_applied = life_auto + event_effects_applied
 
     return {
         "roll": r.to_dict(),
@@ -8927,6 +8924,10 @@ def resolve_career_event_choice(character: "Character", choice_data: dict) -> di
     if character.pending_career_mishap_choice is not None:
         character.pending_career_event_choice = character.pending_career_mishap_choice
         character.pending_career_mishap_choice = None
+
+    # Explicitly surface pending_event_choice in the response so the JS can
+    # render a chained follow-up (e.g. Conf. Navy event 4 "recreation" → skill pick).
+    result["pending_event_choice"] = character.pending_career_event_choice
 
     return result
 

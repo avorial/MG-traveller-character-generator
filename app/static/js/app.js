@@ -6644,7 +6644,7 @@ function wireCareerPhase() {
     btn.addEventListener('click', () => {
       const skill = btn.getAttribute('data-event-choice-skill');
       resolveEventChoice({ skill }).then(() => {
-        if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+        if (uiState.lastRoll && !uiState.lastRoll.pendingEventChoice) uiState.lastRoll.eventChoiceResolved = true;
         renderAll();
       });
     });
@@ -6658,7 +6658,7 @@ function wireCareerPhase() {
       const skill = input ? input.value.trim() : '';
       if (!skill) { alert('Enter a skill name.'); return; }
       await resolveEventChoice({ skill });
-      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      if (uiState.lastRoll && !uiState.lastRoll.pendingEventChoice) uiState.lastRoll.eventChoiceResolved = true;
       renderAll();
     });
   }
@@ -6668,7 +6668,7 @@ function wireCareerPhase() {
     btn.addEventListener('click', async () => {
       const skillName = btn.getAttribute('data-skill-name');
       await resolveEventChoice({ skill_name: skillName });
-      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      if (uiState.lastRoll && !uiState.lastRoll.pendingEventChoice) uiState.lastRoll.eventChoiceResolved = true;
       renderAll();
     });
   });
@@ -6678,7 +6678,10 @@ function wireCareerPhase() {
     btn.addEventListener('click', async () => {
       const optionId = btn.getAttribute('data-event-choice-option');
       await resolveEventChoice({ option_id: optionId });
-      if (uiState.lastRoll) uiState.lastRoll.eventChoiceResolved = true;
+      // Only mark resolved when there is no chained follow-up pending
+      if (uiState.lastRoll && !uiState.lastRoll.pendingEventChoice) {
+        uiState.lastRoll.eventChoiceResolved = true;
+      }
       renderAll();
     });
   });
