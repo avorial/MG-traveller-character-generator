@@ -1367,6 +1367,12 @@ body.hide-card-desc .card-desc { display: none !important; }
   background: rgba(var(--tint-rgb), 0.05);
 }
 
+.dm-chip.converted {
+  color: #b48be0;
+  border-color: #7a4fa8;
+  background: rgba(120, 60, 160, 0.15);
+}
+
 /* ============ Event-choice skill picker ============ */
 
 .event-skill-picker {

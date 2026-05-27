@@ -9079,7 +9079,10 @@ function renderEventStep() {
     const eventEffectsHTML = eventEffectsMsgs.length ? `
       <div class="dm-applied-box">
         <span class="event-label">Auto-applied event effects</span>
-        ${eventEffectsMsgs.map(m => `<div class="dm-chip applied">${escapeHTML(m)}</div>`).join('')}
+        ${eventEffectsMsgs.map(m => {
+          const isConversion = /converted to/i.test(m);
+          return `<div class="dm-chip ${isConversion ? 'converted' : 'applied'}">${escapeHTML(m)}</div>`;
+        }).join('')}
       </div>
     ` : '';
 
