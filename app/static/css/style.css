@@ -1053,6 +1053,22 @@ body.hide-card-desc .card-desc { display: none !important; }
   padding: 2px 6px;
 }
 
+/* Previously ejected career cards */
+.card.career-ejected {
+  border-color: var(--amber-dim);
+  position: relative;
+}
+.ejected-flag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--amber);
+  letter-spacing: 0.12em;
+  border: 1px solid var(--amber-dim);
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 /* Rite-of-passage locked Aslan career cards */
 .card.rite-locked {
   opacity: 0.45;

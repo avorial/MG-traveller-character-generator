@@ -4967,6 +4967,14 @@ function renderCareerPhase() {
 function renderChooseCareer() {
   const forcedId = character.forced_next_career_id || null;
   const banned = new Set(character.banned_career_ids || []);
+  // Careers the character was ejected from via mishap (survived=false or mishap set).
+  // These are NOT hidden, just flagged so the player knows to expect difficulty.
+  const ejectedCareerIds = new Set(
+    (character.career_history || [])
+      .filter(t => t.survived === false || (t.mishap && t.mishap.length > 0))
+      .map(t => t.career_id)
+      .filter(id => !banned.has(id))
+  );
   const soc = character.society_id || 'third_imperium';
   const speciesId = character.species_id || null;
   const speciesDef = SPECIES.find(s => s.id === speciesId) || null;
@@ -5095,9 +5103,11 @@ function renderChooseCareer() {
         </div>
       `;
     }
+    const wasEjected = ejectedCareerIds.has(c.id);
+    if (wasEjected) classes.push('career-ejected');
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">
-        <div class="card-title">${esc(c.name)}</div>
+        <div class="card-title">${esc(c.name)}${wasEjected ? ' <span class="ejected-flag">⚠ EJECTED</span>' : ''}</div>
         <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}${riteScore !== null && qual.characteristic === 'RITE_OF_PASSAGE' ? ` · YOUR SCORE: ${riteScore}` : ''}</div>
         <div class="card-desc">${esc(c.description)}</div>
       </button>
