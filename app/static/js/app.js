@@ -3625,7 +3625,6 @@ function renderPreCareerPhase() {
         ${rollReadoutHTML(lr.data, { label: `${lr.charLabel} ${lr.target}+` })}
         ${appliedHTML}
         ${eventHTML}
-        <p class="picker-status"><em>Apply any additional event effects manually.</em></p>
         <div class="phase-actions">${nextBtn}</div>
       </div>
     `;
@@ -3764,20 +3763,28 @@ function renderPreCareerPhase() {
     `;
   }
 
-  // Graduated but lastRoll wiped (e.g. page reload) — recover pending event11 or skill picks
+  // Graduated but lastRoll wiped (e.g. page reload) — recover any pending interactive step
   if ((stage === 'graduated' || stage === 'failed_grad') && !uiState.lastRoll) {
     if (status.pending_event11) {
-      // Draft event is still pending — go directly to the event11 choice screen
       uiState.lastRoll = { type: 'precareer_event11' };
       return renderPreCareerPhase();
     }
+    if (status.pending_event10) {
+      // Show event10 skill picker (reuse the screen; skill pool is saved in status)
+      uiState.lastRoll = { type: 'precareer_event10' };
+      return renderPreCareerPhase();
+    }
+    if (character.pending_life_event_choice) {
+      const kind = character.pending_life_event_choice.kind;
+      uiState.lastRoll = { type: 'precareer_life_event_choice', choiceKind: kind };
+      return renderPreCareerPhase();
+    }
     if ((status.skill_picks_remaining || 0) > 0) {
-      // Skill picks still needed — show skill picker
       uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
       uiState.lastRoll = { type: 'precareer_skill_pick' };
       return renderPreCareerPhase();
     }
-    // Nothing pending — advance to career phase and re-render asynchronously
+    // Nothing pending — advance to career phase
     character.phase = 'career';
     saveCharacter();
     setTimeout(() => renderAll(), 0);
@@ -4282,8 +4289,18 @@ function wirePreCareerPhase() {
             : `Tutor challenge on ${skillText}: failed. No bonus.`;
           alert(msg);
           uiState.event10Filter = '';
-          uiState.lastRoll = null;
-          renderAll();
+          const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+          if (hasPicks) {
+            uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+            uiState.lastRoll = { ...(uiState.lastRoll || {}),
+              type: 'precareer_skill_pick',
+              event: { ...(uiState.lastRoll?.event || {}), pending_event10: false },
+            };
+            renderStage();
+          } else {
+            uiState.lastRoll = null;
+            renderAll();
+          }
         } catch (e) { alert(e.message); }
       };
       if (!interceptCascadeSkill(skill, applyEvent10)) await applyEvent10(skill);
