@@ -7073,10 +7073,28 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "options": ["Carouse", "Gambler"],
                     "prompt": "Recreation — choose skill gained:",
                 }
-            else:
+            elif selected == "study":
                 character.dm_next_advancement += 2
                 auto_applied.append("Study group — DM+2 to next Advancement roll")
                 character.pending_career_mishap_choice = None
+            elif selected == "study_int":
+                # Roll INT 8+ to gain Advocate, History (Science) or Science
+                int_dm = dice.characteristic_dm(character.characteristics.INT)
+                r = dice.roll("2D", modifier=int_dm, target=8)
+                if r.succeeded:
+                    character.pending_career_mishap_choice = {
+                        "type": "skill_choice",
+                        "options": ["Advocate", "Science (History)", "Science"],
+                        "prompt": "Study group INT roll succeeded — choose skill gained:",
+                    }
+                    auto_applied.append(
+                        f"Study group INT 8+ check: {r.total} (2D{int_dm:+d}={r.total} vs 8+) — passed"
+                    )
+                else:
+                    auto_applied.append(
+                        f"Study group INT 8+ check: {r.total} (2D{int_dm:+d}={r.total} vs 8+) — failed (no skill gained)"
+                    )
+                    character.pending_career_mishap_choice = None
 
         elif choice_id == "navy_specialist_training":
             # navy event 11: upgrade any existing skill OR DM+4 advancement
@@ -9007,6 +9025,12 @@ def resolve_career_event_choice(character: "Character", choice_data: dict) -> di
     if character.pending_career_mishap_choice is not None:
         character.pending_career_event_choice = character.pending_career_mishap_choice
         character.pending_career_mishap_choice = None
+
+    # Re-serialize AFTER the pending swap so the browser receives the correct
+    # state (pending_career_event_choice set, pending_career_mishap_choice None).
+    # Without this, resolve_career_mishap_choice's earlier serialization
+    # captures the pre-swap state and the follow-up appears on the mishap screen.
+    result["character"] = character.model_dump()
 
     # Explicitly surface pending_event_choice in the response so the JS can
     # render a chained follow-up (e.g. Conf. Navy event 4 "recreation" → skill pick).
@@ -11211,8 +11235,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         4:  [{"type": "pending_choice", "id": "event_confnav_recreation",
               "prompt": "Off-duty time — recreation or Party study group?",
               "options": [
-                  {"id": "recreation", "label": "Recreation — gain Carouse 1 or Gambler 1"},
-                  {"id": "study",      "label": "Study group — DM+2 to next Advancement roll"},
+                  {"id": "recreation",  "label": "Recreation — gain Carouse 1 or Gambler 1"},
+                  {"id": "study",       "label": "Study group — DM+2 to next Advancement roll"},
+                  {"id": "study_int",   "label": "Study group — Roll INT 8+ for Advocate / History / Science"},
               ]}],
         5:  [{"type": "contact", "desc": "Contact [Party Corp/Confederation]"}],
         6:  [{"type": "skill_choice",

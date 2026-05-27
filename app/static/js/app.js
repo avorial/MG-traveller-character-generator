@@ -6003,8 +6003,13 @@ function wireCareerPhase() {
         // When the event has a pending_choice handler, all associate grants are
         // applied by the choice resolver — suppress text-parsed associate ops to
         // avoid duplicate picker UIs and duplicate associates.
-        suppressAssocOps: !!(response.pending_event_choice &&
-                             response.pending_event_choice.type === 'pending_choice'),
+        // Also suppress when the event effects already auto-applied a contact
+        // (e.g. event 10 skill_choice + contact) so no second contact picker fires.
+        suppressAssocOps: !!(
+          (response.pending_event_choice &&
+           response.pending_event_choice.type === 'pending_choice') ||
+          (response.event_effects || []).some(e => /^gained contact:/i.test(e))
+        ),
       };
 
       // Auto-add unambiguous single Ally grants without requiring the picker.
