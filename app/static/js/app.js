@@ -8990,7 +8990,10 @@ function renderEventStep() {
     // clause does NOT apply.
     const rawForcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
     const contestedSucceededForMishap = lr.eventContestedResolved && lr.eventContestedResolved.success === true;
-    const forcesMishap = rawForcesMishap && !contestedSucceededForMishap;
+    // Suppress the text-parsed mishap path when the structured trigger_disaster_mishap
+    // effect already rolled the table — lr.disasterMishap holds that result and the
+    // career-continues flag is already set on the character by the Python backend.
+    const forcesMishap = rawForcesMishap && !contestedSucceededForMishap && !lr.disasterMishap;
     const pendingMishapRoll = forcesMishap && !lr.mishapFromEvent;
     const mishapRolledHTML = (forcesMishap && lr.mishapFromEvent) ? `
       <div class="mishap-box">
