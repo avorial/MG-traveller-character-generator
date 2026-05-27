@@ -1055,15 +1055,18 @@ body.hide-card-desc .card-desc { display: none !important; }
 
 /* Previously ejected career cards */
 .card.career-ejected {
-  border-color: var(--amber-dim);
+  border-color: var(--danger);
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
   position: relative;
 }
 .ejected-flag {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: var(--amber);
+  color: var(--danger);
   letter-spacing: 0.12em;
-  border: 1px solid var(--amber-dim);
+  border: 1px solid var(--danger);
   padding: 1px 5px;
   margin-left: 6px;
   vertical-align: middle;
