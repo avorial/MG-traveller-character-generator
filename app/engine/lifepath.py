@@ -6396,7 +6396,16 @@ def _apply_event_effects(character: "Character", career_id: str, event_num: int,
                     # Non-Droyne or Droyne who passed the continuation check: career continues.
                     term.survived = True
                     term.mishap = None
+                # Surface any auto-applied messages from the mishap (e.g. stat reductions).
+                for msg in (disaster_result.get("auto_applied") or []):
+                    auto_applied.append(msg)
                 auto_applied.append("Disaster! Rolled on mishap table — career continues")
+                # Redirect any pending mishap choice (e.g. stat_choice) to the event
+                # choice slot so the player sees the picker on the event screen.
+                if character.pending_career_mishap_choice is not None and not pending_set:
+                    character.pending_career_event_choice = character.pending_career_mishap_choice
+                    character.pending_career_mishap_choice = None
+                    pending_set = True
             except Exception as ex:
                 auto_applied.append(f"Disaster mishap error: {ex}")
             continue
