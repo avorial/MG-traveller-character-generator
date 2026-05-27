@@ -4024,7 +4024,6 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
             else:
                 # No contacts or allies — player picks which to gain.
                 pending_choice = {"kind": "betrayal_no_associates"}
-                auto_applied.append("PENDING: no existing Contact/Ally — choose Rival or Enemy [Betrayer]")
 
     elif total == 9:
         # Travel / Relocation — DM+2 to next Qualification roll.

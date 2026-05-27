@@ -6020,6 +6020,7 @@ function wireCareerPhase() {
           (response.pending_event_choice &&
            response.pending_event_choice.type === 'pending_choice') ||
           (response.event_effects || []).some(e => /^gained contact:/i.test(e)) ||
+          (response.event_effects || []).some(e => /converted to/i.test(e)) ||
           !!(response.character?.pending_life_event_choice)
         ),
       };
