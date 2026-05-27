@@ -4994,6 +4994,13 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if character.society_id in (career.get("blocked_societies") or []):
         return _qual_block(f"{career['name']} is not available to {character.society_id} characters.")
 
+    # Career allowed_societies whitelist (e.g. Party requires solomani_confederation)
+    _career_allowed_societies = career.get("allowed_societies") or []
+    if _career_allowed_societies and character.society_id not in _career_allowed_societies:
+        return _qual_block(
+            f"{career['name']} is only available to Solomani Confederation characters."
+        )
+
     # Career blocked_species
     if character.species_id in (career.get("blocked_species") or []):
         return _qual_block(
@@ -5141,6 +5148,17 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
                 if character.characteristics.get(stat) >= threshold:
                     character.log(f"Auto-qualified for {career['name']} (SOC ≥ {threshold}).")
                     return {"automatic": True, "succeeded": True, "character": character.model_dump()}
+
+    # Event-granted auto-qualify for specific career(s) (e.g. Party event 3 for Citizen/Merchant)
+    if career_id in character.auto_qualify_career_ids:
+        character.auto_qualify_career_ids = [
+            c for c in character.auto_qualify_career_ids if c != career_id
+        ]
+        character.dm_next_advancement += 2  # Party event 3 also grants DM+2 advancement
+        character.log(
+            f"Auto-qualified for {career['name']} (Party event 3 benefit). DM+2 next advancement."
+        )
+        return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
     char_key = qual["characteristic"]
     target = qual["target"]
@@ -6129,6 +6147,17 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             character.log(f"Rank adjusted {amount:+d}: {old_rank}→{term.rank}")
         else:
             msgs.append(f"Rank adjustment {amount:+d} (no active term)")
+
+    elif etype == "auto_qualify_careers":
+        # Grant auto-qualification for one or more specific career IDs next term.
+        # e.g. Party event 3: auto-qualify Citizen or Merchant + DM+2 advancement.
+        career_ids = effect.get("career_ids", [])
+        character.auto_qualify_career_ids = list(
+            set(character.auto_qualify_career_ids) | set(career_ids)
+        )
+        label = " or ".join(career_ids)
+        msgs.append(f"Auto-qualify for {label} next term (no roll needed) + DM+2 advancement")
+        character.log(f"Event: auto-qualify [{', '.join(career_ids)}] granted for next term")
 
     elif etype == "trigger_disaster_mishap":
         # Used in skill_check on_fail: roll on mishap table.
@@ -11117,6 +11146,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "party": {
         2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "auto_qualify_careers", "career_ids": ["citizen", "merchant"]}],
         4:  [{"type": "skill_check",
               "skills": [{"name": "Advocate"}, {"name": "Art"}], "target": 7,
               "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
@@ -11128,6 +11158,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "accept", "label": "Agree — gain Ally + DM+1 Benefit roll"},
                   {"id": "refuse", "label": "Refuse — DM−2 Advancement + Rival"},
               ]}],
+        6:  [{"type": "skill_check",
+              "skills": [{"name": "Advocate"}, {"name": "Gun Combat"}, {"name": "Explosives"},
+                         {"name": "Leadership"}, {"name": "Streetwise"}],
+              "target": 8,
+              "on_pass": [{"type": "dm_survival", "amount": 2}],
+              "on_fail": [{"type": "dm_survival", "amount": -2}],
+              "prompt": "Violent political struggle — roll Advocate, Gun Combat, Explosives, Leadership or Streetwise 8+: pass DM+2 next Survival; fail DM-2 next Survival"}],
         8:  [{"type": "pending_choice", "id": "event_party_evidence",
               "prompt": "Evidence of superior's disloyalty — expose or suppress?",
               "options": [

@@ -2,9 +2,11 @@
   "id": "party",
   "name": "Solomani Party",
   "description": "Influential members of the Solomani Movement and its ruling Party. Qualification: SOC 6+. Must be of pure Solomani race (or successfully pass as one) with SOC 7+. If aged 34 or more: DM-1. DM-1 for every previous career. You qualify automatically if your SOC is 10+. Mixed Race characters suffer DM-3 to this qualification roll. Non-Solomani humans cannot qualify.",
+  "allowed_societies": ["solomani_confederation"],
   "qualification": {
     "characteristic": "SOC",
     "target": 6,
+    "auto_qualify_if": {"SOC": ">=10"},
     "modifiers": [
       {
         "description": "DM-1 if aged 34 or more",
@@ -16,11 +18,6 @@
         "description": "DM-1 for every previous career",
         "type": "per_previous_career",
         "dm": -1
-      },
-      {
-        "description": "Auto-qualify if SOC 10+",
-        "type": "note",
-        "dm": 0
       }
     ]
   },

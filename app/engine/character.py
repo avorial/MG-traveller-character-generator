@@ -149,6 +149,11 @@ class Character(BaseModel):
     # Consumed when qualification for a core career succeeds.
     next_career_must_be_core: bool = False
 
+    # Careers the character may auto-qualify for on next attempt (no roll needed).
+    # Set by events like Party event 3 ("Citizen or Merchant next term, auto-qualify").
+    # Each career ID is consumed when that career's qualification fires.
+    auto_qualify_career_ids: list[str] = Field(default_factory=list)
+
     # Careers permanently banned from re-entry (e.g. Scout event 2 failure).
     banned_career_ids: list[str] = Field(default_factory=list)
 
