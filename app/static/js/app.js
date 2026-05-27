@@ -8653,7 +8653,7 @@ function renderEventStep() {
     const _eTransfer = parseEventTransferOffer(lr.eventText || '');
     const _eChosen = lr.eventChoicePath;
     const _ePickerOpts = _eSkillOpts || _eWildOpts;
-    const _eShowPicker = !_eChosen && !lr.pendingEventChoice && (
+    const _eShowPicker = !_eChosen && !lr.pendingEventChoice && !lr.eventChoiceResolved && (
       (_ePickerOpts && _ePickerOpts.length > 0) ||
       (_eWild && (_eDmAlt || pendingGrants.length > 0)) ||
       (_eTransfer && !pendingGrants.length)  // transfer alone (no competing DM)
