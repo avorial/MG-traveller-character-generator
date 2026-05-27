@@ -3966,11 +3966,8 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
     elif total == 4:
         # Standard: Ending of Relationship — player picks Rival or Enemy.
         # Solomani: Racial Incident — also Rival or Enemy.
-        pending_choice = {"kind": "romantic_split"}
-        if use_solomani:
-            auto_applied.append("PENDING: choose Rival or Enemy [Racial Incident]")
-        else:
-            auto_applied.append("PENDING: choose Rival [Romantic] or Enemy [Romantic]")
+        # The JS life-event choice UI handles the picker; no auto_applied message needed.
+        pending_choice = {"kind": "racial_incident"} if use_solomani else {"kind": "romantic_split"}
 
     elif total == 5:
         if use_solomani:

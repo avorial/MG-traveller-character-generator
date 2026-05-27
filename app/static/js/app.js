@@ -6003,12 +6003,14 @@ function wireCareerPhase() {
         // When the event has a pending_choice handler, all associate grants are
         // applied by the choice resolver — suppress text-parsed associate ops to
         // avoid duplicate picker UIs and duplicate associates.
-        // Also suppress when the event effects already auto-applied a contact
-        // (e.g. event 10 skill_choice + contact) so no second contact picker fires.
+        // Also suppress when:
+        //   • event_effects already contain an auto-applied contact (e.g. event 10)
+        //   • a life event pending choice is set (the life event UI owns the picker)
         suppressAssocOps: !!(
           (response.pending_event_choice &&
            response.pending_event_choice.type === 'pending_choice') ||
-          (response.event_effects || []).some(e => /^gained contact:/i.test(e))
+          (response.event_effects || []).some(e => /^gained contact:/i.test(e)) ||
+          !!(response.character?.pending_life_event_choice)
         ),
       };
 
@@ -8464,6 +8466,19 @@ function buildLifeEventChoiceUI(kind, pending, context) {
       <button class="card" id="${prefix}enemy">
         <div class="card-title">Enemy [Romantic]</div>
         <div class="card-desc">They become an enemy — actively working against you.</div>
+      </button>`;
+
+  } else if (kind === 'racial_incident') {
+    title = 'Life Event — Racial Incident';
+    body = 'A relationship in your life suffers as a result of the incident. Choose the consequence:';
+    buttons = `
+      <button class="card" id="${prefix}rival">
+        <div class="card-title">Rival</div>
+        <div class="card-desc">They become a rival — someone who resents or competes with you.</div>
+      </button>
+      <button class="card" id="${prefix}enemy">
+        <div class="card-title">Enemy</div>
+        <div class="card-desc">They become an active enemy — seriously working against you.</div>
       </button>`;
 
   } else if (kind === 'betrayal_no_associates') {
