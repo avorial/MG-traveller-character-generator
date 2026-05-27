@@ -380,24 +380,29 @@ _SKILL_LEVEL_RE = re.compile(
 
 
 def _is_skill_choice_benefit(benefit: str) -> list[str]:
-    """Return the list of skill options if `benefit` is an 'X or Y or ...' skill choice.
+    """Return the list of player-choice options for any 'X or Y [or Z...]' benefit.
 
-    Returns empty list if it's anything else (characteristic bonus, equipment, etc.).
+    Handles all types of interactive benefit choices:
+      - Skill choices: "Advocate 1 or Broker 1"
+      - Mixed choices: "SOC +1 or Combat Implant", "Combat Implant or two Ship Shares"
+      - Equipment/ship share choices: "Air/Raft or Ship Share"
+
+    Returns empty list if:
+      - No " or " present (not a choice)
+      - Has a comma (compound "fixed, choice" format like "INT +1, Independence or Streetwise"
+        — the leading fixed parts must be applied by _apply_benefit separately)
     """
     if " or " not in benefit:
+        return []
+    # Skip compound "fixed AND choice" format (e.g. "INT +1, Independence or Streetwise")
+    if "," in benefit:
         return []
     parts = [p.strip() for p in benefit.split(" or ")]
     if len(parts) < 2:
         return []
-    # Every part must look like "Skill N" (not a stat bonus, not an associate, etc.)
-    stat_names = {"STR", "DEX", "END", "INT", "EDU", "SOC", "TER", "PSI"}
-    for p in parts:
-        if p.lower() in _BENEFIT_ASSOC_KINDS:
-            return []  # associate choice — handled elsewhere
-        if re.match(r"^(STR|DEX|END|INT|EDU|SOC|TER|PSI)\s*[+-]\d+$", p, re.IGNORECASE):
-            return []  # characteristic bonus
-        if not _SKILL_LEVEL_RE.match(p):
-            return []  # doesn't look like "Skill N"
+    # All parts must be non-empty
+    if any(not p for p in parts):
+        return []
     return parts
 
 
@@ -14041,12 +14046,26 @@ def _apply_benefit(character: Character, benefit: str) -> None:
                     character.characteristics.set(stat, current + 1)
             return
 
-    # Ship shares
-    if b == "Ship Share":
-        character.ship_shares += 1
+    # Ship shares — handle both digit ("5 Ship Shares") and written-number ("two Ship Shares")
+    _word_to_n = {
+        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    }
+    _m_ss_digit = re.match(r"^(\d+)\s+[Ss]hip\s+[Ss]hares?$", b, re.IGNORECASE)
+    if _m_ss_digit:
+        character.ship_shares += int(_m_ss_digit.group(1))
+        character.log(f"Muster benefit: {_m_ss_digit.group(1)} Ship Share(s) (total {character.ship_shares}).")
         return
-    if b == "Two Ship Shares":
-        character.ship_shares += 2
+    _m_ss_word = re.match(
+        r"^(one|two|three|four|five|six|seven|eight|nine|ten)\s+[Ss]hip\s+[Ss]hares?$", b, re.IGNORECASE
+    )
+    if _m_ss_word:
+        n = _word_to_n[_m_ss_word.group(1).lower()]
+        character.ship_shares += n
+        character.log(f"Muster benefit: {n} Ship Share(s) (total {character.ship_shares}).")
+        return
+    if re.match(r"^[Ss]hip\s+[Ss]hare$", b, re.IGNORECASE):
+        character.ship_shares += 1
         return
     if b == "1D Ship Shares":
         character.ship_shares += dice.roll("1D").total

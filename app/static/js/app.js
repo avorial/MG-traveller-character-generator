@@ -3599,7 +3599,7 @@ function renderPreCareerPhase() {
     const hasPicks = (status.skill_picks_remaining || 0) > 0;
     const pendingAnySkill = !!ev.pending_any_skill;
     const pendingEvent10 = !!ev.pending_event10;
-    const pendingEvent11 = !!ev.pending_event11;
+    const pendingEvent11 = !!ev.pending_event11 || !!status.pending_event11;
     const pendingLifeEvent = !!ev.pending_life_event;
     const lifeEventChoiceKind = ev.life_event_choice_kind || null;
     const pendingInjury = !!ev.pending_injury;
@@ -3762,6 +3762,26 @@ function renderPreCareerPhase() {
         <div class="skill-picker">${chips}</div>
       </div>
     `;
+  }
+
+  // Graduated but lastRoll wiped (e.g. page reload) — recover pending event11 or skill picks
+  if ((stage === 'graduated' || stage === 'failed_grad') && !uiState.lastRoll) {
+    if (status.pending_event11) {
+      // Draft event is still pending — go directly to the event11 choice screen
+      uiState.lastRoll = { type: 'precareer_event11' };
+      return renderPreCareerPhase();
+    }
+    if ((status.skill_picks_remaining || 0) > 0) {
+      // Skill picks still needed — show skill picker
+      uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+      uiState.lastRoll = { type: 'precareer_skill_pick' };
+      return renderPreCareerPhase();
+    }
+    // Nothing pending — advance to career phase and re-render asynchronously
+    character.phase = 'career';
+    saveCharacter();
+    setTimeout(() => renderAll(), 0);
+    return `<div class="stage-content"><p style="color:var(--text-dim)">Loading career phase…</p></div>`;
   }
 
   // Enrolled — always show graduate button immediately (events roll after graduation)
@@ -4312,8 +4332,20 @@ function wirePreCareerPhase() {
         ? `Draft dodged! (SOC check: ${roll.total} vs 9+). Graduation stands.`
         : `Draft dodge failed (SOC check: ${roll.total} vs 9+). Did not graduate.`;
       alert(msg);
-      uiState.lastRoll = null;
-      renderAll();
+      const hasPicks = (character.pre_career_status?.skill_picks_remaining || 0) > 0;
+      if (succeeded && hasPicks) {
+        // Keep the graduation lastRoll context but clear the pending event11 flag
+        // so the skill-pick button shows next.
+        uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
+        uiState.lastRoll = { ...(uiState.lastRoll || {}),
+          type: 'precareer_skill_pick',
+          event: { ...(uiState.lastRoll?.event || {}), pending_event11: false },
+        };
+        renderStage();
+      } else {
+        uiState.lastRoll = null;
+        renderAll();
+      }
     } catch (e) { alert(e.message); }
   });
 
@@ -9752,7 +9784,7 @@ function renderMusterPhase() {
             <div class="dm-chip applied">DM+1 to all benefit rolls (highest rank reached 5-6)</div>
           </div>` : ''}
         ${pendingSkillChoice ? `
-          <p class="phase-body" style="margin-top:12px">Choose one skill to gain:</p>
+          <p class="phase-body" style="margin-top:12px">Choose your benefit:</p>
           <div class="phase-actions" style="flex-wrap:wrap">
             ${pendingSkillChoice.options.map(opt =>
               `<button class="btn primary btn-muster-skill-choice" data-skill="${opt}">${opt} →</button>`
