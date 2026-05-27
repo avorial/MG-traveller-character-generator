@@ -6272,6 +6272,11 @@ def mishap_roll(character: Character) -> dict:
     pending_choice = None
     pending_set = False
 
+    # Clear any stale pending choice from a previous term before applying this mishap's
+    # effects — otherwise the "if not character.pending_career_mishap_choice" guards in
+    # _apply_mishap_effect would silently block the new pending from being set.
+    character.pending_career_mishap_choice = None
+
     effects = _MISHAP_EFFECTS.get(career_id, {}).get(mishap_num, [])
 
     for effect in effects:
