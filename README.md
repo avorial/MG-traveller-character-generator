@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-24.1-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-24.19-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -38,6 +38,7 @@ uvicorn app.main:app --reload
 5. **Pre-career education** — Optional phase before the career loop (see below).
 6. **Career loop** — Qualify → assignment → basic training → skill training → anagathics offer → survival → event → mishap (if failed survival) → advancement → end term (aging at species-appropriate term). Repeats for as many careers and terms as the player chooses. On the **first** career pick only, a **Career Package** can be chosen instead (see below) — skips the loop entirely and goes straight to finalization.
    - *Zhodani Noble and Intendant characters* enter an interactive **psionic training phase** before careers begin. They attempt up to 6 talents from the Consulate training table (2D + PSI DM + talent DM vs 8+; each attempt applies a cumulative DM−1). Proles skip this phase.
+   - **Career picker flags** — previously ejected careers are shown as non-clickable red cards. Careers blocked by species or society restrictions are shown as locked purple cards with the reason displayed (e.g. "Non-Solomani humans cannot join the Party"). Both types are visible in the picker so the player knows why they are unavailable.
 7. **Mustering out** — Cash and benefit rolls per career. Each career's roll allowance is terms served + rank bonus (ranks 1–2: +1, ranks 3–4: +2, ranks 5+: +3). Retirement pension calculated automatically for 5+ terms served.
 8. **Skill packages** — Optional package pick at the end of mustering out.
 9. **Psionics** — Optional PSI test and talent training (available pre-career or between terms with GM permission).
@@ -169,7 +170,7 @@ Every career has qualification, all assignments, full skill tables, events (2–
 | **Confederation Navy** | Line/Crew, Engineer/Gunner, Flight | Solomani-only; separate officer rank table |
 | **Confederation Army** | Support, Infantry, Cavalry | Solomani-only |
 | **Star Marines** | Support, Star Marine, Battledress | Solomani-only |
-| **Party** | Apparatchik, Functionary, Director | Solomani Party political career |
+| **Party** | Official, Intellectual, Militant | Solomani Party political career; restricted to pure Solomani (SOC 7+) |
 | **SolSec** | Field Agent, Administration, Secret Agent | Secret Agent uses a cover career for survival/advancement rolls |
 
 #### Cetacean (4)
@@ -282,7 +283,8 @@ Every career has qualification, all assignments, full skill tables, events (2–
 All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 - Skill gains, characteristic changes, DM bonuses, and associates (allies/contacts/rivals/enemies) are applied directly to the character.
-- **Dual-choice events** present a pick-one UI before continuing.
+- **Dual-choice events** present a pick-one UI before continuing. Complex events with multiple branches (e.g. submit/refuse interrogation, join/cooperate, recreation vs. study group) use structured interactive pickers — the player can never accidentally apply a wrong outcome.
+- **Disaster events** (2D=2 "Disaster! Roll on the Mishap Table") correctly roll the mishap table and apply effects without ejecting the character from the career. Any mishap-derived pending choice (skill gain, stat change) is surfaced on the event screen, not the mishap screen.
 - **Life Event sub-table** — careers use the standard 2D table; Solomani careers use a separate Solomani Life Events table; Aslan Hierate careers use the Aslan Life Events table; K'kree careers use the K'kree Life Events table; Vargr Extents careers use the Vargr Life Events table (with Pack Events 1D sub-table); Zhodani Consulate careers (except Prole) use the Zhodani Life Events table (with Re-education Events 1D sub-table); Hiver careers use the Hiver Life Events table; Droyne careers use the Droyne life events system (end-of-term 2D+caste_number; on 10+ roll on the Droyne Life Events table); characters from Drinax (Floating Palace), Drinax (Wasteland), and Asim use homeworld-specific 1D tables with fully auto-applied effects.
 - **Injury Table** — when a mishap calls for an injury, the player chooses which characteristic absorbs the damage. Medical debt is tracked.
 - **Forced careers** — if a life event, mishap, or anagathics roll mandates a specific next career (e.g. Prisoner), the Decide phase replaces the normal muster-out/continue buttons with a mandatory "Serve Your Sentence" path.
