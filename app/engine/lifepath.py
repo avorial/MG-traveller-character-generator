@@ -5001,6 +5001,14 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             f"{career['name']} is only available to Solomani Confederation characters."
         )
 
+    # Solomani Party: Non-Solomani humans cannot qualify, regardless of SOC.
+    # Mixed Heritage may qualify with a DM-3 penalty (or be treated as Racial if passing).
+    if career_id == "party" and character.society_id == "solomani_confederation":
+        if character.species_id == "confederation_human":
+            return _qual_block(
+                "Non-Solomani humans cannot qualify for the Solomani Party."
+            )
+
     # Career blocked_species
     if character.species_id in (career.get("blocked_species") or []):
         return _qual_block(
@@ -5231,18 +5239,32 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     _is_solomani_confederation = character.society_id == "solomani_confederation"
     _has_qualification = career_id not in rules.CAREERS_WITHOUT_QUALIFICATION
 
-    # Party Patronage: Racial Solomani add their SOC DM to every qualification roll.
+    # Party Patronage: Racial Solomani (or a Mixed Heritage character who is
+    # currently "passing" with falsified documents) add their SOC DM to every
+    # qualification roll in Confederation careers.
     party_patronage_dm = 0
-    if _is_solomani_confederation and character.species_id == "solomani_racial" and _has_qualification:
+    _is_treated_racial = (
+        character.species_id == "solomani_racial"
+        or (character.species_id == "solomani_mixed" and character.solomani_passing)
+    )
+    if _is_solomani_confederation and _is_treated_racial and _has_qualification:
         soc_val = character.characteristics.SOC
         party_patronage_dm = dice.characteristic_dm(soc_val)
         if party_patronage_dm != 0:
             dm += party_patronage_dm
 
-    # Mixed Heritage: DM-1 to every qualification roll in Confederation careers.
+    # Mixed Heritage: DM penalty on Confederation career qualification rolls.
+    #   - Passing characters are treated as Racial — no penalty.
+    #   - Party career: DM-3 (raw rulebook rule specific to Party).
+    #   - All other Confederation careers: DM-1 general penalty.
     mixed_heritage_dm = 0
-    if _is_solomani_confederation and character.species_id == "solomani_mixed" and _has_qualification:
-        mixed_heritage_dm = -1
+    if (
+        _is_solomani_confederation
+        and character.species_id == "solomani_mixed"
+        and _has_qualification
+        and not character.solomani_passing
+    ):
+        mixed_heritage_dm = -3 if career_id == "party" else -1
         dm += mixed_heritage_dm
 
     # RAW: DM-1 for each career previously attempted (failed) this selection round.
@@ -5262,9 +5284,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     result["pending_dm_consumed"] = pending
     qual_notes = []
     if party_patronage_dm:
-        qual_notes.append(f"Party Patronage DM{party_patronage_dm:+d}")
+        label = "Party Patronage (Passing)" if character.species_id == "solomani_mixed" else "Party Patronage"
+        qual_notes.append(f"{label} DM{party_patronage_dm:+d}")
     if mixed_heritage_dm:
-        qual_notes.append(f"Mixed Heritage DM{mixed_heritage_dm:+d}")
+        label = f"Mixed Heritage (Party) DM{mixed_heritage_dm:+d}" if career_id == "party" else f"Mixed Heritage DM{mixed_heritage_dm:+d}"
+        qual_notes.append(label)
     if failed_dm:
         qual_notes.append(f"Failed attempts DM{failed_dm:+d}")
     note_str = f" [{', '.join(qual_notes)}]" if qual_notes else ""
@@ -5646,6 +5670,30 @@ def survival_roll(character: Character) -> dict:
         else:
             parallel_event = hf_parallel
 
+    # ── Solomani Passing exposure: natural 2 in military or Party careers ──
+    # A character carrying falsified genetic records is exposed on a natural 2.
+    # Effect: passing status revoked, SOC halved (round down), career ends.
+    _PASSING_EXPOSURE_CAREERS = frozenset({
+        "confederation_army", "confederation_navy", "solomani_marine",
+        "solsec", "party",
+    })
+    passing_exposed = False
+    if (
+        character.solomani_passing
+        and r.raw_total == 2
+        and term.career_id in _PASSING_EXPOSURE_CAREERS
+    ):
+        old_soc = character.characteristics.SOC
+        new_soc = old_soc // 2
+        character.characteristics.SOC = new_soc
+        character.solomani_passing = False
+        passing_exposed = True
+        character.log(
+            f"PASSING EXPOSED (natural 2 in {term.career_id})! "
+            f"Falsified documents discovered — SOC {old_soc} → {new_soc} (halved, rounded down). "
+            f"Career ends without Benefit rolls."
+        )
+
     # ── Anagathics: second survival check required (RAW p.155) ──────────
     anagathics_second_roll = None
     if character.anagathics_active and r.succeeded:
@@ -5674,6 +5722,7 @@ def survival_roll(character: Character) -> dict:
         "mishap_no_eject": mishap_no_eject,
         "anagathics_second_roll": anagathics_second_roll,
         "parallel_event": parallel_event,
+        "passing_exposed": passing_exposed,
         "character": character.model_dump(),
     }
 
@@ -9850,6 +9899,45 @@ def toggle_solsec_monitor(character: "Character", active: bool) -> dict:
     return {
         "solsec_monitor": character.solsec_monitor,
         "solsec_monitor_rank": character.solsec_monitor_rank,
+        "character": character.model_dump(),
+    }
+
+
+def purchase_solomani_documents(character: "Character") -> dict:
+    """Purchase falsified Solomani genetic records (30,000 Cr debt).
+
+    Only available to solomani_mixed characters in the Solomani Confederation.
+    While passing status is held the character is treated as Racial Solomani for
+    all career qualification purposes:
+      - Party Patronage DM (SOC DM) applies to all qualification rolls.
+      - Mixed Heritage DM-1/-3 penalties are suppressed.
+    Passing status is revoked — and SOC halved — if a natural 2 is rolled on a
+    survival check in any military or Party career.
+    """
+    if character.society_id != "solomani_confederation":
+        raise ValueError(
+            "Only Solomani Confederation characters can purchase passing documents."
+        )
+    if character.species_id != "solomani_mixed":
+        raise ValueError(
+            "Only Mixed Heritage characters require passing documents."
+        )
+    if character.solomani_passing:
+        raise ValueError(
+            "Character already holds passing documents."
+        )
+
+    cost = 30_000
+    character.credits -= cost
+    character.solomani_passing = True
+    character.log(
+        f"Purchased Solomani passing documents — 30,000 Cr debt incurred "
+        f"(credits now {character.credits:+,}). "
+        f"Character now treated as Racial Solomani for career qualification."
+    )
+    return {
+        "solomani_passing": True,
+        "credits": character.credits,
         "character": character.model_dump(),
     }
 

@@ -1530,6 +1530,13 @@ function renderSheet() {
         <p class="empty">DM+1 advancement · nat-2 → SolSec Mishap · nat-12 → SolSec Event${character.solsec_monitor_rank >= 3 ? ' · +1 Benefit roll' : ''}.</p>
       </div>` : ''}
 
+      ${character.solomani_passing ? `
+      <div class="sheet-section">
+        <h3>Solomani Passing Documents</h3>
+        <p class="empty">Holding falsified genetic records — treated as Racial Solomani for career qualification (Party Patronage DM; Mixed Heritage penalty suppressed).</p>
+        <p class="empty" style="color:var(--amber-dim)">Risk: natural 2 on survival in military/Party → SOC halved, documents revoked.</p>
+      </div>` : ''}
+
       <div class="sheet-section">
         <h3>Notes</h3>
         <textarea id="char-notes" class="sheet-notes" placeholder="Personality, quirks, contacts, anything you want on the sheet…" rows="5">${escapeHTML(character.user_notes || '')}</textarea>
@@ -5845,6 +5852,20 @@ function wireCareerPhase() {
     });
   }
 
+  // Passing Documents: purchase
+  const btnPassingDocs = document.getElementById('btn-passing-docs');
+  if (btnPassingDocs) {
+    btnPassingDocs.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/solomani-documents', {});
+        await applyResponse(response);
+        renderAll();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+  }
+
   document.querySelectorAll('[data-skill-table]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const tableKey = btn.dataset.skillTable;
@@ -5941,6 +5962,7 @@ function wireCareerPhase() {
         mishapNoEject: response.mishap_no_eject || false,
         parallel_event: response.parallel_event || null,
         anagathics_second_roll: response.anagathics_second_roll || null,
+        passing_exposed: response.passing_exposed || false,
       };
       // Stay on 'survive' subPhase so dice readout renders before advancing
       renderAll();
@@ -7482,6 +7504,32 @@ function renderAssignmentPicker(career) {
     </div>
   ` : '';
 
+  // Passing Documents — available to solomani_mixed characters only.
+  // Once purchased they can never be re-purchased (solomani_passing stays true or
+  // is revoked permanently on exposure).
+  const showPassingDocs = isSolomani && character.species_id === 'solomani_mixed';
+  const passingDocColor = character.solomani_passing ? 'var(--accent)' : 'var(--text-dim)';
+  const passingDocsHTML = showPassingDocs ? `
+    <div style="margin-top:10px;padding:12px 14px;border:1px solid var(--border);border-radius:6px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim)">
+            SOLOMANI PASSING DOCUMENTS${character.solomani_passing ? ' · ACTIVE' : ''}
+          </div>
+          <div style="font-size:12px;color:${passingDocColor};margin-top:3px">
+            ${character.solomani_passing
+              ? 'Falsified genetic records held — treated as Racial Solomani for qualification (Party Patronage DM; no Mixed Heritage penalty). Exposed on a natural 2 in military/Party careers: SOC halved, status revoked.'
+              : 'Falsified genetic records remove the Mixed Heritage qualification penalty and grant Party Patronage DM. Cost: 30,000 Cr (debt). Risk: natural 2 on survival in military/Party → SOC halved and status revoked.'}
+          </div>
+        </div>
+        ${!character.solomani_passing
+          ? `<button class="btn ghost" id="btn-passing-docs" style="font-size:11px;padding:6px 12px">OBTAIN DOCUMENTS (30,000 Cr)</button>`
+          : ''
+        }
+      </div>
+    </div>
+  ` : '';
+
   return `
     ${hfTrainingBanner}
     <h3 style="margin-top:${hfTrainingBanner ? '0' : '28'}px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Choose an Assignment</h3>
@@ -7489,6 +7537,7 @@ function renderAssignmentPicker(career) {
     ${coverPickerHTML}
     ${homeForcesHTML}
     ${solsecMonitorHTML}
+    ${passingDocsHTML}
     <div class="phase-actions" style="margin-top:16px">
       <button class="btn primary" id="btn-start-term" ${readyToStart ? '' : 'disabled'}>
         BEGIN TERM →
@@ -7828,6 +7877,17 @@ function renderSurviveStep() {
 
     const parallelNotice = buildParallelNotice(lr.parallel_event);
 
+    // Passing documents exposure notice
+    const exposedHTML = lr.passing_exposed ? `
+      <div class="event-box" style="border-color:var(--danger);margin-top:10px;background:rgba(200,50,50,0.08)">
+        <span class="event-label" style="color:var(--danger);font-size:13px">PASSING DOCUMENTS EXPOSED</span>
+        <p style="margin:4px 0 0;font-size:12px;color:var(--text)">
+          Your falsified genetic records were discovered (natural 2).
+          SOC halved (rounded down). Passing status permanently revoked.
+          Career ends without Benefit rolls.
+        </p>
+      </div>` : '';
+
     // Anagathics second roll notice (if active)
     const ana2 = lr.anagathics_second_roll;
     const ana2HTML = ana2 ? `
@@ -7843,6 +7903,7 @@ function renderSurviveStep() {
         <div class="phase-label">Survival — ${survived ? 'Pass' : 'Fail'}</div>
         <h2 class="phase-title">${survived ? 'You Survived' : 'Career Mishap'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${s.characteristic} ${s.target}+` })}
+        ${exposedHTML}
         ${ana2HTML}
         ${parallelNotice}
         <p class="phase-body">${survived

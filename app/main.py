@@ -975,6 +975,16 @@ async def api_solsec_monitor(action: MonitorAction):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/character/solomani-documents")
+async def api_solomani_documents(action: CharacterAction):
+    """Purchase Solomani passing documents (30,000 Cr debt). Mixed Heritage only."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.purchase_solomani_documents(character)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/injury")
 async def api_character_injury(action: CharacterAction):
     """Roll on the injury table (1D). Applies stat damage + medical debt."""

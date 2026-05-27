@@ -154,6 +154,14 @@ class Character(BaseModel):
     # Each career ID is consumed when that career's qualification fires.
     auto_qualify_career_ids: list[str] = Field(default_factory=list)
 
+    # Solomani Passing status: a solomani_mixed character who has purchased
+    # falsified genetic records (30,000 Cr debt).  While True the character is
+    # treated as Racial Solomani for career qualification — Party Patronage DM
+    # applies; Mixed Heritage penalty is suppressed.
+    # Exposed (set to False + SOC halved) on a natural 2 survival roll in any
+    # military or Party career.
+    solomani_passing: bool = False
+
     # Careers permanently banned from re-entry (e.g. Scout event 2 failure).
     banned_career_ids: list[str] = Field(default_factory=list)
 
