@@ -6,7 +6,7 @@
     "Stealth", "Steward", "Streetwise", "Survival", "Vacc Suit"
   ],
   "speciality": {
-    "Animals":       ["Handling", "Veterinary", "Training"],
+    "Animals":       ["Handling", "Riding", "Veterinary", "Training"],
     "Art":           ["Performer", "Holography", "Instrument", "Visual Media", "Write"],
     "Athletics":     ["Dexterity", "Endurance", "Strength"],
     "Drive":         ["Hovercraft", "Mole", "Track", "Walker", "Wheel"],
@@ -19,7 +19,7 @@
     "Language":      ["Anglic", "Vilani", "Zdetl", "Oynprith"],
     "Melee":         ["Unarmed", "Blade", "Bludgeon", "Natural"],
     "Pilot":         ["Small Craft", "Spacecraft", "Capital Ships"],
-    "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "Polymers"],
+    "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "K'kree Ritual", "Polymers"],
     "Science":       ["Archaeology", "Astronomy", "Biology", "Chemistry", "Cosmology", "Cybernetics",
                       "Economics", "Genetics", "History", "Linguistics", "Philosophy", "Physics",
                       "Planetology", "Psionicology", "Psychology", "Robotics", "Sophontology", "Xenology"],
