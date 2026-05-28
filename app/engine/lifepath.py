@@ -9872,22 +9872,33 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
     # as a choice between two options, not mistaken for a single "Pilot (any) or Flyer" base skill.
     # Gender-conditional variants ("X (if male) or Y (if female)") are handled
     # by _apply_skill_result, so only catch plain "X or Y" here.
-    _plain_or_m = (
-        " or " in result
-        and not re.search(r"\(if (male|female)\)", result, re.IGNORECASE)
-    )
-    if _plain_or_m:
-        _or_parts = [p.strip() for p in result.split(" or ") if p.strip()]
-        if len(_or_parts) >= 2:
-            character.pending_career_event_choice = {
-                "type": "skill_choice",
-                "options": _or_parts,
-                "prompt": f"Choose one: {' or '.join(_or_parts)}:",
-            }
-            term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
-            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
-            return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
-                    "pending_choice": True, "character": character.model_dump()}
+    # Only split on " or " that appears OUTSIDE parentheses (depth tracking), so
+    # "Profession (Miner or Belter)" is NOT split into ["Profession (Miner", "Belter)"].
+    _or_outside_parens_pos = -1
+    if " or " in result and not re.search(r"\(if (male|female)\)", result, re.IGNORECASE):
+        _depth = 0
+        for _ci, _ch in enumerate(result):
+            if _ch == "(":
+                _depth += 1
+            elif _ch == ")":
+                _depth -= 1
+            elif _depth == 0 and result[_ci: _ci + 4] == " or ":
+                _or_outside_parens_pos = _ci
+                break
+    if _or_outside_parens_pos >= 0:
+        # Split into two options at the first top-level " or "
+        _opt_a = result[:_or_outside_parens_pos].strip()
+        _opt_b = result[_or_outside_parens_pos + 4:].strip()
+        _or_parts = [_opt_a, _opt_b]
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": _or_parts,
+            "prompt": f"Choose one: {_opt_a} or {_opt_b}:",
+        }
+        term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+        character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
+        return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
+                "pending_choice": True, "character": character.model_dump()}
 
     # ── "SkillName (any)" or "Any Science" → player picks a speciality ──
     _any_spec_m = re.match(r"^(.+?)\s*\(any\)$", result.strip(), re.IGNORECASE)
@@ -15234,6 +15245,18 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         character.associates.append(Associate(kind=kind, description=f"{kind.capitalize()} [Rank bonus]"))
         return f"Gained {kind.capitalize()} [Rank bonus]"
 
+    # "Skill N (male) or Skill2 M (female)" — gender-conditional rank bonus
+    _gc_rank_m = re.match(
+        r"^(.+?)\s+(\d+)\s*\((?:if\s+)?male\)\s+or\s+(.+?)\s+(\d+)\s*\((?:if\s+)?female\)\s*$",
+        text, re.IGNORECASE
+    )
+    if _gc_rank_m:
+        gender = (character.gender or "").lower()
+        if gender == "female":
+            return _apply_rank_bonus(character, f"{_gc_rank_m.group(3)} {_gc_rank_m.group(4)}")
+        else:
+            return _apply_rank_bonus(character, f"{_gc_rank_m.group(1)} {_gc_rank_m.group(2)}")
+
     # "Skill N or Skill2 M" — player choice; auto-pick the first option
     # Only trigger when "or" appears outside parentheses and neither side is a handled stat pattern.
     or_pos = -1
@@ -15262,6 +15285,18 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         text = text[: m_level.start()].strip()
 
     name, speciality = _split_skill_speciality(text)
+    # "(any)" is not a real speciality — create a pending choice for the player
+    if speciality and speciality.lower() == "any":
+        _spec_list = rules.skill_specialities().get(name, [])
+        if _spec_list:
+            character.pending_career_event_choice = {
+                "type": "skill_choice",
+                "options": [f"{name} ({s})" for s in _spec_list],
+                "prompt": f"Rank bonus: choose a {name} speciality to gain at level {level}:",
+            }
+            return f"Rank bonus: {name} (any) {level} — speciality choice pending"
+        else:
+            speciality = None  # no specialities known — add base skill
     applied_msg = character.add_skill(name, level=level, speciality=speciality, fixed_level=True)
     disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     return f"Rank bonus applied: {disp} ({applied_msg})"
