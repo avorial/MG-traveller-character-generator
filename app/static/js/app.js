@@ -8307,12 +8307,17 @@ function parseEventContestedRoll(text) {
 // Traveller's untrained penalty). Pass lower-cased skill name, optional speciality.
 function getSkillLevelFor(skillName, speciality) {
   const skills = (character && character.skills) || [];
-  const lname = (skillName || '').toLowerCase();
-  const lspec = speciality ? speciality.toLowerCase() : null;
+  // Support "Skill (Speciality)" as a single string when speciality arg is absent
+  let lname = (skillName || '').toLowerCase();
+  let lspec = speciality ? speciality.toLowerCase() : null;
+  if (!lspec) {
+    const m = lname.match(/^(.+?) \((.+)\)$/);
+    if (m) { lname = m[1]; lspec = m[2]; }
+  }
   for (const s of skills) {
     if (s.name.toLowerCase() !== lname) continue;
     if (lspec && s.speciality && s.speciality.toLowerCase() === lspec) return s.level;
-    if (!lspec) return Math.max(s.level || 0, 0);
+    if (!lspec && !s.speciality) return Math.max(s.level || 0, 0);
   }
   // Check if it's a characteristic name (STR/DEX/etc.) — use the stat DM.
   const CHAR_KEYS = ['STR','DEX','END','INT','EDU','SOC'];
@@ -9679,9 +9684,12 @@ function renderMishapStep() {
             </div>`;
         }
       } else if (ptype === 'skill_check') {
-        const skills = (pending.skills || []).map(s => `
-          <button class="btn" id="btn-mishap-skillcheck-${escapeHTML(s.name)}"
-            data-skill="${escapeHTML(s.name)}">${escapeHTML(s.name)}</button>`).join('');
+        const skills = (pending.skills || []).map(s => {
+          const lvl = getSkillLevelFor(s.name, s.speciality);
+          const lvlStr = lvl >= 0 ? `+${lvl}` : `${lvl}`;
+          return `<button class="btn" id="btn-mishap-skillcheck-${escapeHTML(s.name)}"
+            data-skill="${escapeHTML(s.name)}">Roll ${escapeHTML(s.name)} ${pending.target || 8}+ (DM ${lvlStr})</button>`;
+        }).join('');
         pendingHtml = `
           <div class="event-box" style="margin-top:14px">
             <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
