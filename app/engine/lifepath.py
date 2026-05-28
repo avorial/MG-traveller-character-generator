@@ -6110,6 +6110,9 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
 
     elif etype == "skill_check":
         if not character.pending_career_mishap_choice:
+            _default_prompt = (
+                f"Roll {'/' .join(s['name'] for s in effect['skills'])} {effect['target']}+"
+            )
             character.pending_career_mishap_choice = {
                 "type": "skill_check",
                 "skills": effect["skills"],
@@ -6117,7 +6120,7 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                 "on_nat2": effect.get("on_nat2", []),
                 "on_fail": effect.get("on_fail", []),
                 "on_pass": effect.get("on_pass", []),
-                "prompt": f"Roll {'/' .join(s['name'] for s in effect['skills'])} {effect['target']}+",
+                "prompt": effect.get("prompt") or _default_prompt,
             }
             set_pending = True
 
@@ -12555,7 +12558,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         3: [{"type": "skill_check", "skills": [{"name": "Advocate"}], "target": 8,
              "on_nat2": [{"type": "force_next_career", "career_id": "prisoner"}],
              "on_fail": [{"type": "forfeit_benefit"}],
-             "on_pass": []}],
+             "on_pass": [],
+             "prompt": "Investigation goes critically wrong — roll Advocate 8+: pass keep Benefit; fail forfeit Benefit; nat-2: must take Prisoner next term"}],
         4: [{"type": "enemy", "desc": "Enemy [Investigation Target]"}, {"type": "skill", "name": "Deception", "level": 1}],
         5: [{"type": "pending_choice", "id": "mishap_victim",
              "prompt": "Choose which Contact or Ally gets hurt. They will become a Rival.",
@@ -12627,10 +12631,12 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         1: [{"type": "injury_severity_choice"}],
         2: [{"type": "stat", "stat": "SOC", "amount": -1}],
         3: [{"type": "skill_check", "skills": [{"name": "Stealth"}, {"name": "Deception"}], "target": 8,
-             "on_fail": [{"type": "injury"}], "on_pass": []}],
+             "on_fail": [{"type": "injury"}], "on_pass": [],
+             "prompt": "A disaster or war strikes — roll Stealth or Deception 8+: pass escape unhurt; fail roll on Injury table"}],
         4: [{"type": "skill_choice", "options": ["Diplomat", "Advocate"]}, {"type": "rival", "desc": "Rival [Political Maneuverer]"}],
         5: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
-             "on_fail": [{"type": "injury"}], "on_pass": []}],
+             "on_fail": [{"type": "injury"}], "on_pass": [],
+             "prompt": "An assassin attempts to end your life — roll END 8+: pass escape unhurt; fail roll on Injury table"}],
         6: [{"type": "injury"}],
     },
     "prisoner": {
@@ -12684,7 +12690,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                  {"id": "quiet", "label": "Stay quiet — forfeit Benefit roll"},
              ]}],
         6: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
-             "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
+             "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Political purge sweeps through SolSec — roll END 8+: pass saw it coming (keep Benefit); fail lucky to escape (forfeit Benefit)"}],
     },
     "party": {
         1: [{"type": "injury"}],
@@ -12723,7 +12730,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         4: [{"type": "skill_check",
              "skills": [{"name": "Electronics"}, {"name": "Gunner"},
                         {"name": "Pilot"}, {"name": "Tactics"}],
-             "target": 8, "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}]}],
+             "target": 8, "on_pass": [], "on_fail": [{"type": "forfeit_benefit"}],
+             "prompt": "Ship's safety hinges on your actions in a crisis — roll Electronics/Gunner/Pilot/Tactics 8+: pass survive; fail forfeit Benefit roll"}],
         5: [{"type": "forfeit_benefit_unless_solsec_agent"}],
         6: [{"type": "injury"}],
     },
@@ -13211,7 +13219,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
              "on_nat2": [],
              "on_fail": [],
-             "on_pass": [{"type": "career_continues"}]}],
+             "on_pass": [{"type": "career_continues"}],
+             "prompt": "Revived improperly from frozen watch (injury already applied) — roll SOC 8+: pass stay in career; fail leave career"}],
         # 3: Problems with officer — SOC 10+ Rival, else Re-education
         3: [{"type": "zhodani_soc_conditional",
              "if_soc_gte_10": [{"type": "rival", "desc": "Rival [Difficult Officer/Crewman]"}]}],
@@ -13281,7 +13290,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "Advocate"}], "target": 8,
              "on_nat2": [],
              "on_pass": [],
-             "on_fail": [{"type": "zhodani_re_education"}]}],
+             "on_fail": [{"type": "zhodani_re_education"}],
+             "prompt": "Investigation goes critically wrong — roll Advocate 8+: pass no further effect; fail undergo Re-education"}],
         # 3: Mission goes wrong — accept fate (extra benefit) or contest (Advocate 8+)
         3: [{"type": "pending_choice", "id": "zhodani_agent_contest",
              "prompt": "A mission goes wrong and you are held responsible. What do you do?",
@@ -13331,13 +13341,15 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                         {"name": "Recon"}], "target": 8,
              "on_nat2": [],
              "on_fail": [{"type": "injury"}],
-             "on_pass": [{"type": "career_continues"}]}],
+             "on_pass": [{"type": "career_continues"}],
+             "prompt": "Someone attempts to murder you — roll PSI/Melee/Recon 8+: pass avoid the attempt and stay; fail roll on Injury table"}],
         # 5: Ambassador insult — Diplomat 8+ to avoid; fail → Re-education; pass → extra benefit
         5: [{"type": "skill_check",
              "skills": [{"name": "Diplomat"}], "target": 8,
              "on_nat2": [],
              "on_fail": [{"type": "zhodani_re_education"}],
-             "on_pass": [{"type": "extra_benefit"}]}],
+             "on_pass": [{"type": "extra_benefit"}],
+             "prompt": "A foreign ambassador insults you — roll Diplomat 8+: pass extra Benefit roll; fail undergo Re-education"}],
         6: [{"type": "injury"}],
     },
 
@@ -13395,7 +13407,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "END", "is_stat": True}], "target": 8,
              "on_nat2": [],
              "on_fail": [{"type": "injury"}],
-             "on_pass": []}],
+             "on_pass": [],
+             "prompt": "Ship crash en route (Survival 1 gained regardless) — roll END 8+: pass escape unhurt; fail roll on Injury table"}],
     },
 
     # ---- Zhodani Entertainer ----
@@ -13411,7 +13424,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "skills": [{"name": "Persuade"}], "target": 8,
              "on_nat2": [],
              "on_fail": [{"type": "zhodani_re_education"}],
-             "on_pass": []}],
+             "on_pass": [],
+             "prompt": "Grievous breach of protocol ruins your career — roll Persuade 8+: pass keep Benefit roll; fail undergo Re-education"}],
         # 4: Contact/Ally betrays you — they become Rival
         4: [{"type": "pending_choice", "id": "mishap_victim",
              "prompt": "One of your Contacts or Allies betrays you, ending your career. Choose who.",
