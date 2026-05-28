@@ -6593,6 +6593,18 @@ function wireCareerPhase() {
     });
   });
 
+  // Skill loss choice buttons — pick a skill to lose one level
+  document.querySelectorAll('[id^="btn-mishap-skillloss-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const raw = btn.id.replace('btn-mishap-skillloss-', '');
+      if (raw === 'none') {
+        resolveMishapChoice({ skill: '' });
+      } else {
+        resolveMishapChoice({ skill: raw });
+      }
+    });
+  });
+
   // Any-skill choice chips (open picker — cascade skills go through specialty overlay first)
   document.querySelectorAll('[data-mishap-anyskill]').forEach(chip => {
     chip.addEventListener('click', async () => {
@@ -6657,6 +6669,12 @@ function wireCareerPhase() {
   const btnDenounceNo = document.getElementById('btn-mishap-denounce-no');
   if (btnDenounceNo) btnDenounceNo.addEventListener('click', () => resolveMishapChoice({ option_id: 'silent' }));
 
+  // Party mishap 5 — optional Ally gain (fellow sufferer)
+  const btnParty5AllyAccept = document.getElementById('btn-mishap-party5ally-accept');
+  if (btnParty5AllyAccept) btnParty5AllyAccept.addEventListener('click', () => resolveMishapChoice({ option_id: 'accept' }));
+  const btnParty5AllyDecline = document.getElementById('btn-mishap-party5ally-decline');
+  if (btnParty5AllyDecline) btnParty5AllyDecline.addEventListener('click', () => resolveMishapChoice({ option_id: 'decline' }));
+
   // SolSec interrogation choice
   const btnIntSubmit = document.getElementById('btn-mishap-interrogation-submit');
   if (btnIntSubmit) btnIntSubmit.addEventListener('click', () => resolveMishapChoice({ option_id: 'submit' }));
@@ -6703,6 +6721,43 @@ function wireCareerPhase() {
   document.querySelectorAll('[id^="btn-mishap-lose-assoc-"]').forEach(btn => {
     btn.addEventListener('click', () => resolveMishapChoice({ option_id: btn.dataset.optionId }));
   });
+
+  // Vargr army — join ring or testify
+  const btnVargrArmyJoin = document.getElementById('btn-mishap-vargrarmy-join');
+  if (btnVargrArmyJoin) btnVargrArmyJoin.addEventListener('click', () => resolveMishapChoice({ option_id: 'join' }));
+  const btnVargrArmyTestify = document.getElementById('btn-mishap-vargrarmy-testify');
+  if (btnVargrArmyTestify) btnVargrArmyTestify.addEventListener('click', () => resolveMishapChoice({ option_id: 'testify' }));
+
+  // Vargr citizen — aid investigation or refuse
+  const btnVargrCitiAid = document.getElementById('btn-mishap-vargrcitiaid');
+  if (btnVargrCitiAid) btnVargrCitiAid.addEventListener('click', () => resolveMishapChoice({ option_id: 'aid' }));
+  const btnVargrCitiRefuse = document.getElementById('btn-mishap-vargrcitirefuse');
+  if (btnVargrCitiRefuse) btnVargrCitiRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
+
+  // Vargr corsair betrayal — dynamic options (pick contact/ally or auto-enemy)
+  document.querySelectorAll('[id^="btn-mishap-vargrbetray-"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const optId = btn.dataset.optionId;
+      const assocIdx = btn.dataset.assocIdx;
+      if (optId === 'auto_enemy') {
+        resolveMishapChoice({ option_id: 'auto_enemy' });
+      } else {
+        resolveMishapChoice({ option_id: optId, associate_index: parseInt(assocIdx, 10) });
+      }
+    });
+  });
+
+  // Vargr law enforcement — accept deal or refuse
+  const btnVargrLawAccept = document.getElementById('btn-mishap-vargrlaw-accept');
+  if (btnVargrLawAccept) btnVargrLawAccept.addEventListener('click', () => resolveMishapChoice({ option_id: 'accept' }));
+  const btnVargrLawRefuse = document.getElementById('btn-mishap-vargrlaw-refuse');
+  if (btnVargrLawRefuse) btnVargrLawRefuse.addEventListener('click', () => resolveMishapChoice({ option_id: 'refuse' }));
+
+  // Vargr scientist — stay quietly or roll SOC 8+
+  const btnVargrSciStay = document.getElementById('btn-mishap-vargrsci-stay');
+  if (btnVargrSciStay) btnVargrSciStay.addEventListener('click', () => resolveMishapChoice({ option_id: 'stay' }));
+  const btnVargrSciRoll = document.getElementById('btn-mishap-vargrsci-roll');
+  if (btnVargrSciRoll) btnVargrSciRoll.addEventListener('click', () => resolveMishapChoice({ option_id: 'roll_soc' }));
 
   // Mishap victim buttons
   document.querySelectorAll('[id^="btn-mishap-victim-"]').forEach(btn => {
@@ -9380,6 +9435,30 @@ function renderMishapStep() {
               <button class="btn" id="btn-mishap-freeskill-confirm">CONFIRM</button>
             </div>
           </div>`;
+      } else if (ptype === 'skill_loss_choice') {
+        // Show all skills with level >= 1 as buttons the player can pick to lose a level
+        const losableSkills = Object.entries(character.skills || {})
+          .filter(([, v]) => v >= 1)
+          .sort(([a], [b]) => a.localeCompare(b));
+        if (losableSkills.length === 0) {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <p class="phase-body" style="color:var(--amber-dim)">No skills with level ≥ 1 — nothing to lose.</p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-skillloss-none">CONTINUE (NO SKILL TO LOSE)</button>
+              </div>
+            </div>`;
+        } else {
+          const opts = losableSkills.map(([sk, lv]) =>
+            `<button class="btn" id="btn-mishap-skillloss-${escapeHTML(sk)}">${escapeHTML(sk)} (lv ${lv}→${lv - 1})</button>`
+          ).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px;flex-wrap:wrap">${opts}</div>
+            </div>`;
+        }
       } else if (ptype === 'pending_choice') {
         const pid = pending.id || '';
         if (pid === 'mishap_deal') {
@@ -9425,6 +9504,15 @@ function renderMishapStep() {
               <div class="phase-actions" style="margin-top:8px">
                 <button class="btn" id="btn-mishap-denounce-yes">DENOUNCE PATRON</button>
                 <button class="btn danger" id="btn-mishap-denounce-no">STAY SILENT</button>
+              </div>
+            </div>`;
+        } else if (pid === 'party_mishap5_ally') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn primary" id="btn-mishap-party5ally-accept">GAIN ALLY</button>
+                <button class="btn" id="btn-mishap-party5ally-decline">DECLINE</button>
               </div>
             </div>`;
         } else if (pid === 'solsec_interrogation') {
@@ -9518,6 +9606,55 @@ function renderMishapStep() {
               <div class="phase-actions" style="margin-top:8px">
                 <button class="btn danger" id="btn-mishap-slave-report">REPORT THE REVOLT</button>
                 <button class="btn" id="btn-mishap-slave-allow">ALLOW IT</button>
+              </div>
+            </div>`;
+
+        // ---- Vargr pending_choice UI ----
+        } else if (pid === 'vargr_army_illegal_leader') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-vargrarmy-join">JOIN RING — ALLY + SOC −1</button>
+                <button class="btn primary" id="btn-mishap-vargrarmy-testify">TESTIFY — SOC +1 + ENEMY</button>
+              </div>
+            </div>`;
+        } else if (pid === 'vargr_citizen_cooperate') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn primary" id="btn-mishap-vargrcitiaid">AID INVESTIGATION — DM+2 NEXT QUAL</button>
+                <button class="btn" id="btn-mishap-vargrcitirefuse">REFUSE — GAIN ALLY</button>
+              </div>
+            </div>`;
+        } else if (pid === 'vargr_corsair_betrayal') {
+          const opts = (pending.options || []);
+          const btns = opts.map((o, i) => `
+            <button class="btn" id="btn-mishap-vargrbetray-${i}"
+              data-option-id="${escapeHTML(o.id)}"
+              data-assoc-idx="${o.associate_index ?? ''}">${escapeHTML(o.label)}</button>`).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px;flex-direction:column;align-items:flex-start">${btns}</div>
+            </div>`;
+        } else if (pid === 'vargr_law_deal') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn" id="btn-mishap-vargrlaw-accept">ACCEPT DEAL — FORCED OUT + SOC −1</button>
+                <button class="btn danger" id="btn-mishap-vargrlaw-refuse">REFUSE — INJURY + ENEMY</button>
+              </div>
+            </div>`;
+        } else if (pid === 'vargr_scientist_funding') {
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px">
+                <button class="btn primary" id="btn-mishap-vargrsci-stay">STAY QUIETLY — CONTINUE, NO BENEFIT</button>
+                <button class="btn" id="btn-mishap-vargrsci-roll">ROLL SOC 8+ — NEW PACK</button>
               </div>
             </div>`;
         }

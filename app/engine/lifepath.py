@@ -5920,6 +5920,14 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             }
             set_pending = True
 
+    elif etype == "skill_loss_choice":
+        if not character.pending_career_mishap_choice:
+            character.pending_career_mishap_choice = {
+                "type": "skill_loss_choice",
+                "prompt": effect.get("prompt", "Lose one level in a skill you possess (choose which):"),
+            }
+            set_pending = True
+
     elif etype == "forfeit_benefit":
         if term is not None:
             term.benefit_forfeited = True
@@ -6025,6 +6033,19 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"Gained {count}× {kind.capitalize()}")
         character.log(f"Mishap: gained {count} {kind}(s)")
 
+    elif etype == "d6_result":
+        r6 = dice.roll("1D")
+        result = r6.total
+        msgs.append(f"1D = {result}")
+        for rng in effect.get("ranges", []):
+            if rng.get("min", 1) <= result <= rng.get("max", 6):
+                for sub_eff in rng.get("effects", []):
+                    sub_msgs, sub_pend = _apply_mishap_effect(character, sub_eff, term)
+                    msgs.extend(sub_msgs)
+                    if sub_pend:
+                        set_pending = True
+                break
+
     elif etype == "pending_choice":
         if not character.pending_career_mishap_choice:
             choice_id = effect.get("id", "")
@@ -6069,6 +6090,20 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                         })
                 if not opts:
                     opts = [{"id": "skip", "label": "No Allies or Contacts to lose"}]
+                pending["options"] = opts
+            # Populate vargr_corsair_betrayal — pick a contact/ally to become Enemy, or auto-enemy if none
+            elif choice_id == "vargr_corsair_betrayal":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": str(i),
+                            "label": f"{assoc.kind.capitalize()} → Enemy: {assoc.description or '(unnamed)'}",
+                            "associate_index": i,
+                        })
+                if not opts:
+                    opts = [{"id": "auto_enemy",
+                             "label": "No Allies or Contacts in band — gain Enemy [Corsair Betrayer]"}]
                 pending["options"] = opts
             character.pending_career_mishap_choice = pending
             set_pending = True
@@ -6298,7 +6333,7 @@ def mishap_roll(character: Character) -> dict:
             continue
 
         if etype in ("injury_severity_choice", "stat_choice", "skill_choice",
-                     "pending_choice", "skill_check") and pending_set:
+                     "pending_choice", "skill_check", "skill_loss_choice") and pending_set:
             # Only one pending at a time — skip further pending effects
             continue
 
@@ -6456,7 +6491,7 @@ def _apply_event_effects(character: "Character", career_id: str, event_num: int,
             continue
 
         if etype in ("skill_choice", "stat_choice", "pending_choice", "skill_check",
-                     "free_skill_choice", "injury_severity_choice") and pending_set:
+                     "free_skill_choice", "injury_severity_choice", "skill_loss_choice") and pending_set:
             continue  # only one pending at a time
 
         msgs, was_pending = _apply_mishap_effect(character, effect, term)
@@ -6529,11 +6564,152 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             auto_applied.append(msg)
         character.pending_career_mishap_choice = None
 
+    elif ptype == "skill_loss_choice":
+        skill = choice_data.get("skill", "")
+        if not skill:
+            raise ValueError("skill_loss_choice requires a 'skill' key in choice_data")
+        sn, spec = _split_skill_speciality(skill)
+        # Find current level — look for base name or speciality match
+        old_level = character.skills.get(skill, character.skills.get(sn, 0))
+        if old_level <= 0:
+            auto_applied.append(f"{skill} already at 0 — no change")
+        elif old_level == 1:
+            # Remove the skill entirely at level 0
+            character.skills.pop(skill, None)
+            character.skills.pop(sn, None)
+            auto_applied.append(f"{skill} reduced to 0 (removed)")
+            character.log(f"Mishap skill loss: {skill} removed (was 1)")
+        else:
+            new_level = old_level - 1
+            key = skill if skill in character.skills else sn
+            character.skills[key] = new_level
+            auto_applied.append(f"{skill} reduced {old_level}→{new_level}")
+            character.log(f"Mishap skill loss: {skill} {old_level}→{new_level}")
+        character.pending_career_mishap_choice = None
+
     elif ptype == "pending_choice":
         choice_id = pending.get("id", "")
         selected = choice_data.get("option_id", "")
 
-        if choice_id == "mishap_deal":
+        if choice_id == "party_mishap5_ally":
+            if selected == "accept":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Fellow Sufferer]")
+                )
+                auto_applied.append("Gained Ally [Fellow Sufferer]")
+                character.log("Mishap: party_mishap5_ally accepted — Ally gained")
+            else:
+                auto_applied.append("Declined solidarity — no Ally gained")
+                character.log("Mishap: party_mishap5_ally declined")
+            character.pending_career_mishap_choice = None
+
+        # ---- Vargr pending_choice handlers ----
+
+        elif choice_id == "vargr_army_illegal_leader":
+            if selected == "join":
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Corrupt Pack Leader]")
+                )
+                old_soc = character.characteristics.get("SOC")
+                character.characteristics["SOC"] = max(0, old_soc - 1)
+                auto_applied.append(f"Joined ring — Ally [Corrupt Pack Leader] + SOC {old_soc}→{character.characteristics['SOC']}")
+                character.log("Mishap vargr_army_illegal_leader: joined, ally gained, SOC-1")
+            else:  # testify
+                old_soc = character.characteristics.get("SOC")
+                character.characteristics["SOC"] = old_soc + 1
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Reported Pack Leader]")
+                )
+                auto_applied.append(f"Testified — SOC {old_soc}→{character.characteristics['SOC']} + Enemy [Reported Pack Leader]")
+                character.log("Mishap vargr_army_illegal_leader: testified, SOC+1, enemy gained")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "vargr_citizen_cooperate":
+            if selected == "aid":
+                character.dm_next_qualification += 2
+                auto_applied.append("Aided investigations — DM+2 to next Qualification roll")
+                character.log("Mishap vargr_citizen_cooperate: aided, dm_next_qualification +2")
+            else:  # refuse
+                character.associates.append(
+                    Associate(kind="ally", description="Ally [Criminal Company Contact]")
+                )
+                auto_applied.append("Refused — gained Ally [Criminal Company Contact]")
+                character.log("Mishap vargr_citizen_cooperate: refused, ally gained")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "vargr_corsair_betrayal":
+            if selected == "auto_enemy":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Corsair Betrayer]")
+                )
+                auto_applied.append("No contacts/allies in band — gained Enemy [Corsair Betrayer]")
+                character.log("Mishap vargr_corsair_betrayal: auto enemy (no contacts/allies)")
+            else:
+                idx = choice_data.get("associate_index")
+                if idx is None:
+                    raise ValueError("associate_index required for vargr_corsair_betrayal")
+                idx = int(idx)
+                if idx < 0 or idx >= len(character.associates):
+                    raise ValueError(f"associate_index {idx} out of range")
+                assoc = character.associates[idx]
+                old_kind = assoc.kind
+                assoc.kind = "enemy"
+                assoc.description = f"Enemy [Betrayer — was {old_kind}]: {assoc.description or ''}"
+                auto_applied.append(f"{old_kind.capitalize()} betrayed you → Enemy: {assoc.description}")
+                character.log(f"Mishap vargr_corsair_betrayal: associate {idx} ({old_kind}) → enemy")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "vargr_law_deal":
+            if selected == "accept":
+                old_soc = character.characteristics.get("SOC")
+                character.characteristics["SOC"] = max(0, old_soc - 1)
+                auto_applied.append(f"Accepted deal — forced out + SOC {old_soc}→{character.characteristics['SOC']}")
+                character.log("Mishap vargr_law_deal: accepted, SOC-1, forced out")
+            else:  # refuse
+                inj = apply_injury(character)
+                if inj:
+                    auto_applied.append(f"Injury: {inj.get('description', 'injured')}")
+                    injury_data = inj
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Criminal — refused deal]")
+                )
+                auto_applied.append("Refused — Enemy [Criminal] gained")
+                character.log("Mishap vargr_law_deal: refused, injury + enemy")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "vargr_scientist_funding":
+            if selected == "stay":
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                    term.benefit_forfeited = True
+                auto_applied.append("Stayed quietly — career continues, benefit forfeited")
+                character.log("Mishap vargr_scientist_funding: stayed, career_continues, benefit forfeited")
+            else:  # roll_soc
+                soc_val = character.characteristics.get("SOC", 0)
+                soc_dm = (soc_val // 3) - 2
+                r2d = dice.roll("2D", modifier=soc_dm)
+                raw = r2d.total - soc_dm
+                total = r2d.total
+                passed = total >= 8
+                auto_applied.append(
+                    f"SOC 8+ check: 2D={raw}, DM{soc_dm:+d} = {total} → {'PASS' if passed else 'FAIL'}"
+                )
+                if passed:
+                    if term is not None:
+                        term.survived = True
+                        term.mishap = None
+                    character.associates.append(
+                        Associate(kind="enemy", description="Enemy [Former Pack / Old Employer]")
+                    )
+                    auto_applied.append("Career continues with new pack — Enemy [Former Pack] gained")
+                    character.log("Mishap vargr_scientist_funding: SOC check passed, career continues, enemy gained")
+                else:
+                    auto_applied.append("SOC check failed — forced out of career")
+                    character.log("Mishap vargr_scientist_funding: SOC check failed, career ends")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "mishap_deal":
             if selected == "accept":
                 if term is not None:
                     term.benefit_forfeited = True
@@ -6962,9 +7138,15 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "skills": [{"name": "Melee (blade)"}],
                     "target": 8,
                     "on_nat2": [],
-                    "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1}],
-                    "on_fail": [{"type": "injury"}, {"type": "stat", "stat": "SOC", "amount": -1}],
-                    "prompt": "You accepted the duel — roll Melee (blade) 8+: pass SOC+1; fail injury+SOC−1",
+                    "on_pass": [{"type": "stat", "stat": "SOC", "amount": 1},
+                                {"type": "skill_choice",
+                                 "options": ["Melee (blade)", "Leadership", "Tactics", "Deception"],
+                                 "prompt": "Duel complete — gain one skill:"}],
+                    "on_fail": [{"type": "injury"}, {"type": "stat", "stat": "SOC", "amount": -1},
+                                {"type": "skill_choice",
+                                 "options": ["Melee (blade)", "Leadership", "Tactics", "Deception"],
+                                 "prompt": "Duel complete — gain one skill:"}],
+                    "prompt": "You accepted the duel — roll Melee (blade) 8+: pass SOC+1; fail injury+SOC−1. Either way gain a skill.",
                 }
 
         elif choice_id == "event_noble_duel_skill":
@@ -7053,6 +7235,18 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.pending_career_mishap_choice = {
                     "type": "free_skill_choice",
                     "prompt": "Gain one level in any service skill of your choice:",
+                }
+
+        elif choice_id == "event_drifter_skill_or_transfer":
+            # drifter event 11 (new): free skill OR transfer to any career
+            if selected == "transfer":
+                character.pending_transfer_career_id = "any"
+                auto_applied.append("Free transfer accepted — will auto-qualify for any career next term (no Qualification roll).")
+                character.pending_career_mishap_choice = None
+            else:
+                character.pending_career_mishap_choice = {
+                    "type": "free_skill_choice",
+                    "prompt": "Gain one level in any skill of your choice:",
                 }
 
         elif choice_id == "event_solsec_leverage":
@@ -8935,7 +9129,9 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         )
         character.log(f"Mishap skill check ({skill_name}): {total_with_dm} vs {target}+ — {'pass' if passed else 'fail'}")
 
-        # Apply consequences
+        # Apply consequences — clear the skill_check from the pending slot first so that
+        # any pending-creating sub_effect (e.g. a chained skill_choice) can actually land.
+        character.pending_career_mishap_choice = None
         consequences = on_nat2 if nat2 else (on_pass if passed else on_fail)
         new_pending_set = False
         disaster_mishap_result: Optional[dict] = None
@@ -10051,6 +10247,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "ter",  "label": "Gain TER +2"},
                   {"id": "dm4",  "label": "DM+4 to next Advancement roll"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
     "aslan_military": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10111,6 +10308,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Tactics (military)"}],
+        12: [{"type": "auto_advance"}],
     },
     "aslan_spacer": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10146,6 +10344,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Steward"}],
+        12: [{"type": "auto_advance"}],
     },
     "aslan_space_officer": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10185,6 +10384,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Tactics (naval)"}],
+        12: [{"type": "auto_advance"}],
     },
     "aslan_management": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10210,6 +10410,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Tolerance"}],
+        12: [{"type": "auto_advance"}],
     },
     "aslan_scientist": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10262,6 +10463,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                            "prompt": "Survived on the fringes — gain any one skill at level 1:"}],
               "on_fail": [{"type": "trigger_disaster_mishap"}],
               "prompt": "Fringes of Aslan space — roll Survival or Pilot 8+: pass Contact + any skill; fail roll on Mishap table (career continues)"}],
+        12: [{"type": "auto_advance"}],
     },
     # ---- GE Aslan careers ----
     "ge_fleet": {
@@ -10294,6 +10496,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Tactics (naval)"}],
+        12: [{"type": "auto_advance"}],
     },
     "ge_fleet_officer": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10334,6 +10537,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ],
               "skill_option": "Tactics (naval)"}],
+        12: [{"type": "auto_advance"}],
     },
     "ge_warrior": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10451,6 +10655,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         10: [{"type": "ally", "desc": "Ally [Fellow Slave / Shrine Community]"},
              {"type": "skill_choice", "options": ["Carouse", "Art", "Language"]}],
         11: [{"type": "skill_choice", "options": ["Leadership", "Admin", "Diplomat"]}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- K'kree careers ----
@@ -10591,7 +10796,8 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [], "prompt": "Roll EDU 8+ to increase any one existing skill"}],
         8:  [{"type": "skill_choice",
               "options": ["Admin", "Profession", "Steward", "Survival"]}],
-        9:  [{"type": "dm_advancement", "amount": 2}],
+        9:  [{"type": "dm_advancement", "amount": 2},
+             {"type": "dm_survival", "amount": -2}],
         10: [{"type": "pending_choice", "id": "event_dm_type_choice",
               "prompt": "Singled out for exemplary work — choose reward:",
               "options": [
@@ -10604,7 +10810,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill",    "label": "Gain one Service Skill at level 1"},
                   {"id": "transfer", "label": "Transfer to any non-military career (no Qualification roll)"},
               ]}],
-        12: [{"type": "dm_benefit", "amount": 2}],
+        12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "drifter": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10627,8 +10833,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         9:  [{"type": "dm_benefit", "amount": 2}],
         10: [{"type": "ally", "desc": "Ally [Local in Trouble — helped]"},
              {"type": "dm_advancement", "amount": 2}],
-        11: [{"type": "free_skill_choice",
-              "prompt": "Gain one level in any skill of your choice"}],
+        11: [{"type": "pending_choice", "id": "event_drifter_skill_or_transfer",
+              "prompt": "Wanderer's opportunity — choose:",
+              "options": [
+                  {"id": "skill",    "label": "Gain one level in any skill of your choice"},
+                  {"id": "transfer", "label": "Transfer to any career (no Qualification roll)"},
+              ]}],
+        12: [{"type": "auto_advance"}],
     },
     "entertainer": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10661,7 +10872,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "skill", "label": "Gain one level in any skill of your choice"},
                   {"id": "dm4",   "label": "DM+4 to next Advancement roll"},
               ]}],
-        12: [{"type": "stat", "stat": "SOC", "amount": 1}],
+        12: [{"type": "auto_advance"}, {"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "marine": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10730,7 +10941,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Advocate", "label": "Advocate 1"},
                   {"id": "dm4",      "label": "DM+4 to next Advancement roll"},
               ]}],
-        12: [{"type": "dm_benefit", "amount": 2}],
+        12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "navy": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10842,7 +11053,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         10: [{"type": "dm_advancement", "amount": 2}],
         11: [{"type": "skill_choice",
               "options": ["Admin", "Medic", "Advocate", "Mechanic", "Language"]}],
-        12: [{"type": "ally", "desc": "Ally [Fellow Prisoner]"}],
+        12: [{"type": "auto_advance"}, {"type": "ally", "desc": "Ally [Fellow Prisoner]"}],
     },
     "rogue": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10886,7 +11097,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Melee",       "label": "Melee 1"},
                   {"id": "dm4",         "label": "DM+4 to next Advancement roll"},
               ]}],
-        12: [{"type": "dm_benefit", "amount": 2}],
+        12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "scholar": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -10917,7 +11128,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "Diplomat", "label": "Diplomat 1"},
                   {"id": "dm4",      "label": "DM+4 to next Advancement roll"},
               ]}],
-        12: [{"type": "dm_benefit", "amount": 2}],
+        12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "scout": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -11037,6 +11248,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "injury"}],
               "prompt": "Dangerous rescue mission — roll Survival or END 8+: pass DM+2 Adv + extra Benefit; fail injury"}],
         11: [{"type": "extra_benefit", "amount": 1}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Dolphin Military ----
@@ -11070,6 +11282,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ]}],
         11: [{"type": "dm_advancement", "amount": 2},
              {"type": "skill_choice", "options": ["Admin", "Tactics (military)"]}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Philosopher-Elder (Uplifted Orca) ----
@@ -11109,6 +11322,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "injury"}],
               "prompt": "Dangerous rescue mission — roll Survival or END 8+: pass DM+2 Adv + extra Benefit; fail injury"}],
         11: [{"type": "extra_benefit", "amount": 1}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Spirit Singer (Orca) ----
@@ -11136,8 +11350,8 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "agree",   "label": "Agree — Ally in her Pod + Rival in own faith"},
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
-        11: [{"type": "dm_advancement", "amount": -2}],
-        12: [{"type": "dm_advancement", "amount": 1}],
+        11: [{"type": "dm_permanent_advancement", "amount": -2}],
+        12: [{"type": "auto_advance"}, {"type": "dm_permanent_advancement", "amount": 1}],
     },
 
     # ---- Aslan Outcast ----
@@ -11166,6 +11380,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "accept",  "label": "Accept — restore SOC to pre-outcast value, DM+99 to Qualification, gain Contact [Clan Elder]"},
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Aslan Outlaw ----
@@ -11207,6 +11422,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "female", "label": "Female (unmarried): reroll SOC (2D auto-rolled)"},
                   {"id": "none",   "label": "Decline — no effect"},
               ]}],
+        12: [{"type": "auto_advance"}],
     },
 
     # ---- Solomani careers ----
@@ -11630,7 +11846,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         9:  [{"type": "skill", "name": "Tactics", "level": 1}, {"type": "dm_advancement", "amount": 2}],
         10: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
               "on_nat2": [],
-              "on_pass": [{"type": "dm_advancement", "amount": 2}],
+              "on_pass": [{"type": "auto_advance"}],
               "on_fail": [],
               "prompt": "Leader killed — roll SOC 8+ to take command: pass automatic promotion; fail nothing"}],
         11: [{"type": "dm_advancement", "amount": 4}],
@@ -11674,7 +11890,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [],
               "prompt": "Leader killed — roll SOC 8+ to take command: pass automatic promotion; fail nothing"}],
         11: [{"type": "dm_advancement", "amount": 4}],
-        12: [{"type": "auto_advance"}],
+        12: [{"type": "auto_advance"}, {"type": "stat", "stat": "SOC", "amount": 1}],
     },
 
     "vargr_psion": {
@@ -12427,7 +12643,19 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                  {"id": "denounce", "label": "Denounce patron — Advocate+1, SOC−1, keep Benefit roll"},
                  {"id": "silent", "label": "Stay silent — forfeit Benefit roll"},
              ]}],
-        5: [{"type": "stat", "stat": "SOC", "amount": -1}],  # tainted by association (Ally gain is optional/narrative)
+        5: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "d6_result",
+             "ranges": [
+                 {"min": 1, "max": 3, "effects": []},
+                 {"min": 4, "max": 6, "effects": [
+                     {"type": "pending_choice", "id": "party_mishap5_ally",
+                      "prompt": "You were tainted by association — a fellow sufferer offers solidarity. Gain them as an Ally?",
+                      "options": [
+                          {"id": "accept",  "label": "Accept — gain Ally [Fellow Sufferer]"},
+                          {"id": "decline", "label": "Decline — no effect"},
+                      ]},
+                 ]},
+             ]}],
         6: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
     },
     "confederation_navy": {
@@ -12875,7 +13103,9 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         3: [{"type": "rank_loss", "amount": 1},
             {"type": "forfeit_benefit"},
             {"type": "career_continues"}],
-        4: [],  # Skill level loss — needs manual application; career_continues implicit
+        4: [{"type": "skill_loss_choice",
+             "prompt": "Your training suffered — lose one level in a skill you possess (choose which):"},
+            {"type": "career_continues"}],
         5: [{"type": "forfeit_benefit"},
             {"type": "career_continues"}],
         6: [{"type": "d_associates", "kind": "rival", "dice": "D3"}],
@@ -13337,6 +13567,208 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              ]}],
         5: [],  # Narrative
         6: [],  # Narrative
+    },
+
+    # ================================================================
+    # Vargr Extents careers
+    # ================================================================
+
+    "vargr_army": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "enemy", "desc": "Enemy [Pack Leader — blamed for casualties]"}],
+        3: [{"type": "skill_choice", "options": ["Recon", "Survival"]},
+            {"type": "stat", "stat": "SOC", "amount": -1}],
+        4: [{"type": "pending_choice", "id": "vargr_army_illegal_leader",
+             "prompt": "Your pack leader is involved in weapon/drug smuggling — join their ring (Ally + SOC−1) or testify against them (SOC+1 + Enemy)?",
+             "options": [
+                 {"id": "join",    "label": "Join ring — gain Ally [Corrupt Pack Leader] + SOC −1"},
+                 {"id": "testify", "label": "Testify — gain SOC +1 + Enemy [Reported Pack Leader]"},
+             ]}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        6: [{"type": "injury"}],
+    },
+
+    "vargr_citizen": {
+        1: [{"type": "injury"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "dm_advancement", "amount": -2}],
+        3: [],  # Hard times — career ends; no additional mechanical effect
+        4: [{"type": "pending_choice", "id": "vargr_citizen_cooperate",
+             "prompt": "The company is suspected of illegal activities — aid the investigation (DM+2 next Qualification) or refuse (gain Ally)?",
+             "options": [
+                 {"id": "aid",    "label": "Aid investigations — DM+2 to next Qualification roll"},
+                 {"id": "refuse", "label": "Refuse — gain Ally [Criminal Company Contact]"},
+             ]}],
+        5: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 7,
+             "on_pass": [],
+             "on_fail": [{"type": "dm_qualification", "amount": -2}],
+             "prompt": "Roll SOC 7+ to find a new pack — fail: DM−2 to next Qualification roll"}],
+        6: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "rival", "desc": "Rival [Power Struggle — Pack Rival]"}],
+    },
+
+    "vargr_corsair": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "forfeit_benefit"},
+            {"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "pending_choice", "id": "vargr_corsair_betrayal",
+             "prompt": "Betrayed by a band member — pick an Ally or Contact in the band to become an Enemy (or gain an Enemy if you have none).",
+             "options": []}],  # options populated dynamically
+        4: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [{"type": "rival", "desc": "Rival [Rival Band Member]"}],
+             "prompt": "Pack looks for new leadership — roll SOC 8+ to back the winner: pass stay in career; fail Rival and leave"}],
+        5: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        6: [{"type": "injury"}],
+    },
+
+    "vargr_emissary": {
+        1: [{"type": "injury"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "rival", "desc": "Rival [Superior Rival Emissary]"},
+            {"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 6,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
+             "prompt": "Outclassed by rival Emissary (Rival gained always) — roll SOC 6+ or also lose SOC −1"}],
+        4: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "dm_survival", "amount": -2}],
+             "prompt": "Pack power struggle — roll SOC 8+ to back the winner: fail DM−2 to next Survival roll"}],
+        5: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True},
+                                                {"name": "Melee (infighting)"}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Assassin attacks — roll END or Melee (infighting) 8+: pass survive and stay in career; fail injury"}],
+        6: [{"type": "skill_check", "skills": [{"name": "Broker"}, {"name": "Diplomat"}, {"name": "Persuade"}],
+             "target": 10,
+             "on_pass": [{"type": "career_continues"},
+                         {"type": "rival", "desc": "Rival [Rival Emissary]"}],
+             "on_fail": [{"type": "enemy", "desc": "Enemy [Rival Emissary]"}],
+             "prompt": "Rival Emissary tries to humiliate you — roll Broker/Diplomat/Persuade 10+: pass stay + Rival; fail Enemy and leave"}],
+    },
+
+    "vargr_law_enforcement": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "pending_choice", "id": "vargr_law_deal",
+             "prompt": "Criminal under investigation offers you a deal — accept (forced out + SOC−1) or refuse (injury + Enemy)?",
+             "options": [
+                 {"id": "accept", "label": "Accept deal — forced out of career + SOC −1"},
+                 {"id": "refuse", "label": "Refuse — roll on Injury table + gain Enemy [Criminal]"},
+             ]}],
+        3: [{"type": "skill_check", "skills": [{"name": "Advocate"}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "forfeit_benefit"}, {"type": "stat", "stat": "SOC", "amount": -1}],
+             "prompt": "Investigation goes critically wrong — roll Advocate 8+: pass keep Benefit; fail forfeit Benefit + SOC −1"}],
+        4: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [{"type": "career_continues"}],
+             "on_fail": [],
+             "prompt": "Pack power struggle — roll SOC 8+ to back the winner: pass stay in career; fail leave"}],
+        5: [{"type": "enemy", "desc": "Enemy [Target of Uncovered Information]"},
+            {"type": "dm_survival", "amount": -2}],
+        6: [{"type": "injury"}],
+    },
+
+    "vargr_loner": {
+        1: [{"type": "injury"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "enemy", "desc": "Enemy [Rival Loner]"}],
+        4: [{"type": "skill_choice", "options": ["Animals (herding)", "Recon", "Survival"]},
+            {"type": "forfeit_benefit"}],
+        5: [{"type": "forfeit_benefit"},
+            {"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 6,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Ambushed by corsairs (benefit forfeited always) — roll END 6+: fail also roll on Injury table"}],
+        6: [],  # Gap in memory — no mechanical effect
+    },
+
+    "vargr_marines": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Captured and tortured (SOC−1 always) — roll END 8+: fail also roll on Injury table"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "enemy", "desc": "Enemy [Opposing Force / Corsair Band]"}],
+        4: [{"type": "skill_choice", "options": ["Stealth", "Survival"]},
+            {"type": "stat", "stat": "SOC", "amount": -1}],
+        5: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [{"type": "career_continues"},
+                         {"type": "rival", "desc": "Rival [Contested Pack Leader]"},
+                         {"type": "dm_advancement", "amount": -2}],
+             "on_fail": [],
+             "prompt": "Oppose pack leader — roll SOC 8+: pass stay + Rival + DM−2 Advancement; fail ejected from career"}],
+        6: [{"type": "injury"}],
+    },
+
+    "vargr_merchant": {
+        1: [{"type": "injury"}],
+        2: [{"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Trade routes blocked by war — roll END 8+: fail roll on Injury table"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        4: [{"type": "rival", "desc": "Rival [Rival Merchant Company]"}],
+        5: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [{"type": "career_continues"},
+                         {"type": "rival", "desc": "Rival [Ambitious Employee]"}],
+             "on_fail": [{"type": "enemy", "desc": "Enemy [Ambitious Employee — ousted you]"}],
+             "prompt": "Employee bids for pack leadership — roll SOC 8+: pass stay + Rival; fail Enemy and lose business"}],
+        6: [{"type": "forfeit_benefit"}],
+    },
+
+    "vargr_navy": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "rival", "desc": "Rival [Competing Pack Member]"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "enemy", "desc": "Enemy [Opposing Force / Corsair Band]"}],
+        4: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        5: [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "dm_advancement", "amount": -2}],
+             "prompt": "Back the losing side in pack power struggle — roll SOC 8+: fail DM−2 next Advancement roll"}],
+        6: [{"type": "injury"}],
+    },
+
+    "vargr_psion": {
+        1: [{"type": "injury"}],
+        2: [{"type": "d6_result",
+             "ranges": [
+                 {"min": 1, "max": 4, "effects": []},
+                 {"min": 5, "max": 6, "effects": [{"type": "psi_adjust", "amount": -1}]},
+             ]}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "dm_survival", "amount": -2}],
+        4: [],  # Arrested and imprisoned — career ends; no extra mechanical effect
+        5: [{"type": "rival", "desc": "Rival [Pack Psion Who Won Leadership]"}],
+        6: [{"type": "d6_result",
+             "ranges": [
+                 {"min": 1, "max": 2, "effects": [{"type": "injury"}]},
+                 {"min": 3, "max": 4, "effects": [{"type": "psi_adjust", "amount": -1}]},
+                 {"min": 5, "max": 6, "effects": []},
+             ]}],
+    },
+
+    "vargr_scientist": {
+        1: [{"type": "injury"}],
+        2: [{"type": "stat", "stat": "END", "amount": -1}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        4: [{"type": "skill", "name": "Survival", "level": 1},
+            {"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Ship crashed en route (Survival gained always) — roll END 8+: fail also roll on Injury table"}],
+        5: [{"type": "pending_choice", "id": "vargr_scientist_funding",
+             "prompt": "Employers cancelled your research — stay without benefit (career continues, no benefit roll this term) or roll SOC 8+ to continue with another pack?",
+             "options": [
+                 {"id": "stay",     "label": "Stay quietly — career continues, forfeit this term's Benefit roll"},
+                 {"id": "roll_soc", "label": "Roll SOC 8+ — pass: career continues + Enemy [Former Pack]; fail: forced out"},
+             ]}],
+        6: [{"type": "rival", "desc": "Rival [Discrediting Scientist]"},
+            {"type": "stat", "stat": "SOC", "amount": -1},
+            {"type": "dm_survival", "amount": -2}],
     },
 }
 
@@ -14374,13 +14806,17 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
     """Parse and apply a rank-bonus string to the character.
 
     Handles:
-      - "STAT +N"                         e.g. "SOC +2"
+      - "STAT +N"                         e.g. "SOC +2", "TER +2"
+      - "STAT -N"                         e.g. "SOC -1"  (penalty)
       - "STAT N"                          e.g. "SOC 15"  (raise to floor)
       - "STAT N or STAT +M"               e.g. "SOC 10 or SOC +1" (floor-or-increment)
       - "STAT N or STAT +M, whichever is higher"
+      - "N Clan Shares"                   e.g. "3 Clan Shares" — adds to clan_shares
+      - "Contact" / "Ally" / "Rival"      bare associate word — adds that associate
       - "SkillName N"                     e.g. "Gun Combat 1"
       - "Skill (spec) N"                  e.g. "Tactics (military) 1"
-      - "Skill N and STAT M"              e.g. "Admin 1 and SOC 10"  (compound)
+      - "Skill N and STAT M"              e.g. "Admin 1 and SOC 10"  (compound via " and ")
+      - "Skill N, STAT +M"                e.g. "RES +1, Science (sociology) 1" (compound via ", ")
       - "Skill N and STAT M or STAT +P"   e.g. "Leadership 1 and SOC 8 or SOC +1"
       - "Skill N or Skill2 M"             e.g. "Advocate 1 or Science 1" (auto-pick first)
       - Plain skill name                  e.g. "Jack-of-All-Trades" (treated as level 1)
@@ -14391,7 +14827,7 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         return "no bonus"
     text = bonus_str.strip()
 
-    # --- Compound "X and Y" bonuses (e.g. "Admin 1 and SOC 10") ---
+    # --- Compound "X and Y" bonuses (e.g. "Admin 1 and SOC 10", "TER +2 and SOC 10") ---
     # Split on " and " only when it appears outside parentheses.
     and_pos = -1
     depth = 0
@@ -14413,9 +14849,32 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         log2 = _apply_rank_bonus(character, part2)
         return f"{log1}; {log2}"
 
+    # --- Compound "X, Y" bonuses (e.g. "RES +1, Science (sociology) 1") ---
+    # Split on ", " outside parentheses.
+    comma_pos = -1
+    depth = 0
+    i = 0
+    while i < len(text) - 1:
+        ch = text[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif depth == 0 and text[i: i + 2] == ", ":
+            comma_pos = i
+            break
+        i += 1
+    if comma_pos >= 0:
+        part1 = text[:comma_pos].strip()
+        part2 = text[comma_pos + 2:].strip()
+        log1 = _apply_rank_bonus(character, part1)
+        log2 = _apply_rank_bonus(character, part2)
+        return f"{log1}; {log2}"
+
     # "STAT N or STAT +M" — floor-or-increment (with optional trailing text)
+    _STAT_PAT = r"(SOC|STR|DEX|END|INT|EDU|PSI|RES|TER)"
     m_complex = re.match(
-        r"^(SOC|STR|DEX|END|INT|EDU|PSI|RES)\s+(\d+)\s+or\s+\1\s*\+(\d+)",
+        rf"^{_STAT_PAT}\s+(\d+)\s+or\s+\1\s*\+(\d+)",
         text, re.IGNORECASE
     )
     if m_complex:
@@ -14435,11 +14894,15 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         character.reputation += n
         return f"REP {old_rep}→{character.reputation} (rank bonus)"
 
-    # "STAT +N" or "STAT+N"
-    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES)\s*\+(\d+)$", text, re.IGNORECASE)
+    # "STAT +N" or "STAT+N" (positive increment, includes TER)
+    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*\+(\d+)$", text, re.IGNORECASE)
     if m_stat:
         stat = m_stat.group(1).upper()
         n = int(m_stat.group(2))
+        if stat == "TER":
+            old = character.extra_characteristics.get("TER", 0)
+            character.extra_characteristics["TER"] = old + n
+            return f"TER {old}→{old + n} (rank bonus)"
         species_data = rules.species().get(character.species_id, {})
         max_stat = species_data.get("characteristic_maximum", 15)
         current = _get_stat(character, stat)
@@ -14447,15 +14910,49 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         _set_stat(character, stat, new_val)
         return f"{stat} {current}→{new_val} (rank bonus)"
 
+    # "STAT -N" — stat penalty (e.g. "SOC -1" for Prisoner rank 6)
+    m_stat_neg = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*-(\d+)$", text, re.IGNORECASE)
+    if m_stat_neg:
+        stat = m_stat_neg.group(1).upper()
+        n = int(m_stat_neg.group(2))
+        if stat == "TER":
+            old = character.extra_characteristics.get("TER", 0)
+            new_val = max(0, old - n)
+            character.extra_characteristics["TER"] = new_val
+            return f"TER {old}→{new_val} (rank penalty)"
+        current = _get_stat(character, stat)
+        new_val = max(0, current - n)
+        _set_stat(character, stat, new_val)
+        return f"{stat} {current}→{new_val} (rank penalty)"
+
     # "STAT N" — raise stat to floor value (e.g. "SOC 15")
-    m_stat_floor = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES)\s+(\d+)$", text, re.IGNORECASE)
+    m_stat_floor = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s+(\d+)$", text, re.IGNORECASE)
     if m_stat_floor:
         stat = m_stat_floor.group(1).upper()
         floor_val = int(m_stat_floor.group(2))
+        if stat == "TER":
+            old = character.extra_characteristics.get("TER", 0)
+            new_val = max(floor_val, old)
+            character.extra_characteristics["TER"] = new_val
+            return f"TER {old}→{new_val} (floor {floor_val})"
         current = _get_stat(character, stat)
         new_val = max(floor_val, current)
         _set_stat(character, stat, new_val)
         return f"{stat} {current}→{new_val} (floor {floor_val})"
+
+    # "N Clan Shares" or "N Clan Share" — Aslan/GE career rank reward
+    m_clan = re.match(r"^(\d+)\s+Clan\s+Shares?$", text, re.IGNORECASE)
+    if m_clan:
+        n = int(m_clan.group(1))
+        character.clan_shares = (character.clan_shares or 0) + n
+        return f"Gained {n} Clan Share{'s' if n != 1 else ''} (total: {character.clan_shares})"
+
+    # Bare associate words — "Contact", "Ally", "Rival", "Enemy"
+    bare_assoc = re.match(r"^(Contact|Ally|Rival|Enemy)$", text, re.IGNORECASE)
+    if bare_assoc:
+        kind = bare_assoc.group(1).lower()
+        character.associates.append(Associate(kind=kind, description=f"{kind.capitalize()} [Rank bonus]"))
+        return f"Gained {kind.capitalize()} [Rank bonus]"
 
     # "Skill N or Skill2 M" — player choice; auto-pick the first option
     # Only trigger when "or" appears outside parentheses and neither side is a handled stat pattern.
