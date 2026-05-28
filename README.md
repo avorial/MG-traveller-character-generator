@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-25.10-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-25.40-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -141,7 +141,7 @@ The character goes directly to finalization (skill package phase) — no further
 | **Technician** | — | Mechanic 2, Electronics 2, Engineer; EDU+1 |
 | **Wanderer** | — | Survival, Recon, Stealth, Streetwise |
 
-### Careers (74 fully encoded)
+### Careers (75 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -158,7 +158,7 @@ Every career has qualification, all assignments, full skill tables, events (2–
 | **Merchant** | Merchant Marine, Free Trader, Broker |
 | **Navy** | Line/Crew, Engineer/Gunner, Flight |
 | **Noble** | Administrator, Diplomat, Dilettante |
-| **Prisoner** | Thug, Fixer, Inmate |
+| **Prisoner** | Thug, Thief, Enforcer |
 | **Rogue** | Thief, Enforcer, Pirate |
 | **Scholar** | Field Researcher, Scientist, Physician |
 | **Scout** | Courier, Surveyor, Explorer |
@@ -167,10 +167,10 @@ Every career has qualification, all assignments, full skill tables, events (2–
 
 | Career | Assignments | Notes |
 |---|---|---|
-| **Confederation Navy** | Line/Crew, Engineer/Gunner, Flight | Solomani-only; separate officer rank table |
+| **Confederation Navy** | Line/Crew, Technical, Flight | Solomani-only; separate officer rank table |
 | **Confederation Army** | Support, Infantry, Cavalry | Solomani-only |
-| **Star Marines** | Support, Star Marine, Battledress | Solomani-only |
-| **Party** | Official, Intellectual, Militant | Solomani Party political career; restricted to pure Solomani (SOC 7+) |
+| **Solomani Star Marines** | Support, Star Marine, Battledress | Solomani-only |
+| **Solomani Party** | Official, Intellectual, Militant | Political career; restricted to pure Solomani (SOC 7+) |
 | **SolSec** | Field Agent, Administration, Secret Agent | Secret Agent uses a cover career for survival/advancement rolls |
 
 #### Cetacean (4)
@@ -217,10 +217,11 @@ Every career has qualification, all assignments, full skill tables, events (2–
 | **Warrior** | Imperial Guard, Dragoon, Support | GE exclusive |
 | **Warrior Officer** | Leader, Executive Officer, Assassin | GE exclusive |
 
-#### K'kree (4)
+#### Two Thousand Worlds (5)
 
 | Career | Assignments | Notes |
 |---|---|---|
+| **Translator (Girug'kagh)** | Translator | Non-K'kree interpreter caste |
 | **Merchant (K'kree)** | Mercantile/Economic, Warrior, Technical/Scientific, Naval | SOC 8+ required |
 | **Noble (K'kree)** | Warrior, Mercantile/Economic, Technical/Scientific, Naval | SOC 10+ required |
 | **K'kree (Pastoral)** | Pastoral | Low-SOC default career |
@@ -260,21 +261,21 @@ Every career has qualification, all assignments, full skill tables, events (2–
 
 | Career | Assignments |
 |---|---|
-| **Droyne Worker** | Farmer, Manufacturer, Scavenger |
-| **Droyne Warrior** | Infantry, Flyer, Guard |
-| **Droyne Drone** | Administrator, Healer, Priest |
-| **Droyne Technician** | Engineer, Artificer, Dreamer |
-| **Droyne Sport** | Traveller, Loner, Companion |
-| **Droyne Leader** | Commander, Envoy, Merchant |
+| **Droyne Worker** | Farming, Labouring, Building |
+| **Droyne Warrior** | Battling, Guard, Voyaging |
+| **Droyne Drone** | Family, Priestly, Social |
+| **Droyne Technician** | Fixing, Artificer, Dreaming |
+| **Droyne Sport** | Finding, Speaker, Seeking |
+| **Droyne Leader** | Military, Priestly, Leader of Leaders |
 
 #### Hiver Federation (4)
 
 | Career | Assignments |
 |---|---|
-| **Hiver Academic** | Researcher, Professor, Administrator |
-| **Hiver Generalist** | Wanderer, Trader, Survivor |
-| **Hiver Manipulator** | Investigator, Politician, Dealer |
-| **Hiver Merchant** | Broker, Free Trader, Corporate |
+| **Hiver Academic** | Experimenter, Researcher, Physician |
+| **Hiver Generalist** | Nest-Citizen, Dedicated Generalist, Drifter |
+| **Hiver Manipulator** | Master Manipulator, Starfaring Manipulator, Military Leader |
+| **Hiver Merchant** | Negotiator, Administrator, Con-Person |
 
 ---
 
@@ -310,7 +311,10 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 ### UI features
 
 - **Mobile layout** — Three-tab navigation (CHARACTER / ACTION / LOG) for small screens.
-- **Light/dark theme** — ◐ button toggles between dark amber CRT and white/green terminal. Saved to `localStorage`.
+- **Three-way theme cycle** — ◐ button cycles through three themes, saved to `localStorage`:
+  - `◐` **Amber CRT** — dark background, amber phosphor glow, scanlines and vignette (default)
+  - `◑` **Green terminal** — dark background, green-on-black high-contrast terminal look
+  - `◉` **Monochrome** — clean black-on-white, no CRT effects, for comfortable daylight reading
 - **Font size** — "Aa" button cycles Normal → Large → Extra Large. Saved to `localStorage`.
 - **Heroic rolls** — ⚔ HEROIC toggle on the characteristics screen.
 - **Optional characteristics** — Toggle shows checkboxes for PSI / WLT / LCK / MRL / STY / TER.
@@ -345,7 +349,7 @@ Species are listed in picker order and filtered by society. Single-click a card 
 
 #### Cetacean (2), Solomani (4), Aslan (2), Zhodani (1), Vargr Extents (1), K'kree (2), Hiver (2), Droyne (1), Other/Far Domains (5)
 
-See the full species tables in the previous README version or browse the species picker in-app — all 36 species are available with their modifiers, traits, and society restrictions.
+See the full species tables in-app — all 36 species are available with their modifiers, traits, and society restrictions.
 
 ---
 
@@ -363,7 +367,7 @@ traveller-creator/
 │   │   └── foundry_export.py       # FoundryVTT MGT2e actor JSON export for biological characters
 │   ├── data/
 │   │   ├── species/                # 36 species JSON files
-│   │   ├── careers/                # 74 career JSON files
+│   │   ├── careers/                # 75 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_packages.json
@@ -382,12 +386,13 @@ traveller-creator/
 │   ├── templates/
 │   │   └── index.html
 │   └── static/
-│       ├── css/style.css           # CRT terminal aesthetic; robot builder styles
+│       ├── css/style.css           # CRT terminal aesthetic + light + monochrome themes; robot builder styles
 │       └── js/app.js               # Client-side phase controller; robot rules data + calc engine
 ├── tests/
 │   ├── test_dice.py
 │   ├── test_api_smoke.py
-│   └── test_data_schemas.py
+│   ├── test_data_schemas.py
+│   └── smoke_all_careers.py        # Full engine smoke test — 442 paths, 0 failures across all 75 careers
 ├── Dockerfile
 ├── docker-compose.yml
 ├── pytest.ini
@@ -518,6 +523,26 @@ The `Character` object is the single source of truth. It lives in `localStorage`
 | `droyne_caste` | Droyne caste name |
 | `hiver_nest_type` | Hiver nest type |
 | `dm_permanent_advancement` | Permanent advancement DM that stacks and is never consumed |
+
+---
+
+## Tests
+
+```bash
+# Unit tests
+pytest
+
+# Full engine smoke — exercises every career × assignment × skill table × event × mishap
+python tests/smoke_all_careers.py
+# Expected output: PASS paths: 442   FAIL paths: 0
+```
+
+| File | What it covers |
+|---|---|
+| `tests/test_dice.py` | Dice helpers, DM table, forced-roll queue |
+| `tests/test_api_smoke.py` | FastAPI route smoke (new character, roll characteristics, apply species) |
+| `tests/test_data_schemas.py` | All career and species JSON schema validation |
+| `tests/smoke_all_careers.py` | Full rules-engine smoke: all 75 careers, all assignments, skill tables 1–6, events 2–12, mishaps 1–6, pass and fail survival paths |
 
 ---
 
