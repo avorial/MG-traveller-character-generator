@@ -40,13 +40,13 @@
       "2": "INT +1",
       "3": "EDU +1",
       "4": "Patriarchy",
-      "5": "Profession (K'kree ritual)",
+      "5": "Profession (K'kree Ritual)",
       "6": "K'kree Life Event"
     },
     "kkree_skills": {
       "name": "K'kree Skills",
       "1": "Patriarchy",
-      "2": "Profession (K'kree ritual)",
+      "2": "Profession (K'kree Ritual)",
       "3": "Melee",
       "4": "Admin",
       "5": "Carouse",

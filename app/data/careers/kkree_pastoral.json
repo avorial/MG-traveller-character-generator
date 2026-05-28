@@ -25,7 +25,7 @@
     "kkree_skills": {
       "name": "K'kree Skills",
       "1": "Patriarchy",
-      "2": "Profession (K'kree ritual)",
+      "2": "Profession (K'kree Ritual)",
       "3": "Melee",
       "4": "Admin",
       "5": "Carouse",
@@ -33,7 +33,7 @@
     },
     "service_skills": {
       "name": "Service Skills",
-      "1": "Profession (K'kree ritual)",
+      "1": "Profession (K'kree Ritual)",
       "2": "Survival",
       "3": "Recon",
       "4": "Melee",
@@ -67,7 +67,7 @@
     "5": "You have to undertake tasks outside the normal pastoral existence and are very glad to get back to the correct and proper life you wanted. Gain 1 level in any skill.",
     "6": "Your herd undertakes a long trek for reasons that presumably makes sense to your leaders. Gain 1 level of Navigation or Survival.",
     "7": "Life Event. Roll on the K'kree Life Events table.",
-    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree Ritual) and a Contact outside your herd.",
     "9": "Defending your family and herd bravely, you suffer an injury that reduces END by -1, but you gain 1 level of Melee or Gun Combat.",
     "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
     "11": "You are offered the chance to be adopted into the big family of a herdlord or clanlord. If you agree, your SOC jumps to 13 and you enter the Noble career as servant-of-rankholder next term.",

@@ -14165,7 +14165,11 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         _leaving_career = rules.careers().get(term.career_id, {})
         _rolls_per_term = _leaving_career.get("mustering_out_rolls_per_term", 1)
         rank_bonus = _benefit_rolls_from_rank(term.rank)
-        earned = terms_in_career * _rolls_per_term + rank_bonus
+        # Careers with mustering_out=null explicitly grant no benefit rolls (e.g. kkree_pastoral).
+        if _leaving_career.get("mustering_out") is None and "mustering_out" in _leaving_career:
+            earned = 0
+        else:
+            earned = terms_in_career * _rolls_per_term + rank_bonus
         forfeit_note = ""
         if term.benefit_forfeited:
             earned = max(0, earned - 1)
@@ -14491,7 +14495,13 @@ def muster_out_roll(
     career = rules.careers().get(career_id)
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
-    table = career.get("mustering_out", {})
+    _mo_raw = career.get("mustering_out")
+    if "mustering_out" in career and _mo_raw is None:
+        raise ValueError(
+            f"{career['name']} grants no mustering-out benefits "
+            f"(pastoral/permanent career with no benefit table)."
+        )
+    table = _mo_raw or {}
     if not table:
         raise ValueError(f"{career['name']} has no mustering-out table encoded yet")
 

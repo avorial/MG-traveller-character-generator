@@ -26,13 +26,13 @@
       "2": "DEX +1",
       "3": "END +1",
       "4": "Patriarchy",
-      "5": "Profession (K'kree ritual)",
+      "5": "Profession (K'kree Ritual)",
       "6": "K'kree Life Event"
     },
     "kkree_skills": {
       "name": "K'kree Skills",
       "1": "Patriarchy",
-      "2": "Profession (K'kree ritual)",
+      "2": "Profession (K'kree Ritual)",
       "3": "Melee",
       "4": "Admin",
       "5": "Carouse",
@@ -67,7 +67,7 @@
     },
     "technical_scientific": {
       "name": "Technical/Scientific",
-      "1": "Profession (K'kree ritual)",
+      "1": "Profession (K'kree Ritual)",
       "2": "Mechanic",
       "3": "Electronics",
       "4": "Steward",
@@ -110,7 +110,7 @@
     "5": "You are given an onerous task you do not know how to complete. Roll INT 10+. On success, gain Jack-of-all-Trades 1 and a Rival made to look stupid. On failure, you suffer humiliation and abuse.",
     "6": "Your herd needs to prepare for war. Gain 1 level in Melee or Gun Combat.",
     "7": "Life Event. Roll on the K'kree Life Events table.",
-    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+    "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree Ritual) and a Contact outside your herd.",
     "9": "You have to follow your herdlord on a space voyage. It is unpleasant, especially when they make you practice wearing a vacc suit. Gain 1 level of Vacc Suit.",
     "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
     "11": "An important Merchant-caste leader offers you one of his daughters in marriage. Gain an extra wife, SOC 7, elevation to servant-of-rankholder in the Merchant caste and the admiration of your former peers.",
