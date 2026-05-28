@@ -165,9 +165,9 @@ def _apply_event_stat_bonuses(character: "Character", event_text: str) -> list[d
                  "reason": "conditional_or_choice"} for g in grants]
     applied: list[dict] = []
     for g in grants:
-        old = character.characteristics.get(g["stat"])
-        new_val = old + g["amount"]
-        character.characteristics.set(g["stat"], new_val)
+        old = _get_stat(character, g["stat"])
+        new_val = max(0, old + g["amount"])
+        _set_stat(character, g["stat"], new_val)
         character.log(f"  - Event stat bonus: {g['stat']} {old} -> {new_val} ({g['amount']:+d}).")
         applied.append({"stat": g["stat"], "amount": g["amount"], "applied": True,
                         "from": old, "to": new_val})
@@ -5194,7 +5194,7 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         dm = rite_score
         char_display = f"Rite of Passage ({rite_score})"
     else:
-        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        dm = dice.characteristic_dm(_get_stat(character, char_key))
         char_display = char_key
 
     # Apply modifiers
@@ -5878,13 +5878,13 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             else:
                 msgs.append(f"PSI already ≤ {cap} (stays at {old})")
         else:
-            old = character.characteristics.get(stat)
+            old = _get_stat(character, stat)
             new_val = min(old, cap)
             if new_val != old:
                 # Save SOC before first outcast-level reduction for redemption restore
                 if stat == "SOC" and cap <= 2 and character.pre_outcast_soc == 0:
                     character.pre_outcast_soc = old
-                character.characteristics.set(stat, new_val)
+                _set_stat(character, stat, new_val)
                 msgs.append(f"{stat} {old}→{new_val} (capped at {cap})")
                 character.log(f"Mishap: {stat} capped at {cap}: {old}→{new_val}")
             else:
@@ -5997,7 +5997,7 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             old = character.characteristics.get(stat)
             if old is not None:
                 new_val = max(0, old + amount)
-                character.characteristics[stat] = new_val
+                character.characteristics.set(stat, new_val)
                 msgs.append(f"{stat} {old}→{new_val} ({amount:+d}, rolled {r_d.total})")
                 character.log(f"Mishap d_stat {stat} {amount:+d} ({dice_expr}={r_d.total})")
 
@@ -15089,23 +15089,28 @@ def _rank_data(career: dict, assignment_id: str, rank: int,
 
 
 def _get_stat(character: "Character", stat: str) -> int:
-    """Get a characteristic value by name, handling PSI and RES aliases."""
+    """Get a characteristic value by name, handling PSI, RES, and TER."""
     k = stat.upper()
     if k == "PSI":
         return character.psi
     if k == "RES":
         return character.characteristics.SOC
+    if k == "TER":
+        return character.extra_characteristics.get("TER", 0)
     return character.characteristics.get(k) or 0
 
 
 def _set_stat(character: "Character", stat: str, value: int) -> None:
-    """Set a characteristic value by name, handling PSI and RES aliases."""
+    """Set a characteristic value by name, handling PSI, RES, and TER."""
     k = stat.upper()
     if k == "PSI":
         character.psi = max(0, value)
         return
     if k == "RES":
         character.characteristics.SOC = max(0, value)
+        return
+    if k == "TER":
+        character.extra_characteristics["TER"] = max(0, value)
         return
     character.characteristics.set(k, value)
 
