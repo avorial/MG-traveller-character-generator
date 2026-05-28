@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "hiver_generalist",
   "name": "Generalist",
   "description": "Most Hivers are generalists, typically living a normal life as a citizen of any type of nest. The average generalist works at a steady job and indulges their interests in a variety of fields without going very far into any of them.",
@@ -43,7 +43,7 @@
       "3": "DEX +1",
       "4": "END +1",
       "5": "INT +1",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "service_skills": {
       "name": "Service Skills",

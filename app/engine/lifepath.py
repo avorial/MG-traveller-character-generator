@@ -9900,6 +9900,23 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
                 "pending_choice": True, "character": character.model_dump()}
 
+    # ── "Skill (A or B)" — speciality choice inside parens ──
+    # e.g. "Profession (Miner or Belter)" — the " or " is inside parens, so the
+    # top-level OR check above didn't fire. Present as a choice between specialities.
+    _spec_or_m = re.match(r"^(.+?)\s*\((.+?\s+or\s+.+?)\)\s*$", result.strip(), re.IGNORECASE)
+    if _spec_or_m and " or " not in _spec_or_m.group(1):  # guard: base skill has no top-level " or "
+        _so_base = _spec_or_m.group(1).strip()
+        _so_parts = [s.strip() for s in _spec_or_m.group(2).split(" or ") if s.strip()]
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": [f"{_so_base} ({s})" for s in _so_parts],
+            "prompt": f"Choose a {_so_base} speciality to gain at level 1:",
+        }
+        term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+        character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — speciality choice pending")
+        return {"roll": r.to_dict(), "result": result, "applied": "Speciality choice pending",
+                "pending_choice": True, "character": character.model_dump()}
+
     # ── "SkillName (any)" or "Any Science" → player picks a speciality ──
     _any_spec_m = re.match(r"^(.+?)\s*\(any\)$", result.strip(), re.IGNORECASE)
     _any_skill_m = re.match(r"^Any\s+(.+)$", result.strip(), re.IGNORECASE) if not _any_spec_m else None
@@ -15297,6 +15314,15 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
             return f"Rank bonus: {name} (any) {level} — speciality choice pending"
         else:
             speciality = None  # no specialities known — add base skill
+    # "Skill (A or B)" — speciality is a choice between two options
+    elif speciality and " or " in speciality:
+        _spec_options = [s.strip() for s in speciality.split(" or ") if s.strip()]
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": [f"{name} ({s})" for s in _spec_options],
+            "prompt": f"Rank bonus: choose a {name} speciality ({speciality}) to gain at level {level}:",
+        }
+        return f"Rank bonus: {name} ({speciality}) {level} — speciality choice pending"
     applied_msg = character.add_skill(name, level=level, speciality=speciality, fixed_level=True)
     disp = f"{name}{f' ({speciality})' if speciality else ''} {level}"
     return f"Rank bonus applied: {disp} ({applied_msg})"
@@ -15428,10 +15454,22 @@ def _apply_skill_result(character: Character, result: str) -> str:
             return f"+1 {disp_g} → now level {msg_g.rsplit(' ', 1)[-1]}{note}"
         return f"+1 {disp_g} (level 1){note}"
 
-    # "X or Y" — just record both options; first one is granted for simplicity
+    # "X or Y" where " or " appears OUTSIDE parentheses — auto-pick first option
+    # Depth-aware check to avoid splitting "Profession (Miner or Belter)" incorrectly.
+    _top_or_pos = -1
     if " or " in stripped:
-        first = stripped.split(" or ")[0]
-        name_first, spec_first = _split_skill_speciality(first.strip())
+        _d = 0
+        for _ci, _ch in enumerate(stripped):
+            if _ch == "(":
+                _d += 1
+            elif _ch == ")":
+                _d -= 1
+            elif _d == 0 and stripped[_ci: _ci + 4] == " or ":
+                _top_or_pos = _ci
+                break
+    if _top_or_pos >= 0:
+        first = stripped[:_top_or_pos].strip()
+        name_first, spec_first = _split_skill_speciality(first)
         # "(any)" is not a real speciality — strip it and add the base skill
         if spec_first and spec_first.lower() == "any":
             spec_first = None

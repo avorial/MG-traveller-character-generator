@@ -126,7 +126,7 @@
   },
   "events": {
     "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
-    "3": "An investigation takes a dangerous turn. Roll Investigate or Streetwise 8+. If you fail, roll on the Mishap table. If you succeed, gain SOC +1 or increase one of the following skills by one level: Deception, Jack-of-all-Trades, Stealth, Streetwise or Tactics (Military).",
+    "3": "An investigation takes a dangerous turn. Roll Investigate or Streetwise 8+. If you fail, roll on the Mishap table. If you succeed, gain SOC +1 or increase one of the following skills by one level: Deception, Jack-of-All-Trades, Stealth, Streetwise or Tactics (Military).",
     "4": "You establish a network of contacts. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
     "5": "You are rewarded for a successful mission. Gain DM+1 to any Benefit roll from this career.",
     "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",

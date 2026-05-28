@@ -37,7 +37,7 @@
       "3": "END +1",
       "4": "INT +1",
       "5": "EDU +1",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "service_skills": {
       "name": "Service Skills",
@@ -56,7 +56,7 @@
       "3": "Seafarer",
       "4": "Explosives",
       "5": "Science",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "courier": {
       "name": "Courier",

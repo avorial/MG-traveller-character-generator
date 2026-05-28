@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "droyne_worker",
   "name": "Worker",
   "description": "Workers provide manual and semi-skilled labour throughout Droyne society. They build the structures, grow the food, and carry out the repetitive essential tasks that keep the Oytrip functioning.",
@@ -37,7 +37,7 @@
       "3": "END +1",
       "4": "INT +1",
       "5": "Mechanic",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "service_skills": {
       "name": "Service Skills",
@@ -86,7 +86,7 @@
       "3": "Electronics",
       "4": "Explosives",
       "5": "Mechanic",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     }
   },
   "ranks": {

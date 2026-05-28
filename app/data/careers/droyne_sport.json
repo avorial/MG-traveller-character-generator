@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "droyne_sport",
   "name": "Sport",
   "description": "Sports are scouts and emissaries, and also carry out most trading functions on behalf of an Oytrip. They are the only caste likely to be encountered operating independently.",
@@ -37,7 +37,7 @@
       "3": "INT +1",
       "4": "EDU +1",
       "5": "PSI +1",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "service_skills": {
       "name": "Service Skills",

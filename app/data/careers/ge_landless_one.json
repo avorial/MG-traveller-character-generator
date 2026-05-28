@@ -66,7 +66,7 @@
     "wildcatter": {
       "name": "Wildcatter",
       "1": "Mechanic",
-      "2": "Profession (Belter)",
+      "2": "Profession (Miner or Belter)",
       "3": "Vacc Suit",
       "4": "Survival",
       "5": "Astrogation",
@@ -103,7 +103,7 @@
     },
     "wildcatter": {
       "0": { "title": "Scavenger", "bonus": null },
-      "1": { "title": "Finder", "bonus": "Profession (Belter) 1" },
+      "1": { "title": "Finder", "bonus": "Profession (Miner or Belter) 1" },
       "2": { "title": "Experienced Finder", "bonus": null },
       "3": { "title": "Surveyor", "bonus": "Mechanic 1" },
       "4": { "title": "Senior Surveyor", "bonus": null },

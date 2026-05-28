@@ -19,7 +19,7 @@
     "Language":      ["Anglic", "Vilani", "Zdetl", "Oynprith"],
     "Melee":         ["Unarmed", "Blade", "Bludgeon", "Natural", "Infighting"],
     "Pilot":         ["Small Craft", "Spacecraft", "Capital Ships"],
-    "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "K'kree Ritual", "Polymers"],
+    "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "K'kree Ritual", "Miner", "Polymers"],
     "Science":       ["Archaeology", "Astronomy", "Biology", "Chemistry", "Cosmology", "Cybernetics",
                       "Economics", "Genetics", "History", "Linguistics", "Philosophy", "Physics",
                       "Planetology", "Psionicology", "Psychology", "Robotics", "Sophontology", "Xenology"],

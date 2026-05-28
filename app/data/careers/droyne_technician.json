@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "droyne_technician",
   "name": "Technician",
   "description": "Technicians make, maintain and repair devices used throughout Droyne society.",
@@ -37,7 +37,7 @@
       "3": "EDU +1",
       "4": "Flight",
       "5": "Appeal",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     },
     "service_skills": {
       "name": "Service Skills",

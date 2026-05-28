@@ -87,7 +87,7 @@
       "3": "Flyer",
       "4": "Streetwise",
       "5": "Gambler",
-      "6": "Jack-of-all-Trades"
+      "6": "Jack-of-All-Trades"
     }
   },
   "ranks": {
@@ -116,7 +116,7 @@
       "3": {"title": null, "bonus": null},
       "4": {"title": "Black Sheep", "bonus": "Persuade 1"},
       "5": {"title": null, "bonus": null},
-      "6": {"title": "Scoundrel", "bonus": "Jack-of-all-Trades 1"}
+      "6": {"title": "Scoundrel", "bonus": "Jack-of-All-Trades 1"}
     }
   },
   "mishaps": {
