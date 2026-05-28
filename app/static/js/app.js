@@ -184,6 +184,47 @@ function generateSpeciesName(speciesId) {
   return `${_capWord(lid)} ${_capWord(lid)} ${_capWord(lid)}`;
 }
 
+// D66 Solomani Contacts, Allies, Rivals and Enemies table
+// (Aliens of Charted Space Vol.1 / Solomani Rim sourcebook)
+const _SOL_CONTACTS = {
+  11: 'Alien Ambassador or Trade Delegate',
+  12: 'Army Officer, Solomani Confederation',
+  13: 'Artist or Performer',
+  14: 'Colonist or Farmer',
+  15: 'Confederation Ministry Bureaucrat',
+  16: 'Conspirator or Terrorist',
+  21: 'Corporate Executive',
+  22: 'Corporate or Foreign Agent',
+  23: 'Criminal',
+  24: 'Crusading Journalist',
+  25: 'Diplomat from Foreign Ministry',
+  26: 'Dissident',
+  31: 'Entrepreneur',
+  32: 'Explorer',
+  33: 'Free Trader',
+  34: 'Inveterate Gambler',
+  35: 'Marine, Confederation Navy',
+  36: 'Navy Officer, Solomani Confederation',
+  41: 'Physician',
+  42: 'Planetary Solomani Party Official',
+  43: 'Police Officer',
+  44: 'Prindig Worker',
+  45: 'Private Investigator',
+  46: 'Racist Thug',
+  51: 'Religious Leader',
+  52: 'Researcher',
+  53: 'Retired Confederation Navy Admiral',
+  54: 'Scientist',
+  55: 'Secretariat Delegate',
+  56: 'Smuggler',
+  61: 'Solomani Party Militant',
+  62: 'SolSec Field Agent',
+  63: 'SolSec Monitor or Secret Agent',
+  64: 'Starport Administrator',
+  65: 'Tourist',
+  66: 'Uplifted Dolphin or Ape',
+};
+
 const SPECIES = JSON.parse(document.getElementById('bootstrap-species').textContent);
 const CAREERS = JSON.parse(document.getElementById('bootstrap-careers').textContent);
 const SKILLS_DATA = JSON.parse(document.getElementById('bootstrap-skills').textContent);
@@ -6461,6 +6502,21 @@ function wireCareerPhase() {
     });
   });
 
+  // Solomani D66 contact generator buttons
+  document.querySelectorAll('[data-solomani-gen]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const opIdx = parseInt(btn.getAttribute('data-solomani-gen'), 10);
+      const descEl = document.querySelector(`[data-assoc-desc="${opIdx}"]`);
+      if (!descEl) return;
+      const d1 = Math.ceil(Math.random() * 6);
+      const d2 = Math.ceil(Math.random() * 6);
+      const personage = _SOL_CONTACTS[d1 * 10 + d2] || 'Unknown Personage';
+      const name = generateSpeciesName(character.species_id || 'solomani_human');
+      descEl.value = `${personage} — ${name}`;
+      descEl.dispatchEvent(new Event('input'));
+    });
+  });
+
   document.querySelectorAll('[data-assoc-convert]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const opIdx = parseInt(chip.getAttribute('data-assoc-convert'), 10);
@@ -9013,10 +9069,14 @@ function renderEventStep() {
               : (op.kinds.length > 1
                   ? `Gain a ${op.kinds.map(assocLabel).join(' or ')} — pick one:`
                   : `Gain a ${assocLabel(op.kinds[0])}:`);
+            const isSolomani = character.society_id === 'solomani_confederation';
             return `
               <div class="assoc-op" data-assoc-op-idx="${idx}">
                 <div class="assoc-op-prompt">${prompt}</div>
-                <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                <div class="assoc-input-row">
+                  <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                  ${isSolomani ? `<button class="skill-chip assoc-gen-btn" data-solomani-gen="${idx}" title="Roll D66 on the Solomani Contacts table and generate a name">⚄ Generate</button>` : ''}
+                </div>
                 <div class="skill-picker">
                   ${op.kinds.map(k => `
                     <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="${k}">+ Add ${assocLabel(k)}</button>
@@ -9047,7 +9107,10 @@ function renderEventStep() {
                   </div>
                   <div class="assoc-op-prompt" style="margin-top:8px">…or instead, add a new one:</div>
                 ` : ''}
-                <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                <div class="assoc-input-row">
+                  <input type="text" class="assoc-desc-input" data-assoc-desc="${idx}" placeholder="Who are they? (name or short note — optional)" />
+                  ${character.society_id === 'solomani_confederation' ? `<button class="skill-chip assoc-gen-btn" data-solomani-gen="${idx}" title="Roll D66 on the Solomani Contacts table and generate a name">⚄ Generate</button>` : ''}
+                </div>
                 <div class="skill-picker">
                   <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="rival">+ Add Rival</button>
                   <button class="skill-chip" data-assoc-add="${idx}" data-assoc-kind="enemy">+ Add Enemy</button>

@@ -1554,6 +1554,25 @@ body.hide-card-desc .card-desc { display: none !important; }
   letter-spacing: 0.08em;
 }
 
+.associate-picker .assoc-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.associate-picker .assoc-input-row .assoc-desc-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.associate-picker .assoc-gen-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
 .associate-picker .assoc-desc-input {
   width: 100%;
   padding: 6px 10px;
