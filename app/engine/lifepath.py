@@ -6025,6 +6025,16 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"Debt: Cr{amount:,} added")
         character.log(f"Mishap: Cr{amount:,} debt added")
 
+    elif etype == "d_cash":
+        # "d_cash": {"dice": "1D", "multiplier": 1000} — roll dice × multiplier credits
+        _dice_str = effect.get("dice", "1D")
+        _multiplier = effect.get("multiplier", 1)
+        _roll = dice.roll(_dice_str).total
+        _amount = _roll * _multiplier
+        character.credits += _amount
+        msgs.append(f"Cash payout: Cr{_amount:,} ({_dice_str}={_roll} × Cr{_multiplier:,})")
+        character.log(f"Mishap d_cash: {_dice_str}={_roll} × {_multiplier:,} = Cr{_amount:,} added")
+
     elif etype == "force_next_career":
         character.forced_next_career_id = effect["career_id"]
         msgs.append(f"Forced next career: {effect['career_id']}")
@@ -13075,7 +13085,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "on_fail": [{"type": "stat", "stat": "STR", "amount": -1}],
              "prompt": "Roll Melee 8+ — fail: lose STR -1"},
             {"type": "career_continues"}],
-        # 6: standard ejection — no entry needed
+        6: [{"type": "skill", "name": "Outsider", "level": 1}],  # ejected from herd
     },
     "kkree_servant": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
@@ -13089,7 +13099,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              ]},
             {"type": "career_continues"}],
         5: [{"type": "stat", "stat": "SOC", "amount": 1}, {"type": "career_continues"}],
-        # 6: standard ejection
+        6: [{"type": "skill", "name": "Outsider", "level": 1}],  # ejected from herd
     },
     "kkree_merchant": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
@@ -13105,7 +13115,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "on_fail": [{"type": "stat", "stat": "SOC", "amount": -1}],
              "prompt": "War kills family — Patriarchy 8+: pass marry quickly (no embarrassment); fail SOC −1"},
             {"type": "career_continues"}],
-        # 6: standard ejection
+        6: [{"type": "skill", "name": "Outsider", "level": 1}],  # ejected from herd
     },
     "kkree_noble": {
         1: [{"type": "injury"}, {"type": "career_continues"}],
@@ -13129,7 +13139,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "options": [{"id": "auto", "label": "Roll 1D to determine outcome"}]}],
         5: [{"type": "d_stat", "stat": "SOC", "dice": "D3", "negative": True},
             {"type": "career_continues"}],
-        # 6: standard ejection
+        6: [{"type": "skill", "name": "Outsider", "level": 1}],  # ejected from herd
     },
     "girug_kagh_translator": {
         1: [{"type": "contact", "desc": "Contact [Alien Culture]"}],
@@ -13172,7 +13182,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ---- Dolphin Civilian ----
     "dolphin_civilian": {
         1: [{"type": "injury"}],
-        # 2: ejection only (political investigation)
+        2: [],  # political investigation — ejection only, no additional mechanical effect
         3: [{"type": "skill_check",
              "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
              "on_nat2": [],
@@ -13194,7 +13204,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ---- Dolphin Military ----
     "dolphin_military": {
         1: [{"type": "injury"}],
-        # 2: ejection only (anti-Dolphin prejudice)
+        2: [],  # anti-Dolphin prejudice — resigned in disgust, ejection only
         3: [{"type": "pending_choice", "id": "dolphin_mil_massacre",
              "prompt": "Ordered to participate in massacre of indigenous aquatic aliens — refuse (ejected) or participate (Enemy, career continues)?",
              "options": [
@@ -13214,7 +13224,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ---- Philosopher-Elder (Uplifted Orca) ----
     "philosopher_elder": {
         1: [{"type": "injury"}],
-        # 2: ejection only
+        2: [],  # political investigation (Orca rights) — ejection only, no additional mechanical effect
         3: [{"type": "skill_check",
              "skills": [{"name": "Gun Combat"}, {"name": "Melee"}], "target": 8,
              "on_nat2": [],
@@ -13440,7 +13450,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                  {"id": "continue", "label": "Continue — career continues but no Benefit roll this term"},
                  {"id": "leave",    "label": "Leave the career (keep Benefit roll)"},
              ]}],
-        # 5: Paid off — no special mechanical effects (career ends, benefit kept)
+        # 5: Paid off with Cr1000 × 1D
+        5: [{"type": "d_cash", "dice": "1D", "multiplier": 1000}],
         6: [{"type": "injury"}],
     },
 
