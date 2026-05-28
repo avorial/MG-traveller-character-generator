@@ -6581,11 +6581,34 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             character.associates.append(Associate(kind="contact", description=desc))
             auto_applied.append(f"Gained {desc}")
             character.log(f"Skill choice: contact option selected — {desc}")
+            character.pending_career_mishap_choice = None
+        elif re.match(r"^(.+?)\s*\(any\)$", skill, re.IGNORECASE):
+            # "Pilot (any)", "Science (any)" — chain another picker for the speciality
+            _any_base = re.match(r"^(.+?)\s*\(any\)$", skill, re.IGNORECASE).group(1).strip()
+            _spec_list = rules.skill_specialities().get(_any_base, [])
+            character.pending_career_mishap_choice = None
+            if _spec_list:
+                # Temporarily put a new choice in the event-choice slot so JS sees it
+                character.pending_career_event_choice = {
+                    "type": "skill_choice",
+                    "options": [f"{_any_base} ({s})" for s in _spec_list],
+                    "prompt": f"Choose a {_any_base} speciality to gain at level 1:",
+                }
+                auto_applied.append(f"{_any_base} speciality choice pending")
+                character.log(f"Skill choice: {_any_base} (any) → speciality picker chained")
+            else:
+                # No specialities — add base skill
+                msg = character.add_skill(_any_base, level=1, speciality=None)
+                auto_applied.append(msg)
+                character.log(f"Skill choice: {_any_base} (any) → no specialities known, base skill added")
         else:
             sn, spec = _split_skill_speciality(skill)
+            # Strip literal "(any)" speciality — shouldn't be stored as a real speciality
+            if spec and spec.lower() == "any":
+                spec = None
             msg = character.add_skill(sn, level=1, speciality=spec)
             auto_applied.append(msg)
-        character.pending_career_mishap_choice = None
+            character.pending_career_mishap_choice = None
 
     elif ptype == "skill_loss_choice":
         skill = choice_data.get("skill", "")
@@ -9844,6 +9867,28 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         return {"roll": r.to_dict(), "result": result, "applied": "Psionic skill choice pending",
                 "pending_choice": True, "character": character.model_dump()}
 
+    # ── "X or Y" skill table result → player picks one option ──
+    # MUST come before the "(any)" check so "Pilot (any) or Flyer (any)" is treated
+    # as a choice between two options, not mistaken for a single "Pilot (any) or Flyer" base skill.
+    # Gender-conditional variants ("X (if male) or Y (if female)") are handled
+    # by _apply_skill_result, so only catch plain "X or Y" here.
+    _plain_or_m = (
+        " or " in result
+        and not re.search(r"\(if (male|female)\)", result, re.IGNORECASE)
+    )
+    if _plain_or_m:
+        _or_parts = [p.strip() for p in result.split(" or ") if p.strip()]
+        if len(_or_parts) >= 2:
+            character.pending_career_event_choice = {
+                "type": "skill_choice",
+                "options": _or_parts,
+                "prompt": f"Choose one: {' or '.join(_or_parts)}:",
+            }
+            term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
+            return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
+                    "pending_choice": True, "character": character.model_dump()}
+
     # ── "SkillName (any)" or "Any Science" → player picks a speciality ──
     _any_spec_m = re.match(r"^(.+?)\s*\(any\)$", result.strip(), re.IGNORECASE)
     _any_skill_m = re.match(r"^Any\s+(.+)$", result.strip(), re.IGNORECASE) if not _any_spec_m else None
@@ -9868,27 +9913,6 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — speciality choice pending")
         return {"roll": r.to_dict(), "result": result, "applied": f"{_base_skill} speciality choice pending",
                 "pending_choice": True, "character": character.model_dump()}
-
-    # ── "X or Y" skill table result → player picks one option ──
-    # e.g. "Drive or Vacc Suit", "Drive or Flyer", "Independence or Tolerance"
-    # Gender-conditional variants ("X (if male) or Y (if female)") are handled
-    # by _apply_skill_result, so only catch plain "X or Y" here.
-    _plain_or_m = (
-        " or " in result
-        and not re.search(r"\(if (male|female)\)", result, re.IGNORECASE)
-    )
-    if _plain_or_m:
-        _or_parts = [p.strip() for p in result.split(" or ") if p.strip()]
-        if len(_or_parts) >= 2:
-            character.pending_career_event_choice = {
-                "type": "skill_choice",
-                "options": _or_parts,
-                "prompt": f"Choose one: {' or '.join(_or_parts)}:",
-            }
-            term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
-            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
-            return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
-                    "pending_choice": True, "character": character.model_dump()}
 
     # The result is either a skill name, a characteristic bonus ("DEX +1"), or similar.
     applied = _apply_skill_result(character, result)
