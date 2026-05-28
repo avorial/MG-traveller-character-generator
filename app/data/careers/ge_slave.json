@@ -177,7 +177,7 @@
     "3": { "cash": 250,  "benefit": "INT +1" },
     "4": { "cash": 500,  "benefit": "Gun" },
     "5": { "cash": 1000, "benefit": "Aslan Contact" },
-    "6": { "cash": 5000, "benefit": "External or Aslan Ally" },
+    "6": { "cash": 5000, "benefit": "External Ally or Aslan Ally" },
     "7": { "cash": 10000,"benefit": "Freedom" }
   },
   "mustering_dm_notes": "DM+1 if Rank 5+.",

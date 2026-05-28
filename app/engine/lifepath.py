@@ -9859,6 +9859,27 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         return {"roll": r.to_dict(), "result": result, "applied": f"{_base_skill} speciality choice pending",
                 "pending_choice": True, "character": character.model_dump()}
 
+    # ── "X or Y" skill table result → player picks one option ──
+    # e.g. "Drive or Vacc Suit", "Drive or Flyer", "Independence or Tolerance"
+    # Gender-conditional variants ("X (if male) or Y (if female)") are handled
+    # by _apply_skill_result, so only catch plain "X or Y" here.
+    _plain_or_m = (
+        " or " in result
+        and not re.search(r"\(if (male|female)\)", result, re.IGNORECASE)
+    )
+    if _plain_or_m:
+        _or_parts = [p.strip() for p in result.split(" or ") if p.strip()]
+        if len(_or_parts) >= 2:
+            character.pending_career_event_choice = {
+                "type": "skill_choice",
+                "options": _or_parts,
+                "prompt": f"Choose one: {' or '.join(_or_parts)}:",
+            }
+            term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
+            return {"roll": r.to_dict(), "result": result, "applied": "Choice pending",
+                    "pending_choice": True, "character": character.model_dump()}
+
     # The result is either a skill name, a characteristic bonus ("DEX +1"), or similar.
     applied = _apply_skill_result(character, result)
     term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
