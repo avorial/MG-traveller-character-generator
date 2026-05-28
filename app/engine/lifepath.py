@@ -386,16 +386,26 @@ def _is_skill_choice_benefit(benefit: str) -> list[str]:
       - Skill choices: "Advocate 1 or Broker 1"
       - Mixed choices: "SOC +1 or Combat Implant", "Combat Implant or two Ship Shares"
       - Equipment/ship share choices: "Air/Raft or Ship Share"
+      - Multi-comma choices: "Free Trader, Safari Ship or Yacht" → all three are choices
 
     Returns empty list if:
       - No " or " present (not a choice)
-      - Has a comma (compound "fixed, choice" format like "INT +1, Independence or Streetwise"
-        — the leading fixed parts must be applied by _apply_benefit separately)
+      - Has comma with leading stat/char bonus ("INT +1, Independence or Streetwise")
+        — those are handled by _apply_benefit's compound-stat handler separately.
     """
     if " or " not in benefit:
         return []
-    # Skip compound "fixed AND choice" format (e.g. "INT +1, Independence or Streetwise")
     if "," in benefit:
+        # Check if the first comma-separated part is a stat/characteristic bonus.
+        # If so, this is a "fixed stat, choice" pattern — let _apply_benefit handle it.
+        _first_part = benefit.split(",")[0].strip()
+        if re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*\+\d+$", _first_part, re.IGNORECASE):
+            return []
+        # Otherwise it's a multi-option comma+or list: split on ", " and " or "
+        raw_parts = re.split(r",\s*|\s+or\s+", benefit)
+        parts = [p.strip() for p in raw_parts if p.strip()]
+        if len(parts) >= 2:
+            return parts
         return []
     parts = [p.strip() for p in benefit.split(" or ")]
     if len(parts) < 2:
@@ -14737,6 +14747,64 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         if current < max_stat:
             character.characteristics.set("SOC", current + 1)
             character.log(f"Muster benefit: RES (SOC) +1 (now {current + 1}).")
+        return
+
+    # PSI +1 (Droyne, Vargr Psion careers)
+    if b == "PSI +1":
+        species_data = rules.species().get(character.species_id, {})
+        max_stat = species_data.get("characteristic_maximum", 15)
+        character.psi = min(character.psi + 1, max_stat)
+        character.log(f"Muster benefit: PSI +1 (now {character.psi}).")
+        return
+
+    # Hiver debt reduction benefits
+    if b.lower() == "reduce large debt":
+        reduction = 20000
+        actually_reduced = min(reduction, character.medical_debt)
+        character.medical_debt = max(0, character.medical_debt - actually_reduced)
+        character.log(f"Muster benefit: Reduce Large Debt — Cr{actually_reduced:,} off "
+                      f"(Cr{character.medical_debt:,} remaining).")
+        return
+    if b.lower() == "reduce small debt":
+        reduction = 10000
+        actually_reduced = min(reduction, character.medical_debt)
+        character.medical_debt = max(0, character.medical_debt - actually_reduced)
+        character.log(f"Muster benefit: Reduce Small Debt — Cr{actually_reduced:,} off "
+                      f"(Cr{character.medical_debt:,} remaining).")
+        return
+
+    # "D3 Contacts" / "D6 Contacts" — roll dice and add that many contacts
+    m_dice_assoc = re.match(r"^(D\d+)\s+(Contact|Ally|Rival|Enemy)s?$", b, re.IGNORECASE)
+    if m_dice_assoc:
+        dice_expr = m_dice_assoc.group(1).upper()
+        kind = m_dice_assoc.group(2).lower()
+        count = dice.roll(dice_expr).total
+        for _ in range(count):
+            character.associates.append(
+                Associate(kind=kind, description=f"{kind.capitalize()} [From mustering out]")
+            )
+        character.log(f"Muster benefit: {dice_expr} {kind.capitalize()}s — rolled {count}.")
+        return
+
+    # "D3 Ship Shares" / "D6 Ship Shares"
+    m_dice_ss = re.match(r"^(D\d+)\s+[Ss]hip\s+[Ss]hares?$", b, re.IGNORECASE)
+    if m_dice_ss:
+        dice_expr = m_dice_ss.group(1).upper()
+        count = dice.roll(dice_expr).total
+        character.ship_shares += count
+        character.log(f"Muster benefit: {dice_expr} Ship Shares — rolled {count} (total {character.ship_shares}).")
+        return
+
+    # Compound "STAT +N, X or Y" — apply stat first, then add choice to equipment
+    m_stat_then_choice = re.match(
+        r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*\+(\d+),\s*(.+)$", b, re.IGNORECASE
+    )
+    if m_stat_then_choice:
+        _apply_benefit(character, m_stat_then_choice.group(1) + " +" + m_stat_then_choice.group(2))
+        rest = m_stat_then_choice.group(3).strip()
+        # Rest may be "X or Y" — add as equipment choice
+        character.equipment.append(Equipment(name=rest, notes="Player choice: pick one (from mustering out compound benefit)"))
+        character.log(f"Muster benefit: {m_stat_then_choice.group(1)} +{m_stat_then_choice.group(2)} applied; '{rest}' → player choice")
         return
 
     # Characteristic bonuses

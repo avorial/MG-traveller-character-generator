@@ -17,7 +17,7 @@
     "Gunner":        ["Turret", "Ortillery", "Screen", "Capital"],
     "Heavy Weapons": ["Artillery", "Man Portable", "Vehicle"],
     "Language":      ["Anglic", "Vilani", "Zdetl", "Oynprith"],
-    "Melee":         ["Unarmed", "Blade", "Bludgeon", "Natural"],
+    "Melee":         ["Unarmed", "Blade", "Bludgeon", "Natural", "Infighting"],
     "Pilot":         ["Small Craft", "Spacecraft", "Capital Ships"],
     "Profession":    ["Belter", "Biologicals", "Civil Engineering", "Construction", "Hydroponics", "K'kree Ritual", "Polymers"],
     "Science":       ["Archaeology", "Astronomy", "Biology", "Chemistry", "Cosmology", "Cybernetics",
