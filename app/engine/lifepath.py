@@ -9116,10 +9116,22 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             # Use _char_dm so RES→SOC, PSI→psi, REP→reputation all resolve correctly
             skill_dm = _char_dm(character, skill_name)
         else:
+            # Parse the skill name — may be "Skill (Speciality)" or plain "Skill"
+            _sk_base, _sk_spec = _split_skill_speciality(skill_name)
+            _sk_spec_lower = _sk_spec.lower() if _sk_spec else None
             for s in character.skills:
-                if s.name == skill_name and s.speciality is None:
-                    skill_dm = s.level
-                    break
+                if s.name.lower() != _sk_base.lower():
+                    continue
+                if _sk_spec_lower:
+                    # Speciality check — match stored speciality (case-insensitive)
+                    if s.speciality and s.speciality.lower() == _sk_spec_lower:
+                        skill_dm = s.level
+                        break
+                else:
+                    # Plain skill name — match base skill (no speciality)
+                    if s.speciality is None:
+                        skill_dm = s.level
+                        break
 
         r2d = dice.roll("2D", modifier=skill_dm)
         raw_total = r2d.total - skill_dm  # raw 2D before DM
