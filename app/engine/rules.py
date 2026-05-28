@@ -317,6 +317,11 @@ def skills() -> dict:
     return _load_file("tables/skills.json")
 
 
+def skill_specialities() -> dict[str, list[str]]:
+    """Return the speciality dict from skills.json: {skill_name: [spec1, spec2, ...]}."""
+    return skills().get("speciality", {})
+
+
 def all_skills_flat(exclude_jot: bool = False) -> list[str]:
     """Return every skill name as a flat list in 'Skill (Speciality)' format."""
     data = skills()

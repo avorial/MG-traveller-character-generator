@@ -9824,6 +9824,31 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         return {"roll": r.to_dict(), "result": result, "applied": "Psionic skill choice pending",
                 "pending_choice": True, "character": character.model_dump()}
 
+    # ── "SkillName (any)" or "Any Science" → player picks a speciality ──
+    _any_spec_m = re.match(r"^(.+?)\s*\(any\)$", result.strip(), re.IGNORECASE)
+    _any_skill_m = re.match(r"^Any\s+(.+)$", result.strip(), re.IGNORECASE) if not _any_spec_m else None
+    if _any_spec_m or _any_skill_m:
+        _base_skill = (_any_spec_m.group(1) if _any_spec_m else _any_skill_m.group(1)).strip()
+        # Look up known specialities from skills.json
+        _skills_specs = rules.skill_specialities()  # returns dict name→[specs]
+        _spec_list = _skills_specs.get(_base_skill, [])
+        if not _spec_list:
+            # Fallback: add base skill at level 1 if no specialities known
+            applied = _apply_skill_result(character, _base_skill)
+            term.skills_gained.append(f"{table.get('name', table_key)}: {result} (added {_base_skill})")
+            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — {applied}")
+            return {"roll": r.to_dict(), "result": result, "applied": applied,
+                    "character": character.model_dump()}
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": [f"{_base_skill} ({s})" for s in _spec_list],
+            "prompt": f"Choose a {_base_skill} speciality to gain at level 1:",
+        }
+        term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+        character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — speciality choice pending")
+        return {"roll": r.to_dict(), "result": result, "applied": f"{_base_skill} speciality choice pending",
+                "pending_choice": True, "character": character.model_dump()}
+
     # The result is either a skill name, a characteristic bonus ("DEX +1"), or similar.
     applied = _apply_skill_result(character, result)
     term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
@@ -15214,6 +15239,9 @@ def _apply_skill_result(character: Character, result: str) -> str:
     if " or " in stripped:
         first = stripped.split(" or ")[0]
         name_first, spec_first = _split_skill_speciality(first.strip())
+        # "(any)" is not a real speciality — strip it and add the base skill
+        if spec_first and spec_first.lower() == "any":
+            spec_first = None
         msg = character.add_skill(name_first, level=1, speciality=spec_first)
         disp_first = f"{name_first} ({spec_first})" if spec_first else name_first
         if msg.startswith("Increased "):
@@ -15223,6 +15251,9 @@ def _apply_skill_result(character: Character, result: str) -> str:
 
     # Skill with optional speciality: "Melee (blade)", "Pilot (small craft)", "Recon"
     name, spec = _split_skill_speciality(stripped)
+    # "(any)" is not a real speciality — strip it and add the base skill
+    if spec and spec.lower() == "any":
+        spec = None
     msg = character.add_skill(name, level=1, speciality=spec)
     display = f"{name} ({spec})" if spec else name
     # Return "+1 SkillName → level N" so players clearly see it's an increment
