@@ -6772,6 +6772,14 @@ function wireCareerPhase() {
     });
   });
 
+  // Generic pending_choice option buttons (fallback for all choices with options array)
+  document.querySelectorAll('.generic-pending-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const optId = btn.dataset.optionId;
+      resolveMishapChoice({ option_id: optId });
+    });
+  });
+
   // Skill check buttons
   document.querySelectorAll('[id^="btn-mishap-skillcheck-"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -9656,6 +9664,18 @@ function renderMishapStep() {
                 <button class="btn primary" id="btn-mishap-vargrsci-stay">STAY QUIETLY — CONTINUE, NO BENEFIT</button>
                 <button class="btn" id="btn-mishap-vargrsci-roll">ROLL SOC 8+ — NEW PACK</button>
               </div>
+            </div>`;
+
+        } else if ((pending.options || []).length > 0) {
+          // Generic fallback: render any pending_choice with an options array as buttons.
+          // Each option sends { option_id: opt.id } to the Python resolver.
+          const opts = (pending.options || []).map(opt =>
+            `<button class="btn generic-pending-opt" data-option-id="${escapeHTML(opt.id)}">${escapeHTML(opt.label || opt.id)}</button>`
+          ).join('');
+          pendingHtml = `
+            <div class="event-box" style="margin-top:14px">
+              <p class="phase-body"><strong>${escapeHTML(pprompt)}</strong></p>
+              <div class="phase-actions" style="margin-top:8px;flex-wrap:wrap">${opts}</div>
             </div>`;
         }
       } else if (ptype === 'skill_check') {
