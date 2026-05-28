@@ -14757,16 +14757,17 @@ def _apply_benefit(character: Character, benefit: str) -> None:
         character.log(f"Muster benefit: PSI +1 (now {character.psi}).")
         return
 
-    # Hiver debt reduction benefits
+    # Hiver debt reduction benefits (amounts match the cash-column negatives in hiver career files:
+    #   "Reduce Large Debt" → Cr700,000; "Reduce Small Debt" → Cr70,000)
     if b.lower() == "reduce large debt":
-        reduction = 20000
+        reduction = 700000
         actually_reduced = min(reduction, character.medical_debt)
         character.medical_debt = max(0, character.medical_debt - actually_reduced)
         character.log(f"Muster benefit: Reduce Large Debt — Cr{actually_reduced:,} off "
                       f"(Cr{character.medical_debt:,} remaining).")
         return
     if b.lower() == "reduce small debt":
-        reduction = 10000
+        reduction = 70000
         actually_reduced = min(reduction, character.medical_debt)
         character.medical_debt = max(0, character.medical_debt - actually_reduced)
         character.log(f"Muster benefit: Reduce Small Debt — Cr{actually_reduced:,} off "
@@ -14870,18 +14871,51 @@ def _apply_benefit(character: Character, benefit: str) -> None:
             )
             return
 
-    # Associates — Ally, Contact, Rival, Enemy
+    # Associates — Ally, Contact, Rival, Enemy (with optional leading article: "an Ally", "a Contact")
     b_lower = b.lower()
-    if b_lower in _BENEFIT_ASSOC_KINDS:
+    # Strip leading article so "a Contact" → "contact", "an Ally" → "ally"
+    _b_no_article = re.sub(r"^(?:an?\s+)", "", b_lower).strip()
+    if _b_no_article in _BENEFIT_ASSOC_KINDS:
         character.associates.append(
-            Associate(kind=b_lower, description="From mustering out")
+            Associate(kind=_b_no_article, description="From mustering out")
         )
         return
 
-    # Multi-part "SOC +1 and Yacht"
+    # "Two Contacts" / "Two Allies" — word-count multi-associate (e.g. vargr_merchant)
+    _multi_assoc_m = re.match(
+        r"^(two|three|four)\s+(contact|ally|rival|enemy)s?$", b_lower
+    )
+    if _multi_assoc_m:
+        _word_count = {"two": 2, "three": 3, "four": 4}
+        _count = _word_count[_multi_assoc_m.group(1)]
+        _kind = _multi_assoc_m.group(2)
+        for _ in range(_count):
+            character.associates.append(
+                Associate(kind=_kind, description="From mustering out")
+            )
+        character.log(f"Muster benefit: {_count} {_kind.capitalize()}s added.")
+        return
+
+    # Multi-part "SOC +1 and Yacht" / "Weapon and a Contact" / "Ship Share and an Ally"
+    # MUST come before the descriptive-associate regex so "SOC +1 and a Contact" is split
+    # correctly rather than being mistaken for a single "contact" benefit.
     if " and " in b:
         for part in b.split(" and "):
-            _apply_benefit(character, part)
+            _apply_benefit(character, part.strip())
+        return
+
+    # "Aslan Contact", "External Ally" etc — descriptive prefix + associate kind.
+    # Safe here because compound " and " benefits are already handled above.
+    _desc_assoc_m = re.match(
+        r"^(.+?)\s+(contact|ally|rival|enemy)s?$", b_lower
+    )
+    if _desc_assoc_m:
+        _kind = _desc_assoc_m.group(2)
+        _desc = b.strip()  # keep original capitalisation for description
+        character.associates.append(
+            Associate(kind=_kind, description=_desc)
+        )
+        character.log(f"Muster benefit: {_desc} added as {_kind}.")
         return
 
     # "X or Y" — if either side is an associate, keep both options visible as a note;
