@@ -15192,14 +15192,34 @@ def _apply_skill_result(character: Character, result: str) -> str:
                 return f"{label} {current}→{current + 1}"
             return f"{stat} already at max ({max_stat})"
 
+    # "X (if male) or Y (if female)" — gender-conditional (Aslan skill tables)
+    _gender_m = re.match(
+        r"^(.+?)\s*\(if male\)\s*or\s*(.+?)\s*\(if female\)\s*$",
+        stripped, re.IGNORECASE
+    )
+    if _gender_m:
+        male_skill = _gender_m.group(1).strip()
+        female_skill = _gender_m.group(2).strip()
+        gender = (character.gender or "").lower()
+        chosen = female_skill if gender == "female" else male_skill
+        name_g, spec_g = _split_skill_speciality(chosen)
+        msg_g = character.add_skill(name_g, level=1, speciality=spec_g)
+        disp_g = f"{name_g} ({spec_g})" if spec_g else name_g
+        note = f" (gender: {gender or 'unknown → defaulted to male'}, alt: {female_skill if gender != 'female' else male_skill})"
+        if msg_g.startswith("Increased "):
+            return f"+1 {disp_g} → now level {msg_g.rsplit(' ', 1)[-1]}{note}"
+        return f"+1 {disp_g} (level 1){note}"
+
     # "X or Y" — just record both options; first one is granted for simplicity
     if " or " in stripped:
         first = stripped.split(" or ")[0]
-        msg = character.add_skill(first, level=1)
+        name_first, spec_first = _split_skill_speciality(first.strip())
+        msg = character.add_skill(name_first, level=1, speciality=spec_first)
+        disp_first = f"{name_first} ({spec_first})" if spec_first else name_first
         if msg.startswith("Increased "):
             new_level = msg.rsplit(" ", 1)[-1]
-            return f"+1 {first} → now level {new_level} (from choice: {stripped})"
-        return f"+1 {first} (level 1) (from choice: {stripped})"
+            return f"+1 {disp_first} → now level {new_level} (from choice: {stripped})"
+        return f"+1 {disp_first} (level 1) (from choice: {stripped})"
 
     # Skill with optional speciality: "Melee (blade)", "Pilot (small craft)", "Recon"
     name, spec = _split_skill_speciality(stripped)
