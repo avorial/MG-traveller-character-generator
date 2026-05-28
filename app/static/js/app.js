@@ -739,8 +739,8 @@ let uiState = {
   extraStatsRolls: {},             // last roll results { PSI: {total,dice,...}, ... }
   // Mobile tab: 'sheet' | 'stage' | 'log'
   mobileTab: 'stage',
-  // Light/dark theme toggle
-  themeLight: localStorage.getItem('theme') === 'light',
+  // Theme cycle: 'dark' (amber CRT) | 'light' (green terminal) | 'mono' (clean B&W)
+  theme: localStorage.getItem('theme') || 'dark',
   // Card description visibility toggle
   hideDesc: localStorage.getItem('traveller_hide_desc') === '1',
   // Heroic stat generation toggle (4×2D + 2×3D6 drop lowest)
@@ -804,7 +804,7 @@ async function freshCharacter() {
   if (!data.character) throw new Error('Server returned no character data');
   character = data.character;
   const keepGm   = uiState.gmMode;
-  const keepTheme = uiState.themeLight;
+  const keepTheme = uiState.theme;
   const keepHideDesc = uiState.hideDesc;
   uiState = {
     selectedSpecies: null,
@@ -819,7 +819,7 @@ async function freshCharacter() {
     agingResult: null, agingNextAction: null, agingSelectedStats: [],
     anagathicsPhaseDone: false, pendingNextTermAction: null,
     gmMode: keepGm,
-    themeLight: keepTheme,
+    theme: keepTheme,
     hideDesc: keepHideDesc,
     connectionsDone: false, connections: [],
     basicTrainingSkills: null,
@@ -949,7 +949,7 @@ function renderSavesModal() {
       saveCharacter();
       // Reset transient UI state but keep theme/GM/desc
       const keepGm    = uiState.gmMode;
-      const keepTheme = uiState.themeLight;
+      const keepTheme = uiState.theme;
       const keepHideDesc2 = uiState.hideDesc;
       uiState = {
         selectedSpecies: null,
@@ -964,7 +964,7 @@ function renderSavesModal() {
         agingResult: null, agingNextAction: null, agingSelectedStats: [],
         anagathicsPhaseDone: false, pendingNextTermAction: null,
         gmMode: keepGm,
-        themeLight: keepTheme,
+        theme: keepTheme,
         hideDesc: keepHideDesc2,
         connectionsDone: false, connections: [],
         basicTrainingSkills: null,
@@ -10916,7 +10916,8 @@ async function bootstrap() {
   } catch (e) { /* non-fatal */ }
 
   // Apply saved theme before first paint
-  if (uiState.themeLight) document.body.classList.add('theme-light');
+  document.body.classList.toggle('theme-light', uiState.theme === 'light');
+  document.body.classList.toggle('theme-mono',  uiState.theme === 'mono');
   // Apply saved desc-hide state before first paint
   if (uiState.hideDesc) document.body.classList.add('hide-card-desc');
 
@@ -10977,18 +10978,28 @@ async function bootstrap() {
     });
   }
 
-  // Theme toggle
+  // Theme cycle: dark → light → mono → dark
   const btnTheme = document.getElementById('btn-theme-toggle');
   if (btnTheme) {
+    const THEME_CYCLE = ['dark', 'light', 'mono'];
+    const THEME_ICONS = { dark: '◐', light: '◑', mono: '◉' };
+    const THEME_NEXT_LABEL = {
+      dark:  'Switch to green-terminal theme',
+      light: 'Switch to monochrome theme',
+      mono:  'Switch to amber CRT theme',
+    };
     const applyTheme = () => {
-      document.body.classList.toggle('theme-light', !!uiState.themeLight);
-      btnTheme.textContent = uiState.themeLight ? '◑' : '◐';
-      btnTheme.title = uiState.themeLight ? 'Switch to dark theme' : 'Switch to light theme';
+      const t = uiState.theme;
+      document.body.classList.toggle('theme-light', t === 'light');
+      document.body.classList.toggle('theme-mono',  t === 'mono');
+      btnTheme.textContent = THEME_ICONS[t] || '◐';
+      btnTheme.title = THEME_NEXT_LABEL[t] || 'Switch theme';
     };
     applyTheme();
     btnTheme.addEventListener('click', () => {
-      uiState.themeLight = !uiState.themeLight;
-      try { localStorage.setItem('theme', uiState.themeLight ? 'light' : 'dark'); } catch (e) { /* ignore */ }
+      const idx = THEME_CYCLE.indexOf(uiState.theme);
+      uiState.theme = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+      try { localStorage.setItem('theme', uiState.theme); } catch (e) { /* ignore */ }
       applyTheme();
     });
   }

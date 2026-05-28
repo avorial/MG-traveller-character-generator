@@ -87,6 +87,38 @@ body.theme-light {
   --success-bg: rgba(26, 122, 26, 0.12);
 }
 
+/* Monochrome theme — clean black-on-white, no CRT effects.
+   Toggled by app.js setting body.theme-mono */
+body.theme-mono {
+  --bg-deep: #e8e8e8;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #f0f0f0;
+  --border: #aaaaaa;
+  --border-glow: #444444;
+  --amber: #1a1a1a;
+  --amber-bright: #000000;
+  --amber-dim: #666666;
+  --amber-deep: #333333;
+  --amber-glow: rgba(0, 0, 0, 0.08);
+  --tint-rgb: 0, 0, 0;
+  --cream: #111111;
+  --muted: #777777;
+  --danger: #cc2200;
+  --danger-bg: rgba(204, 34, 0, 0.10);
+  --success: #006600;
+  --success-bg: rgba(0, 100, 0, 0.10);
+  background-image: none;
+}
+
+body.theme-mono .scanlines,
+body.theme-mono .vignette {
+  display: none;
+}
+
+body.theme-mono .terminal-header {
+  background: linear-gradient(180deg, #e0e0e0 0%, #ebebeb 100%);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
