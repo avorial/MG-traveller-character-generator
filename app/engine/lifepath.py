@@ -12712,6 +12712,74 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Tactics", "level": 1},
              {"type": "contact", "desc": "Contact [Outside Hiver Society]"}],
     },
+    # ---- Storm Knight careers ----
+    "storm_knight_thunder": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Recon"}, {"name": "Survival"}],
+              "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Recon", "Survival", "Stealth"]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Roll Recon or Survival 8+ — pass: gain Recon/Survival/Stealth 1; fail: Injury"}],
+        4:  [{"type": "skill_choice", "options": ["Leadership", "Tactics (Military)"]}],
+        5:  [{"type": "skill_choice", "options": ["Awareness", "Clairvoyance"]}],
+        6:  [{"type": "stat", "stat": "SOC", "amount": 1}],
+        7:  [],  # Life Event — handled automatically
+        8:  [{"type": "skill_check",
+              "skills": [{"name": "Melee"}],
+              "target": 9,
+              "on_pass": [{"type": "extra_benefit", "amount": 1}],
+              "on_fail": [{"type": "rival", "desc": "Rival [Enemy Knight]"}],
+              "prompt": "Roll Melee 9+ — pass: extra Benefit roll; fail: gain a Rival"}],
+        9:  [{"type": "skill_choice", "options": ["Gun Combat", "Recon", "Tactics (Military)"]}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Allied World Hero/Noble]"}],
+        12: [{"type": "auto_advance"},
+             {"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+    "storm_knight_inconstant_star": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_choice", "options": ["Astrogation", "Navigation"]},
+             {"type": "dm_benefit", "amount": 1}],
+        4:  [{"type": "skill_choice", "options": ["Science", "Electronics"]}],
+        5:  [{"type": "skill", "name": "Telepathy", "level": 1},
+             {"type": "contact", "desc": "Contact [Psionic Confidant]"}],
+        6:  [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "d_associates", "kind": "contact", "dice": "D3", "desc_prefix": "Contact [Conclave Delegate]"}],
+        7:  [],  # Life Event — handled automatically
+        8:  [{"type": "stat", "stat": "EDU", "amount": 1},
+             {"type": "extra_benefit", "amount": 1}],
+        9:  [{"type": "skill_choice", "options": ["Diplomat", "Persuade"]},
+             {"type": "ally", "desc": "Ally [Noble — Diplomatic Crisis]"}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "auto_advance"}],
+        12: [{"type": "stat", "stat": "EDU", "amount": 2},
+             {"type": "stat", "stat": "SOC", "amount": 1}],
+    },
+    "storm_knight_shadows": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "Stealth"}, {"name": "Deception"}],
+              "target": 9,
+              "on_pass": [{"type": "d_associates", "kind": "contact", "dice": "D3", "desc_prefix": "Contact [Spy Ring Asset]"}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Roll Stealth or Deception 9+ — pass: D3 Contacts; fail: Injury"}],
+        4:  [{"type": "skill_choice", "options": ["Recon", "Stealth"]}],
+        5:  [{"type": "skill_choice", "options": ["Telepathy", "Awareness"]}],
+        6:  [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "dm_benefit", "amount": 1}],
+        7:  [],  # Life Event — handled automatically
+        8:  [{"type": "contact", "desc": "Contact [Turned Enemy Officer]"},
+             {"type": "skill", "name": "Persuade", "level": 1}],
+        9:  [{"type": "stat", "stat": "END", "amount": 1}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "auto_advance"}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "extra_benefit", "amount": 2}],
+    },
 }
 
 
@@ -14021,16 +14089,56 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     # Storm Knights — only specific mishaps are non-ejecting
     "storm_knight_thunder": {
-        4: [{"type": "career_continues"}],  # rival sabotages standing — lose rank, stay
-        6: [{"type": "career_continues"}],  # psionic burnout — lose PSI, stay
+        1: [{"type": "injury"},
+            {"type": "forfeit_benefit"}],
+        2: [{"type": "enemy", "desc": "Enemy [Psionic Incident Victim]"},
+            {"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "forfeit_benefit"}],
+        4: [{"type": "career_continues"},   # rival sabotages standing — lose rank, stay
+            {"type": "rank_loss", "amount": 1}],
+        5: [{"type": "forfeit_benefit"},
+            {"type": "skill_check",
+             "skills": [{"name": "END", "is_stat": True}],
+             "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "stat", "stat": "END", "amount": -1}],
+             "prompt": "Captured: Roll END 8+ — fail: lose END −1"}],
+        6: [{"type": "career_continues"},   # psionic burnout — lose PSI, stay
+            {"type": "stat", "stat": "PSI", "amount": -1},
+            {"type": "forfeit_benefit"}],
     },
     "storm_knight_inconstant_star": {
-        3: [{"type": "career_continues"}],  # rival Order claims credit — lose rank, stay
-        4: [{"type": "career_continues"}],  # stranded — gain Survival 1, lose Benefit, stay
+        1: [{"type": "forfeit_benefit"},
+            {"type": "skill_check",
+             "skills": [{"name": "END", "is_stat": True}],
+             "target": 8,
+             "on_pass": [],
+             "on_fail": [{"type": "injury"}],
+             "prompt": "Misjump: Roll END 8+ — fail: roll on Injury table"}],
+        2: [{"type": "forfeit_benefit"},
+            {"type": "pending_choice", "id": "mishap_victim",
+             "prompt": "An Ally becomes a Rival — choose which associate turns against you:",
+             "options": []}],
+        3: [{"type": "career_continues"},   # rival Order claims credit — lose rank, stay
+            {"type": "rank_loss", "amount": 1}],
+        4: [{"type": "career_continues"},   # stranded — gain Survival 1, lose Benefit, stay
+            {"type": "skill", "name": "Survival", "level": 1},
+            {"type": "forfeit_benefit"}],
+        5: [{"type": "enemy", "desc": "Enemy [Broken Negotiation]"}],
+        6: [{"type": "stat", "stat": "EDU", "amount": -1}],
     },
     "storm_knight_shadows": {
-        3: [{"type": "career_continues"}],  # psionic scan exposes mission — lose rank, stay
-        6: [{"type": "career_continues"}],  # identity burned — lose Benefits + SOC, stay
+        1: [{"type": "injury"},
+            {"type": "forfeit_benefit"}],
+        2: [{"type": "enemy", "desc": "Enemy [Double Agent]"},
+            {"type": "forfeit_benefit"}],
+        3: [{"type": "career_continues"},   # psionic scan exposes mission — lose rank, stay
+            {"type": "rank_loss", "amount": 1}],
+        4: [{"type": "stat", "stat": "END", "amount": -1}],
+        5: [{"type": "rival", "desc": "Rival [Order Betrayer]"}],
+        6: [{"type": "career_continues"},   # identity burned — lose Benefits + SOC, stay
+            {"type": "forfeit_benefit"},
+            {"type": "stat", "stat": "SOC", "amount": -1}],
     },
 }
 
