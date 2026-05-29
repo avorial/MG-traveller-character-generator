@@ -126,6 +126,15 @@ class Character(BaseModel):
     dm_next_qualification: int = 0
     dm_next_benefit: int = 0
     dm_next_survival: int = 0
+    dm_next_events: int = 0            # consumed on the next events roll (Heroism Rule)
+
+    # Storm Knight Heroism Rule: player chooses DM-1 or DM-2 on survival before rolling.
+    # If they survive, the absolute value becomes dm_next_events. Resets each term.
+    storm_knight_heroism_dm: int = 0   # 0 = none chosen, -1 or -2 = heroism level
+
+    # Storm Knights: set True when a career-ending mishap ends a Storm Knight career.
+    # Blocks entry to all other Orders for the remainder of character creation.
+    storm_knight_ejected: bool = False
 
     # Career-transfer offer from an event (e.g. army[10] "transfer to the
     # Marines without a Qualification roll"). Set when the player elects the

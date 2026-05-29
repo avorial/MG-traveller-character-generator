@@ -140,6 +140,12 @@ class MonitorAction(BaseModel):
     active: bool
 
 
+class HeroismAction(BaseModel):
+    """Set Storm Knight Heroism DM for the upcoming survival roll (0 = none, -1 or -2)."""
+    character: Character
+    dm: int  # must be 0, -1, or -2
+
+
 class CareerAction(CharacterAction):
     career_id: str
     assignment_id: str | None = None
@@ -973,6 +979,20 @@ async def api_solsec_monitor(action: MonitorAction):
         return lifepath.toggle_solsec_monitor(character, action.active)
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/storm-knight-heroism")
+async def api_storm_knight_heroism(action: HeroismAction):
+    """Set the Storm Knight Heroism DM (0, -1, or -2) before the next survival roll."""
+    if action.dm not in (0, -1, -2):
+        raise HTTPException(400, "dm must be 0, -1, or -2")
+    character = action.character.model_copy(deep=True)
+    character.storm_knight_heroism_dm = action.dm
+    if action.dm != 0:
+        character.log(f"Storm Knight Heroism: DM{action.dm:+d} chosen for next survival roll.")
+    else:
+        character.log("Storm Knight Heroism: cleared (no heroism DM).")
+    return {"character": character.model_dump()}
 
 
 @app.post("/api/character/solomani-documents")

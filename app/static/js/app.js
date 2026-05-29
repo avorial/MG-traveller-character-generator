@@ -6024,6 +6024,16 @@ function wireCareerPhase() {
     });
   }
 
+  // Storm Knight Heroism buttons — set DM before survival roll
+  document.querySelectorAll('.btn-heroism-choice').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const dm = parseInt(btn.dataset.dm, 10);
+      const response = await apiCall('/api/character/storm-knight-heroism', { dm });
+      await applyResponse(response);
+      renderAll();
+    });
+  });
+
   const btnSurvive = document.getElementById('btn-survive');
   if (btnSurvive) {
     btnSurvive.addEventListener('click', async () => {
@@ -8083,13 +8093,42 @@ function renderSurviveStep() {
     `;
   }
 
+  // Storm Knight Heroism selector
+  const _STORM_KNIGHT_IDS = new Set(['storm_knight_thunder', 'storm_knight_inconstant_star', 'storm_knight_shadows']);
+  const isStormKnight = _STORM_KNIGHT_IDS.has(career.id);
+  const heroismDM = character.storm_knight_heroism_dm || 0;
+
+  const heroismHTML = isStormKnight ? `
+    <div style="margin:14px 0 4px;padding:12px 14px;border:1px solid var(--border);border-radius:6px">
+      <div style="font-size:11px;letter-spacing:0.15em;color:var(--amber-dim);margin-bottom:8px">STORM KNIGHT — HEROISM RULE</div>
+      <p style="font-size:12px;color:var(--text-dim);margin:0 0 10px">
+        You may voluntarily accept a negative DM to your survival roll. If you survive, your Events roll gains an equal positive DM.
+        DM−1 = Heroism. DM−2 = Grand Heroism. This choice must be made before rolling.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ${heroismDM === 0 ? 'primary' : 'ghost'} btn-heroism-choice" data-dm="0"
+          style="font-size:11px;padding:6px 12px">NO HEROISM (DM±0)</button>
+        <button class="btn ${heroismDM === -1 ? 'primary' : 'ghost'} btn-heroism-choice" data-dm="-1"
+          style="font-size:11px;padding:6px 12px">HEROISM (DM−1)</button>
+        <button class="btn ${heroismDM === -2 ? 'primary' : 'ghost'} btn-heroism-choice" data-dm="-2"
+          style="font-size:11px;padding:6px 12px">GRAND HEROISM (DM−2)</button>
+      </div>
+      ${heroismDM !== 0 ? `<p style="font-size:11px;color:var(--amber);margin:8px 0 0">
+        Heroism active — survival DM${heroismDM > 0 ? '+' : ''}${heroismDM}.
+        If you survive, your Event roll gains DM+${Math.abs(heroismDM)}.
+      </p>` : ''}
+    </div>
+  ` : '';
+
   return `
     <div class="stage-content">
       <div class="phase-label">Will You Survive?</div>
       <h2 class="phase-title">Survival Roll</h2>
-      <p class="phase-subtitle">${s.characteristic} ${s.target}+ (your DM is ${formatDM(dm)})</p>
+      <p class="phase-subtitle">${s.characteristic} ${s.target}+ (your DM is ${formatDM(dm)}${isStormKnight && heroismDM !== 0 ? `, Heroism DM${heroismDM}` : ''})</p>
 
       <p class="phase-body">Fail this roll and you suffer a career-ending mishap. Welcome to Traveller.</p>
+
+      ${heroismHTML}
 
       <div class="phase-actions">
         <button class="btn primary" id="btn-survive">ROLL 2D FOR SURVIVAL</button>

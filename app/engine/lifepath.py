@@ -5027,6 +5027,22 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if _career_allowed_species and character.species_id not in _career_allowed_species:
         return _qual_block(f"{career['name']} is restricted to specific species.")
 
+    # Storm Knight cross-Order ejection block:
+    # A career-ending mishap in any Order bars entry to all three Orders.
+    _STORM_KNIGHT_IDS = {"storm_knight_thunder", "storm_knight_inconstant_star", "storm_knight_shadows"}
+    if career_id in _STORM_KNIGHT_IDS:
+        if character.storm_knight_ejected:
+            return _qual_block(
+                "A career-ending mishap in a Storm Knight Order bars entry to all other Orders."
+            )
+        # Also check completed_careers in case the flag wasn't set (legacy saves)
+        for _cr in character.completed_careers:
+            if _cr.career_id in _STORM_KNIGHT_IDS and _cr.left_due_to == "mishap":
+                character.storm_knight_ejected = True
+                return _qual_block(
+                    "A career-ending mishap in a Storm Knight Order bars entry to all other Orders."
+                )
+
     # Aslan gender_restriction (e.g. envoy = male-only, management = female-only)
     _gender_req = career.get("gender_restriction")
     if _gender_req and character.gender and character.gender != _gender_req:
@@ -5588,7 +5604,16 @@ def survival_roll(character: Character) -> dict:
     target = survival["target"]
     survival_dm_bonus = character.dm_next_survival
     character.dm_next_survival = 0
-    dm = _char_dm(character, char_key) + cover_dm + survival_dm_bonus
+
+    # Storm Knight Heroism Rule: apply chosen negative DM to survival.
+    _heroism_dm = character.storm_knight_heroism_dm
+    _STORM_KNIGHT_IDS_SK = {"storm_knight_thunder", "storm_knight_inconstant_star", "storm_knight_shadows"}
+    if _heroism_dm != 0 and term.career_id not in _STORM_KNIGHT_IDS_SK:
+        _heroism_dm = 0  # only applies to Storm Knight careers
+    if _heroism_dm != 0:
+        character.log(f"Storm Knight Heroism: DM{_heroism_dm:+d} applied to survival roll.")
+
+    dm = _char_dm(character, char_key) + cover_dm + survival_dm_bonus + _heroism_dm
     r = dice.roll("2D", modifier=dm, target=target)
     term.survived = bool(r.succeeded)
     term.survival_roll_total = r.total
@@ -5718,6 +5743,17 @@ def survival_roll(character: Character) -> dict:
                 f"Anagathics second survival check [2D{dm:+d}={r2.total}]: PASSED."
             )
 
+    # Storm Knight Heroism Rule: after final survival result is known, resolve DM side-effect.
+    if _heroism_dm != 0:
+        if term.survived:
+            _events_dm = abs(_heroism_dm)
+            character.dm_next_events += _events_dm
+            character.log(
+                f"Storm Knight Heroism: survived with DM{_heroism_dm:+d} — "
+                f"DM+{_events_dm} granted to next Events roll."
+            )
+        character.storm_knight_heroism_dm = 0  # always consume
+
     # Career-level flag: some careers (e.g. Bounty Hunter) never eject on mishap.
     career_for_flag = rules.careers().get(term.career_id, {})
     mishap_no_eject = bool(career_for_flag.get("mishap_no_eject", False))
@@ -5740,8 +5776,14 @@ def event_roll(character: Character) -> dict:
         raise ValueError("No active term")
     career = rules.careers()[term.career_id]
     events = career.get("events", {})
-    r = dice.roll("2D")
-    key = str(r.total)
+    # Storm Knight Heroism Rule: consume any pending events DM.
+    _events_dm_bonus = character.dm_next_events
+    character.dm_next_events = 0
+    if _events_dm_bonus:
+        character.log(f"Storm Knight Heroism: DM+{_events_dm_bonus} applied to Events roll.")
+
+    r = dice.roll("2D", modifier=_events_dm_bonus)
+    key = str(min(12, r.total))  # cap at 12 for table lookup
     event_text = events.get(key, "(No event encoded for this roll — see rulebook or the career JSON file.)")
 
     # Parse unconditional DM/stat/promotion grants from the ORIGINAL event text
@@ -5770,7 +5812,8 @@ def event_roll(character: Character) -> dict:
         event_text = f"Life Event — {life_event_result['event_text']}"
 
     term.events.append(event_text)
-    character.log(f"Event [2D={r.total}]: {event_text}")
+    _evt_log = f"Event [2D={r.raw_total}" + (f"+{_events_dm_bonus}={r.total}" if _events_dm_bonus else "") + f"]: {event_text}"
+    character.log(_evt_log)
 
     # Apply structured event effects from _EVENT_EFFECTS (skill grants, choices, etc.)
     event_effects_applied, disaster_mishap = _apply_event_effects(
@@ -14320,6 +14363,12 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         )
         character.pending_benefit_rolls += earned
         character.current_term = None
+
+        # Storm Knight cross-Order ejection flag: set when ejected by mishap.
+        _STORM_KNIGHT_IDS = {"storm_knight_thunder", "storm_knight_inconstant_star", "storm_knight_shadows"}
+        if reason == "mishap" and term.career_id in _STORM_KNIGHT_IDS:
+            character.storm_knight_ejected = True
+            character.log("Storm Knight career ended by mishap — all other Orders are now barred.")
 
         # Retirement pension (MgT 2e p.53 / Solomani Conf. p.XX).
         # Scout, Rogue, Prisoner, Drifter do not count toward pension eligibility.
