@@ -5851,6 +5851,56 @@ def _apply_zhodani_re_education(character: "Character", msgs: list[str]) -> None
     msgs.append(f"Re-education Events 1D={re_r.total}: {re_text}")
 
 
+_STORM_KNIGHT_IDS_HONOURS = frozenset({
+    "storm_knight_thunder", "storm_knight_inconstant_star", "storm_knight_shadows"
+})
+
+
+def _grant_knight_commander_by_rank(character: "Character") -> list[str]:
+    """Grant Knight Commander By Rank (advancement to/past rank 6). Returns log messages."""
+    msgs: list[str] = []
+    character.knight_commander_by_rank = True
+    current_soc = character.characteristics.get("SOC")
+    if character.knight_commander_by_deed:
+        new_soc = max(current_soc, 11)
+        msgs.append("Knight Commander By Rank — already By Deed: SOC raised to minimum 11")
+    else:
+        new_soc = max(current_soc + 1, 10)
+        msgs.append(f"Knight Commander By Rank — SOC {current_soc}→{new_soc} (min 10)")
+    character.characteristics.set("SOC", new_soc)
+    has_sword = any(e.name == "Sword of Honour" for e in character.equipment)
+    character.equipment.append(
+        Equipment(name="Medallion of the Order", notes="Knight Commander By Rank — heraldic symbols inscribed")
+    )
+    character.equipment.append(
+        Equipment(name="White Sash of Honour", notes="Knight Commander By Rank")
+    )
+    if not has_sword:
+        character.equipment.append(Equipment(name="Sword of Honour", notes="Knight Commander"))
+    msgs.append("Awarded: Medallion of the Order, White Sash of Honour" + ("" if has_sword else ", Sword of Honour"))
+    character.log(f"Knight Commander By Rank granted. SOC {current_soc}→{new_soc}.")
+    return msgs
+
+
+def _grant_knight_grand_cross(character: "Character") -> list[str]:
+    """Grant Knight Grand Cross Commander (advancement when already Knight Commander By Rank)."""
+    msgs: list[str] = []
+    character.knight_grand_cross = True
+    current_soc = character.characteristics.get("SOC")
+    new_soc = max(current_soc, 12)
+    character.characteristics.set("SOC", new_soc)
+    character.equipment.append(
+        Equipment(name="Grand Cross Medallion", notes="Knight Grand Cross Commander — ornate heraldic medallion")
+    )
+    character.equipment.append(
+        Equipment(name="Grand Cross Sash", notes="Knight Grand Cross Commander — ornate sash")
+    )
+    msgs.append(f"Knight Grand Cross Commander — SOC {current_soc}→{new_soc} (min 12)")
+    msgs.append("Awarded: Grand Cross Medallion, Grand Cross Sash")
+    character.log(f"Knight Grand Cross Commander granted. SOC {current_soc}→{new_soc}.")
+    return msgs
+
+
 def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[list[str], bool]:
     """Apply a single mishap effect. Returns (auto_applied_msgs, set_pending).
 
@@ -6224,6 +6274,36 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             term.mishap = None
         msgs.append("Career continues — not ejected from this career")
         character.log("Mishap skill check passed — character stays in career")
+
+    elif etype == "knight_commander_deed":
+        # Storm Knight honour: Knight Commander By Deed.
+        # SOC = max(current + 1, 10); if also By Rank already, ensure SOC ≥ 11.
+        # Equipment: medallion + scarlet sash + Sword of Honour (once only).
+        already_had = character.knight_commander_by_deed
+        character.knight_commander_by_deed = True
+        current_soc = character.characteristics.get("SOC")
+        if already_had:
+            # Honour already held — just apply the standard SOC formula (SOC+1 floor 10)
+            new_soc = max(current_soc + 1, 10)
+        elif character.knight_commander_by_rank:
+            new_soc = max(current_soc, 11)
+        else:
+            new_soc = max(current_soc + 1, 10)
+        character.characteristics.set("SOC", new_soc)
+        msgs.append(f"Knight Commander By Deed — SOC {current_soc}→{new_soc}")
+        if not already_had:
+            character.equipment.append(
+                Equipment(name="Medallion of the Order", notes="Knight Commander By Deed — heraldic symbols inscribed")
+            )
+            character.equipment.append(
+                Equipment(name="Scarlet Sash of Honour", notes="Knight Commander By Deed")
+            )
+            has_sword = any(e.name == "Sword of Honour" for e in character.equipment)
+            if not has_sword:
+                character.equipment.append(Equipment(name="Sword of Honour", notes="Knight Commander"))
+            msgs.append("Awarded: Medallion of the Order, Scarlet Sash of Honour"
+                         + ("" if has_sword else ", Sword of Honour"))
+        character.log(f"Knight Commander By Deed granted. SOC {current_soc}→{new_soc}.")
 
     elif etype == "dm_benefit":
         amount = effect.get("amount", 0)
@@ -9787,6 +9867,33 @@ def advancement_roll(character: Character) -> dict:
             rank_bonus_log = _apply_rank_bonus(character, bonus)
             term.skills_gained.append(f"Rank bonus: {bonus}")
             character.log(f"  Rank bonus: {rank_bonus_log}")
+        # Storm Knight Knight Commander By Rank progression.
+        # Rank 6 = Storm Lord/Grand Navigator/Darkblade — reaching or passing it grants KC By Rank.
+        # Passing advancement when already at rank 6 grants Knight Grand Cross.
+        if term.career_id in _STORM_KNIGHT_IDS_HONOURS:
+            if term.rank > 6:
+                # Was already Storm Lord (rank 6), passed another advancement
+                term.rank = 6  # clamp — rank never exceeds 6
+                if not character.knight_commander_by_rank:
+                    _kc_msgs = _grant_knight_commander_by_rank(character)
+                    for _m in _kc_msgs:
+                        rank_bonus_log = (_m if rank_bonus_log is None
+                                          else f"{rank_bonus_log} | {_m}")
+                elif not character.knight_grand_cross:
+                    _kc_msgs = _grant_knight_grand_cross(character)
+                    for _m in _kc_msgs:
+                        rank_bonus_log = (_m if rank_bonus_log is None
+                                          else f"{rank_bonus_log} | {_m}")
+                else:
+                    character.log("Storm Knight rank 6 already at maximum progression — no further honour.")
+                    term.advanced = False  # nothing actually changed
+            elif term.rank == 6 and not character.knight_commander_by_rank:
+                # Just promoted to rank 6 for the first time
+                _kc_msgs = _grant_knight_commander_by_rank(character)
+                for _m in _kc_msgs:
+                    rank_bonus_log = (_m if rank_bonus_log is None
+                                      else f"{rank_bonus_log} | {_m}")
+
         # Monitor rank goes up by 1 whenever promoted in career (max 6)
         if character.solsec_monitor and character.solsec_monitor_rank < 6:
             character.solsec_monitor_rank += 1
@@ -9851,6 +9958,8 @@ def advancement_roll(character: Character) -> dict:
         "advancement_skill_roll": term.advanced,
         "zhodani_noble_auto": zhodani_noble_auto,
         "zhodani_noble_dm": zhodani_noble_dm,
+        "knight_commander_by_rank": character.knight_commander_by_rank,
+        "knight_grand_cross": character.knight_grand_cross,
         "character": character.model_dump(),
     }
 
@@ -12733,10 +12842,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Roll Melee 9+ — pass: extra Benefit roll; fail: gain a Rival"}],
         9:  [{"type": "skill_choice", "options": ["Gun Combat", "Recon", "Tactics (Military)"]}],
         10: [{"type": "dm_advancement", "amount": 2}],
-        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+        11: [{"type": "knight_commander_deed"},
              {"type": "ally", "desc": "Ally [Allied World Hero/Noble]"}],
         12: [{"type": "auto_advance"},
-             {"type": "stat", "stat": "SOC", "amount": 1}],
+             {"type": "knight_commander_deed"}],
     },
     "storm_knight_inconstant_star": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -12753,10 +12862,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         9:  [{"type": "skill_choice", "options": ["Diplomat", "Persuade"]},
              {"type": "ally", "desc": "Ally [Noble — Diplomatic Crisis]"}],
         10: [{"type": "dm_advancement", "amount": 2}],
-        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+        11: [{"type": "knight_commander_deed"},
              {"type": "auto_advance"}],
         12: [{"type": "stat", "stat": "EDU", "amount": 2},
-             {"type": "stat", "stat": "SOC", "amount": 1}],
+             {"type": "knight_commander_deed"}],
     },
     "storm_knight_shadows": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -12775,9 +12884,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "skill", "name": "Persuade", "level": 1}],
         9:  [{"type": "stat", "stat": "END", "amount": 1}],
         10: [{"type": "dm_advancement", "amount": 2}],
-        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+        11: [{"type": "knight_commander_deed"},
              {"type": "auto_advance"}],
-        12: [{"type": "stat", "stat": "SOC", "amount": 1},
+        12: [{"type": "knight_commander_deed"},
              {"type": "extra_benefit", "amount": 2}],
     },
 }

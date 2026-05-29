@@ -136,6 +136,14 @@ class Character(BaseModel):
     # Blocks entry to all other Orders for the remainder of character creation.
     storm_knight_ejected: bool = False
 
+    # Storm Knight honours (accumulated across all Storm Knight terms).
+    # By Deed: granted via specific heroic career events.
+    # By Rank: granted upon reaching rank 6, or passing advancement at rank 6.
+    # Grand Cross: granted by passing advancement when already Knight Commander By Rank.
+    knight_commander_by_deed: bool = False
+    knight_commander_by_rank: bool = False
+    knight_grand_cross: bool = False
+
     # Career-transfer offer from an event (e.g. army[10] "transfer to the
     # Marines without a Qualification roll"). Set when the player elects the
     # transfer branch; consumed when the next career is chosen (qualification

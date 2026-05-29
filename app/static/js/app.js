@@ -1571,6 +1571,22 @@ function renderSheet() {
         <p class="empty">DM+1 advancement · nat-2 → SolSec Mishap · nat-12 → SolSec Event${character.solsec_monitor_rank >= 3 ? ' · +1 Benefit roll' : ''}.</p>
       </div>` : ''}
 
+      ${(character.knight_commander_by_deed || character.knight_commander_by_rank || character.knight_grand_cross) ? `
+      <div class="sheet-section">
+        <h3>Storm Knight Honours</h3>
+        <ul class="skill-list">
+          ${character.knight_grand_cross ? `<li><span>Knight Grand Cross Commander</span><span class="skill-level" style="color:var(--accent)">SOC≥12</span></li>` : ''}
+          ${character.knight_commander_by_rank ? `<li><span>Knight Commander By Rank</span><span class="skill-level" style="color:var(--accent)">SOC≥10</span></li>` : ''}
+          ${character.knight_commander_by_deed ? `<li><span>Knight Commander By Deed</span><span class="skill-level" style="color:var(--accent)">SOC≥10</span></li>` : ''}
+          ${character.knight_commander_by_deed && character.knight_commander_by_rank ? `<li><span>Both Rank &amp; Deed</span><span class="skill-level" style="color:var(--accent)">SOC≥11</span></li>` : ''}
+        </ul>
+        <p class="empty">
+          ${character.knight_grand_cross ? 'Grand Cross: SOC floor 12. ' : ''}
+          ${character.knight_commander_by_deed && character.knight_commander_by_rank ? 'Both honours: SOC floor 11. ' :
+            (character.knight_commander_by_deed || character.knight_commander_by_rank) ? 'Single honour: SOC floor 10. ' : ''}
+        </p>
+      </div>` : ''}
+
       ${character.solomani_passing ? `
       <div class="sheet-section">
         <h3>Solomani Passing Documents</h3>
@@ -6961,6 +6977,8 @@ function wireCareerPhase() {
           newRankTitle: response.new_rank_title,
           rankBonus: response.rank_bonus || null,
           forcedFromCareer: response.forced_from_career || false,
+          knightCommanderByRank: response.knight_commander_by_rank || false,
+          knightGrandCross: response.knight_grand_cross || false,
         };
         uiState.lastRoll = advRoll;
         uiState.lastAdvanceRoll = advRoll;
@@ -10034,6 +10052,15 @@ function renderAdvanceStep() {
             <span class="event-label" style="color:var(--success,#7fd87f)">RANK BONUS APPLIED</span>
             ${escapeHTML(lr.rankBonus)}
           </div>` : ''}
+        ${lr.knightGrandCross ? `
+          <div class="event-box" style="border-color:var(--accent);margin-top:10px;background:rgba(100,180,255,0.07)">
+            <span class="event-label" style="color:var(--accent);font-size:13px">⚔ KNIGHT GRAND CROSS COMMANDER</span>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text)">You have achieved the highest rank of honour in your Order. SOC raised to minimum 12. Awarded: Grand Cross Medallion and Grand Cross Sash.</p>
+          </div>` : (lr.knightCommanderByRank ? `
+          <div class="event-box" style="border-color:var(--accent);margin-top:10px;background:rgba(100,180,255,0.07)">
+            <span class="event-label" style="color:var(--accent);font-size:13px">⚔ KNIGHT COMMANDER BY RANK</span>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text)">You have attained the highest rank in your Order. SOC raised to minimum 10 (or 11 if also By Deed). Awarded: Medallion of the Order, White Sash of Honour, Sword of Honour.</p>
+          </div>` : '')}
         ${lr.advancementSkillGained ? `
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:10px">
             <span class="event-label" style="color:var(--success,#7fd87f)">BONUS SKILL GAINED</span>
