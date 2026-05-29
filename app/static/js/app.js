@@ -2948,12 +2948,19 @@ function renderSpeciesPhase() {
 
   const cards = filteredSpecies.map(sp => {
     const isRollTrigger = !!sp.racial_background_roll;
+    const _fmtCustomRoll = v => v.replace('fixed:', 'always ').replace('_min', ' min ');
     const modsText = isRollTrigger
       ? '2D Heritage Roll'
-      : (Object.entries(sp.characteristic_modifiers)
-          .filter(([, v]) => v !== 0)
-          .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
-          .join(' · ') || 'No modifiers');
+      : (() => {
+          const stdMods = Object.entries(sp.characteristic_modifiers || {})
+            .filter(([, v]) => v !== 0)
+            .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`);
+          const customRolls = Object.entries(sp.custom_characteristic_rolls || {})
+            .filter(([, v]) => v !== '2D')
+            .map(([k, v]) => `${k}: ${_fmtCustomRoll(v)}`);
+          const all = [...stdMods, ...customRolls];
+          return all.join(' · ') || 'No modifiers';
+        })();
     return `
       <button class="card ${selected === sp.id ? 'selected' : ''}" data-species="${sp.id}">
         <div class="card-title">${sp.name}</div>
