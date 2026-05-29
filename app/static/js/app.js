@@ -7121,6 +7121,12 @@ function wireCareerPhase() {
       await applyResponse(startResp);
       uiState.lastRoll = null;
       uiState.subPhase = 'train';
+    } else if (nextAction.type === 'career_select') {
+      // End term without leaving — drop back into career picker (e.g. to try a semi-career)
+      uiState.lastRoll = null;
+      uiState.subPhase = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
     } else if (nextAction.type === 'muster_out') {
       uiState.subPhase = null;
       uiState.selectedCareer = null;
@@ -7312,6 +7318,15 @@ function wireCareerPhase() {
       await endTermWithAgingIntercept(false, 'voluntary', { type: 'next_term', careerId, assignmentId });
     });
   }
+
+  // Semi-career try-out buttons (e.g. "TRY OUT FOR IMPERIAL GUARD")
+  // End the current term (non-leaving) then drop into the career picker,
+  // where the semi-career card will be visible.
+  document.querySelectorAll('.btn-try-semi-career').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await endTermWithAgingIntercept(false, 'voluntary', { type: 'career_select' });
+    });
+  });
 
   const btnLeaveCareer = document.getElementById('btn-leave-career');
   if (btnLeaveCareer) {
@@ -10022,6 +10037,26 @@ function renderAdvanceStep() {
   const _forcedNext = character.forced_next_career_id || null;
   const _forcedNextName = _forcedNext ? (CAREERS.find(c => c.id === _forcedNext)?.name || _forcedNext) : null;
   const _igMustLeave = term.career_id === 'imperial_guard' && !!character.imperial_guard_must_leave;
+
+  // Semi-career "try out" buttons — appear next to ANOTHER TERM when the character
+  // is currently in a qualifying source career (and, for Guard, has been promoted).
+  const _semiCareerLabels = {
+    imperial_guard: 'TRY OUT FOR IMPERIAL GUARD',
+    ini: 'TRY OUT FOR NAVAL INTELLIGENCE',
+  };
+  const _semiCareerBtns = CAREERS
+    .filter(c => {
+      if (!c.requires_source_career) return false;
+      if (!c.requires_source_career.includes(term.career_id)) return false;
+      if (c.requires_advancement && !term.advanced) return false;
+      if ((character.banned_career_ids || []).includes(c.id)) return false;
+      return true;
+    })
+    .map(c => {
+      const label = _semiCareerLabels[c.id] || `TRY OUT FOR ${c.name.toUpperCase()}`;
+      return `<button class="btn ghost btn-try-semi-career" data-semi-career="${c.id}">${escapeHTML(label)} →</button>`;
+    })
+    .join('');
   const _iniCareer = term.career_id === 'ini';
   const _iniReturnNote = _iniCareer ? `
     <div class="event-box" style="border-color:var(--accent);margin-top:10px;font-size:12px">
@@ -10054,6 +10089,7 @@ function renderAdvanceStep() {
     ${_iniReturnNote}
     <div class="phase-actions">
       <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+      ${_semiCareerBtns}
       <button class="btn" id="btn-leave-career">MUSTER OUT</button>
     </div>
     ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
