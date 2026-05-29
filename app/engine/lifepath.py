@@ -13976,6 +13976,19 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
             {"type": "stat", "stat": "SOC", "amount": -1},
             {"type": "dm_survival", "amount": -2}],
     },
+    # Storm Knights — only specific mishaps are non-ejecting
+    "storm_knight_thunder": {
+        4: [{"type": "career_continues"}],  # rival sabotages standing — lose rank, stay
+        6: [{"type": "career_continues"}],  # psionic burnout — lose PSI, stay
+    },
+    "storm_knight_inconstant_star": {
+        3: [{"type": "career_continues"}],  # rival Order claims credit — lose rank, stay
+        4: [{"type": "career_continues"}],  # stranded — gain Survival 1, lose Benefit, stay
+    },
+    "storm_knight_shadows": {
+        3: [{"type": "career_continues"}],  # psionic scan exposes mission — lose rank, stay
+        6: [{"type": "career_continues"}],  # identity burned — lose Benefits + SOC, stay
+    },
 }
 
 

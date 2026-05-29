@@ -8,7 +8,6 @@
     "modifiers": []
   },
   "allowed_species": ["human_other", "solomani_human", "solomani_racial", "solomani_mixed", "confederation_human"],
-  "mishap_no_eject": true,
   "societies": [
     "other",
     "solomani_confederation"
