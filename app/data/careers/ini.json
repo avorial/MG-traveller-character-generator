@@ -4,6 +4,7 @@
   "complete": true,
   "societies": ["third_imperium"],
   "description": "INI field agents are Navy officers seconded to intelligence operations. Naval rank is frozen during service. Failure to qualify merely means the posting is denied — there is no permanent ban. Agents may return to Navy line/crew at their held rank at any time without a qualification roll. When mustering out, benefit rolls may be taken on the Navy table or split between both careers by terms served.",
+  "requires_source_career": ["navy", "confederation_navy", "vargr_navy", "zhodani_navy"],
   "qualification": {
     "characteristic": "INT",
     "target": 7,

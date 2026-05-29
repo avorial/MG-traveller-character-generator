@@ -5120,6 +5120,14 @@ function renderChooseCareer() {
         if (cetaceanBlockedCareers.has(c.id)) return false;
         // Cetacean species: non-cetacean-specific careers require Vacc Suit first
         if (isCetacean && (!c.allowed_species || c.allowed_species.length === 0) && !hasVaccSuit) return false;
+        // Semi-careers with a source-career requirement (e.g. Imperial Guard, INI):
+        // only show when the character is currently serving in a qualifying career.
+        if (c.requires_source_career) {
+          const curCareerId = character.current_term?.career_id || null;
+          if (!curCareerId || !c.requires_source_career.includes(curCareerId)) return false;
+          // Some semi-careers (e.g. Imperial Guard) also require a promotion in the current term
+          if (c.requires_advancement && !character.current_term?.advanced) return false;
+        }
         return true;
       });
   const forcedCareerName = forcedId ? (CAREERS.find(c => c.id === forcedId)?.name || forcedId.toUpperCase()) : null;
@@ -5215,86 +5223,44 @@ function renderChooseCareer() {
       }
     }
 
-    // Imperial Guard: show inline eligibility checklist on its card
+    // Imperial Guard: show qualification DM details on its card (card only appears when source career + promotion met)
     let igEligBadge = '';
     if (c.id === 'imperial_guard') {
-      const curTerm = character.current_term || null;
-      const _IG_SOURCE = new Set(['army','marine','confederation_army','solomani_marine',
-        'vargr_army','vargr_marines','zhodani_army','zhodani_guard']);
       const _str = character.characteristics?.STR ?? 0;
       const _end = character.characteristics?.END ?? 0;
       const _soc = character.characteristics?.SOC ?? 0;
-      const igChecks = [
-        {
-          ok: curTerm && _IG_SOURCE.has(curTerm.career_id),
-          label: 'Currently serving Army or Marines',
-        },
-        {
-          ok: curTerm && !!curTerm.advanced,
-          label: 'Promoted last term',
-        },
-        {
-          ok: !(character.term_history || []).some(h => h.mishap && h.mishap.trim()),
-          label: 'Unblemished record (no mishaps)',
-        },
-        {
-          ok: _str >= 10 || _end >= 10,
-          label: `STR or END 10+ (STR ${_str}, END ${_end})`,
-        },
-        {
-          ok: (character.skills || []).some(s => s.name?.toLowerCase() === 'vacc suit' && s.level >= 1),
-          label: 'Vacc Suit 1+',
-        },
-      ];
-      const allMet = igChecks.every(ch => ch.ok);
+      const _hasMishap = (character.term_history || []).some(h => h.mishap && h.mishap.trim());
+      const _hasVacc = (character.skills || []).some(s => s.name?.toLowerCase() === 'vacc suit' && s.level >= 1);
+      const igDMs = [
+        _str >= 10 || _end >= 10 ? `DM+1 (STR/END 10+)` : null,
+        _end >= 10 ? `DM+1 (END 10+)` : null,
+        _soc >= 9  ? `DM+1 (SOC 9+)`  : null,
+      ].filter(Boolean);
+      const igWarnings = [
+        _hasMishap ? '⚠ Mishap on record — qualification blocked' : null,
+        !_hasVacc  ? '⚠ Vacc Suit 1+ required — qualification blocked' : null,
+        (_str < 10 && _end < 10) ? '⚠ STR or END 10+ required — qualification blocked' : null,
+      ].filter(Boolean);
       igEligBadge = `
-        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6">
-          <span style="font-weight:600;color:${allMet ? 'var(--success,#7fd87f)' : 'var(--amber)'}">
-            ${allMet ? '✦ ELIGIBLE' : '⚠ PREREQUISITES'}
-          </span>
-          <ul style="list-style:none;padding:0;margin:2px 0 0 0">
-            ${igChecks.map(ch => `<li style="color:${ch.ok ? 'var(--success,#7fd87f)' : 'var(--fg-dim)'}">
-              ${ch.ok ? '✓' : '✗'} ${escapeHTML(ch.label)}</li>`).join('')}
-          </ul>
+        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6;color:var(--fg-dim)">
+          END 11+ · ${igDMs.length ? igDMs.join(' · ') : 'no active DMs'}
+          ${igWarnings.map(w => `<div style="color:var(--danger);margin-top:1px">${escapeHTML(w)}</div>`).join('')}
         </div>`;
     }
 
-    // INI: show inline eligibility checklist
+    // INI: show qualification DM details (card only appears when currently in Navy)
     let iniEligBadge = '';
     if (c.id === 'ini') {
-      const curTerm = character.current_term || null;
-      const _iniNavyIds = new Set(['navy','confederation_navy','vargr_navy','zhodani_navy']);
       const _int = character.characteristics?.INT ?? 0;
       const _edu = character.characteristics?.EDU ?? 0;
-      const iniChecks = [
-        {
-          ok: curTerm && _iniNavyIds.has(curTerm.career_id),
-          label: 'Currently serving in the Navy',
-        },
-        {
-          ok: _int >= 7,
-          label: `INT 7+ (yours: ${_int})`,
-        },
-        {
-          ok: _int >= 9,
-          label: `INT 9+ for bonus DM (yours: ${_int})`,
-        },
-        {
-          ok: _edu >= 9,
-          label: `EDU 9+ for bonus DM (yours: ${_edu})`,
-        },
-      ];
-      const iniAllMet = iniChecks.slice(0, 2).every(ch => ch.ok); // first 2 are hard gates
+      const iniDMs = [
+        _int >= 9 ? `DM+1 (INT 9+)` : null,
+        _edu >= 9 ? `DM+1 (EDU 9+)` : null,
+      ].filter(Boolean);
       iniEligBadge = `
-        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6">
-          <span style="font-weight:600;color:${iniAllMet ? 'var(--success,#7fd87f)' : 'var(--amber)'}">
-            ${iniAllMet ? '✦ ELIGIBLE' : '⚠ PREREQUISITES'}
-          </span>
-          <ul style="list-style:none;padding:0;margin:2px 0 0 0">
-            ${iniChecks.map(ch => `<li style="color:${ch.ok ? 'var(--success,#7fd87f)' : 'var(--fg-dim)'}">
-              ${ch.ok ? '✓' : '✗'} ${escapeHTML(ch.label)}</li>`).join('')}
-          </ul>
-          <div style="color:var(--fg-dim);margin-top:2px">Failure is not permanent — posting can be re-requested next term.</div>
+        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6;color:var(--fg-dim)">
+          INT 7+ · ${iniDMs.length ? iniDMs.join(' · ') : 'no active DMs'}
+          <div style="margin-top:1px">Failure is not permanent — posting can be re-requested next term.</div>
         </div>`;
     }
 

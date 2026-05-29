@@ -14,6 +14,9 @@
     ]
   },
   "advancement_required": true,
+  "requires_source_career": ["army", "marine", "confederation_army", "solomani_marine",
+                              "vargr_army", "vargr_marines", "zhodani_army", "zhodani_guard"],
+  "requires_advancement": true,
   "assignments": {
     "guard": {
       "name": "Guard",
