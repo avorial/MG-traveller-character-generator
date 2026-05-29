@@ -1,0 +1,37 @@
+{
+    "id": "martian",
+    "name": "Martian",
+    "description": "Martians are humanoid and can carry out any task a human can with roughly equal efficiency once they have been shown how. Their language is very difficult to pronounce and hard to follow for non-Martians, so they tend to use Anglic or other local languages, which they have no apparent difficulty learning. Martians have an instinctive adaptability — an ability to figure out what any tool or item can be used for, which may not be its intended purpose, or to find, make, or wrangle something to complete a given task. This makes them excellent improvisers in the field. Attempts to use telepathy on a Martian invariably fail, leaving the telepath baffled and uneasy; the nature of Martian cognition appears to be fundamentally incompatible with standard psionic contact. Martians gravitate toward frontiersman careers or hands-on work such as infantry soldiering.",
+    "characteristic_modifiers": {
+        "STR": -1,
+        "DEX": 1,
+        "END": -1,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "EDU": "1D"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Adaptability",
+            "description": "All Martians have an instinctive ability to figure out what a tool or item can be used for — which may not be its intended purpose — or to find, make, or wrangle something with which to complete a given task. An INT check (difficulty depends on the nature of the task and resources at hand) allows the Martian to come up with an off-the-wall solution to a problem using whatever is to hand."
+        },
+        {
+            "name": "Telepathic Confusion",
+            "description": "Attempts to use telepathy on a Martian invariably fail, leaving the telepath baffled and uneasy. Martians are immune to all forms of psionic contact, telepathic reading, or mental intrusion. The nature of Martian cognition is fundamentally incompatible with standard psionic contact."
+        }
+    ],
+    "species_notes": [
+        "EDU rolled as 1D (range 1–6) and cannot be increased beyond 7 by any means — Referee enforces the EDU 7 cap.",
+        "STR-1, END-1, DEX+1 applied to standard 2D6 rolls.",
+        "Adaptability: INT check (Referee sets difficulty) to improvise a solution using available materials.",
+        "Telepathic Confusion: immune to all psionic contact and telepathic intrusion.",
+        "Career note: Martians favour frontiersman careers and hands-on roles. Scholar Martians are described as having an alarming and very strange approach to science."
+    ],
+    "sort_order": 114,
+    "aliases": ["martian", "martians"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

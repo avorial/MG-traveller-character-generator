@@ -1,0 +1,38 @@
+{
+    "id": "segani",
+    "name": "Segani",
+    "description": "Segani are not very suitable as Travellers, as roleplaying may well require a slow descent into madness or desperate attempt to cling to sanity every time their ship jumps. However, Segani might be encountered in full (or more or less full) control of their faculties. They are quick to anger and explosively reactive in conflict — a Segani can go from passive to all-out attack in seconds, lunging at an opponent before either of them knows the Segani is about to do it. They are well adapted to arid desert environments, with excellent survival instincts in such terrain.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "END": "1D+2"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Desert Adaptation",
+            "description": "Segani receive DM+2 on all Survival or Recon checks when in an arid environment."
+        },
+        {
+            "name": "Quick to Anger",
+            "description": "A Segani can go from passive to all-out attack in seconds, lunging at an opponent before either of them knows the Segani is about to do it. Segani gain DM+2 to all initiative rolls."
+        }
+    ],
+    "species_notes": [
+        "END rolled as 1D+2 (range 3–8; maximum starting value 8). END cannot be increased above 10 by any means — Referee enforces the END 10 cap.",
+        "All other characteristics rolled on standard 2D.",
+        "Desert Adaptation: DM+2 on Survival and Recon checks in arid environments.",
+        "Quick to Anger: DM+2 to all initiative rolls.",
+        "Jump psychosis: Segani suffer psychological distress from jump travel. Referee applies at discretion — a Segani Traveller may need to make periodic sanity or composure checks after jumps.",
+        "Career preferences (source material): Army, Citizen, Entertainer, Rogue, Scholar."
+    ],
+    "sort_order": 117,
+    "aliases": ["segani"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

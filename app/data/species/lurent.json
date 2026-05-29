@@ -1,0 +1,38 @@
+{
+    "id": "lurent",
+    "name": "Lurent",
+    "description": "Lurent are very large by human standards. They have no vocal cords and communicate by a mix of tentacle gesture and body language. Their language is very subtle, with complex nuances of gesture that humans simply cannot replicate. Lurent can hear perfectly well but sometimes forget to listen to words instead of following gestures. This can lead to embarrassing misunderstandings or occasional violence. Lurent who are in a 'wandering cycle' cannot remain in one place for long — they will constantly agitate to be moving on and become increasingly irritable if they cannot. Those in a 'homeward' cycle are compelled to make progress in the direction of Borlund. A Lurent in a 'sedentary' cycle will want to stay where they are and not be receptive to suggestions of further travel.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "STR": "2D+4",
+        "END": "2D+4"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Natural Weapon (Tentacle Bash, 2D)",
+            "description": "Lurent are big and powerful enough to smash many opponents without needing to pick up a weapon. Their tentacles do 2D damage and use the Melee (natural) skill."
+        },
+        {
+            "name": "Wanderlust",
+            "description": "Lurent cycle between three behavioural states: wandering (compelled to keep moving and agitated if stationary), homeward (compelled to travel toward Borlund), and sedentary (content to stay put and resistant to travel). The Referee determines the Lurent's current cycle at the start of a campaign or adventure. Roleplaying note: this instinctive cycle shapes the Lurent's motivation more powerfully than rational decisions."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 2D+4 (range 6–16) — applied automatically by the engine.",
+        "Natural Weapon — Tentacle Bash: Melee (natural), 2D damage.",
+        "Wanderlust: Referee determines current cycle (wandering/homeward/sedentary) — see trait description. Strong roleplaying driver.",
+        "Communication: Lurent have no vocal cords; they gesture and use body language. Translation devices adapted for gesture input are available.",
+        "Career preferences (source material): Drifter, Merchant, Noble, Rogue, Scout, Scholar."
+    ],
+    "sort_order": 113,
+    "aliases": ["lurent"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

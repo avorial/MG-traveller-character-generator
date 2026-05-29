@@ -1,0 +1,47 @@
+{
+    "id": "gllu",
+    "name": "Gl'lu",
+    "description": "The Gl'lu are descended from rough-terrain scavenger intimidators and look like nightmarish insectoids. Their porous mottled skin, slimy appendages and periscope-like eyestalk make them look like a cross between a Terran octopus and a slug. Indeed, upon first encountering the race during the Grand Survey, scouts mistook them for a far-flung colony of Githiaskio or genetically altered Hivers. Their body is asymmetric, with two sets of limbs: the front set comprises four legs which have adapted hands, while the rear set consists of three stouter legs for stability and power. The Gl'lu have a single gender and for all intents and purposes are hermaphroditic.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 1,
+        "END": -1,
+        "INT": 0,
+        "EDU": -2,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Atmospheric Requirements",
+            "description": "The Gl'lu depend on an ammonia-rich environment and require a sealed suit to survive in any other atmosphere. Without protection, a Gl'lu in a standard oxygen-nitrogen atmosphere will rapidly incapacitate and die."
+        },
+        {
+            "name": "Fast Metabolism (+1)",
+            "description": "Gl'lu have a heightened metabolism and very fast reactions. They gain DM+1 to all initiative rolls."
+        },
+        {
+            "name": "Heightened Senses",
+            "description": "Gl'lu have better hearing and sense of smell than humans. They receive DM+1 to any Recon and Survival checks they have to make."
+        },
+        {
+            "name": "IR Vision",
+            "description": "Gl'lu have highly developed vision in the infrared part of the spectrum and can see clearly in darkness. However, they can only see in infrared — they are effectively blind to the visible light spectrum used by humans and must rely on adapted sensor equipment to function normally in human environments."
+        },
+        {
+            "name": "Natural Weapon (fangs, 1D+2)",
+            "description": "Gl'lu have sharp fangs that they can use to bite enemies. The fangs do 1D+2 damage and use the Melee (natural) skill."
+        }
+    ],
+    "species_notes": [
+        "Atmospheric Requirements: sealed suit mandatory in all non-ammonia atmospheres. Referee enforces — a Gl'lu without protection in a standard atmosphere is incapacitated within minutes.",
+        "Fast Metabolism: DM+1 to all initiative rolls.",
+        "Heightened Senses: DM+1 on all Recon and Survival checks.",
+        "IR Vision: no darkness penalty, but the Gl'lu can only see in infrared. Standard human-spectrum lighting and displays require adapted sensor aids.",
+        "Natural Weapon — Fangs: Melee (natural), 1D+2 damage.",
+        "All careers from the Traveller Core Rulebook are suitable for Gl'lu."
+    ],
+    "sort_order": 111,
+    "aliases": ["gllu", "gl'lu"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

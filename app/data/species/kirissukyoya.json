@@ -1,0 +1,38 @@
+{
+    "id": "kirissukyoya",
+    "name": "Kirissukyoya",
+    "description": "The Kirissukyoya have trilateral symmetry, with three arms and three legs. While Kirissukyoya have a recognisable head, their brains are located within their torsos. Their three-fold body plan gives them exceptional stability and balance, and their retractable claws make them capable close-quarters combatants. They have an innate mechanical aptitude that borders on the instinctive — a Kirissukyoya handed an unfamiliar device will typically begin dismantling and reassembling it within moments, often to its owner's alarm.",
+    "characteristic_modifiers": {
+        "STR": -1,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "background_skills": ["Mechanic 1"],
+    "traits": [
+        {
+            "name": "Eidetic Sense (hearing)",
+            "description": "Kirissukyoya are able to recall anything they hear with perfect clarity. They can repeat verbatim any conversation or sound they have heard, no matter how long ago. This eidetic audio memory cannot be suppressed or overwritten."
+        },
+        {
+            "name": "Natural Weapon (claws, 1D)",
+            "description": "Kirissukyoya have retractable claws that they can use to eviscerate enemies. The claws do 1D damage and use the Melee (natural) skill."
+        },
+        {
+            "name": "Skill (Mechanic 1)",
+            "description": "Kirissukyoya have an innate understanding of mechanical processes and all possess the skill Mechanic 1. This is granted automatically at character creation."
+        }
+    ],
+    "species_notes": [
+        "Mechanic 1 granted automatically at character creation.",
+        "Eidetic Sense (hearing): perfect audio recall of anything heard. Referee applies during play.",
+        "Natural Weapon — Claws: Melee (natural), 1D damage. Retractable.",
+        "All careers from the Traveller Core Rulebook are suitable for Kirissukyoya."
+    ],
+    "sort_order": 112,
+    "aliases": ["kirissukyoya"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}
