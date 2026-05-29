@@ -2959,7 +2959,11 @@ function renderSpeciesPhase() {
             .filter(([, v]) => v !== '2D')
             .map(([k, v]) => `${k}: ${_fmtCustomRoll(v)}`);
           const all = [...stdMods, ...customRolls];
-          return all.join(' · ') || 'No modifiers';
+          if (all.length > 0) return all.join(' · ');
+          if (sp.eslyat_subraces) return 'STR +1 (male) · SOC varies by caste';
+          if (sp.gender_modifiers) return 'Varies by gender';
+          if (sp.droyne_caste_system) return 'Varies by caste';
+          return 'No modifiers';
         })();
     return `
       <button class="card ${selected === sp.id ? 'selected' : ''}" data-species="${sp.id}">
