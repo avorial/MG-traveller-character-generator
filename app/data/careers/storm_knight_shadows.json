@@ -8,6 +8,7 @@
     "modifiers": []
   },
   "allowed_species": ["human_other", "solomani_human", "solomani_racial", "solomani_mixed", "confederation_human"],
+  "mishap_no_eject": true,
   "societies": [
     "other",
     "solomani_confederation"
@@ -203,15 +204,15 @@
     }
   },
   "mishaps": {
-    "1": "Your cover is blown and you are captured. Roll on the Injury table. You escape but your usefulness as a field operative is finished for now.",
+    "1": "Your cover is blown and you are captured. Roll on the Injury table. Lose one Benefit roll.",
     "2": "An asset you recruited turns out to be a double agent. Gain an Enemy and lose one Benefit roll.",
-    "3": "A psionic scan by a powerful telepath exposes part of your mission. Lose one rank but you are not ejected.",
+    "3": "A psionic scan by a powerful telepath exposes part of your mission. Lose one rank.",
     "4": "You are forced to eliminate a target who turns out to be innocent. Suffer nightmares — lose END -1.",
     "5": "You are betrayed by a member of your own Order. Gain a Rival within the Order.",
-    "6": "Your identity is burned and you must go to ground for years. You are not ejected but lose all Benefit rolls this term and suffer SOC -1."
+    "6": "Your identity is burned and you must go to ground for years. Lose all Benefit rolls this term and suffer SOC -1."
   },
   "events": {
-    "2": "Disaster! Roll on the Mishaps table but you are not ejected from the Order.",
+    "2": "Disaster! Roll on the Mishaps table.",
     "3": "You uncover a spy ring but it nearly costs you everything. Roll Stealth 9+ or Deception 9+. If you fail, roll on the Injury table. If you succeed, gain D3 Contacts.",
     "4": "Months of undercover work hone your instincts. Gain Recon 1 or Stealth 1.",
     "5": "Your telepathic abilities grow more refined under operational pressure. Gain Telepathy 1 or Awareness 1.",

@@ -8,6 +8,7 @@
     "modifiers": []
   },
   "allowed_species": ["human_other", "solomani_human", "solomani_racial", "solomani_mixed", "confederation_human"],
+  "mishap_no_eject": true,
   "societies": [
     "other",
     "solomani_confederation"
@@ -203,15 +204,15 @@
     }
   },
   "mishaps": {
-    "1": "Your ship is lost in a misjump. Roll END 8+. If you fail, roll on the Injury table.",
-    "2": "Your psionic readings prove catastrophically incorrect. Your reputation suffers. Lose one Benefit roll and an Ally becomes a Rival.",
-    "3": "A rival Order manipulates your work to claim credit. Lose one rank but you are not ejected.",
+    "1": "Your ship is lost in a misjump. Roll END 8+; if you fail, roll on the Injury table. Lose one Benefit roll.",
+    "2": "Your psionic readings prove catastrophically incorrect. Lose one Benefit roll and an Ally becomes a Rival.",
+    "3": "A rival Order manipulates your work to claim credit. Lose one rank.",
     "4": "You are stranded on a hostile world and must survive alone for months. Gain Survival 1 but lose one Benefit roll.",
     "5": "Negotiations you conduct break down violently. Gain an Enemy.",
     "6": "Your accumulated research is destroyed by sabotage. Lose EDU -1."
   },
   "events": {
-    "2": "Disaster! Roll on the Mishaps table but you are not ejected from the Order.",
+    "2": "Disaster! Roll on the Mishaps table.",
     "3": "You discover a new jump route through a particularly hazardous region. Gain Astrogation 1 or Navigation 1 and DM+1 to one Benefit roll.",
     "4": "A lengthy voyage exposes you to alien cultures and technologies. Gain Science 1 or Electronics 1.",
     "5": "Your telepathic sensitivity warns you of a betrayal before it occurs. Gain Telepathy 1 and a Contact.",
