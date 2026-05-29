@@ -15119,6 +15119,10 @@ def muster_out_roll(
     if column == "cash" and not _is_hiver_career:
         if any(s.name.lower() == "gambler" for s in character.skills):
             dm += 1
+    # Species cash benefit DM (e.g. Sylean Wealth and Prosperity: DM+1 on all cash rolls)
+    _sp_cash_dm = int(_sp_data_muster.get("cash_muster_dm", 0))
+    if column == "cash" and _sp_cash_dm:
+        dm += _sp_cash_dm
     # Imperial Guard 2+ terms: DM+1 on non-cash benefit rolls
     ig_benefit_dm = 0
     if column == "benefit" and character.imperial_guard_benefit_dm > 0:
@@ -15214,6 +15218,7 @@ def muster_out_roll(
         "remaining_rolls": character.pending_benefit_rolls,
         "rank_dm": rank_dm,
         "ig_benefit_dm": ig_benefit_dm,
+        "species_cash_dm": _sp_cash_dm,
         "good_fortune_used": good_fortune_used,
         "good_fortune_remaining": character.good_fortune_benefit_dm,
         "pending_skill_choice": character.pending_muster_benefit_choice,

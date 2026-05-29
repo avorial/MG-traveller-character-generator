@@ -1,0 +1,38 @@
+{
+    "id": "sylean",
+    "name": "Sylean",
+    "description": "Syleans are a human Minor Race created by the Ancients, who seeded them on Sylea from the hominid predecessors of homo sapiens. Physically similar to Solomani humans, they stand slightly taller (nearly two metres), with very light skin, dark brown-to-black hair, and eye colour ranging from crystalline grey or blue to deep dark brown. Their primary differences from other humans are cultural rather than biological — they are a focused, driven, and deeply spiritual people shaped by centuries of oppression at the hands of Vilani and Solomani. Sylea became the seat of the Third Imperium, and Syleans are now found throughout Imperial space, though billions of genetically pure Syleans survive in remote reservations.",
+    "characteristic_modifiers": {
+        "STR": -1,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "cash_muster_dm": 1,
+    "traits": [
+        {
+            "name": "Cooperation",
+            "description": "Syleans are exceptionally cooperative with others of their species. When on a Sylean World (a world with a Sylean population of 50 percent or more), the Traveller receives DM+2 on Admin, Diplomat and Streetwise checks. This reflects the Syleans' innate ability to close ranks and cooperate with one another to achieve a desired goal. Note: apply this DM when the adventure takes place on an appropriate world — it is not active by default."
+        },
+        {
+            "name": "Wealth and Prosperity",
+            "description": "Syleans are driven by a desire for prosperity and wealth. The Traveller receives DM+1 on all Cash Benefit rolls when mustering out of any career. This is applied automatically."
+        },
+        {
+            "name": "Spiritual Resilience",
+            "description": "Syleans maintain strong ties to religious practice, meditation, and spiritual contemplation even in the age of interstellar travel. They are a focused and directed people rarely given to aimless wandering. Roleplaying note: Drifter (Barbarian or Wanderer) is an uncommon path for a Sylean. Syleans in the priesthood may take the Believer career from the Traveller Companion where available."
+        }
+    ],
+    "species_notes": [
+        "Wealth and Prosperity: DM+1 on all Cash Benefit rolls at muster-out — applied automatically by the engine.",
+        "Cooperation: DM+2 on Admin, Diplomat and Streetwise checks when on a Sylean World (50%+ Sylean population). Applied at Referee discretion — note the bonus on your character sheet for use during play.",
+        "Drifter (Barbarian or Wanderer): rare but not forbidden. Sylean Worlds are old and well-developed with few low-tech environments; a Sylean might choose this path for spiritual reasons.",
+        "Believer career (Traveller Companion): available to Syleans in the priesthood where that supplement is in use."
+    ],
+    "sort_order": 38,
+    "aliases": ["sylean", "syleans"],
+    "source": "Aliens of Charted Space Vol. 1, Mongoose Publishing"
+}
