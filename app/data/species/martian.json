@@ -13,6 +13,9 @@
     "characteristic_dice": {
         "EDU": "1D"
     },
+    "characteristic_caps": {
+        "EDU": 7
+    },
     "characteristic_maximum": 15,
     "traits": [
         {

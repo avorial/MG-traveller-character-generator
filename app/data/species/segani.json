@@ -13,6 +13,9 @@
     "characteristic_dice": {
         "END": "1D+2"
     },
+    "characteristic_caps": {
+        "END": 10
+    },
     "characteristic_maximum": 15,
     "traits": [
         {

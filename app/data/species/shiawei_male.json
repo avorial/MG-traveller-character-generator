@@ -1,0 +1,49 @@
+{
+    "id": "shiawei_male",
+    "name": "Shi'awei (Male)",
+    "description": "The Shi'awei body has an internal bone skeleton, lymph-like circulatory fluid and is covered by a waterproof skin. There are two genders; females are slightly more numerous than males. Males tend to have slightly lower strength but greater endurance. Both possess sonar and have excellent chemical receptors and touch sensitivity, communicating with consonantal clicks which transmit well under water. Shi'awei are superb swimmers and their large gripper arms make them formidable in close combat.",
+    "characteristic_modifiers": {
+        "STR": -1,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "STR": "3D",
+        "END": "3D",
+        "DEX": "1D"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Echolocation (30m)",
+            "description": "Shi'awei use a highly sensitive echolocation sense to navigate their environment, effectively allowing them to 'see' underwater or in complete darkness to a range of 30 metres. This sense is not blocked by visual obscurement, smoke, or darkness."
+        },
+        {
+            "name": "Fast Metabolism (+1)",
+            "description": "Shi'awei have a heightened metabolism and very fast reactions. They gain DM+1 to all initiative rolls."
+        },
+        {
+            "name": "Natural Weapon (grippers, 2D)",
+            "description": "Shi'awei have large grippers on two of their arms that they can use to bludgeon enemies. The grippers do 2D damage and use the Melee (natural) skill."
+        },
+        {
+            "name": "Swimmer (9m)",
+            "description": "Shi'awei are superb swimmers and can move through water at a speed of 9 metres per combat round."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 3D (range 3–18); DEX rolled as 1D (range 1–6) — applied automatically.",
+        "Male modifier: STR-1, END+1 applied on top of 3D rolls.",
+        "Echolocation (30m): 'see' in darkness or underwater to 30m.",
+        "Fast Metabolism: DM+1 to all initiative rolls.",
+        "Natural Weapon — Grippers: Melee (natural), 2D damage.",
+        "Swimmer: move at 9m per round in water.",
+        "Career preferences (source material): Drifter, Entertainer, Noble, Rogue."
+    ],
+    "sort_order": 119,
+    "aliases": ["shiawei_male", "shiawei male"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

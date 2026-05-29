@@ -1,0 +1,39 @@
+{
+    "id": "yafizethe",
+    "name": "Yafizethe",
+    "description": "Yafizethe are small but tough, with a chitinous exoskeleton providing structural protection for their bodies. What they lack in raw physical power they more than make up for in agility and alertness. Their enhanced visual spectrum — extending into the electromagnetic range — gives them an awareness of electrical fields and hidden power sources that most other species entirely lack. Their small size makes them difficult targets for ranged weapons.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 1,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "DEX": "3D",
+        "STR": "1D",
+        "END": "1D"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Enhanced Vision (electromagnetic)",
+            "description": "Yafizethe are capable of seeing electromagnetic fields as well as possessing normal vision. They can perceive active electrical fields, powered devices, and EM emissions that are invisible to other species. This may grant DM bonuses to relevant checks at Referee discretion."
+        },
+        {
+            "name": "Small (-1)",
+            "description": "Yafizethe are small and present a difficult target. All ranged attacks made against a Yafizethe suffer DM-1."
+        }
+    ],
+    "species_notes": [
+        "DEX rolled as 3D (range 3–18); STR and END rolled as 1D (range 1–6) — applied automatically.",
+        "INT+1 modifier applied to standard 2D6 roll.",
+        "Enhanced Vision (electromagnetic): can perceive EM fields and powered devices. Referee applies situational bonuses.",
+        "Small (-1): all ranged attacks against the Yafizethe suffer DM-1.",
+        "Career preferences (source material): Drifter, Entertainer, Noble, Rogue."
+    ],
+    "sort_order": 124,
+    "aliases": ["yafizethe"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

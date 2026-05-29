@@ -1,0 +1,40 @@
+{
+    "id": "souggvuez_designer",
+    "name": "Souggvuez (Designer)",
+    "description": "Souggvuez society is organised around castes. All Souggvuez share base characteristics — agile and educated but less intellectually inclined than many sophonts — but each caste carries its own additional modifiers reflecting their specialised role. Designer caste Souggvuez are creative and precise but physically less robust than other castes. All Souggvuez have natural protection from tough hides and a powerful bite.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 2,
+        "END": -1,
+        "INT": -1,
+        "EDU": 1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "starting_equipment": [
+        {
+            "name": "Natural Armour",
+            "protection": 1,
+            "notes": "Tough Souggvuez hide; Protection +1. Stacks with worn armour. Cannot be removed."
+        }
+    ],
+    "traits": [
+        {
+            "name": "Armour (+1)",
+            "description": "All Souggvuez have +1 point of Protection from their tough hide."
+        },
+        {
+            "name": "Bite",
+            "description": "All Souggvuez possess a set of powerful teeth capable of doing 1D+2 damage using the Melee (natural) skill."
+        }
+    ],
+    "species_notes": [
+        "Designer caste: base DEX+1/INT-1/EDU+1, plus caste DEX+1/END-1. Total: DEX+2, END-1, INT-1, EDU+1.",
+        "Natural Armour: Protection +1 — shown in equipment list.",
+        "Bite: Melee (natural), 1D+2 damage.",
+        "All careers from the Traveller Core Rulebook are suitable for Souggvuez."
+    ],
+    "sort_order": 120,
+    "aliases": ["souggvuez_designer", "souggvuez designer"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

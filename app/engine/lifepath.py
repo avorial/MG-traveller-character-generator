@@ -903,6 +903,25 @@ def swap_characteristics(character: Character, stat_a: str, stat_b: str) -> dict
     }
 
 
+def _enforce_characteristic_caps(character: Character, species_data: dict) -> list[str]:
+    """Reduce any characteristics that exceed the species-defined per-stat caps.
+
+    Species may define ``characteristic_caps`` as a dict mapping stat name to
+    an integer maximum (e.g. ``{"EDU": 7}`` for Martians, ``{"END": 10}`` for
+    Segani).  Any stat currently above its cap is reduced to the cap value.
+
+    Returns a list of human-readable messages for each stat that was clamped.
+    """
+    caps: dict = species_data.get("characteristic_caps", {}) or {}
+    clamped: list[str] = []
+    for stat, cap in caps.items():
+        current = character.characteristics.get(stat)
+        if current is not None and current > cap:
+            character.characteristics.set(stat, cap)
+            clamped.append(f"{stat} reduced to {cap} (was {current})")
+    return clamped
+
+
 def apply_species(character: Character, species_id: str) -> dict:
     """Apply species modifiers and record traits."""
     species_data = rules.species().get(species_id)
@@ -1011,6 +1030,11 @@ def apply_species(character: Character, species_id: str) -> dict:
             character.equipment.append(eq_item)
             prot_str = f" (Protection +{eq_item.protection})" if eq_item.protection else ""
             character.log(f"Species starting equipment: {eq_item.name}{prot_str}")
+
+    # Enforce per-stat characteristic caps defined by the species (e.g. Martian EDU max 7).
+    _apply_cap_msgs = _enforce_characteristic_caps(character, species_data)
+    for msg in _apply_cap_msgs:
+        character.log(f"Species characteristic cap applied: {msg}")
 
     # Zhodani (and any future species with psi_ruleset_choice): present a pending
     # choice between the Sourcebook rule (guaranteed 1D+6 PSI) and the Core Rulebook
@@ -14891,6 +14915,13 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
             "roll": _barnai_r.to_dict(),
             "obligated": _barnai_r.total >= 12,
         }
+
+    # Enforce per-stat characteristic caps at the end of every term.
+    # Any stat that has grown above its species cap during this term is reduced.
+    _sp_caps_data = rules.species().get(character.species_id or "", {})
+    _cap_clamped = _enforce_characteristic_caps(character, _sp_caps_data)
+    for msg in _cap_clamped:
+        character.log(f"Characteristic cap enforced (end of term): {msg}")
 
     return {
         "aging": aging_log,
