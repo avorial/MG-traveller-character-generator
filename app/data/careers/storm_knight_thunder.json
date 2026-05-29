@@ -9,7 +9,8 @@
   },
   "allowed_species": ["human_other", "solomani_human"],
   "societies": [
-    "other"
+    "other",
+    "solomani_confederation"
   ],
   "assignments": {
     "warrior": {
