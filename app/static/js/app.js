@@ -7602,7 +7602,10 @@ function renderAssignmentPicker(career) {
     || (career.id === 'solsec')
     || (career.id === 'solomani_marine')
     || (career.id === 'confederation_army')
-    || (career.id === 'confederation_navy');
+    || (career.id === 'confederation_navy')
+    || (career.id === 'storm_knight_thunder')
+    || (career.id === 'storm_knight_inconstant_star')
+    || (career.id === 'storm_knight_shadows');
   const showHomeForces = isSolomani && !isBarredFromHF;
   const showMonitor = isSolomani && career.id !== 'solsec';
 
