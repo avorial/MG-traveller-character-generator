@@ -61,7 +61,7 @@
       "name": "Other / Far Domains",
       "subtitle": "Sword Worlds, Trojan Reach, Drinax, and beyond",
       "description": "The frontiers of Charted Space are home to dozens of smaller human states, pocket empires, and isolated communities. The Sword Worlds are a confederation of worlds with a fierce Scandinavian-influenced culture. The Kingdom of Drinax, the Trojan Reach, Reft Sector, and other border regions produce hard, self-reliant people shaped by distance from any major power.",
-      "species_ids": ["human_other", "sword_worlds_human", "frontier_human", "drinax_palace_human", "drinax_wasteland_human", "asim_human", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap", "floriani_feskal", "floriani_barnai", "halkan", "irklan", "aniyun", "eslyat", "freni_type1", "freni_type2", "freni_type3", "freni_type4", "freni_type5", "freni_type6", "freni_hybrid", "ghenani", "gmina", "katangan", "kemlae", "ktiauao", "mal_gnar", "murian", "resavolk", "teakhea", "thonane", "zhdianshe"]
+      "species_ids": ["human_other", "sword_worlds_human", "frontier_human", "drinax_palace_human", "drinax_wasteland_human", "asim_human", "dolphin", "uplifted_orca", "alpine_caprisap", "boar_caprisap", "floriani_feskal", "floriani_barnai", "halkan", "irklan", "aniyun", "eslyat", "freni_type1", "freni_type2", "freni_type3", "freni_type4", "freni_type5", "freni_type6", "freni_hybrid", "ghenani", "gmina", "katangan", "kemlae", "ktiauao", "mal_gnar", "murian", "resavolk", "teakhea", "thonane", "zhdianshe", "sylean", "ssienjhiovla", "whistler", "ebokin", "llellewyloly", "saurian", "crenduthaar", "gllu", "kirissukyoya", "lurent", "martian", "segani", "shiawei_female", "shiawei_male", "souggvuez", "yafizethe"]
     }
   ]
 }
