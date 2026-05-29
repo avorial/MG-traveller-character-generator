@@ -1,0 +1,37 @@
+{
+    "id": "llellewyloly",
+    "name": "Llellewyloly",
+    "description": "The Llellewyloly are native to Junidy, although they can sometimes be encountered on similar worlds with low surface gravity and very thin atmosphere. They are unusual among sentient species in that they have five limbs, all of which can function as legs, arms, or something in between, whilst a central 'head' contains the major organs. Respiration is carried out across the entire surface of the central structure, enabling survival in a very thin atmosphere. Physically, Llellewyloly are much more lightly built than humans, massing around 35 kg. Their limbs are highly dextrous but fragile, with relatively poor lifting power, and they have difficulty manipulating devices built for human hands. Llellewyloly society is very complex and outsiders typically find the shift in focus from one individual to another bewildering. Even the humans of Junidy, who have shared their homeworld with the Llellewyloly for centuries, struggle to keep track of who is pre-eminent at any given moment.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "STR": "2D3",
+        "END": "2D3"
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Alien Digits",
+            "description": "Unless a device is specifically adapted for Llellewyloly, they suffer DM-2 for any checks related to its use. This applies to standard human-built equipment, controls, and interfaces. Devices modified for Llellewyloly use remove this penalty."
+        },
+        {
+            "name": "Atmosphere (thin)",
+            "description": "Llellewyloly can function without protection in a very thin atmosphere (Atmosphere code 1–3), as respiration occurs across their entire body surface. They require protection from a dense or very oxygen-rich atmosphere (Atmosphere code 8+), which can overwhelm their respiratory system."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 2D3 (range 2–6) — applied automatically by the engine.",
+        "Alien Digits: DM-2 on any check using a device not specifically adapted for Llellewyloly. Referee applies during play.",
+        "Atmosphere (thin): no protection needed in thin atmosphere (codes 1–3). Dense or very dense atmospheres (code 8+) require protection.",
+        "Five limbs: all limbs are multipurpose (leg/arm/manipulator). The Referee may rule that certain actions requiring two manipulators simultaneously are easier for Llellewyloly."
+    ],
+    "sort_order": 108,
+    "aliases": ["llellewyloly"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

@@ -1,29 +1,27 @@
 {
-    "id":  "jonkeereen",
-    "name":  "Jonkeereen",
-    "description":  "Genetically engineered humans built for deserts. Need little water, survive harsh environments, tend toward independence.",
-    "characteristic_modifiers":  {
-                                     "STR":  0,
-                                     "DEX":  0,
-                                     "END":  2,
-                                     "INT":  0,
-                                     "EDU":  0,
-                                     "SOC":  0
-                                 },
-    "characteristic_maximum":  15,
-    "sort_order":  50,
-    "traits":  [
-                   {
-                       "name":  "Desert Survival",
-                       "description":  "Jonkeereen are engineered to survive where others cannot. They can breathe most tainted atmospheres without a filter mask, as their respiratory system can tolerate or neutralise most common contaminants. They gain DM+3 to all Survival checks made in desert, arid, or similar hot environments. At the Referee\u0027s discretion this DM may also offset penalties imposed by adverse desert conditions — blowing dust, intense UV, glare — on other skill checks where those conditions would normally impair performance."
-                   },
-                   {
-                       "name":  "Short-Lived",
-                       "description":  "Jonkeereen genetics produce accelerated cellular aging; the average lifespan is 60–65 years. For purposes of the aging table, Jonkeereen age one additional step faster than normal humans (apply aging rolls from the third term rather than the fourth). Roleplaying note: this is a source of ongoing political tension with Imperial society, which has not prioritised longevity treatment for a species it manufactured."
-                   }
-               ],
-    "aliases":  [
-
-                ],
-    "source":  "Aliens of Charted Space Vol. 2, Mongoose Publishing"
+    "id": "jonkeereen",
+    "name": "Jonkeereen",
+    "description": "Jonkeereen are a human Minor Race created through genetic engineering, adapted for survival in hot, arid desert environments. Tall, lean and dark-skinned, they resemble naturally evolved desert dwellers. Their perspiration system is extremely efficient and they have membranes to protect their eyes from wind-borne sand or dust. Jonkeereen society varies somewhat across the many worlds where they dwell, but the basic traits are conservatism and cooperation. Their ways are austere and pragmatic in the extreme and this concern with survival can make them seem harsh or even heartless, especially towards outsiders. They are more likely to help others of their own kind than outsiders, if only because fellow Jonkeereen are less likely to get everyone killed by doing something stupid.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 1,
+        "INT": 0,
+        "EDU": -1,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Heat Resistant (-2)",
+            "description": "Jonkeereen have extremely efficient perspiration systems. They suffer two points less damage from extremes of temperature in their environment."
+        }
+    ],
+    "species_notes": [
+        "Heat Resistant (-2): reduce all damage from temperature extremes by 2 points. Referee applies during play.",
+        "All careers from the Traveller Core Rulebook are suitable for Jonkeereen."
+    ],
+    "sort_order": 50,
+    "aliases": ["jonkeereen"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
 }

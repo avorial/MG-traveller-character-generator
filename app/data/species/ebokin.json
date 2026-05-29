@@ -1,0 +1,45 @@
+{
+    "id": "ebokin",
+    "name": "Ebokin",
+    "description": "The Ebokin are a very alien race to human eyes, resembling a centipede-like creature with eight legs on a long rear section of the torso, plus four short arms on a frontal section which is typically carried upright. In addition to acting as manipulators, these arms are used for communication. Ebokin cannot perceive sound other than as vibrations, as they possess no hearing organs. Their language requires four arms, although a pidgin version exists for use by humans and similarly inadequately enabled creatures. Ebokin are adapted to the environment of Yebab and breathe methane rather than oxygen. Their vision range lies in the ultraviolet, making interactions with humans difficult unless technical assistance is available. Ebokin have a mature TL7 culture and are keen to advance their scientific knowledge. Ebokin society is matriarchal and extremely conservative; the typical Ebokin views human society as a chaotic maelstrom of changing views and shifting moral ground. Physically, Ebokin are much more heavily built than humans, with a typical individual massing around 130 kg. A small merchant/explorer caste has emerged in recent decades, bravely seeking to learn about the wider universe through trade. Most starships operated by Ebokin are converted from standard human or occasionally Vargr designs.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": -2,
+        "END": 3,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "starting_equipment": [
+        {
+            "name": "Natural Armour",
+            "protection": 3,
+            "notes": "Ebokin heavy build; Protection +3. Stacks with worn armour. Cannot be removed."
+        }
+    ],
+    "traits": [
+        {
+            "name": "Armour (+3)",
+            "description": "Ebokin are very heavily built and can shrug off minor blows with ease. They have natural armour Protection +3."
+        },
+        {
+            "name": "Atmosphere (methane)",
+            "description": "Ebokin breathe methane and can function normally in an exotic (methane) atmosphere. They require respiratory support in an oxygen-nitrogen environment and will suffer rapid incapacitation without it."
+        },
+        {
+            "name": "UV Vision",
+            "description": "Ebokin view the world in the ultraviolet part of the spectrum and can see clearly in darkness. They suffer no penalty for low-light or darkness conditions. Interactions with humans may require optical translation aids as standard visible-spectrum lighting and displays are not optimised for Ebokin vision."
+        }
+    ],
+    "species_notes": [
+        "Natural Armour: Protection +3 — shown in equipment list. Stacks with worn armour.",
+        "Atmosphere (methane): respiratory support required in standard oxygen-nitrogen atmospheres. Referee tracks environmental hazard.",
+        "UV Vision: no penalty for darkness or low-light conditions.",
+        "Communication: Ebokin language requires four arms; pidgin versions exist. Communication devices adapted for arm-signal input are available.",
+        "Career preferences (source material): Agent (law enforcement), Army, Citizen, Drifter, Merchant, Noble, Scholar, Scout."
+    ],
+    "sort_order": 107,
+    "aliases": ["ebokin"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

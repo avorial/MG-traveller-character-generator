@@ -1,0 +1,40 @@
+{
+    "id": "saurian",
+    "name": "Saurian",
+    "description": "Saurians are more heavily built than the average human, warm-blooded and omnivorous. They have advanced to full sentience, albeit not very highly intelligent compared to humans, and are capable of abstract thought and clever innovation. Although they have a hunter culture, Saurians are peaceable and friendly towards others. They are quite accepting of strangers even if they belong to a species the Saurians have never seen. Saurians are capable of great violence and some serve as guards or soldiers in human settlements. They are not reluctant to fight but have a strong sense of what is necessary and what is not. Their thick, scaly skin provides natural protection against blows and minor injuries.",
+    "characteristic_modifiers": {
+        "STR": 2,
+        "DEX": 0,
+        "END": 2,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "INT": "2D3",
+        "EDU": "1D"
+    },
+    "characteristic_maximum": 15,
+    "starting_equipment": [
+        {
+            "name": "Natural Armour",
+            "protection": 2,
+            "notes": "Thick, scaly skin; Protection +2. Stacks with worn armour. Cannot be removed."
+        }
+    ],
+    "traits": [
+        {
+            "name": "Armour (+2)",
+            "description": "Saurians have thick, scaly skin that can shrug off light blows without a scratch. They have natural armour Protection +2."
+        }
+    ],
+    "species_notes": [
+        "STR and END receive +2 modifiers applied to standard 2D6 rolls.",
+        "INT rolled as 2D3 (range 2–6); EDU rolled as 1D (range 1–6) — applied automatically by the engine.",
+        "Natural Armour: Protection +2 — shown in equipment list. Stacks with worn armour.",
+        "Career preferences (source material): Citizen (worker), Drifter (barbarian, wanderer)."
+    ],
+    "sort_order": 109,
+    "aliases": ["saurian", "saurians"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

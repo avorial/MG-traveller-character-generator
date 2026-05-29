@@ -1,0 +1,50 @@
+{
+    "id": "crenduthaar",
+    "name": "Crenduthaar",
+    "description": "The Crenduthaar are nomadic descendants of carnivore/pouncer stock. Massive, powerfully built, with scale-armoured hides evolved as protection from their star's frequent flares, they have nightmarish, gape-mouthed heads filled with double sets of razor-edged teeth. They can be terrifying if encountered unexpectedly. Despite their fearful appearance and fanged maws, most Crenduthaar are vegetarians, although some supplement their diet with small animals, which they prefer to eat live. Their large razor-edged slashers — forearm blades — are formidable natural weapons retained from their predatory ancestry, and they are capable of crippling an opponent with a single blow.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "STR": "3D",
+        "END": "3D",
+        "DEX": "1D"
+    },
+    "characteristic_maximum": 15,
+    "starting_equipment": [
+        {
+            "name": "Natural Armour",
+            "protection": 3,
+            "notes": "Scale-armoured hide; Protection +3. Stacks with worn armour. Cannot be removed."
+        }
+    ],
+    "traits": [
+        {
+            "name": "Armour (+3)",
+            "description": "Crenduthaar have thick scales which grant Protection +3."
+        },
+        {
+            "name": "IR Vision",
+            "description": "Crenduthaar have highly developed vision in the infrared part of the spectrum and can see clearly in darkness. They suffer no penalty for low-light or complete darkness conditions."
+        },
+        {
+            "name": "Natural Weapon (slasher, 2D)",
+            "description": "Crenduthaar have large razor-edged slashers on their forearms which they can use to cripple enemies. The slashers do 2D damage and use the Melee (natural) skill. These natural weapons cannot be removed or disarmed."
+        }
+    ],
+    "species_notes": [
+        "STR and END rolled as 3D (range 3–18); DEX rolled as 1D (range 1–6) — applied automatically by the engine.",
+        "Natural Armour: Protection +3 — shown in equipment list. Stacks with worn armour.",
+        "IR Vision: no penalty for darkness or low-light conditions.",
+        "Natural Weapon — Slashers: Melee (natural), 2D damage. Cannot be disarmed.",
+        "Career preferences (source material): Army, Citizen, Drifter, Marine, Rogue."
+    ],
+    "sort_order": 116,
+    "aliases": ["crenduthaar"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}
