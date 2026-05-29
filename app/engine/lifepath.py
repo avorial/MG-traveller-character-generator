@@ -15049,10 +15049,12 @@ def muster_out_roll(
 
 
 def resolve_muster_benefit_choice(character: Character, chosen: str) -> dict:
-    """Resolve a pending mustering-out skill-choice benefit.
+    """Resolve a pending mustering-out benefit choice.
 
-    The player has selected one skill option from the 'X or Y or ...' benefit.
-    Apply it and clear the pending state.
+    Handles two pending choice types:
+      - "skill": classic 'X or Y or ...' benefit — apply chosen as a benefit string.
+      - "reroll": rolled-again equipment choice — apply with _is_reroll=True to
+        bypass the second-level rolled-again detection.
     """
     pending = character.pending_muster_benefit_choice
     if pending is None:
@@ -15062,7 +15064,11 @@ def resolve_muster_benefit_choice(character: Character, chosen: str) -> dict:
         raise ValueError(
             f"'{chosen}' is not a valid option. Choose one of: {', '.join(options)}"
         )
-    _apply_benefit(character, chosen)
+    choice_type = pending.get("type", "skill")
+    if choice_type == "reroll":
+        _apply_benefit(character, chosen, _is_reroll=True)
+    else:
+        _apply_benefit(character, chosen)
     character.pending_muster_benefit_choice = None
     character.log(f"Muster benefit choice resolved: {chosen}")
     return {
@@ -15071,8 +15077,13 @@ def resolve_muster_benefit_choice(character: Character, chosen: str) -> dict:
     }
 
 
-def _apply_benefit(character: Character, benefit: str) -> None:
-    """Apply a mustering-out benefit to the character."""
+def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False) -> None:
+    """Apply a mustering-out benefit to the character.
+
+    _is_reroll=True suppresses the "rolled again" detection for equipment
+    benefits — used when the player has already chosen an option from a
+    pending_muster_benefit_choice of type "reroll".
+    """
     b = benefit.strip()
 
     # REP bonus (Bounty Hunter career)
@@ -15302,6 +15313,305 @@ def _apply_benefit(character: Character, benefit: str) -> None:
             character.equipment.append(
                 Equipment(name=b, notes="Player choice: pick one")
             )
+        return
+
+    # ============================================================
+    # Equipment benefits — proper notes with budget/TL limits and
+    # interactive "rolled again" choices via pending_muster_benefit_choice.
+    # ============================================================
+
+    # TAS Membership — lifetime flag; rolled again → 2 Ship Shares
+    if re.match(r'^tas\s+membership$', b, re.IGNORECASE):
+        if character.tas_member:
+            character.ship_shares += 2
+            character.log("Muster benefit: TAS Membership (already a member) → 2 Ship Shares.")
+        else:
+            character.tas_member = True
+            character.log("Muster benefit: TAS Membership — lifetime; Class A&B starport access, high passage every 2 months.")
+        return
+
+    # Scout Ship — on detached duty; rolled again → extra benefit roll (book says re-roll)
+    if re.match(r'^scout\s+ship$', b, re.IGNORECASE):
+        already_has = any(re.match(r'^scout\s+ship$', eq.name, re.IGNORECASE) for eq in character.equipment)
+        if already_has and not _is_reroll:
+            character.pending_benefit_rolls += 1
+            character.log("Muster benefit: Scout Ship (already on detached duty) → 1 extra benefit roll (re-roll rule).")
+        else:
+            character.equipment.append(Equipment(
+                name="Scout Ship",
+                notes="On detached duty — still owned by the Scout Service. Expect recall missions. Cannot be sold."
+            ))
+            character.log("Muster benefit: Scout Ship (detached duty, service obligation).")
+        return
+
+    # -- Mortgage ship helpers --
+    # Reads the current roll count for a ship from its equipment notes rather
+    # than counting entries (there is always exactly one entry after the first roll).
+    def _mortgage_rolls(name_pattern: str) -> int:
+        for _eq in character.equipment:
+            if re.match(name_pattern, _eq.name, re.IGNORECASE):
+                if _eq.notes:
+                    _m = re.search(r'(\d+) of 4 benefit rolls', _eq.notes)
+                    if _m:
+                        return int(_m.group(1))
+                    if re.search(r'PAID OFF', _eq.notes):
+                        return 4
+                return 1  # entry exists, notes unparseable → assume 1
+        return 0  # no entry
+
+    def _update_mortgage(name_pattern: str, extra_note: str) -> int:
+        """Increment and update the mortgage notes for a ship. Returns new roll count."""
+        current = _mortgage_rolls(name_pattern)
+        new_rolls = current + 1
+        for _eq in character.equipment:
+            if re.match(name_pattern, _eq.name, re.IGNORECASE):
+                if new_rolls >= 4:
+                    _eq.notes = f"Mortgage PAID OFF ({new_rolls} benefit rolls).{extra_note}"
+                else:
+                    _eq.notes = (
+                        f"Mortgage: {new_rolls} of 4 benefit rolls paid ({new_rolls * 25}%).{extra_note}"
+                    )
+                break
+        return new_rolls
+
+    # Free Trader — 25% mortgage per roll; 4 rolls = owned; can substitute Far Trader
+    if re.match(r'^free\s+trader$', b, re.IGNORECASE):
+        _ft_rolls = _mortgage_rolls(r'^free\s+trader$')
+        if _ft_rolls == 0:
+            character.equipment.append(Equipment(
+                name="Free Trader",
+                notes="Mortgage: 1 of 4 benefit rolls paid (25%). Can substitute Far Trader. Roll 1D on Spacecraft Quirks."
+            ))
+            character.log("Muster benefit: Free Trader (1/4 mortgage rolls — 25% paid).")
+        else:
+            _nr = _update_mortgage(r'^free\s+trader$', " Can substitute Far Trader. Roll 1D on Spacecraft Quirks.")
+            character.log(f"Muster benefit: Free Trader ({_nr}/4 rolls — {min(_nr * 25, 100)}% paid).")
+        return
+
+    # Lab Ship — 25% mortgage per roll; 4 rolls = owned
+    if re.match(r'^lab\s+ship$', b, re.IGNORECASE):
+        _ls_rolls = _mortgage_rolls(r'^lab\s+ship$')
+        if _ls_rolls == 0:
+            character.equipment.append(Equipment(
+                name="Lab Ship",
+                notes="Mortgage: 1 of 4 benefit rolls paid (25%). Roll 1D on Old Ships."
+            ))
+            character.log("Muster benefit: Lab Ship (1/4 mortgage rolls — 25% paid).")
+        else:
+            _nr = _update_mortgage(r'^lab\s+ship$', " Roll 1D on Old Ships.")
+            character.log(f"Muster benefit: Lab Ship ({_nr}/4 rolls — {min(_nr * 25, 100)}% paid).")
+        return
+
+    # Yacht — 25% mortgage per roll; 4 rolls = owned
+    if re.match(r'^yacht$', b, re.IGNORECASE):
+        _yt_rolls = _mortgage_rolls(r'^yacht$')
+        if _yt_rolls == 0:
+            character.equipment.append(Equipment(
+                name="Yacht",
+                notes="Mortgage: 1 of 4 benefit rolls paid (25%). Roll 1D on Old Ships."
+            ))
+            character.log("Muster benefit: Yacht (1/4 mortgage rolls — 25% paid).")
+        else:
+            _nr = _update_mortgage(r'^yacht$', " Roll 1D on Old Ships.")
+            character.log(f"Muster benefit: Yacht ({_nr}/4 rolls — {min(_nr * 25, 100)}% paid).")
+        return
+
+    # Weapon — any weapon up to Cr3,000 / TL 12; rolled again → another weapon OR weapon skill
+    if re.match(r'^weapon$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _w_count = sum(1 for eq in character.equipment if re.match(r'^weapon$', eq.name, re.IGNORECASE))
+            if _w_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Weapon",
+                    "prompt": "You already have a weapon. Choose one:",
+                    "options": ["Weapon", "Gun Combat 1", "Melee 1"],
+                    "labels": ["Another weapon (Cr3,000 / TL 12)", "Gun Combat +1", "Melee +1"],
+                }
+                character.log("Muster benefit: Weapon (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Weapon",
+            notes="Select any weapon worth up to Cr3,000 at TL 12 or below."
+            + (" [2nd weapon]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Weapon (select any weapon, up to Cr3,000 / TL 12).")
+        return
+
+    # Gun — ranged weapon up to Cr3,000 / TL 12; rolled again → another OR Gun Combat 1
+    if re.match(r'^gun$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _g_count = sum(1 for eq in character.equipment if re.match(r'^gun$', eq.name, re.IGNORECASE))
+            if _g_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Gun",
+                    "prompt": "You already have a gun. Choose one:",
+                    "options": ["Gun", "Gun Combat 1"],
+                    "labels": ["Another gun (Cr3,000 / TL 12)", "Gun Combat +1"],
+                }
+                character.log("Muster benefit: Gun (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Gun",
+            notes="Select any common or military ranged weapon worth up to Cr3,000 at TL 12 or below."
+            + (" [2nd gun]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Gun (select any ranged weapon, up to Cr3,000 / TL 12).")
+        return
+
+    # Blade — any blade up to Cr1,000 / TL 12; rolled again → another OR Melee (blade) 1
+    if re.match(r'^blade$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _bl_count = sum(1 for eq in character.equipment if re.match(r'^blade$', eq.name, re.IGNORECASE))
+            if _bl_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Blade",
+                    "prompt": "You already have a blade. Choose one:",
+                    "options": ["Blade", "Melee (blade) 1"],
+                    "labels": ["Another blade (Cr1,000 / TL 12)", "Melee (blade) +1"],
+                }
+                character.log("Muster benefit: Blade (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Blade",
+            notes="Select any blade worth up to Cr1,000 at TL 12 or below."
+            + (" [2nd blade]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Blade (select any blade, up to Cr1,000 / TL 12).")
+        return
+
+    # Armour (upgraded) — from "rolled again" choice; trade-up budget of Cr25,000
+    if re.match(r'^armou?r\s*\(upgraded\)$', b, re.IGNORECASE):
+        character.equipment.append(Equipment(
+            name="Armour (upgraded)",
+            notes="Rolled again: select armour worth up to Cr25,000 at TL 12 or below."
+        ))
+        character.log("Muster benefit: Armour (upgraded) — trade up to Cr25,000 / TL 12.")
+        return
+
+    # Armour — up to Cr10,000 / TL 12; rolled again → another OR trade up to Cr25,000
+    if re.match(r'^armou?r$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _ar_count = sum(1 for eq in character.equipment if re.match(r'^armou?r$', eq.name, re.IGNORECASE))
+            if _ar_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Armour",
+                    "prompt": "You already have armour. Choose one:",
+                    "options": ["Armour", "Armour (upgraded)"],
+                    "labels": ["Another set of armour (Cr10,000 / TL 12)", "Trade up to better armour (Cr25,000 / TL 12)"],
+                }
+                character.log("Muster benefit: Armour (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Armour",
+            notes="Select any armour worth up to Cr10,000 at TL 12 or below."
+            + (" [2nd armour]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Armour (select any armour, up to Cr10,000 / TL 12).")
+        return
+
+    # Combat Implant (improve) — from "rolled again" choice; upgrade existing
+    if re.match(r'^(combat|cybernetic)\s+implant\s*\(improve\)$', b, re.IGNORECASE):
+        character.equipment.append(Equipment(
+            name="Combat Implant (improve)",
+            notes="Rolled again: improve or upgrade an existing augmentation (up to Cr75,000 budget / TL 12)."
+        ))
+        character.log("Muster benefit: Combat Implant (improve) — upgrade existing augmentation.")
+        return
+
+    # Combat Implant / Cybernetic Implant — up to Cr75,000 / TL 12; rolled again → another OR improve
+    if re.match(r'^(combat|cybernetic)\s+implant$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _ci_count = sum(
+                1 for eq in character.equipment
+                if re.match(r'^(combat|cybernetic)\s+implant', eq.name, re.IGNORECASE)
+            )
+            if _ci_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Combat Implant",
+                    "prompt": "You already have a cybernetic implant. Choose one:",
+                    "options": ["Combat Implant", "Combat Implant (improve)"],
+                    "labels": [
+                        "A different cybernetic implant (Cr75,000 / TL 12)",
+                        "Improve your existing implant (Cr75,000 budget / TL 12)",
+                    ],
+                }
+                character.log("Muster benefit: Combat Implant (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Combat Implant",
+            notes="Select any augmentation (cybernetic implant) worth up to Cr75,000 at TL 12 or below."
+            + (" [2nd implant]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Combat Implant (select any augmentation, up to Cr75,000 / TL 12).")
+        return
+
+    # Scientific Equipment — up to Cr2,000 / TL 12; rolled again → another OR Electronics/Science 1
+    if re.match(r'^scientific\s+equipment$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _se_count = sum(1 for eq in character.equipment if re.match(r'^scientific\s+equipment$', eq.name, re.IGNORECASE))
+            if _se_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Scientific Equipment",
+                    "prompt": "You already have scientific equipment. Choose one:",
+                    "options": ["Scientific Equipment", "Electronics 1", "Science 1"],
+                    "labels": ["More scientific equipment (Cr2,000 / TL 12)", "Electronics +1", "Science +1"],
+                }
+                character.log("Muster benefit: Scientific Equipment (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Scientific Equipment",
+            notes="Select any scientific equipment worth up to Cr2,000 at TL 12 or below."
+            + (" [more equipment]" if _is_reroll else "")
+        ))
+        character.log("Muster benefit: Scientific Equipment (select any, up to Cr2,000 / TL 12).")
+        return
+
+    # Personal Vehicle — up to Cr300,000 / TL 10; rolled again → Drive 1 or Flyer 1
+    if re.match(r'^personal\s+vehicle$', b, re.IGNORECASE):
+        if not _is_reroll:
+            _pv_count = sum(1 for eq in character.equipment if re.match(r'^personal\s+vehicle$', eq.name, re.IGNORECASE))
+            if _pv_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Personal Vehicle",
+                    "prompt": "You already have a personal vehicle. Choose one:",
+                    "options": ["Drive 1", "Flyer 1"],
+                    "labels": ["Drive +1", "Flyer +1"],
+                }
+                character.log("Muster benefit: Personal Vehicle (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Personal Vehicle",
+            notes="Select any ground car or air/raft worth up to Cr300,000 at TL 10 or below."
+        ))
+        character.log("Muster benefit: Personal Vehicle (select ground car or air/raft, up to Cr300,000 / TL 10).")
+        return
+
+    # Ship's Boat — any small craft up to MCr10 / TL 12; rolled again → Pilot (small craft) 1 or Ship Share
+    if re.match(r"^ship'?s\s+boat$", b, re.IGNORECASE):
+        if not _is_reroll:
+            _sb_count = sum(1 for eq in character.equipment if re.match(r"^ship'?s\s+boat$", eq.name, re.IGNORECASE))
+            if _sb_count > 0:
+                character.pending_muster_benefit_choice = {
+                    "type": "reroll",
+                    "benefit": "Ship's Boat",
+                    "prompt": "You already have a ship's boat. Choose one:",
+                    "options": ["Pilot (small craft) 1", "Ship Share"],
+                    "labels": ["Pilot (small craft) +1", "1 Ship Share"],
+                }
+                character.log("Muster benefit: Ship's Boat (rolled again) — PENDING player choice.")
+                return
+        character.equipment.append(Equipment(
+            name="Ship's Boat",
+            notes="Select any small craft worth up to MCr10 at TL 12 or below."
+        ))
+        character.log("Muster benefit: Ship's Boat (select any small craft, up to MCr10 / TL 12).")
         return
 
     # Everything else → equipment/reference

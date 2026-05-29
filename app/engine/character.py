@@ -224,6 +224,10 @@ class Character(BaseModel):
     # Cleared once the player resolves it via /api/character/muster-benefit-choice.
     pending_muster_benefit_choice: Optional[dict] = None
 
+    # TAS Membership: lifetime flag set when the TAS Membership benefit is received.
+    # If rolled again, grants 2 Ship Shares instead.
+    tas_member: bool = False
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

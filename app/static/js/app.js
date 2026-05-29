@@ -1467,6 +1467,13 @@ function renderSheet() {
         <div class="credits-line">${character.ship_shares} × MCr1</div>
       </div>` : ''}
 
+      ${character.tas_member ? `
+      <div class="sheet-section">
+        <h3>TAS Membership</h3>
+        <p class="empty" style="color:var(--accent)">✦ Travellers' Aid Society — Lifetime Member</p>
+        <p class="empty">Access to Class A &amp; B starport lounges. 1 free High Passage every two months.</p>
+      </div>` : ''}
+
       ${(character.clan_shares || 0) > 0 ? `
       <div class="sheet-section">
         <h3>Clan Shares</h3>
@@ -10198,21 +10205,42 @@ function musterTableHTML(careerDef, termsServed, rollsUsed) {
     </div>`;
 }
 
+function _musterChoiceButtons(choice) {
+  // Render choice buttons for a pending_muster_benefit_choice.
+  // Uses "labels" for display when present (reroll type), falls back to option string.
+  return choice.options.map((opt, i) => {
+    const label = (choice.labels && choice.labels[i]) ? choice.labels[i] : opt;
+    return `<button class="btn primary btn-muster-skill-choice" data-skill="${escapeHTML(opt)}">${escapeHTML(label)} →</button>`;
+  }).join('');
+}
+
 function renderMusterPhase() {
   const careers = character.completed_careers;
   const rolls = character.pending_benefit_rolls;
   const cashRolled = character.cash_rolls_used;
 
+  // If there is a pending benefit choice but NO lastRoll in memory — the player
+  // refreshed the page mid-choice. Show the choice UI to recover gracefully.
+  const livePendingChoice = character.pending_muster_benefit_choice;
+  if (livePendingChoice && !uiState.lastRoll) {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Benefit Choice Pending</div>
+        <h2 class="phase-title">${escapeHTML(livePendingChoice.benefit || livePendingChoice.raw || 'Choose Your Benefit')}</h2>
+        <p class="phase-body">${escapeHTML(livePendingChoice.prompt || 'Choose one option:')}</p>
+        <div class="phase-actions" style="flex-wrap:wrap">
+          ${_musterChoiceButtons(livePendingChoice)}
+        </div>
+      </div>
+    `;
+  }
+
   // Post-roll view: show dice readout + what was gained, then wait for "CONTINUE"
   if (uiState.lastRoll?.type === 'muster') {
     const lr = uiState.lastRoll;
     const colLabel = lr.column === 'cash' ? 'Cash Roll' : 'Benefit Roll';
-    // Weapon choice: when the benefit is an unspecified "Weapon", let the player pick Melee or Firearm.
-    const isWeaponChoice = lr.column !== 'cash' && (
-      lr.result === 'Weapon' ||
-      (typeof lr.result === 'string' && lr.result.startsWith('Weapon and'))
-    );
-    // Skill choice: "Advocate 1 or Broker 1 or ..." — player must pick one.
+    // Skill/reroll choice: set when backend returns pending_skill_choice
     const pendingSkillChoice = lr.pendingSkillChoice;
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
@@ -10226,17 +10254,9 @@ function renderMusterPhase() {
             <div class="dm-chip applied">DM+1 to all benefit rolls (highest rank reached 5-6)</div>
           </div>` : ''}
         ${pendingSkillChoice ? `
-          <p class="phase-body" style="margin-top:12px">Choose your benefit:</p>
+          <p class="phase-body" style="margin-top:12px">${escapeHTML(pendingSkillChoice.prompt || 'Choose your benefit:')}</p>
           <div class="phase-actions" style="flex-wrap:wrap">
-            ${pendingSkillChoice.options.map(opt =>
-              `<button class="btn primary btn-muster-skill-choice" data-skill="${opt}">${opt} →</button>`
-            ).join('')}
-          </div>
-        ` : isWeaponChoice ? `
-          <p class="phase-body" style="margin-top:12px">Choose your weapon type:</p>
-          <div class="phase-actions">
-            <button class="btn primary" id="btn-weapon-melee">MELEE WEAPON →</button>
-            <button class="btn primary" id="btn-weapon-firearm">FIREARM →</button>
+            ${_musterChoiceButtons(pendingSkillChoice)}
           </div>
         ` : `
           <p class="phase-body">${lr.remaining_rolls > 0
@@ -10453,28 +10473,6 @@ function wireMusterPhase() {
     });
   });
 
-  // Weapon type choice — shown when a plain "Weapon" benefit is rolled
-  const btnWeaponMelee = document.getElementById('btn-weapon-melee');
-  if (btnWeaponMelee) {
-    btnWeaponMelee.addEventListener('click', () => {
-      // Find and rename the generic "Weapon" equipment entry the backend just added
-      const eq = character.equipment.find(e => e.name === 'Weapon' && e.notes === 'From mustering out');
-      if (eq) { eq.name = 'Melee Weapon (of choice)'; eq.notes = 'From mustering out — player picks specific blade/bludgeon'; }
-      saveCharacter();
-      uiState.lastRoll = null;
-      renderAll();
-    });
-  }
-  const btnWeaponFirearm = document.getElementById('btn-weapon-firearm');
-  if (btnWeaponFirearm) {
-    btnWeaponFirearm.addEventListener('click', () => {
-      const eq = character.equipment.find(e => e.name === 'Weapon' && e.notes === 'From mustering out');
-      if (eq) { eq.name = 'Firearm (of choice)'; eq.notes = 'From mustering out — player picks specific firearm'; }
-      saveCharacter();
-      uiState.lastRoll = null;
-      renderAll();
-    });
-  }
   const btnFinalize = document.getElementById('btn-finalize');
   if (btnFinalize) {
     btnFinalize.addEventListener('click', () => {
