@@ -804,6 +804,20 @@ body {
   border-bottom: none;
 }
 
+.tag-armor {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--amber);
+  background: rgba(200, 150, 50, 0.15);
+  border: 1px solid rgba(200, 150, 50, 0.4);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 5px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}
+
 .skill-level {
   color: var(--amber);
   font-weight: 500;

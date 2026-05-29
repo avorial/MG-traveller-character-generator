@@ -997,6 +997,21 @@ def apply_species(character: Character, species_id: str) -> dict:
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
 
+    # Auto-grant species starting equipment (e.g. natural armour items).
+    # Each entry may have: name (str), notes (str), protection (int).
+    for eq_entry in (species_data.get("starting_equipment", []) or []):
+        eq_item = Equipment(
+            name=eq_entry["name"],
+            notes=eq_entry.get("notes"),
+            protection=eq_entry.get("protection"),
+        )
+        # Avoid duplicating on re-apply (species switch etc.)
+        already = any(e.name == eq_item.name for e in character.equipment)
+        if not already:
+            character.equipment.append(eq_item)
+            prot_str = f" (Protection +{eq_item.protection})" if eq_item.protection else ""
+            character.log(f"Species starting equipment: {eq_item.name}{prot_str}")
+
     # Zhodani (and any future species with psi_ruleset_choice): present a pending
     # choice between the Sourcebook rule (guaranteed 1D+6 PSI) and the Core Rulebook
     # optional rule (2D+DM vs 9+, chance of failure).  Both paths live in

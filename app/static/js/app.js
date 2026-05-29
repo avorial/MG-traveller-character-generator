@@ -1339,7 +1339,11 @@ function renderSheet() {
     : '<li class="empty">No skills yet</li>';
 
   const equipList = character.equipment.length
-    ? character.equipment.map((e) => `<li>${e.name}${e.notes ? ` <span class="empty">— ${e.notes}</span>` : ''}</li>`).join('')
+    ? character.equipment.map((e) => {
+        const protTag = e.protection != null ? ` <span class="tag tag-armor">Protection +${e.protection}</span>` : '';
+        const noteTag = e.notes ? ` <span class="empty">— ${escapeHTML(e.notes)}</span>` : '';
+        return `<li>${escapeHTML(e.name)}${protTag}${noteTag}</li>`;
+      }).join('')
     : '<li class="empty">No equipment</li>';
 
   const traits = (character.traits || []);

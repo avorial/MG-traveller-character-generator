@@ -87,6 +87,7 @@ class Equipment(BaseModel):
     name: str
     quantity: int = 1
     notes: Optional[str] = None
+    protection: Optional[int] = None  # Natural armour value (e.g. Carapace +6)
 
 
 class Character(BaseModel):

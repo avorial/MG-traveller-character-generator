@@ -36,6 +36,13 @@
         "Off-world equipment: Ssienjhiovla require specially adapted vacc suits and clothing to manage drier atmospheric conditions and lower gravity aboard human starships.",
         "Career preferences: Scout Service and Imperial Navy are the most popular choices for those who leave their homeworld."
     ],
+    "starting_equipment": [
+        {
+            "name": "Carapace (Natural Armour)",
+            "protection": 6,
+            "notes": "Dorsal shell; Protection +6. Stacks with worn armour. Cannot be removed."
+        }
+    ],
     "sort_order": 110,
     "aliases": ["ssienjhiovla"],
     "source": "Aliens of Charted Space, Mongoose Publishing"

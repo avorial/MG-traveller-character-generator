@@ -42,6 +42,13 @@
         "SOC increases gained during careers are applied to EDU instead — Virushi do not accumulate social standing from service.",
         "Weapons Aversion: the first level gained in any of Gun Combat, Gunner, Heavy Weapons, or Melee is always treated as level 0. Apply this when any such skill is first received from a career table or event."
     ],
+    "starting_equipment": [
+        {
+            "name": "Natural Armour",
+            "protection": 4,
+            "notes": "Virushi hide and bone; Protection +4. Stacks with worn armour. Cannot be removed."
+        }
+    ],
     "sort_order": 105,
     "aliases": ["virushi"],
     "source": "Traveller Aliens of Charted Space Volume 1, Mongoose Publishing"
