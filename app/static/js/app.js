@@ -2938,6 +2938,36 @@ function renderSpeciesSkillGrantChoice() {
   `;
 }
 
+function renderSpeciesCasteChoice() {
+  const pc = uiState.speciesCasteChoicePending;
+  const opts = pc.options || [];
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 02b — SPECIES SELECTION</span></div>
+    <div class="stage-content">
+      <div class="phase-label">${esc(pc.species_name)} — Caste</div>
+      <h2 class="phase-title">Choose Your Caste</h2>
+      <p class="phase-subtitle">${esc(pc.species_name)} society is organised around four castes, each with different characteristic modifiers. Your caste is determined at birth and shapes your place in society for life.</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px">
+        ${opts.map(o => {
+          const sp = SPECIES.find(s => s.id === o.id);
+          const modsText = sp ? Object.entries(sp.characteristic_modifiers || {})
+            .filter(([, v]) => v !== 0)
+            .map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+            .join(' · ') : '';
+          return `
+            <button class="card species-caste-opt" data-caste-id="${escapeAttr(o.id)}"
+                    style="flex:1;min-width:200px;text-align:left;cursor:pointer">
+              <div class="card-title">${esc(o.label)}</div>
+              ${modsText ? `<div class="card-meta">${esc(modsText)}</div>` : ''}
+              <div class="card-desc">${esc(o.description)}</div>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderZhodaniPsiChoice() {
   const pc = uiState.zhodaniPsiPending;
   const opts = pc.options || [];
@@ -2973,6 +3003,10 @@ function renderSpeciesPhase() {
   if (uiState.zhodaniPsiPending) {
     return renderZhodaniPsiChoice();
   }
+  // If a species caste choice is pending (e.g. Souggvuez)
+  if (uiState.speciesCasteChoicePending) {
+    return renderSpeciesCasteChoice();
+  }
 
   const selected = uiState.selectedSpecies || character.species_id;
   const speciesApplied = character.species_id && character.traits && character.traits.length >= 0 && character.phase !== 'species';
@@ -2999,6 +3033,7 @@ function renderSpeciesPhase() {
           if (sp.eslyat_subraces) return 'STR +1 (male) · SOC varies by caste';
           if (sp.gender_modifiers) return 'Varies by gender';
           if (sp.droyne_caste_system) return 'Varies by caste';
+          if (sp.caste_choice) return 'Varies by caste — pick at selection';
           return 'No modifiers';
         })();
     return `
@@ -3125,6 +3160,30 @@ function wireSpeciesPhase() {
     return;
   }
 
+  // Caste choice (e.g. Souggvuez) — clicking a caste card applies the variant
+  if (uiState.speciesCasteChoicePending) {
+    document.querySelectorAll('.species-caste-opt').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const casteId = btn.getAttribute('data-caste-id');
+        try {
+          const response = await apiCall('/api/character/apply-species', { species_id: casteId });
+          await applyResponse(response);
+          uiState.speciesCasteChoicePending = null;
+          // Handle any further pending choices the caste variant might trigger
+          if (response && response.pending_choice?.kind === 'species_skill_grant') {
+            uiState.speciesSkillGrantPending = response.pending_choice;
+            renderStage();
+            return;
+          }
+          character.phase = 'background';
+          saveCharacter();
+          renderAll();
+        } catch (e) { alert(e.message); }
+      });
+    });
+    return;
+  }
+
   // Species skill grant choice — wire the option cards (e.g. Dynchia)
   if (uiState.speciesSkillGrantPending) {
     document.querySelectorAll('.species-skill-grant-opt').forEach(btn => {
@@ -3188,6 +3247,12 @@ function wireSpeciesPhase() {
       // Zhodani PSI ruleset choice: show the two-option panel before progressing
       if (response && response.pending_choice?.kind === 'zhodani_psi_ruleset') {
         uiState.zhodaniPsiPending = response.pending_choice;
+        renderStage();
+        return;
+      }
+      // Caste-choice species (e.g. Souggvuez): show caste picker before applying
+      if (response && response.pending_choice?.kind === 'species_caste_choice') {
+        uiState.speciesCasteChoicePending = response.pending_choice;
         renderStage();
         return;
       }

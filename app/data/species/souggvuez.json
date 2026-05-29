@@ -1,0 +1,46 @@
+{
+    "id": "souggvuez",
+    "name": "Souggvuez",
+    "description": "Souggvuez society is organised around four distinct castes — Designer, Explorer, Hunter, and Worker — each shaped by specialised roles and carrying different characteristic modifiers. All Souggvuez share a tough hide granting natural protection and a powerful bite. Their base characteristics are somewhat more agile and educated than typical humans, though less intellectually inclined.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "caste_choice": true,
+    "caste_options": [
+        {
+            "id": "souggvuez_designer",
+            "label": "Designer",
+            "description": "Creative and precise caste. DEX+2, END-1, INT-1, EDU+1. Artists, architects, and craftspeople."
+        },
+        {
+            "id": "souggvuez_explorer",
+            "label": "Explorer",
+            "description": "Field-work and reconnaissance caste. DEX+2, END-1, INT-2, EDU+2. Scouts, mappers, and field agents."
+        },
+        {
+            "id": "souggvuez_hunter",
+            "label": "Hunter",
+            "description": "Combat and tracking caste. DEX+2, INT-2, EDU+1. Warriors, trackers, and bodyguards."
+        },
+        {
+            "id": "souggvuez_worker",
+            "label": "Worker",
+            "description": "Practical and industrious caste. DEX+1, INT-2, EDU+2. Labourers, technicians, and tradespeople."
+        }
+    ],
+    "traits": [],
+    "species_notes": [
+        "Select a caste to see full characteristic modifiers.",
+        "All Souggvuez share: Natural Armour Protection +1, Bite (Melee natural, 1D+2).",
+        "All careers from the Traveller Core Rulebook are suitable for Souggvuez."
+    ],
+    "sort_order": 119,
+    "aliases": ["souggvuez"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

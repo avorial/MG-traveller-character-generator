@@ -928,6 +928,21 @@ def apply_species(character: Character, species_id: str) -> dict:
     if species_data is None:
         raise ValueError(f"Unknown species: {species_id}")
 
+    # Caste-choice species (e.g. Souggvuez): return a pending choice immediately
+    # without applying anything — the player must pick their caste first, then
+    # the UI calls apply_species again with the specific caste variant ID.
+    if species_data.get("caste_choice"):
+        caste_pending = {
+            "kind": "species_caste_choice",
+            "species_name": species_data.get("name", ""),
+            "options": species_data.get("caste_options", []),
+        }
+        return {
+            "character": character.model_dump(),
+            "pending_choice": caste_pending,
+            "applied": {},
+        }
+
     # Canonicalize: if the caller passed an alias (e.g. legacy 'human'),
     # store the underlying id so downstream code sees a single stable value.
     canonical_id = species_data.get("id", species_id)
