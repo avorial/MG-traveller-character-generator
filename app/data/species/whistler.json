@@ -1,0 +1,49 @@
+{
+    "id": "whistler",
+    "name": "Whistler",
+    "description": "Whistlers — known to themselves as Oo-Ne-Beto-Pon-Tee — are small, quick-witted insectoid beings from Night, a tide-locked world of dense jungle and perpetual twilight. They stand roughly one metre tall, with four nimble limbs, a lightweight exoskeleton, and adhesive pads on hands and feet that allow them to cling to almost any surface. Their most remarkable feature is their hearing range: Whistlers perceive frequencies from 20 Hz to 60 kHz — far beyond the human range — and communicate primarily through high-frequency whistles, clicks, and chirps inaudible to most other species. They possess four distinct sexes, all of which must cooperate for reproduction; a Whistler separated from the others of its reproductive group gradually withers. For this reason, Traveller Whistlers are almost invariably neuters — individuals who, through injury, choice, or circumstance, have stepped outside the reproductive cycle. Whistlers are famously stealthy, instinctively silent, and capable of moving without sound even in cluttered environments. Very few leave Night, but those who do often find roles where their acute senses and natural agility prove invaluable.",
+    "characteristic_modifiers": {
+        "STR": 0,
+        "DEX": 0,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_dice": {
+        "STR": "1D3",
+        "DEX": "1D+4",
+        "END": "1D3",
+        "INT": "2D-1",
+        "EDU": "2D",
+        "SOC": "1D3"
+    },
+    "characteristic_maximum": 15,
+    "background_skills": ["Stealth 2"],
+    "traits": [
+        {
+            "name": "Sticky Feet",
+            "description": "Adhesive pads on the Whistler's hands and feet allow it to cling to and traverse virtually any solid surface without a climbing check, even vertical walls and inverted surfaces, under standard or low gravity. The Whistler is not easily dislodged once braced — attempts to physically displace an anchored Whistler require a significant STR check (Referee discretion, typically 10+)."
+        },
+        {
+            "name": "Sneaky",
+            "description": "Whistlers move with instinctive, near-perfect silence. The Traveller begins play with Stealth 2, applied automatically at character creation. In addition, the Whistler may attempt Stealth checks in situations where other species would receive a penalty for noise (e.g. moving quickly, wearing light armour), at Referee discretion."
+        },
+        {
+            "name": "High-frequency Communication and Perception",
+            "description": "Whistlers communicate natively in a range of 20 Hz to 60 kHz — the upper end of which is entirely inaudible to most other species. They can converse silently with other Whistlers in the presence of non-Whistlers without being understood or detected. Their perception of high-frequency sounds also grants them DM+2 on checks to detect very quiet or high-pitched sounds, approaching creatures, or ultrasonic devices. Standard translation devices can be adapted to render Whistler communication in the human-audible range."
+        }
+    ],
+    "species_notes": [
+        "Characteristic generation uses non-standard dice: STR 1D3, END 1D3, SOC 1D3; DEX 1D+4; INT 2D-1; EDU 2D — applied automatically by the engine.",
+        "Sneaky: Stealth 2 is granted automatically at character creation.",
+        "Sticky Feet: the Whistler can traverse any solid surface without climbing checks in standard or low gravity. Referee applies displacement difficulty (typically STR 10+).",
+        "High-frequency Communication: Whistlers can converse with other Whistlers inaudibly to other species. DM+2 to detect quiet or high-pitched sounds.",
+        "Four sexes: a Whistler separated from its reproductive group withers over time. Traveller Whistlers are almost always neuters — outside the reproductive cycle by choice, injury, or circumstance.",
+        "Pheromone sensitivity: other species in close proximity to a Whistler for four to six weeks may develop mild behavioural effects (unusually cooperative or trusting). Referee applies as a roleplaying note.",
+        "Homeworld: very few Whistlers leave Night. Those who do typically pursue careers that reward stealth, agility, or acute senses."
+    ],
+    "sort_order": 115,
+    "aliases": ["whistler", "whistlers", "oo-ne-beto-pon-tee"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}

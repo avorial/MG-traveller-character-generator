@@ -1,0 +1,42 @@
+{
+    "id": "ssienjhiovla",
+    "name": "Ssienjhiovla",
+    "description": "Shelled, mollusc-like beings highly adapted to their homeworld's thin atmosphere and high gravity. The Ssienjhiovla have no head — their brain and sensory organs are located towards the centre of their trunk. They have two squat, dextrous feet covered in suckers that can anchor them to almost any surface, and four arm-like appendages each ending in a malleable six-fingered hand; any digit can be made opposable, giving them exceptional manual dexterity. Their skin is smooth and moist on the legs but becomes drier and more porous towards the trunk. They do not hear well by human standards but possess extraordinary sight and smell, capable of distinguishing individual scents at up to five kilometres. Communication among Ssienjhiovla is primarily through pheromone excretion and gestured arm signals; devices similar to those used by the Hivers allow them to communicate audibly with other species. They are asexual, temporarily developing male or female parts to reproduce, and may do so several times across a lifespan. Young are born live and almost immediately independent. The dorsal carapace is both functional protection and a canvas for artistic expression — most Ssienjhiovla burn decorative patterns into it using naturally occurring acids from Shimaraak. Relatively few leave their homeworld, but those who do favour the Scout Service or Imperial Navy, and must wear specialist clothing and vacc suits to manage the drier air and lower gravity of human vessels.",
+    "characteristic_modifiers": {
+        "STR": -2,
+        "DEX": 1,
+        "END": 0,
+        "INT": 0,
+        "EDU": 0,
+        "SOC": 0
+    },
+    "characteristic_maximum": 15,
+    "traits": [
+        {
+            "name": "Carapace",
+            "description": "The Ssienjhiovla dorsal carapace provides natural Protection +6. This stacks with worn armour in the normal way. The carapace cannot be removed and does not require maintenance beyond the usual moisturising care the Ssienjhiovla applies to its skin."
+        },
+        {
+            "name": "Composite Imaging",
+            "description": "On worlds with Atmosphere 3–7, the Ssienjhiovla can blend its extraordinary senses — sight, pheromone detection, and olfactory mapping — to create a detailed composite image of events occurring within one kilometre, even when those events are out of direct visual range, provided they occur within the same open environment. This ability functions similarly to the psionic Clairvoyance talent but requires no psionic ability. It does not function for events in sealed environments such as starship interiors, vaults, or any space separated by an airlock door. Apply at Referee discretion based on current world atmosphere."
+        },
+        {
+            "name": "Non-verbal Communication",
+            "description": "Ssienjhiovla can communicate silently with others of their species over distances of up to five kilometres using pheromone excretion and their heightened olfactory sense. This requires no device and is imperceptible to most other species. The range drops to a few metres in enclosed or ventilated environments where pheromones disperse rapidly."
+        },
+        {
+            "name": "Sucker Grip",
+            "description": "The Ssienjhiovla's feet are covered in powerful suckers that enable them to firmly grip almost any solid surface. They are extremely difficult to physically dislodge once anchored — any attempt to move them against their will requires a significant STR check (Referee discretion, typically 10+). They may also traverse vertical or inverted surfaces without climbing checks in standard or low gravity."
+        }
+    ],
+    "species_notes": [
+        "Carapace: Protection +6 natural armour — track this separately on the character sheet alongside any worn armour.",
+        "Composite Imaging: on worlds with Atmosphere 3–7, the Ssienjhiovla can perceive events within 1 km without line of sight (open environments only). Referee-applied as needed during play.",
+        "Non-verbal Communication: pheromone-based communication with other Ssienjhiovla up to 5 km. Silent and undetectable to other species.",
+        "Off-world equipment: Ssienjhiovla require specially adapted vacc suits and clothing to manage drier atmospheric conditions and lower gravity aboard human starships.",
+        "Career preferences: Scout Service and Imperial Navy are the most popular choices for those who leave their homeworld."
+    ],
+    "sort_order": 110,
+    "aliases": ["ssienjhiovla"],
+    "source": "Aliens of Charted Space, Mongoose Publishing"
+}
