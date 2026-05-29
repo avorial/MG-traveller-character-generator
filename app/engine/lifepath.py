@@ -5072,6 +5072,54 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         character.next_career_must_be_core = False
         character.log(f"Ihatei core-career restriction satisfied by {career['name']} — flag cleared.")
 
+    # ── Imperial Guard prerequisite gate ─────────────────────────────────────
+    if career_id == "imperial_guard":
+        _IG_SOURCE = {"army", "marine", "confederation_army", "solomani_marine",
+                      "vargr_army", "vargr_marines", "zhodani_army", "zhodani_guard"}
+        # One attempt only — add to banned_career_ids on any failure
+        if "imperial_guard" in character.banned_career_ids:
+            return _qual_block(
+                "Imperial Guard: you have already attempted qualification and been refused. "
+                "Future attempts are permanently barred."
+            )
+        # Must currently be serving in Army or Marines
+        cur = character.current_term
+        if cur is None or cur.career_id not in _IG_SOURCE:
+            return _qual_block(
+                "Imperial Guard: you must be currently serving in the Army or Marines to apply."
+            )
+        # Must have received a promotion in this (current) term
+        if not cur.advanced:
+            return _qual_block(
+                "Imperial Guard: you must have received a promotion in the term immediately "
+                "prior to application."
+            )
+        # No mishaps in the entire career history
+        _has_mishap = any(
+            (h.mishap and h.mishap.strip()) or h.survived is False
+            for h in character.term_history
+        )
+        if _has_mishap:
+            return _qual_block(
+                "Imperial Guard: applicants must have an unblemished record — no mishaps "
+                "may have occurred during the Traveller's career."
+            )
+        # STR or END must be 10+
+        if (character.characteristics.STR < 10 and character.characteristics.END < 10):
+            return _qual_block(
+                "Imperial Guard: STR or END 10+ is required."
+            )
+        # Vacc Suit 1 or higher
+        _vacc_level = next(
+            (sk.level for sk in character.skills
+             if sk.name.lower() == "vacc suit" and sk.speciality is None),
+            -1
+        )
+        if _vacc_level < 1:
+            return _qual_block(
+                "Imperial Guard: Vacc Suit 1 or higher is required."
+            )
+
     qual = career.get("qualification", {})
     if qual.get("automatic"):
         # Droyne caste check: career is locked to a specific caste
@@ -5230,6 +5278,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             # DM if SOC meets or exceeds threshold
             if character.characteristics.SOC >= mod.get("soc", 99):
                 dm += mod["dm"]
+        elif mod["type"] == "characteristic_minimum":
+            # DM+N if a characteristic meets or exceeds a minimum value
+            _char_val = _get_stat(character, mod.get("characteristic", "STR"))
+            if _char_val >= mod.get("min_value", 99):
+                dm += mod["dm"]
 
     # Apply permanent pre-career education DMs
     pdms = character.pre_career_permanent_dms or {}
@@ -5322,6 +5375,11 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     # Track failed attempts for subsequent rolls this round
     if not r.succeeded:
         character.failed_qualifications_this_term += 1
+        # Imperial Guard failure is permanent — ban future attempts
+        if career_id == "imperial_guard":
+            if "imperial_guard" not in character.banned_career_ids:
+                character.banned_career_ids.append("imperial_guard")
+            character.log("Imperial Guard qualification failed — permanently barred from future attempts.")
 
     return {"succeeded": r.succeeded, "roll": result, "character": character.model_dump()}
 
@@ -5428,6 +5486,14 @@ def start_term(
     else:
         starting_rank = 0
 
+    # Imperial Guard: record the source Army/Marines career before we replace current_term
+    if career_id == "imperial_guard" and first_term_in_this_career:
+        if character.current_term is not None:
+            character.imperial_guard_source_career_id = character.current_term.career_id
+            character.log(
+                f"Imperial Guard: source career recorded as '{character.current_term.career_id}'."
+            )
+
     term = CareerTerm(
         career_id=career_id,
         assignment_id=assignment_id,
@@ -5501,6 +5567,24 @@ def start_term(
             [f"Species career start: {s}" for s in sp_career_start_map[career_id]]
         )
 
+    # Imperial Guard first term: auto-roll 1D on service_skills (extra training).
+    # Guardsmen receive one free service skill roll in addition to normal term skills.
+    ig_entry_skill_log: list[str] = []
+    if career_id == "imperial_guard" and first_term_in_this_career:
+        svc_table = career.get("skill_tables", {}).get("service_skills", {})
+        _ig_roll = dice.roll("1D")
+        _ig_entry = svc_table.get(str(_ig_roll.total), "")
+        if _ig_entry:
+            _ig_skill_name = _ig_entry.split(" or ")[0].strip()
+            _ig_sname, _ig_spec = _split_skill_speciality(_ig_skill_name)
+            character.add_skill(_ig_sname, level=1, speciality=_ig_spec)
+            _ig_disp = f"{_ig_sname}{f' ({_ig_spec})' if _ig_spec else ''} 1"
+            ig_entry_skill_log.append(_ig_disp)
+            term.skills_gained.append(f"Imperial Guard entry training: {_ig_disp}")
+            character.log(
+                f"  Imperial Guard entry training: rolled {_ig_roll.total} on service skills → {_ig_disp}"
+            )
+
     # Basic training: auto-apply all 6 skill entries at level 0.
     # basic_training_from_specialist: use the specialist table for this assignment
     # instead of the service_skills table (e.g. Zhodani Prole career).
@@ -5539,6 +5623,8 @@ def start_term(
         result["basic_training_skills"] = basic_training_skills
     if career_start_skill_log:
         result["career_start_skills"] = career_start_skill_log
+    if ig_entry_skill_log:
+        result["ig_entry_skills"] = ig_entry_skill_log
     return result
 
 
@@ -9945,6 +10031,14 @@ def advancement_roll(character: Character) -> dict:
             f"— must leave this career at end of term."
         )
 
+    # Imperial Guard: advancement required. If not promoted, must leave.
+    if term.career_id == "imperial_guard" and not term.advanced:
+        character.imperial_guard_must_leave = True
+        character.log(
+            "Imperial Guard: advancement required but not achieved — "
+            "must leave the Guard at end of this term (return to Army/Marines or muster out)."
+        )
+
     return {
         "roll": r.to_dict(),
         "advanced": term.advanced,
@@ -9960,6 +10054,7 @@ def advancement_roll(character: Character) -> dict:
         "zhodani_noble_dm": zhodani_noble_dm,
         "knight_commander_by_rank": character.knight_commander_by_rank,
         "knight_grand_cross": character.knight_grand_cross,
+        "imperial_guard_must_leave": character.imperial_guard_must_leave,
         "character": character.model_dump(),
     }
 
@@ -14631,10 +14726,33 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
                 character.completed_careers[-1].benefit_rolls_earned += 1
             monitor_bonus_note = " SolSec Monitor (rank 3+): +1 extra Benefit roll."
 
+        # Imperial Guard 2+ terms service bonuses:
+        # SOC +2, DM+1 on non-cash benefit rolls, doubled material budget, auto TAS Membership.
+        ig_service_bonus_note = ""
+        if term.career_id == "imperial_guard" and terms_in_career >= 2:
+            # SOC +2
+            _ig_soc = character.characteristics.get("SOC") or 0
+            character.characteristics.set("SOC", _ig_soc + 2)
+            character.log(f"Imperial Guard service honour (2+ terms): SOC +2 (now {_ig_soc + 2}).")
+            # Benefit DM and doubled budget
+            character.imperial_guard_benefit_dm = 1
+            character.imperial_guard_doubled_budget = True
+            # TAS Membership
+            if not character.tas_member:
+                character.tas_member = True
+                character.log("Imperial Guard service honour (2+ terms): TAS Membership granted automatically.")
+            ig_service_bonus_note = (
+                f" Imperial Guard: SOC+2, DM+1 on non-cash benefit rolls, "
+                f"doubled equipment budget, TAS Membership."
+            )
+        # Clear the must-leave flag now that they've actually left
+        if term.career_id == "imperial_guard":
+            character.imperial_guard_must_leave = False
+
         character.log(
             f"Left {rules.careers()[term.career_id]['name']} "
             f"({reason}). {terms_in_career} terms served. "
-            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note}).{pension_note}{monitor_bonus_note}"
+            f"Earns {earned} benefit rolls ({terms_in_career} base + {rank_bonus} rank bonus{forfeit_note}).{pension_note}{monitor_bonus_note}{ig_service_bonus_note}"
         )
     else:
         character.log(f"Completed term {term.overall_term_number}, age now {character.age}.")
@@ -14952,6 +15070,11 @@ def muster_out_roll(
     if column == "cash" and not _is_hiver_career:
         if any(s.name.lower() == "gambler" for s in character.skills):
             dm += 1
+    # Imperial Guard 2+ terms: DM+1 on non-cash benefit rolls
+    ig_benefit_dm = 0
+    if column == "benefit" and character.imperial_guard_benefit_dm > 0:
+        ig_benefit_dm = character.imperial_guard_benefit_dm
+        dm += ig_benefit_dm
     dm += character.dm_next_benefit
     pending_dm = character.dm_next_benefit
     character.dm_next_benefit = 0
@@ -15041,6 +15164,7 @@ def muster_out_roll(
         "result": result_text,
         "remaining_rolls": character.pending_benefit_rolls,
         "rank_dm": rank_dm,
+        "ig_benefit_dm": ig_benefit_dm,
         "good_fortune_used": good_fortune_used,
         "good_fortune_remaining": character.good_fortune_benefit_dm,
         "pending_skill_choice": character.pending_muster_benefit_choice,
@@ -15320,6 +15444,15 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
     # interactive "rolled again" choices via pending_muster_benefit_choice.
     # ============================================================
 
+    # Imperial Guard 2+ terms: doubled equipment budgets
+    _ig_db = character.imperial_guard_doubled_budget
+    _w_budget   = "Cr6,000"   if _ig_db else "Cr3,000"    # Weapon / Gun
+    _bl_budget  = "Cr2,000"   if _ig_db else "Cr1,000"    # Blade
+    _ar_budget  = "Cr20,000"  if _ig_db else "Cr10,000"   # Armour
+    _ar_up_bud  = "Cr50,000"  if _ig_db else "Cr25,000"   # Armour (upgraded)
+    _ci_budget  = "Cr150,000" if _ig_db else "Cr75,000"   # Combat/Cybernetic Implant
+    _se_budget  = "Cr4,000"   if _ig_db else "Cr2,000"    # Scientific Equipment
+
     # TAS Membership — lifetime flag; rolled again → 2 Ship Shares
     if re.match(r'^tas\s+membership$', b, re.IGNORECASE):
         if character.tas_member:
@@ -15416,7 +15549,7 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
             character.log(f"Muster benefit: Yacht ({_nr}/4 rolls — {min(_nr * 25, 100)}% paid).")
         return
 
-    # Weapon — any weapon up to Cr3,000 / TL 12; rolled again → another weapon OR weapon skill
+    # Weapon — any weapon up to Cr3,000 / TL 12 (doubled for Imperial Guard); rolled again → another OR weapon skill
     if re.match(r'^weapon$', b, re.IGNORECASE):
         if not _is_reroll:
             _w_count = sum(1 for eq in character.equipment if re.match(r'^weapon$', eq.name, re.IGNORECASE))
@@ -15426,19 +15559,19 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "benefit": "Weapon",
                     "prompt": "You already have a weapon. Choose one:",
                     "options": ["Weapon", "Gun Combat 1", "Melee 1"],
-                    "labels": ["Another weapon (Cr3,000 / TL 12)", "Gun Combat +1", "Melee +1"],
+                    "labels": [f"Another weapon ({_w_budget} / TL 12)", "Gun Combat +1", "Melee +1"],
                 }
                 character.log("Muster benefit: Weapon (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Weapon",
-            notes="Select any weapon worth up to Cr3,000 at TL 12 or below."
+            notes=f"Select any weapon worth up to {_w_budget} at TL 12 or below."
             + (" [2nd weapon]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Weapon (select any weapon, up to Cr3,000 / TL 12).")
+        character.log(f"Muster benefit: Weapon (select any weapon, up to {_w_budget} / TL 12).")
         return
 
-    # Gun — ranged weapon up to Cr3,000 / TL 12; rolled again → another OR Gun Combat 1
+    # Gun — ranged weapon up to Cr3,000 / TL 12 (doubled for Imperial Guard); rolled again → another OR Gun Combat 1
     if re.match(r'^gun$', b, re.IGNORECASE):
         if not _is_reroll:
             _g_count = sum(1 for eq in character.equipment if re.match(r'^gun$', eq.name, re.IGNORECASE))
@@ -15448,19 +15581,19 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "benefit": "Gun",
                     "prompt": "You already have a gun. Choose one:",
                     "options": ["Gun", "Gun Combat 1"],
-                    "labels": ["Another gun (Cr3,000 / TL 12)", "Gun Combat +1"],
+                    "labels": [f"Another gun ({_w_budget} / TL 12)", "Gun Combat +1"],
                 }
                 character.log("Muster benefit: Gun (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Gun",
-            notes="Select any common or military ranged weapon worth up to Cr3,000 at TL 12 or below."
+            notes=f"Select any common or military ranged weapon worth up to {_w_budget} at TL 12 or below."
             + (" [2nd gun]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Gun (select any ranged weapon, up to Cr3,000 / TL 12).")
+        character.log(f"Muster benefit: Gun (select any ranged weapon, up to {_w_budget} / TL 12).")
         return
 
-    # Blade — any blade up to Cr1,000 / TL 12; rolled again → another OR Melee (blade) 1
+    # Blade — any blade up to Cr1,000 / TL 12 (doubled for Imperial Guard); rolled again → another OR Melee (blade) 1
     if re.match(r'^blade$', b, re.IGNORECASE):
         if not _is_reroll:
             _bl_count = sum(1 for eq in character.equipment if re.match(r'^blade$', eq.name, re.IGNORECASE))
@@ -15470,28 +15603,28 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "benefit": "Blade",
                     "prompt": "You already have a blade. Choose one:",
                     "options": ["Blade", "Melee (blade) 1"],
-                    "labels": ["Another blade (Cr1,000 / TL 12)", "Melee (blade) +1"],
+                    "labels": [f"Another blade ({_bl_budget} / TL 12)", "Melee (blade) +1"],
                 }
                 character.log("Muster benefit: Blade (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Blade",
-            notes="Select any blade worth up to Cr1,000 at TL 12 or below."
+            notes=f"Select any blade worth up to {_bl_budget} at TL 12 or below."
             + (" [2nd blade]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Blade (select any blade, up to Cr1,000 / TL 12).")
+        character.log(f"Muster benefit: Blade (select any blade, up to {_bl_budget} / TL 12).")
         return
 
-    # Armour (upgraded) — from "rolled again" choice; trade-up budget of Cr25,000
+    # Armour (upgraded) — from "rolled again" choice; trade-up budget of Cr25,000 (doubled for Imperial Guard)
     if re.match(r'^armou?r\s*\(upgraded\)$', b, re.IGNORECASE):
         character.equipment.append(Equipment(
             name="Armour (upgraded)",
-            notes="Rolled again: select armour worth up to Cr25,000 at TL 12 or below."
+            notes=f"Rolled again: select armour worth up to {_ar_up_bud} at TL 12 or below."
         ))
-        character.log("Muster benefit: Armour (upgraded) — trade up to Cr25,000 / TL 12.")
+        character.log(f"Muster benefit: Armour (upgraded) — trade up to {_ar_up_bud} / TL 12.")
         return
 
-    # Armour — up to Cr10,000 / TL 12; rolled again → another OR trade up to Cr25,000
+    # Armour — up to Cr10,000 / TL 12 (doubled for Imperial Guard); rolled again → another OR trade up to Cr25,000
     if re.match(r'^armou?r$', b, re.IGNORECASE):
         if not _is_reroll:
             _ar_count = sum(1 for eq in character.equipment if re.match(r'^armou?r$', eq.name, re.IGNORECASE))
@@ -15501,28 +15634,28 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "benefit": "Armour",
                     "prompt": "You already have armour. Choose one:",
                     "options": ["Armour", "Armour (upgraded)"],
-                    "labels": ["Another set of armour (Cr10,000 / TL 12)", "Trade up to better armour (Cr25,000 / TL 12)"],
+                    "labels": [f"Another set of armour ({_ar_budget} / TL 12)", f"Trade up to better armour ({_ar_up_bud} / TL 12)"],
                 }
                 character.log("Muster benefit: Armour (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Armour",
-            notes="Select any armour worth up to Cr10,000 at TL 12 or below."
+            notes=f"Select any armour worth up to {_ar_budget} at TL 12 or below."
             + (" [2nd armour]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Armour (select any armour, up to Cr10,000 / TL 12).")
+        character.log(f"Muster benefit: Armour (select any armour, up to {_ar_budget} / TL 12).")
         return
 
-    # Combat Implant (improve) — from "rolled again" choice; upgrade existing
+    # Combat Implant (improve) — from "rolled again" choice; upgrade existing (doubled for Imperial Guard)
     if re.match(r'^(combat|cybernetic)\s+implant\s*\(improve\)$', b, re.IGNORECASE):
         character.equipment.append(Equipment(
             name="Combat Implant (improve)",
-            notes="Rolled again: improve or upgrade an existing augmentation (up to Cr75,000 budget / TL 12)."
+            notes=f"Rolled again: improve or upgrade an existing augmentation (up to {_ci_budget} budget / TL 12)."
         ))
-        character.log("Muster benefit: Combat Implant (improve) — upgrade existing augmentation.")
+        character.log(f"Muster benefit: Combat Implant (improve) — upgrade existing augmentation up to {_ci_budget}.")
         return
 
-    # Combat Implant / Cybernetic Implant — up to Cr75,000 / TL 12; rolled again → another OR improve
+    # Combat Implant / Cybernetic Implant — up to Cr75,000 / TL 12 (doubled for Imperial Guard); rolled again → another OR improve
     if re.match(r'^(combat|cybernetic)\s+implant$', b, re.IGNORECASE):
         if not _is_reroll:
             _ci_count = sum(
@@ -15536,18 +15669,18 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "prompt": "You already have a cybernetic implant. Choose one:",
                     "options": ["Combat Implant", "Combat Implant (improve)"],
                     "labels": [
-                        "A different cybernetic implant (Cr75,000 / TL 12)",
-                        "Improve your existing implant (Cr75,000 budget / TL 12)",
+                        f"A different cybernetic implant ({_ci_budget} / TL 12)",
+                        f"Improve your existing implant ({_ci_budget} budget / TL 12)",
                     ],
                 }
                 character.log("Muster benefit: Combat Implant (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Combat Implant",
-            notes="Select any augmentation (cybernetic implant) worth up to Cr75,000 at TL 12 or below."
+            notes=f"Select any augmentation (cybernetic implant) worth up to {_ci_budget} at TL 12 or below."
             + (" [2nd implant]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Combat Implant (select any augmentation, up to Cr75,000 / TL 12).")
+        character.log(f"Muster benefit: Combat Implant (select any augmentation, up to {_ci_budget} / TL 12).")
         return
 
     # Scientific Equipment — up to Cr2,000 / TL 12; rolled again → another OR Electronics/Science 1
@@ -15560,16 +15693,16 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
                     "benefit": "Scientific Equipment",
                     "prompt": "You already have scientific equipment. Choose one:",
                     "options": ["Scientific Equipment", "Electronics 1", "Science 1"],
-                    "labels": ["More scientific equipment (Cr2,000 / TL 12)", "Electronics +1", "Science +1"],
+                    "labels": [f"More scientific equipment ({_se_budget} / TL 12)", "Electronics +1", "Science +1"],
                 }
                 character.log("Muster benefit: Scientific Equipment (rolled again) — PENDING player choice.")
                 return
         character.equipment.append(Equipment(
             name="Scientific Equipment",
-            notes="Select any scientific equipment worth up to Cr2,000 at TL 12 or below."
+            notes=f"Select any scientific equipment worth up to {_se_budget} at TL 12 or below."
             + (" [more equipment]" if _is_reroll else "")
         ))
-        character.log("Muster benefit: Scientific Equipment (select any, up to Cr2,000 / TL 12).")
+        character.log(f"Muster benefit: Scientific Equipment (select any, up to {_se_budget} / TL 12).")
         return
 
     # Personal Vehicle — up to Cr300,000 / TL 10; rolled again → Drive 1 or Flyer 1

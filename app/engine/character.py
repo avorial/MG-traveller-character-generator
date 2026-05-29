@@ -228,6 +228,16 @@ class Character(BaseModel):
     # If rolled again, grants 2 Ship Shares instead.
     tas_member: bool = False
 
+    # Imperial Guard service tracking.
+    # source_career_id: the Army/Marine career from which the character entered the Guard.
+    # must_leave: set True when advancement fails (Guard rule: must advance or leave).
+    # benefit_dm: DM+1 on non-cash benefit rolls granted after 2+ Guard terms.
+    # doubled_budget: True after 2+ Guard terms; doubles equipment benefit budget limits.
+    imperial_guard_source_career_id: Optional[str] = None
+    imperial_guard_must_leave: bool = False
+    imperial_guard_benefit_dm: int = 0
+    imperial_guard_doubled_budget: bool = False
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

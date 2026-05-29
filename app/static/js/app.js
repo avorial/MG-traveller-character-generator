@@ -5201,11 +5201,57 @@ function renderChooseCareer() {
     }
 
     if (wasEjected) classes.push('career-ejected');
+
+    // Imperial Guard: show inline eligibility checklist on its card
+    let igEligBadge = '';
+    if (c.id === 'imperial_guard') {
+      const curTerm = character.current_term || null;
+      const _IG_SOURCE = new Set(['army','marine','confederation_army','solomani_marine',
+        'vargr_army','vargr_marines','zhodani_army','zhodani_guard']);
+      const _str = character.characteristics?.STR ?? 0;
+      const _end = character.characteristics?.END ?? 0;
+      const _soc = character.characteristics?.SOC ?? 0;
+      const igChecks = [
+        {
+          ok: curTerm && _IG_SOURCE.has(curTerm.career_id),
+          label: 'Currently serving Army or Marines',
+        },
+        {
+          ok: curTerm && !!curTerm.advanced,
+          label: 'Promoted last term',
+        },
+        {
+          ok: !(character.term_history || []).some(h => h.mishap && h.mishap.trim()),
+          label: 'Unblemished record (no mishaps)',
+        },
+        {
+          ok: _str >= 10 || _end >= 10,
+          label: `STR or END 10+ (STR ${_str}, END ${_end})`,
+        },
+        {
+          ok: (character.skills || []).some(s => s.name?.toLowerCase() === 'vacc suit' && s.level >= 1),
+          label: 'Vacc Suit 1+',
+        },
+      ];
+      const allMet = igChecks.every(ch => ch.ok);
+      igEligBadge = `
+        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6">
+          <span style="font-weight:600;color:${allMet ? 'var(--success,#7fd87f)' : 'var(--amber)'}">
+            ${allMet ? '✦ ELIGIBLE' : '⚠ PREREQUISITES'}
+          </span>
+          <ul style="list-style:none;padding:0;margin:2px 0 0 0">
+            ${igChecks.map(ch => `<li style="color:${ch.ok ? 'var(--success,#7fd87f)' : 'var(--fg-dim)'}">
+              ${ch.ok ? '✓' : '✗'} ${escapeHTML(ch.label)}</li>`).join('')}
+          </ul>
+        </div>`;
+    }
+
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">
         <div class="card-title">${esc(c.name)}${wasEjected ? ' <span class="ejected-flag">⚠ EJECTED</span>' : ''}</div>
         <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}${riteScore !== null && qual.characteristic === 'RITE_OF_PASSAGE' ? ` · YOUR SCORE: ${riteScore}` : ''}</div>
         <div class="card-desc">${esc(c.description)}</div>
+        ${igEligBadge}
       </button>
     `;
   }).join('');
@@ -9957,6 +10003,7 @@ function renderAdvanceStep() {
   // Decide-phase actions (shared by advance result and already-rolled views)
   const _forcedNext = character.forced_next_career_id || null;
   const _forcedNextName = _forcedNext ? (CAREERS.find(c => c.id === _forcedNext)?.name || _forcedNext) : null;
+  const _igMustLeave = term.career_id === 'imperial_guard' && !!character.imperial_guard_must_leave;
   const decideActions = _forcedNext ? `
     <div class="event-box" style="border-color:var(--danger);margin-top:14px">
       <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${_forcedNextName.toUpperCase()}</span>
@@ -9965,6 +10012,16 @@ function renderAdvanceStep() {
     </div>
     <div class="phase-actions" style="margin-top:12px">
       <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+    </div>
+    ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  ` : _igMustLeave ? `
+    <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+      <span class="event-label" style="color:var(--danger)">⚔ IMPERIAL GUARD — SERVICE ENDED</span>
+      Advancement is required for continued Guard service. You must muster out or return to your
+      source career (${esc(character.imperial_guard_source_career_id || 'Army/Marines')}).
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn" id="btn-leave-career">MUSTER OUT</button>
     </div>
     ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
   ` : `
