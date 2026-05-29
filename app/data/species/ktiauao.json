@@ -1,0 +1,31 @@
+{
+  "id": "ktiauao",
+  "name": "Ktiauao",
+  "description": "A reconstructed race from Ka'aheakh whose intelligence depends on symbiosis with the Kti fungoid woven through their central nervous system. Six-limbed arboreal omnivores massing 80-100 kg, the Ktiauao were stripped of their culture by the Tlasayoae Aslan clan in -680 and later restored by the Syoisuis. They now live as a vassal minor clan within the Aslan Hierate, following Aslan customs and gender roles. Neuter 'monks' comprise 15% of the population and enjoy extended lifespans.",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": 2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "gender_roll": "2D: 2-6 Male; 7 Neuter; 8-12 Female",
+  "traits": [
+    "Aging: Gendered Ktiauao begin aging after seven terms (DM+2 on aging rolls). Neuter Ktiauao begin aging after ten terms (DM = Terms/2 on aging rolls). Only STR, DEX and END are affected by aging.",
+    "Multi-Limbed: May use up to two major items simultaneously and receive two sets of major actions per round. May make two melee attacks with middle limbs doing 1D+2 damage. DM-2 with non-modified equipment.",
+    "Peripheral Vision: 270-degree arc of vision, conferring DM+1 to initiative and Recon checks.",
+    "TER Penalty: DM-1 on all Past Deeds TER rolls."
+  ],
+  "uses_aslan_careers": true,
+  "aslan_setup_status": {
+    "rite_score": 6,
+    "complete": true
+  },
+  "career_notes": "Ktiauao follow Aslan careers from Aliens of Charted Space: Volume 1. Begin careers at age 18. Neuter Ktiauao are treated as female for gender role purposes.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5130
+}

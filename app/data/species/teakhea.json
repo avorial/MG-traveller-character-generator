@@ -1,0 +1,38 @@
+{
+  "id": "teakhea",
+  "name": "Teakhea",
+  "description": "Amphibious snail-like sophonts from Tlankhu who accepted the Aslan as a master caste and adapted their caste system accordingly. Four metres long and massing over 300 kg, they move via a muscular foot and manipulate the world with two tentacle arms. Serially hermaphroditic, they change gender and matching caste role during their lives. Their population has fallen to 1.2 million — outnumbered five to one by Aslan on their own homeworld.",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": -1,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -2
+  },
+  "starting_skills": [
+    "Language (Trokh) 2"
+  ],
+  "traits": [
+    "Amphibious: Equally adept on land and in water; can stay submerged indefinitely in oxygenated water.",
+    "Heightened Senses: DM+1 to Recon and Survival checks.",
+    "IR and UV Vision: Extended electromagnetic range including infrared and ultraviolet; see clearly in darkness.",
+    "Large (+2): All ranged attacks against a Teakhea gain DM+2.",
+    "Shell: Protection +3. Damage applied to characteristics (after armour) is halved.",
+    "Snail Foot: Speed reduced to 3 metres across rough or broken terrain.",
+    "Language (Trokh) 2: All Teakhea start with this skill. Males do not need the Independence skill."
+  ],
+  "uses_aslan_careers": true,
+  "blocked_aslan_careers": [
+    "ceremonial",
+    "envoy",
+    "aslan_military_officer",
+    "aslan_space_officer"
+  ],
+  "career_notes": "All Aslan careers from Aliens of Charted Space Volume 1 are available except Ceremonial, Envoy, or Military/Space Officer. A Teakhea cannot change careers without changing gender. A new gender career should be as close in scope to the original as possible. A Teakhea begins as male. At the start of each term roll 8+ on 2D to initiate a gender change if desired. Any Mishap ending a career results in either ceasing character creation or becoming an Outcast.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5150
+}

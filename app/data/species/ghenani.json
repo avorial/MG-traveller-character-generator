@@ -1,0 +1,34 @@
+{
+  "id": "ghenani",
+  "name": "Ghenani",
+  "description": "A sophont race encountered in the Vanguard Reaches. Powerfully built, with STR up to 17. Ghenani culture deeply rejects cybernetic augmentation and psionics — even to replace a lost limb, a Ghenani will refuse cybernetics. On their birthworld, mustering out benefits are limited to TL5 equipment. They can never speak other languages without gaining the Language skill.",
+  "characteristic_modifiers": {
+    "STR": 2,
+    "DEX": -2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum_overrides": {
+    "STR": 17
+  },
+  "traits": [
+    "No Cybernetics: Ghenani will not accept cybernetic augmentation of any kind, even to replace lost limbs.",
+    "No Psionics: Ghenani refuse to learn or use psionic abilities.",
+    "Aging: DM-1 on all aging rolls.",
+    "Language Barrier: Cannot speak any language other than Ghenani without the Language skill."
+  ],
+  "blocked_careers": [
+    "psion",
+    "vargr_psion",
+    "zhodani_agent",
+    "zhodani_guard"
+  ],
+  "career_notes": "Most Traveller Core Rulebook careers are suitable. Unless the Ghenani has emigrated from their birthworld, Scout, Navy, Marine and Merchant (except Broker assignment) careers are not available.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5190
+}

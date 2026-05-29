@@ -1,0 +1,71 @@
+{
+  "id": "zhdianshe",
+  "name": "Zhdianshe",
+  "description": "Psionic flying sophonts from the Colonnade Province in the Vanguard Reaches. Extremely frail physically — STR is always 1 — but superbly agile and naturally psionic. All Zhdianshe receive childhood psionic training, beginning with Telepathy 2. They are long-lived, not requiring aging rolls until term 8, and gain DM+6 on all aging rolls. Their echolocation and flight make them formidable in darkness and low-gravity environments. They wear darkened goggles in daylit conditions.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "STR": "fixed:1",
+    "DEX": "2D+2",
+    "PSI": "2D_min2"
+  },
+  "psi_linked_soc": true,
+  "rolls_psi_at_start": true,
+  "psi_roll": "2D_min2",
+  "aging_starts_term": 8,
+  "aging_dm_bonus": 6,
+  "traits": [
+    "Aging: No aging rolls until term 8. DM+6 on all aging rolls. PSI is treated as a mental characteristic for aging purposes.",
+    "Echolocation: See well in low light with no penalty except in absolute darkness (DM-1, max 100m without Clairvoyance). Without darkened goggles in daylight, suffer DM-2 to vision checks or DM-1 if eyes closed and using echolocation.",
+    "Flyer: Can fly on Size 5 or smaller worlds (thin atmosphere or denser), Size 6 (standard or dense), or Size 7 (dense). Flying speed 10 metres.",
+    "Psionics: Telepathy 2 is automatically gained. Must next attempt Clairvoyance (trained to level 1 if gained). Further talents may be gained as normal but only developed to level 0 during initial training."
+  ],
+  "psionic_training_at_start": true,
+  "psionic_training_table": {
+    "note": "All Zhdianshe receive childhood psionic training. Telepathy 2 is automatic. Must next attempt Clairvoyance (trained to level 1 if gained). Additional talents follow standard rules but only reach level 0 during initial training.",
+    "auto_talents": [
+      {
+        "name": "Telepathy",
+        "level": 2
+      }
+    ],
+    "required_next": {
+      "name": "Clairvoyance",
+      "level": 1
+    },
+    "talents": [
+      {
+        "name": "Clairvoyance",
+        "dm": 3
+      },
+      {
+        "name": "Telekinesis",
+        "dm": 2
+      },
+      {
+        "name": "Awareness",
+        "dm": 1
+      },
+      {
+        "name": "Teleportation",
+        "dm": 0
+      }
+    ]
+  },
+  "career_notes": "All Traveller Core Rulebook careers including Psion are suitable. DM-4 when attempting to qualify for Army or Marine careers (those organisations are not equipped for Zhdianshe).",
+  "career_dms": {
+    "army": -4,
+    "marine": -4
+  },
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5230
+}

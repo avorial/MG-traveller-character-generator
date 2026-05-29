@@ -1,0 +1,52 @@
+{
+  "id": "eslyat",
+  "name": "Eslyat",
+  "description": "An amphibious sophont race with an advanced starfaring civilisation and the Eslyat Magistracy as their interstellar state in the Vanguard Reaches. Eslyat society is rigidly stratified into three sub-races: the Selyin upper caste (SOC 10+), the Chutin middle caste (SOC 7-9), and the Magsin lower caste (SOC 6-). Females hold the majority of leadership roles in modern Eslyat society.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "eslyat_subraces": {
+    "selyin": {
+      "soc_start": 10,
+      "soc_min": 10,
+      "description": "Upper caste. Can enter Army/Marines/Navy only as a commissioned officer after a pre-career option. Otherwise limited to Entertainer, Merchant, Noble, Scholar, Scout (Surveyor or Explorer)."
+    },
+    "chutin": {
+      "soc_start": 7,
+      "soc_range": [
+        7,
+        9
+      ],
+      "description": "Middle caste. Careers: Agent, Army, Citizen, Colonist, Drifter, Marine, Navy, Scout. Always begins military careers as enlisted; can earn commission but advancement limited to Rank 5."
+    },
+    "magsin": {
+      "soc_start": 5,
+      "soc_max": 6,
+      "description": "Lower caste. Limited to Citizen, Drifter, Entertainer, Rogue."
+    }
+  },
+  "gender_modifiers": {
+    "male": {
+      "STR_modifier": 1,
+      "note": "DM-1 on advancement rolls for Rank 4 and above."
+    },
+    "female": {
+      "note": "DM+1 on all advancement rolls."
+    }
+  },
+  "traits": [
+    "Amphibious: Equally adept on land and in water; can stay submerged indefinitely in oxygenated water.",
+    "Heightened Hearing: DM+2 on Recon checks when sound is a relevant factor."
+  ],
+  "career_notes": "Career choices are strictly caste-limited. Only Selyin may undertake pre-career options. Gender affects advancement rolls.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5170
+}

@@ -1,0 +1,255 @@
+{
+  "id": "storm_knight_shadows",
+  "name": "Storm Knight — Order of Shadows",
+  "description": "The Order of Shadows operates in darkness, safeguarding the Order's secrets and eliminating its enemies through guile rather than force of arms. Its knights are spies, assassins, and wardens who employ psionic concealment and telepathic subterfuge. Membership demands exceptional physical endurance — to survive in places where no other knight can go.",
+  "qualification": {
+    "characteristic": "END",
+    "target": 7,
+    "modifiers": []
+  },
+  "societies": [
+    "other"
+  ],
+  "assignments": {
+    "shadow": {
+      "name": "Shadow",
+      "description": "You operate undercover, infiltrating hostile organisations and eliminating threats to the Order.",
+      "survival": {
+        "characteristic": "DEX",
+        "target": 7
+      },
+      "advancement": {
+        "characteristic": "INT",
+        "target": 7
+      }
+    },
+    "warden": {
+      "name": "Warden",
+      "description": "You guard the Order's strongholds and its most sensitive personnel, repelling infiltrators and would-be assassins.",
+      "survival": {
+        "characteristic": "END",
+        "target": 6
+      },
+      "advancement": {
+        "characteristic": "STR",
+        "target": 7
+      }
+    },
+    "inquisitor": {
+      "name": "Inquisitor",
+      "description": "You investigate treachery within the Order and interrogate captured enemies, using telepathy to extract truth.",
+      "survival": {
+        "characteristic": "INT",
+        "target": 7
+      },
+      "advancement": {
+        "characteristic": "SOC",
+        "target": 6
+      }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "DEX +1",
+      "2": "END +1",
+      "3": "INT +1",
+      "4": "STR +1",
+      "5": "Stealth",
+      "6": "Deception"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Deception",
+      "2": "Gun Combat",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Stealth",
+      "6": "Streetwise"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Explosives",
+      "2": "Investigate",
+      "3": "Medic",
+      "4": "Telepathy",
+      "5": "Teleportation",
+      "6": "Vacc Suit"
+    },
+    "shadow": {
+      "name": "Shadow",
+      "assignment_only": "shadow",
+      "1": "Deception",
+      "2": "Electronics (Sensors)",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Stealth",
+      "6": "Teleportation"
+    },
+    "warden": {
+      "name": "Warden",
+      "assignment_only": "warden",
+      "1": "Athletics",
+      "2": "Gun Combat",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Telepathy",
+      "6": "Vacc Suit"
+    },
+    "inquisitor": {
+      "name": "Inquisitor",
+      "assignment_only": "inquisitor",
+      "1": "Advocate",
+      "2": "Awareness",
+      "3": "Deception",
+      "4": "Investigate",
+      "5": "Persuade",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "shadow": {
+      "0": {
+        "title": "Shade",
+        "bonus": "Stealth 1"
+      },
+      "1": {
+        "title": "Shadow",
+        "bonus": "Deception 1"
+      },
+      "2": {
+        "title": "Deep Shadow",
+        "bonus": null
+      },
+      "3": {
+        "title": "Phantom",
+        "bonus": "Recon 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Master of Shadows",
+        "bonus": "Teleportation 1"
+      },
+      "6": {
+        "title": "Darkblade",
+        "bonus": "SOC +1"
+      }
+    },
+    "warden": {
+      "0": {
+        "title": "Watch",
+        "bonus": "Recon 1"
+      },
+      "1": {
+        "title": "Warden",
+        "bonus": "Melee 1"
+      },
+      "2": {
+        "title": "Sentinel",
+        "bonus": null
+      },
+      "3": {
+        "title": "High Warden",
+        "bonus": "Gun Combat 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Storm Warden",
+        "bonus": "Telepathy 1"
+      },
+      "6": {
+        "title": "Darkblade",
+        "bonus": "SOC +1"
+      }
+    },
+    "inquisitor": {
+      "0": {
+        "title": "Interrogator",
+        "bonus": "Investigate 1"
+      },
+      "1": {
+        "title": "Inquisitor",
+        "bonus": "Telepathy 1"
+      },
+      "2": {
+        "title": "High Inquisitor",
+        "bonus": null
+      },
+      "3": {
+        "title": "Truth-Seeker",
+        "bonus": "Awareness 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Grand Inquisitor",
+        "bonus": "Persuade 1"
+      },
+      "6": {
+        "title": "Darkblade",
+        "bonus": "SOC +1"
+      }
+    }
+  },
+  "mishaps": {
+    "1": "Your cover is blown and you are captured. Roll on the Injury table. You escape but your usefulness as a field operative is finished for now.",
+    "2": "An asset you recruited turns out to be a double agent. Gain an Enemy and lose one Benefit roll.",
+    "3": "A psionic scan by a powerful telepath exposes part of your mission. Lose one rank but you are not ejected.",
+    "4": "You are forced to eliminate a target who turns out to be innocent. Suffer nightmares — lose END -1.",
+    "5": "You are betrayed by a member of your own Order. Gain a Rival within the Order.",
+    "6": "Your identity is burned and you must go to ground for years. You are not ejected but lose all Benefit rolls this term and suffer SOC -1."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from the Order.",
+    "3": "You uncover a spy ring but it nearly costs you everything. Roll Stealth 9+ or Deception 9+. If you fail, roll on the Injury table. If you succeed, gain D3 Contacts.",
+    "4": "Months of undercover work hone your instincts. Gain Recon 1 or Stealth 1.",
+    "5": "Your telepathic abilities grow more refined under operational pressure. Gain Telepathy 1 or Awareness 1.",
+    "6": "You eliminate a high-value target that had long eluded the Order. Gain SOC +1 and DM+1 to one Benefit roll.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "A captured enemy officer proves more useful as an asset than as a prisoner. Gain them as a Contact and gain Persuade 1.",
+    "9": "You survive an assassination attempt on your own life through sheer endurance. Gain END +1.",
+    "10": "Your investigation exposes a corrupt Order official. Gain the gratitude of the High Council — DM+2 on your next advancement roll.",
+    "11": "A long-running mission comes to a successful conclusion, eliminating a major threat to the Reaches. Gain SOC +1 and an immediate promotion.",
+    "12": "You retrieve intelligence that changes the political balance in the Vanguard Reaches. Gain SOC +1 and two extra Benefit rolls."
+  },
+  "mustering_out": {
+    "1": {
+      "cash": 2000,
+      "benefit": "Weapon"
+    },
+    "2": {
+      "cash": 5000,
+      "benefit": "Contact"
+    },
+    "3": {
+      "cash": 10000,
+      "benefit": "Armour"
+    },
+    "4": {
+      "cash": 20000,
+      "benefit": "DEX +1"
+    },
+    "5": {
+      "cash": 40000,
+      "benefit": "SOC +1"
+    },
+    "6": {
+      "cash": 80000,
+      "benefit": "Ally"
+    },
+    "7": {
+      "cash": 100000,
+      "benefit": "2 Ship Shares"
+    }
+  },
+  "complete": true
+}

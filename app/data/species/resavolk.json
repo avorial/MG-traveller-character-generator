@@ -1,0 +1,26 @@
+{
+  "id": "resavolk",
+  "name": "Resavolk",
+  "description": "Sophonts from Tumereng, an isolated world at the edge of the Helix Nebula orbiting a red dwarf, three parsecs from the nearest inhabited system. A monoculture of 60 million adults unified by common language and custom but without a monolithic government. The Resavolk are neither hostile nor awed by offworld visitors — merely indifferent. Those who leave are often confused or frightened by foreign cultures and quickly return home.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "SOC": "D3+5"
+  },
+  "traits": [
+    "Language Barrier: Resavolk must gain the Language skill to speak any language other than their native tongue.",
+    "Homeworld Instinct: Resavolk automatically qualify for Drifter (Barbarian) and must take this career in their first term if leaving their homeworld."
+  ],
+  "career_notes": "Most Resavolk follow Drifter (Barbarian) and automatically qualify for it. Resavolk who leave their homeworld must do so as a Drifter in their first term but may attempt any Traveller Core Rulebook career thereafter except Noble. Only a Resavolk who reaches SOC 10+ may qualify for Noble.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5210
+}

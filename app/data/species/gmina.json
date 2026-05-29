@@ -1,0 +1,31 @@
+{
+  "id": "gmina",
+  "name": "Gmina",
+  "description": "A primitive tailless scorpion-like race confined to reservations on Yangikent, a tidally locked world orbiting a red dwarf. The Gmina never progressed beyond TL0 and are restricted by the human government. A small number have been smuggled off-world by Sophont Rights extremists and may have filtered into the wider population of Tartakover.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": -1,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "STR": "2D+4",
+    "EDU": "1D",
+    "SOC": "fixed:2"
+  },
+  "traits": [
+    "Infrared Vision: Gmina see into the infrared spectrum, conferring DM+1 to initiative and Recon checks.",
+    "Multi-Limbed: May use up to two major items simultaneously and receive two sets of actions each round. DM-2 with equipment not manufactured or modified for their use."
+  ],
+  "allowed_careers": [
+    "drifter"
+  ],
+  "career_notes": "Gmina may only enter the Drifter (Barbarian) career. A Gmina who has escaped Yangikent may enter any Drifter assignment.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5110
+}

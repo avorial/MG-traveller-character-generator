@@ -1,0 +1,23 @@
+{
+  "id": "katangan",
+  "name": "Katangan",
+  "description": "Fully human natives of Katanga, a high-gravity world in The Beyond. Their heavy-world upbringing gives them exceptional physical resilience but accelerated aging. Katangans are known for taciturn suspicion of outsiders and fierce loyalty to family and long-term associates. Despite a reputation for violence, an offended Katangan is more likely to deliver a cold stare than throw a punch.",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": -1,
+    "END": 1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "traits": [
+    "Heavy Worlder Aging: DM-1 on all aging rolls even after leaving Katanga.",
+    "Katangan Culture: DM+1 on interpersonal checks with familiar people (own culture or long-term Contacts/Allies). DM-1 with unfamiliar people or cultures. Always DM+1 for Persuade checks involving intimidation or bribery."
+  ],
+  "career_notes": "For the first term, all Katangans are subject to the Draft table but treat Scout results as Navy and Merchant results as Agent. A Katangan can attempt to avoid the draft on SOC 8+ (may check after seeing the result). The draft term does not apply a negative DM to subsequent qualification rolls.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5160
+}

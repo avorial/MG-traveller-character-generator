@@ -1,0 +1,29 @@
+{
+  "id": "mal_gnar",
+  "name": "Mal'Gnar",
+  "description": "A human Minor Race transplanted from Terra to Mal'Gnar El by the Ancients 300,000 years ago. Modified from cold-adapted Homo sapiens neanderthalensis, they stand up to two metres tall with pale albino-like features. Their rigid caste-based society has been frozen at a late Iron Age plateau for 10,000 years. The IISS maintains active interdiction around their homeworld.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "EDU": "1D+1"
+  },
+  "traits": [
+    "No Galanglic: Mal'Gnar begin with no knowledge of Galanglic or any offworld language.",
+    "Caste Society: Deviation from caste roles is punished by banishment or death on their homeworld."
+  ],
+  "allowed_careers": [
+    "drifter"
+  ],
+  "career_notes": "Drifter (Barbarian) is the only suitable career for a Mal'Gnar Traveller.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5140
+}

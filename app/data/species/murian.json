@@ -1,0 +1,33 @@
+{
+  "id": "murian",
+  "name": "Murian",
+  "description": "Bear-like sophonts native to Arcturus, a world orbiting the red dwarf Altarea with a 40-day year and near-90-degree axial tilt producing 'seasonal days'. Murians evolved to remain active through all phases of their short year. They have short limbs, thick hides, and retractable claws. Their STR and END can both reach 18. A natural lifespan of 60-80 years is now extended to 100-140 through medical treatment.",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": -2,
+    "END": 2,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "SOC": "2D3+4"
+  },
+  "characteristic_maximum_overrides": {
+    "STR": 18,
+    "END": 18
+  },
+  "traits": [
+    "Armour (+1): Thick hide and subcutaneous fat provide Protection +1.",
+    "Claw: Attack with claws using Melee (natural); deals 1D+2 damage.",
+    "Short Limbs: Base speed 4 metres per round. DM-1 when using tools and weapons not designed for Murian hands.",
+    "Vision: See well in low light; sensitive to some infrared. Cannot distinguish green, blue, or violet colours. No penalty to Recon checks in low illumination.",
+    "Weapon Benefits: Any Benefit roll providing a weapon may instead be taken as an augment or electronic device of up to TL14 and Cr100,000. All Murian augmentations have Natural-looking, Ruggedised and Self-repairing options at no extra charge. All Murian electronic devices are self-repairing."
+  ],
+  "career_notes": "All Traveller Core Rulebook careers are suitable for Murians.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5200
+}

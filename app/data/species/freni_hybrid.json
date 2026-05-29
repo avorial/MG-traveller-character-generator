@@ -1,0 +1,27 @@
+{
+  "id": "freni_hybrid",
+  "name": "Freni — Hybrid",
+  "description": "The Freni are natives of Durnal, a garden world on the border between the Eslyat Magistracy and the Corellan League in the Vanguard Reaches. Multi-armed cook-like sophonts found throughout the Vanguard Reaches and The Beyond, living in large expatriate communities. EDU and SOC increase together: when either rises, the other rises by 1 for every 2 increases. Rare spotted-pattern hybrids of two Types. Less fit than pure Types, with drooping antennae. Usually (1-5 on 1D) sterile.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": -1,
+    "INT": 1,
+    "EDU": 0,
+    "SOC": -2
+  },
+  "custom_characteristic_rolls": {},
+  "traits": [
+    "Flexible Digits: Freni hands (four mutually opposable tentacular fingers) can use the tools of most races without penalty. Other races suffer DM-2 to operate Freni equipment.",
+    "Reputation as Cook: Freni employed as stewards grant DM+1 to checks to seek high passengers. Freni receive DM+2 to checks when hiring on as cooks or stewards.",
+    "Starting Skills: Freni begin with Steward 1, Profession (Freeloading) 1, and Survival 0 (DM+2 on Durnal). Freni speak their own language first and may use one background skill for Language 0 (broken Galanglic) or two for Language 1.",
+    "Hybrid: Receives only one increased characteristic from parents (max +1 if parent had +2) and all decreased characteristics from both parents. DM-1 on all aging rolls.",
+    "Usually Sterile: 1-5 on 1D the Freni is sterile. If sterile, may be permanently of one gender (1=Male, 2-5=Neuter, 6=Female on 1D)."
+  ],
+  "career_notes": "All Traveller Core Rulebook careers are suitable. DM+1 to enter Entertainer and Merchant careers. DM-1 to enter Agent or Scholar careers.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5186
+}

@@ -1,0 +1,26 @@
+{
+  "id": "kemlae",
+  "name": "Kemlae",
+  "description": "Purple 12-tentacled worms from Kemlos, members of the Corellan League. They mass 80-100 kg over 2.0-2.5 m of length with six forward tentacle-limbs and six tail limbs. The Kemlae life cycle ends in the Kuftu — a metamorphosis into a short-lived flying Kessa reproductive stage — making very long careers impossible. A meritocracy of Lurush judges, they are enthusiastic members of the League.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 1,
+    "END": 1,
+    "INT": 0,
+    "EDU": -1,
+    "SOC": -1
+  },
+  "starting_age": 8,
+  "max_terms": 8,
+  "traits": [
+    "IR Vision: Kemlae see 0.5-12 micrometres infrared (room-temperature objects visible in darkness). Blue appears grey; green barely discernible.",
+    "Kuftu: No aging effects but starting at end of term 7 (age 36), must roll Term+ each term-end or undergo Kuftu — transformation and death.",
+    "Multi-Limbed: May use up to three major items simultaneously and receive three sets of major actions each round. DM-2 with equipment not manufactured or modified for their use."
+  ],
+  "career_notes": "All Traveller Core Rulebook careers are suitable but Kemlae may not serve more than 8 terms total. The Noble career is only available to Lurush who have served 4+ prior terms with EDU 10+ and SOC 10+.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5120
+}

@@ -1,0 +1,34 @@
+{
+  "id": "thonane",
+  "name": "Thonane (Snow Ghost)",
+  "description": "Also known as Snow Ghosts, the Thonane are manta-like flying sophonts. No Thonane are known to have voluntarily left their homeworld; those encountered off-world have typically been illegally taken by smugglers, corsairs, or hunters. They are fragile in STR but superbly agile, with white camouflage ideal for snowy terrain. Travel on the ground is slow — they are built to fly, not walk.",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "STR": "1D",
+    "DEX": "3D",
+    "END": "2D",
+    "INT": "2D",
+    "EDU": "D3",
+    "SOC": "D3"
+  },
+  "traits": [
+    "Flyer: On worlds of Size 4 or less with Atmosphere 4+, Thonane can fly at Speed 9 after a 9-metre running start. Ground movement speed is 3 metres.",
+    "Hunter: All Thonane possess Flyer (natural) 1, Melee 0, Recon 1, and Survival 1. DM+1 on all Recon checks and DM+2 on Stealth checks in snowy terrain."
+  ],
+  "allowed_careers": [
+    "drifter"
+  ],
+  "career_notes": "Thonane can only follow Drifter (Barbarian) but may substitute Flyer (natural) in lieu of any Animals, Seafarer, or Melee skills rolled.",
+  "societies": [
+    "other"
+  ],
+  "source": "The Spinward Extents, Mongoose Publishing",
+  "sort_order": 5220
+}

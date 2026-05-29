@@ -1,0 +1,255 @@
+{
+  "id": "storm_knight_thunder",
+  "name": "Storm Knight — Order of Thunder",
+  "description": "The Order of Thunder is the most militant of the Storm Knight orders. Its knights are trained as front-line warriors who channel raw psionic energy through their weapons and bodies. They serve as shock troops, battlefield commanders, and protectors of the Vanguard Reaches. Acceptance requires both martial aptitude and the mental discipline to harness the Storm.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": []
+  },
+  "societies": [
+    "other"
+  ],
+  "assignments": {
+    "warrior": {
+      "name": "Warrior",
+      "description": "You serve as a front-line combat knight, leading charges and breaking enemy lines with psionic-enhanced strikes.",
+      "survival": {
+        "characteristic": "END",
+        "target": 6
+      },
+      "advancement": {
+        "characteristic": "STR",
+        "target": 8
+      }
+    },
+    "outrider": {
+      "name": "Outrider",
+      "description": "You range ahead of main forces, scouting enemy positions and conducting lightning raids.",
+      "survival": {
+        "characteristic": "DEX",
+        "target": 7
+      },
+      "advancement": {
+        "characteristic": "INT",
+        "target": 6
+      }
+    },
+    "stormcaller": {
+      "name": "Stormcaller",
+      "description": "You are trained in the offensive application of psionics, channelling telekinetic and clairvoyant powers to shape the battlefield.",
+      "survival": {
+        "characteristic": "INT",
+        "target": 7
+      },
+      "advancement": {
+        "characteristic": "END",
+        "target": 6
+      }
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "STR +1",
+      "2": "DEX +1",
+      "3": "END +1",
+      "4": "INT +1",
+      "5": "Athletics",
+      "6": "Melee"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Athletics",
+      "2": "Gun Combat",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Survival",
+      "6": "Tactics (Military)"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Explosives",
+      "2": "Heavy Weapons",
+      "3": "Medic",
+      "4": "Navigation",
+      "5": "Tactics (Military)",
+      "6": "Telepathy"
+    },
+    "warrior": {
+      "name": "Warrior",
+      "assignment_only": "warrior",
+      "1": "Athletics",
+      "2": "Gun Combat",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Telekinesis",
+      "6": "Vacc Suit"
+    },
+    "outrider": {
+      "name": "Outrider",
+      "assignment_only": "outrider",
+      "1": "Drive",
+      "2": "Flyer",
+      "3": "Gun Combat",
+      "4": "Recon",
+      "5": "Stealth",
+      "6": "Survival"
+    },
+    "stormcaller": {
+      "name": "Stormcaller",
+      "assignment_only": "stormcaller",
+      "1": "Awareness",
+      "2": "Clairvoyance",
+      "3": "Melee",
+      "4": "Recon",
+      "5": "Telekinesis",
+      "6": "Telepathy"
+    }
+  },
+  "ranks": {
+    "warrior": {
+      "0": {
+        "title": "Squire",
+        "bonus": "Melee 1"
+      },
+      "1": {
+        "title": "Knight",
+        "bonus": "Gun Combat 1"
+      },
+      "2": {
+        "title": "Knight-Errant",
+        "bonus": null
+      },
+      "3": {
+        "title": "Knight-Commander",
+        "bonus": "Tactics (Military) 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Knight-Captain",
+        "bonus": "Leadership 1"
+      },
+      "6": {
+        "title": "Storm Lord",
+        "bonus": "SOC +1"
+      }
+    },
+    "outrider": {
+      "0": {
+        "title": "Squire",
+        "bonus": "Recon 1"
+      },
+      "1": {
+        "title": "Knight",
+        "bonus": "Stealth 1"
+      },
+      "2": {
+        "title": "Knight-Errant",
+        "bonus": null
+      },
+      "3": {
+        "title": "Pathfinder",
+        "bonus": "Navigation 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Knight-Captain",
+        "bonus": "Survival 1"
+      },
+      "6": {
+        "title": "Storm Lord",
+        "bonus": "SOC +1"
+      }
+    },
+    "stormcaller": {
+      "0": {
+        "title": "Squire",
+        "bonus": "Awareness 1"
+      },
+      "1": {
+        "title": "Knight",
+        "bonus": "Telekinesis 1"
+      },
+      "2": {
+        "title": "Knight-Adept",
+        "bonus": null
+      },
+      "3": {
+        "title": "Adept-Commander",
+        "bonus": "Clairvoyance 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Adept-Captain",
+        "bonus": "Telepathy 1"
+      },
+      "6": {
+        "title": "Storm Lord",
+        "bonus": "SOC +1"
+      }
+    }
+  },
+  "mishaps": {
+    "1": "You are grievously wounded in battle. Roll on the Injury table.",
+    "2": "A psionic surge overwhelms your control. You injure an ally. Gain an Enemy and lose SOC -1.",
+    "3": "You fail a critical mission and your Order's honour is tarnished. Lose one Benefit roll.",
+    "4": "A rival knight sabotages your standing. Lose one rank. You may remain in the career.",
+    "5": "You are captured by enemies and held for a season. Roll END 8+; if you fail, lose END -1.",
+    "6": "Your psionic abilities burn out during a desperate battle. Lose one PSI level (minimum 0). You are not ejected from the Order but lose all Benefit rolls this term."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table but you are not ejected from the Order.",
+    "3": "Your unit is ambushed in a swamp. Roll Recon 8+ or Survival 8+. If you fail, roll on the Injury table. If you succeed, gain one of Recon 1, Survival 1, or Stealth 1.",
+    "4": "You are assigned to train new squires. Gain Leadership 1 or Tactics (Military) 1.",
+    "5": "A psionic revelation sharpens your mind in battle. Gain Awareness 1 or Clairvoyance 1.",
+    "6": "You participate in a major campaign that becomes legendary in the Order's history. Gain SOC +1.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You cross blades with a renowned enemy knight. Roll Melee 9+ to defeat them; if you succeed, gain an extra Benefit roll. If you fail, gain a Rival.",
+    "9": "You are sent on a long-range raid deep into hostile territory. Gain one of Gun Combat 1, Recon 1, or Tactics (Military) 1.",
+    "10": "Your psionic skills attract the attention of an Order Elder. Gain DM+2 on your next advancement roll.",
+    "11": "You distinguish yourself heroically in a battle that saves an allied world. Gain SOC +1 and an Ally.",
+    "12": "Your deeds become the stuff of Order legend. Gain an immediate promotion and SOC +1."
+  },
+  "mustering_out": {
+    "1": {
+      "cash": 2000,
+      "benefit": "Weapon"
+    },
+    "2": {
+      "cash": 5000,
+      "benefit": "Armour"
+    },
+    "3": {
+      "cash": 10000,
+      "benefit": "Contact"
+    },
+    "4": {
+      "cash": 20000,
+      "benefit": "Weapon (+1 quality)"
+    },
+    "5": {
+      "cash": 40000,
+      "benefit": "SOC +1"
+    },
+    "6": {
+      "cash": 80000,
+      "benefit": "Ally"
+    },
+    "7": {
+      "cash": 100000,
+      "benefit": "2 Ship Shares"
+    }
+  },
+  "complete": true
+}
