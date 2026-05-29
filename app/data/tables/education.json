@@ -1,5 +1,18 @@
 {
   "description": "Pre-career education: University or Military Academy. Mongoose Traveller 2e, core rulebook pp. 11-12.",
+  "aslan_pre_career_events": {
+    "2":  "A clique of students who neglect their studies attempts to draw you in. You may join them (your SOC drops to 2, but you may enter the Outlaw or Wanderer career without a qualification roll in your next term) or stay focused on your studies.",
+    "3":  "You are dishonoured in a serious incident and cannot redeem yourself in time to graduate. You fail to graduate.",
+    "4":  "You become embroiled in an honour duel. Roll SOC 8+. If you succeed, gain a Rival. If you fail, gain an Enemy. If you roll a natural 2, you are cast out — you must become Outcast in your next term.",
+    "5":  "You become popular with your peers. Gain Carouse 1.",
+    "6":  "You forge close bonds with other students. Gain D3 Allies.",
+    "7":  "Life Event. Roll on the Aslan Life Events table.",
+    "8":  "You distinguish yourself in the eyes of your clan. Roll SOC 8+. If successful, gain an Ally within your clan but gain an Enemy in a rival clan.",
+    "9":  "New ideas inspire original thinking. Gain any one skill at level 0 (except Jack-of-all-Trades).",
+    "10": "You engage in fierce academic competition. Roll 9+ on any skill you have learned this term. If successful, gain +1 level in that skill and gain a Rival.",
+    "11": "Your clan goes to war. You may flee (become Outcast, do not graduate) or enlist directly in a Military, Military Officer, Spacer, or Space Officer career (do not graduate).",
+    "12": "Your efforts in study bring great honour to your clan. Increase your SOC by +1."
+  },
   "pre_career_events": {
     "2":  "You are approached by an underground (and highly illegal) psionic group who sense potential in you. You may test your PSI and attempt to enter the Psion career in any subsequent term.",
     "3":  "Your time in education is not a happy one and you suffer a deep tragedy; perhaps you become hopelessly addicted to drink or drugs, a failed romance leaves you in tatters, or a fatal accident involving a close friend shakes your confidence. You crash and fail to graduate.",
@@ -299,6 +312,54 @@
           "note": "Failed to graduate. Basic psionic training incomplete — keep any enrollment skills."
         }
       }
+    },
+
+    "aslan_university": {
+      "id": "aslan_university",
+      "name": "Aslan University",
+      "blurb": "Formal Aslan academic study. EDU 6+ entry (DM+1 if SOC 9+). One gender-specific skill at enrollment (level 0), one at graduation (level 1). Graduate for EDU+1 and advancement bonuses across major Aslan careers.",
+      "age_cost": 4,
+      "max_age": 20,
+      "enrollment_bonus": {"EDU": 1},
+      "enrollment_skill_picks": 1,
+      "enrollment_pick_level": 0,
+      "qualification": {
+        "characteristic": "EDU",
+        "target": 6,
+        "modifiers": [
+          {"description": "DM+1 if SOC 9+", "type": "characteristic_threshold", "characteristic": "SOC", "threshold": 9, "dm": 1},
+          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1}
+        ]
+      },
+      "graduation": {
+        "characteristic": "INT",
+        "target": 6,
+        "honours_target": 10,
+        "on_graduation": {
+          "EDU": 1,
+          "skills_at_level_1": 1,
+          "permanent": {
+            "advancement_dm": 1,
+            "advancement_dm_careers": ["aslan_ceremonial","aslan_envoy","aslan_management","aslan_military","aslan_military_officer","aslan_scientist","aslan_spacer","aslan_space_officer"]
+          },
+          "note": "Graduated. EDU+1. Pick 1 skill at level 1 from gender pool. DM+1 to advancement in major Aslan careers."
+        },
+        "on_honours": {
+          "EDU": 1,
+          "SOC": 1,
+          "skills_at_level_1": 1,
+          "permanent": {
+            "advancement_dm": 2,
+            "advancement_dm_careers": ["aslan_ceremonial","aslan_envoy","aslan_management","aslan_military","aslan_military_officer","aslan_scientist","aslan_spacer","aslan_space_officer"]
+          },
+          "note": "Graduated with Honours. EDU+1, SOC+1. Pick 1 skill at level 1 from gender pool. DM+2 to advancement in major Aslan careers."
+        },
+        "on_failure": {
+          "note": "Failed to graduate. Keeps the +1 EDU from enrollment, no other bonuses."
+        }
+      },
+      "skill_list_male":   ["Advocate", "Animals", "Art", "Electronics", "Independence", "Language", "Navigation", "Tolerance"],
+      "skill_list_female": ["Admin", "Advocate", "Animals", "Art", "Astrogation", "Broker", "Electronics", "Engineer", "Language", "Medic", "Navigation", "Profession", "Science", "Tolerance"]
     },
 
     "school_of_hard_knocks": {

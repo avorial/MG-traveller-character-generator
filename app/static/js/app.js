@@ -3313,7 +3313,21 @@ function renderBackgroundPhase() {
   // Merge in any species-specific extra background skills (e.g. Caprisap → Astrogation)
   const speciesDef = SPECIES.find(s => s.id === character.species_id);
   const extraBgSkills = (speciesDef && speciesDef.extra_background_skills) || [];
-  const bgSkills = [...new Set([...baseBgSkills, ...extraBgSkills])].sort();
+
+  // Aslan (Hierate / Glorious Empire) use gender-specific background skill lists
+  const isAslanHierate = !!(speciesDef && speciesDef.uses_clan_shares);
+  const aslanBgMale   = ['Animals', 'Art', 'Athletics', 'Carouse', 'Drive', 'Flyer', 'Melee', 'Seafarer', 'Survival', 'Tolerance', 'Vacc Suit'];
+  const aslanBgFemale = ['Admin', 'Animals', 'Art', 'Athletics', 'Electronics', 'Mechanic', 'Medic', 'Melee', 'Profession', 'Science', 'Streetwise', 'Tolerance', 'Vacc Suit'];
+
+  let bgSkills;
+  let aslanGenderNote = '';
+  if (isAslanHierate && character.gender) {
+    const aslanList = character.gender === 'male' ? aslanBgMale : aslanBgFemale;
+    bgSkills = [...new Set([...aslanList, ...extraBgSkills])].sort();
+    aslanGenderNote = `<p style="font-size:12px;color:var(--amber);margin-top:6px">★ <strong>Aslan ${character.gender === 'male' ? 'Male' : 'Female'}</strong> background skill list.</p>`;
+  } else {
+    bgSkills = [...new Set([...baseBgSkills, ...extraBgSkills])].sort();
+  }
 
   // For cascade skills that need a specialty, track which one is expanded
   const expandedCascade = uiState.bgExpandedCascade || null;
@@ -3354,7 +3368,7 @@ function renderBackgroundPhase() {
 
       <div class="phase-body">
         <p>Your <strong>Education DM</strong> is <strong>${formatDM(eduDm)}</strong>, so you get <strong>${allowed}</strong> background skill${allowed === 1 ? '' : 's'} at level 0. Think about where your Traveller grew up — an agri-world? An asteroid belt? A starport slum? Pick skills that tell that story.</p>
-        ${extraBgSkills.length ? `<p style="font-size:12px;color:var(--amber);margin-top:6px">★ <strong>${speciesDef.name}</strong> trait: ${extraBgSkills.join(', ')} added to the available list (Natural Starfarers).</p>` : ''}
+        ${aslanGenderNote || (extraBgSkills.length ? `<p style="font-size:12px;color:var(--amber);margin-top:6px">★ <strong>${speciesDef.name}</strong> trait: ${extraBgSkills.join(', ')} added to the available list (Natural Starfarers).</p>` : '')}
       </div>
 
       <div class="skill-picker">${chips}</div>
@@ -3370,6 +3384,7 @@ function renderBackgroundPhase() {
         </button>
       </div>
 
+      ${isAslanHierate ? '' : `
       <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">
         <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
           — OR —<br>
@@ -3380,6 +3395,7 @@ function renderBackgroundPhase() {
           USE BACKGROUND PACKAGE INSTEAD
         </button>
       </div>
+      `}
     </div>
   `;
 }
@@ -3760,11 +3776,17 @@ function renderPreCareerPhase() {
     const pendingAnySkill = !!ev.pending_any_skill;
     const pendingEvent10 = !!ev.pending_event10;
     const pendingEvent11 = !!ev.pending_event11 || !!status.pending_event11;
+    const pendingAslanEvent2 = !!ev.pending_aslan_event2 || !!status.pending_aslan_event2;
+    const isAslanTrack = status.track === 'aslan_university';
     const pendingLifeEvent = !!ev.pending_life_event;
     const lifeEventChoiceKind = ev.life_event_choice_kind || null;
     const pendingInjury = !!ev.pending_injury;
     const injuryData = ev.injury_pending_data || character.pending_injury_choice || null;
-    const nextBtn = pendingEvent11
+    const nextBtn = pendingAslanEvent2
+      ? `<button class="btn primary" id="btn-show-aslan-event2">RESPOND TO TEMPTATION →</button>`
+      : pendingEvent11 && isAslanTrack
+        ? `<button class="btn primary" id="btn-show-aslan-event11">RESPOND TO CLAN WAR →</button>`
+      : pendingEvent11
       ? `<button class="btn primary" id="btn-show-event11">RESPOND TO DRAFT →</button>`
       : pendingEvent10
         ? `<button class="btn primary" id="btn-show-event10">TAKE TUTOR CHALLENGE →</button>`
@@ -3903,6 +3925,62 @@ function renderPreCareerPhase() {
     `;
   }
 
+  // Aslan event 2 — neglectful students choice
+  if (uiState.lastRoll?.type === 'precareer_aslan_event2') {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Aslan University Event 2 — Neglectful Students</div>
+        <h2 class="phase-title">A Temptation</h2>
+        <p class="phase-body">A clique of students who neglect their studies attempts to draw you in. You may join them — your SOC drops to 2, but you may enter the Outlaw or Wanderer career without a qualification roll next term. Or you can stay focused on your studies.</p>
+        <div class="card-grid">
+          <button class="card" id="btn-aslan-ev2-join">
+            <div class="card-title">Join Them</div>
+            <div class="card-desc">SOC drops to 2. Free qualification for Aslan Outlaw or Wanderer in your next career term.</div>
+          </button>
+          <button class="card" id="btn-aslan-ev2-focus">
+            <div class="card-title">Stay Focused</div>
+            <div class="card-desc">Decline the distraction. No effect on your studies or SOC.</div>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Aslan event 11 — clan war choice (replaces standard draft event for Aslan University)
+  if (uiState.lastRoll?.type === 'precareer_aslan_event11') {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Aslan University Event 11 — Clan War!</div>
+        <h2 class="phase-title">Your Clan Goes to War</h2>
+        <p class="phase-body">Your clan is called to battle. You may flee (becoming Outcast) or enlist directly in a military career. Either way, you do not graduate.</p>
+        <div class="card-grid">
+          <button class="card" id="btn-aslan-ev11-outcast">
+            <div class="card-title">Flee — Become Outcast</div>
+            <div class="card-desc">You abandon your clan's call. You are cast out. Your next career must be Aslan Outcast.</div>
+          </button>
+          <button class="card" id="btn-aslan-ev11-military">
+            <div class="card-title">Enlist — Military</div>
+            <div class="card-desc">Enter the Aslan Military career directly. Do not graduate from Aslan University.</div>
+          </button>
+          <button class="card" id="btn-aslan-ev11-military-officer">
+            <div class="card-title">Enlist — Military Officer</div>
+            <div class="card-desc">Enter the Aslan Military Officer career directly. Do not graduate.</div>
+          </button>
+          <button class="card" id="btn-aslan-ev11-spacer">
+            <div class="card-title">Enlist — Spacer</div>
+            <div class="card-desc">Enter the Aslan Spacer career directly. Do not graduate.</div>
+          </button>
+          <button class="card" id="btn-aslan-ev11-space-officer">
+            <div class="card-title">Enlist — Space Officer</div>
+            <div class="card-desc">Enter the Aslan Space Officer career directly. Do not graduate.</div>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   // Event 9 any-skill picker
   if (uiState.lastRoll?.type === 'precareer_any_skill_pick') {
     const lr = uiState.lastRoll;
@@ -3925,6 +4003,14 @@ function renderPreCareerPhase() {
 
   // Graduated but lastRoll wiped (e.g. page reload) — recover any pending interactive step
   if ((stage === 'graduated' || stage === 'failed_grad') && !uiState.lastRoll) {
+    if (status.pending_aslan_event2) {
+      uiState.lastRoll = { type: 'precareer_aslan_event2' };
+      return renderPreCareerPhase();
+    }
+    if (status.pending_event11 && status.track === 'aslan_university') {
+      uiState.lastRoll = { type: 'precareer_aslan_event11' };
+      return renderPreCareerPhase();
+    }
     if (status.pending_event11) {
       uiState.lastRoll = { type: 'precareer_event11' };
       return renderPreCareerPhase();
@@ -4047,6 +4133,30 @@ function renderPreCareerPhase() {
   const hwTL = hwUwp.includes('-') ? parseInt(hwUwp.split('-').pop(), 16) : 99;
   const hwSize = hwUwp.length >= 2 ? parseInt(hwUwp[1], 16) : -1;
   const soc = character.characteristics?.SOC ?? 0;
+  const _pcSpeciesDef = SPECIES.find(s => s.id === character.species_id);
+  const _isAslanPC = !!(_pcSpeciesDef && _pcSpeciesDef.uses_clan_shares);
+
+  if (_isAslanPC) {
+    // Aslan characters see Aslan University instead of standard University
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
+      <div class="stage-content">
+        <div class="phase-label">Optional · Age ${character.age}</div>
+        <h2 class="phase-title">Education Before Service?</h2>
+        <p class="phase-subtitle">Before picking a career, you may study at an Aslan university. Or skip and go straight to the job.</p>
+        <div class="card-grid">
+          <button class="card" id="btn-pc-aslan-university">
+            <div class="card-title">Aslan University</div>
+            <div class="card-desc">EDU 6+ to qualify (DM+1 if SOC 9+), 4 years, +1 EDU on enrollment. Pick 1 gender-specific skill at level 0. Graduate for EDU+1 and DM+1 advancement in major Aslan careers. Honours adds SOC+1 and DM+2.</div>
+          </button>
+          <button class="card" id="btn-pc-skip">
+            <div class="card-title">Skip</div>
+            <div class="card-desc">Age ${character.age} and ready for the world. Go straight to the career phase.</div>
+          </button>
+        </div>
+      </div>
+    `;
+  }
 
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
@@ -4095,6 +4205,7 @@ function renderPreCareerPhase() {
 
 // Helper: human-readable track name from status
 function trackDisplayName(track, service, status) {
+  if (track === 'aslan_university') return 'Aslan University';
   if (track === 'university') return 'University';
   if (track === 'military_academy') {
     return PRE_CAREER_SERVICES.find(s => s.id === service)?.name || 'Military Academy';
@@ -4115,6 +4226,7 @@ function trackDisplayName(track, service, status) {
 // Helper: graduation hint text for enrolled view
 function trackGradHint(track) {
   const HINTS = {
+    aslan_university: 'Roll INT 6+ to graduate (10+ for Honours). Then one Aslan education event.',
     university: 'Roll EDU 7+ to graduate (10+ for Honours). Then one education event.',
     military_academy: 'Roll INT 8+ to graduate (11+ for Honours). Then one education event.',
     merchant_academy: 'Roll INT 7+ to graduate (11+ for Honours). Then one education event.',
@@ -4155,6 +4267,11 @@ function wirePreCareerPhase() {
   }
 
   // Main choice
+  const aslanUni = document.getElementById('btn-pc-aslan-university');
+  if (aslanUni) aslanUni.addEventListener('click', () =>
+    fireQualify('aslan_university', {}, 'Aslan University', 'EDU', 6, 4)
+  );
+
   const uni = document.getElementById('btn-pc-university');
   if (uni) uni.addEventListener('click', () =>
     fireQualify('university', {}, 'University', 'INT', 6, 4)
@@ -4524,6 +4641,60 @@ function wirePreCareerPhase() {
         renderAll();
       }
     } catch (e) { alert(e.message); }
+  });
+
+  // Aslan event 2: show choice screen
+  const showAslanEv2Btn = document.getElementById('btn-show-aslan-event2');
+  if (showAslanEv2Btn) showAslanEv2Btn.addEventListener('click', () => {
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_aslan_event2' };
+    renderStage();
+  });
+
+  // Aslan event 2 choice buttons
+  const aslanEv2Join = document.getElementById('btn-aslan-ev2-join');
+  if (aslanEv2Join) aslanEv2Join.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/aslan-event2-choice', { choice: 'join' });
+      await applyResponse(response);
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+  const aslanEv2Focus = document.getElementById('btn-aslan-ev2-focus');
+  if (aslanEv2Focus) aslanEv2Focus.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/aslan-event2-choice', { choice: 'focus' });
+      await applyResponse(response);
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
+  // Aslan event 11: show clan war screen
+  const showAslanEv11Btn = document.getElementById('btn-show-aslan-event11');
+  if (showAslanEv11Btn) showAslanEv11Btn.addEventListener('click', () => {
+    uiState.lastRoll = { ...uiState.lastRoll, type: 'precareer_aslan_event11' };
+    renderStage();
+  });
+
+  // Aslan event 11 choice buttons
+  const _aslanEv11Choices = {
+    'btn-aslan-ev11-outcast':         'outcast',
+    'btn-aslan-ev11-military':        'aslan_military',
+    'btn-aslan-ev11-military-officer':'aslan_military_officer',
+    'btn-aslan-ev11-spacer':          'aslan_spacer',
+    'btn-aslan-ev11-space-officer':   'aslan_space_officer',
+  };
+  Object.entries(_aslanEv11Choices).forEach(([btnId, choice]) => {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/pre-career/aslan-event11-choice', { choice });
+        await applyResponse(response);
+        uiState.lastRoll = null;
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
   });
 
   // Any-skill search filter

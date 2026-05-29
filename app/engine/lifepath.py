@@ -2355,6 +2355,87 @@ def pre_career_qualify(
             "character": character.model_dump(),
         }
 
+    # ─── Aslan University ────────────────────────────────────────────────────────
+    if track == "aslan_university":
+        if character.age > track_data["max_age"]:
+            raise ValueError(
+                f"Too old for Aslan University (age {character.age} > "
+                f"max {track_data['max_age']})"
+            )
+        qual = track_data["qualification"]
+        char_key = qual["characteristic"]
+        target = qual["target"]
+        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+
+        for mod in qual.get("modifiers", []):
+            if mod.get("type") == "characteristic_threshold":
+                stat = mod.get("characteristic", "")
+                threshold = int(mod.get("threshold", 0))
+                stat_val = character.characteristics.get(stat)
+                if stat_val is not None and stat_val >= threshold:
+                    dm += int(mod.get("dm", 0))
+            elif mod.get("type") == "per_previous_term":
+                dm += mod["dm"] * character.total_terms
+
+        r = dice.roll("2D", modifier=dm, target=target)
+        passed = bool(r.succeeded)
+        enrollment_applied: list[str] = []
+
+        if passed:
+            # Apply enrollment EDU bonus
+            bonuses = track_data.get("enrollment_bonus", {})
+            for stat, delta in bonuses.items():
+                current = character.characteristics.get(stat)
+                character.characteristics.set(stat, current + delta)
+                enrollment_applied.append(f"{stat} {delta:+d}")
+
+            character.age += track_data["age_cost"]
+
+            # Gender-specific skill pool
+            gender = character.gender or "male"
+            pool_key = "skill_list_male" if gender == "male" else "skill_list_female"
+            enrollment_skill_pool = list(track_data.get(pool_key, []))
+            enrollment_picks = int(track_data.get("enrollment_skill_picks", 1))
+
+            character.pre_career_status = {
+                "track": "aslan_university",
+                "service": None,
+                "stage": "enrolled",
+                "outcome": None,
+                "skill_picks_remaining": enrollment_picks,
+                "skill_pick_level": 0,
+                "skill_pick_stage": "enrollment",
+                "skill_pool": enrollment_skill_pool,
+                "enrollment_skill_pool": enrollment_skill_pool,
+            }
+            character.log(
+                f"Qualified for Aslan University ({char_key} {target}+): "
+                f"2D{dm:+d} = {r.total} [PASS]. Gender pool ({gender}). "
+                + (f"Enrollment bonus: {', '.join(enrollment_applied)}. " if enrollment_applied else "")
+                + f"{enrollment_picks} enrollment skill pick pending."
+            )
+        else:
+            character.pre_career_status = {
+                "track": "aslan_university",
+                "service": None,
+                "stage": "not_qualified",
+                "outcome": "not_qualified",
+                "skill_picks_remaining": 0,
+                "skill_pool": [],
+            }
+            character.phase = "career"
+            character.log(
+                f"Failed to qualify for Aslan University ({char_key} {target}+): "
+                f"2D{dm:+d} = {r.total} [FAIL]. Moving on to careers."
+            )
+        return {
+            "roll": r.to_dict(),
+            "passed": passed,
+            "track": track,
+            "enrollment_applied": enrollment_applied,
+            "character": character.model_dump(),
+        }
+
     # ─── University & Military Academy (original logic) ───────────────────────────
     if character.age > track_data["max_age"]:
         raise ValueError(
@@ -2695,7 +2776,11 @@ def pre_career_graduate(
         # Classic: skills_at_level_1 from track skill list or service skills
         picks_l1 = int(block.get("skills_at_level_1", 0))
         if picks_l1 > 0:
-            if track == "university":
+            if track == "aslan_university":
+                gender = character.gender or "male"
+                pool_key = "skill_list_male" if gender == "male" else "skill_list_female"
+                l1_pool = list(track_data.get(pool_key, []))
+            elif track == "university":
                 l1_pool = list(track_data.get("skill_list", []))
             elif track == "military_academy":
                 svc = _academy_service(service)
@@ -2781,7 +2866,11 @@ def pre_career_graduate(
     # Always roll the pre-career education chart event immediately after
     # graduation — one roll regardless of pass/fail.
     edu = rules.education()
-    events_table: dict = edu.get("pre_career_events", {})
+    # Aslan University uses its own event table.
+    _aslan_track = track == "aslan_university"
+    events_table: dict = edu.get(
+        "aslan_pre_career_events" if _aslan_track else "pre_career_events", {}
+    )
     ev = dice.roll("2D")
     ev_key = str(ev.total)
     event_text: str = events_table.get(ev_key, "Nothing remarkable happens.")
@@ -2789,12 +2878,18 @@ def pre_career_graduate(
     forced_fail = False
 
     if ev.total == 2:
-        # Psionic contact — roll 2D for PSI characteristic, flag Psion available.
-        psi_roll = dice.roll("2D")
-        character.psi = psi_roll.total
-        character.psi_tested = True
-        event_auto_applied.append(f"PSI tested: rolled {psi_roll.total} — PSI = {psi_roll.total}")
-        event_auto_applied.append("Psion career now available in any subsequent term")
+        if _aslan_track:
+            # Aslan event 2: neglectful students — pending interactive choice (JS resolves)
+            event_auto_applied.append(
+                "Pending: choose whether to join the neglectful students (see choice below)"
+            )
+        else:
+            # Standard: Psionic contact — roll 2D for PSI characteristic, flag Psion available.
+            psi_roll = dice.roll("2D")
+            character.psi = psi_roll.total
+            character.psi_tested = True
+            event_auto_applied.append(f"PSI tested: rolled {psi_roll.total} — PSI = {psi_roll.total}")
+            event_auto_applied.append("Psion career now available in any subsequent term")
 
     if ev.total == 3:
         forced_fail = True
@@ -2819,30 +2914,51 @@ def pre_career_graduate(
             event_auto_applied.append("Graduation result overridden — failed to graduate")
 
     if ev.total == 4:
-        # Prank gone wrong — roll SOC 8+. Natural 2 = must take Prisoner next term.
         soc_val = character.characteristics.get("SOC")
         soc_dm = dice.characteristic_dm(soc_val)
         soc_roll = dice.roll("2D", modifier=soc_dm, target=8)
-        if soc_roll.raw_total == 2:
-            # Natural 2 — forced into Prisoner career.
-            character.forced_next_career_id = "prisoner"
-            event_auto_applied.append(
-                f"SOC check: natural 2! Must take Prisoner career next term."
-            )
-        elif soc_roll.succeeded:
-            character.associates.append(
-                Associate(kind="rival", description="Rival [Education] — prank gone wrong")
-            )
-            event_auto_applied.append(
-                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): passed — gained Rival [Education]"
-            )
+        if _aslan_track:
+            # Aslan event 4: honour duel — natural 2 = Outcast (not Prisoner)
+            if soc_roll.raw_total == 2:
+                character.forced_next_career_id = "aslan_outcast"
+                event_auto_applied.append(
+                    f"SOC check: natural 2! Must become Outcast next term."
+                )
+            elif soc_roll.succeeded:
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Aslan University] — honour duel")
+                )
+                event_auto_applied.append(
+                    f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): passed — gained Rival [Aslan University]"
+                )
+            else:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Aslan University] — honour duel")
+                )
+                event_auto_applied.append(
+                    f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): failed — gained Enemy [Aslan University]"
+                )
         else:
-            character.associates.append(
-                Associate(kind="enemy", description="Enemy [Education] — prank gone wrong")
-            )
-            event_auto_applied.append(
-                f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): failed — gained Enemy [Education]"
-            )
+            # Standard: prank gone wrong — roll SOC 8+. Natural 2 = must take Prisoner next term.
+            if soc_roll.raw_total == 2:
+                character.forced_next_career_id = "prisoner"
+                event_auto_applied.append(
+                    f"SOC check: natural 2! Must take Prisoner career next term."
+                )
+            elif soc_roll.succeeded:
+                character.associates.append(
+                    Associate(kind="rival", description="Rival [Education] — prank gone wrong")
+                )
+                event_auto_applied.append(
+                    f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): passed — gained Rival [Education]"
+                )
+            else:
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Education] — prank gone wrong")
+                )
+                event_auto_applied.append(
+                    f"SOC {soc_val} check (2D{soc_dm:+d}={soc_roll.total} vs 8+): failed — gained Enemy [Education]"
+                )
 
     if ev.total == 5:
         character.add_skill("Carouse", level=1)
@@ -2896,9 +3012,12 @@ def pre_career_graduate(
         event_auto_applied.append("Pending: pick an education skill for the tutor challenge")
 
     if ev.total == 11:
-        # Draft event — player must choose: Drifter / be Drafted / Dodge (SOC 9+).
-        # Resolved interactively; flag for JS.
-        event_auto_applied.append("Pending: choose your response to the draft (see options below)")
+        if _aslan_track:
+            # Aslan event 11: clan war — flee (Outcast) or join a military career.
+            event_auto_applied.append("Pending: choose your response to the clan war (see options below)")
+        else:
+            # Draft event — player must choose: Drifter / be Drafted / Dodge (SOC 9+).
+            event_auto_applied.append("Pending: choose your response to the draft (see options below)")
 
     if ev.total == 12:
         current_soc = character.characteristics.get("SOC")
@@ -2914,7 +3033,12 @@ def pre_career_graduate(
     # else fall back to the full track skill list (covers the failed-grad case).
     event10_pool: list[str] = list(skill_pool) if skill_pool else []
     if not event10_pool:
-        if track == "university":
+        if track == "aslan_university":
+            td = _edu_track(track)
+            gender = character.gender or "male"
+            pool_key = "skill_list_male" if gender == "male" else "skill_list_female"
+            event10_pool = list(td.get(pool_key, []))
+        elif track == "university":
             td = _edu_track(track)
             event10_pool = list(td.get("skill_list", []))
         elif track == "military_academy" and service:
@@ -2934,6 +3058,7 @@ def pre_career_graduate(
 
     pending_event10 = ev.total == 10 and not forced_fail
     pending_event11 = ev.total == 11 and not forced_fail
+    pending_aslan_event2 = ev.total == 2 and _aslan_track and not forced_fail
 
     # Determine the pick level for the first pending round (if any).
     # all_rounds is only defined inside the else block; check if it exists.
@@ -2959,13 +3084,14 @@ def pre_career_graduate(
         "events_rolled": [ev.total],
         "pending_event10": pending_event10,
         "pending_event11": pending_event11,
+        "pending_aslan_event2": pending_aslan_event2,
         "event10_skill_pool": event10_pool,
     }
     # Always stay in pre_career so the JS can show the graduation+event screen.
     # The phase advances to career when the user clicks Continue (no picks)
     # or when pre_career_choose_skills completes the last pick.
     # Count this as a pre-career term when no further server calls will do so.
-    if picks_remaining == 0 and not pending_event10 and not pending_event11:
+    if picks_remaining == 0 and not pending_event10 and not pending_event11 and not pending_aslan_event2:
         character.pre_career_terms += 1
     character.phase = "pre_career"
 
@@ -2987,6 +3113,7 @@ def pre_career_graduate(
             "pending_any_skill": ev.total == 9 and not forced_fail,
             "pending_event10": pending_event10,
             "pending_event11": pending_event11,
+            "pending_aslan_event2": pending_aslan_event2,
             "pending_life_event": bool(character.pending_life_event_choice),
             "life_event_choice_kind": (
                 character.pending_life_event_choice.get("kind")
@@ -3262,6 +3389,128 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
         "draft_career": draft_career,
         "character": character.model_dump(),
     }
+
+
+def pre_career_aslan_event2_choice(character: Character, choice: str) -> dict:
+    """Aslan University event 2 — neglectful students choice.
+
+    choice: "join" | "focus"
+    - join: SOC is set to 2 (if currently higher), free-qualify for Outlaw or Wanderer.
+    - focus: no effect, clear the pending flag.
+    """
+    status = character.pre_career_status or {}
+    if not status.get("pending_aslan_event2"):
+        raise ValueError("No pending Aslan event 2 choice.")
+
+    applied: list[str] = []
+
+    if choice == "join":
+        soc_now = character.characteristics.get("SOC")
+        if soc_now is not None and soc_now > 2:
+            character.characteristics.set("SOC", 2)
+            applied.append(f"SOC reduced to 2 (was {soc_now})")
+        else:
+            applied.append("SOC already 2 or lower — no change")
+        # Grant free qualification for Outlaw or Wanderer
+        pdms = dict(character.pre_career_permanent_dms or {})
+        pdms["aslan_outlaw_wanderer_free_qualify"] = True
+        character.pre_career_permanent_dms = pdms
+        applied.append("Aslan Outlaw and Wanderer careers: free qualification next term")
+        character.log(
+            "Aslan University event 2: joined neglectful students — "
+            + ", ".join(applied)
+        )
+    elif choice == "focus":
+        applied.append("Stayed focused on studies — no effect")
+        character.log("Aslan University event 2: stayed focused on studies (no effect)")
+    else:
+        raise ValueError(f"Unknown event 2 choice: {choice!r}. Must be 'join' or 'focus'.")
+
+    character.pre_career_status = {
+        **status,
+        "pending_aslan_event2": False,
+    }
+
+    # Advance to career if nothing else is pending
+    if not character.pre_career_status.get("skill_picks_remaining") and \
+       not character.pre_career_status.get("pending_event10") and \
+       not character.pre_career_status.get("pending_event11"):
+        character.pre_career_terms += 1
+        character.phase = "career"
+
+    return {
+        "choice": choice,
+        "applied": applied,
+        "character": character.model_dump(),
+    }
+
+
+def pre_career_aslan_event11_choice(character: Character, choice: str) -> dict:
+    """Aslan University event 11 — clan war.
+
+    choice: "outcast" | "aslan_military" | "aslan_military_officer" | "aslan_spacer" | "aslan_space_officer"
+    - outcast: flee, become Outcast next term, do not graduate.
+    - any career choice: forced into that career next term, do not graduate.
+    """
+    status = character.pre_career_status or {}
+    if not status.get("pending_event11"):
+        raise ValueError("No pending event 11 clan war choice.")
+
+    valid = ("outcast", "aslan_military", "aslan_military_officer", "aslan_spacer", "aslan_space_officer")
+    if choice not in valid:
+        raise ValueError(
+            f"Unknown Aslan event 11 choice: {choice!r}. "
+            f"Must be one of: {', '.join(valid)}"
+        )
+
+    def _clear_graduation_bonuses() -> None:
+        character.starts_commissioned_career_id = None
+        character.academy_commission_career_id = None
+        character.academy_commission_dm = 0
+        character.auto_entry_career_id = None
+
+    _clear_graduation_bonuses()
+
+    if choice == "outcast":
+        character.forced_next_career_id = "aslan_outcast"
+        log_msg = "fled the clan war — becoming Outcast (did not graduate)"
+    else:
+        character.forced_next_career_id = choice
+        career_name = choice.replace("_", " ").title()
+        log_msg = f"enlisted in {career_name} career due to clan war (did not graduate)"
+
+    character.pre_career_status = {
+        **status,
+        "stage": "failed_grad",
+        "outcome": "fail",
+        "skill_picks_remaining": 0,
+        "pending_event11": False,
+    }
+    character.log(f"Aslan University event 11 (clan war): {log_msg}")
+    character.pre_career_terms += 1
+    character.phase = "career"
+
+    return {
+        "choice": choice,
+        "character": character.model_dump(),
+    }
+
+
+def pre_career_aslan_outlaw_wanderer_qualify_check(character: Character) -> bool:
+    """Return True if the character has free-qualify for aslan_outlaw/aslan_wanderer."""
+    pdms = character.pre_career_permanent_dms or {}
+    return bool(pdms.get("aslan_outlaw_wanderer_free_qualify"))
+
+
+def _consume_aslan_outlaw_wanderer_free_qualify(character: Character, career_id: str) -> bool:
+    """Consume the free-qualify flag for aslan_outlaw/aslan_wanderer. Returns True if consumed."""
+    pdms = character.pre_career_permanent_dms or {}
+    if pdms.get("aslan_outlaw_wanderer_free_qualify") and career_id in ("aslan_outlaw", "aslan_wanderer"):
+        pdms2 = dict(pdms)
+        del pdms2["aslan_outlaw_wanderer_free_qualify"]
+        character.pre_career_permanent_dms = pdms2
+        return True
+    return False
 
 
 def _apply_homeworld_life_event(character: Character, species_id: str) -> dict:
@@ -4955,8 +5204,9 @@ def roll_aslan_rite(character: Character) -> dict:
     setup["rite_doubles_key"] = doubles_key
     setup["phase"] = "done"
 
-    # Transition character to career phase
-    character.phase = "career"
+    # Transition character to background phase so Aslan can pick gender-specific
+    # background skills and optionally attend Aslan University before careers.
+    character.phase = "background"
 
     character.log(
         f"Rite of Passage: 2D={r.total} ({die1},{die2}). Score={score}."
@@ -5375,6 +5625,13 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     # Psion auto-entry (Psionic Community graduate)
     if career_id == "psion" and pdms.get("psion_career_auto_entry"):
         character.log(f"Psionic Community graduate — automatic entry into Psion career.")
+        return {"automatic": True, "succeeded": True, "character": character.model_dump()}
+
+    # Aslan event 2 free-qualify for Outlaw/Wanderer
+    if _consume_aslan_outlaw_wanderer_free_qualify(character, career_id):
+        character.log(
+            f"Aslan University event 2 benefit — free qualification for {career['name']}."
+        )
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
     # Global qualification penalty (e.g. colonial_upbringing -2)

@@ -226,6 +226,14 @@ class PreCareerEvent11Action(CharacterAction):
     choice: str  # "drifter" | "draft" | "dodge"
 
 
+class PreCareerAslanEvent2Action(CharacterAction):
+    choice: str  # "join" | "focus"
+
+
+class PreCareerAslanEvent11Action(CharacterAction):
+    choice: str  # "outcast" | "aslan_military" | "aslan_military_officer" | "aslan_spacer" | "aslan_space_officer"
+
+
 class LifeEventChoiceAction(CharacterAction):
     choice: str  # "rival" | "enemy" | "lose_benefit" | "prisoner"
 
@@ -598,6 +606,26 @@ async def api_pre_career_event11_choice(action: PreCareerEvent11Action):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.pre_career_event11_choice(character, action.choice)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/aslan-event2-choice")
+async def api_pre_career_aslan_event2_choice(action: PreCareerAslanEvent2Action):
+    """Aslan University event 2 — neglectful students: join or stay focused."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_aslan_event2_choice(character, action.choice)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/character/pre-career/aslan-event11-choice")
+async def api_pre_career_aslan_event11_choice(action: PreCareerAslanEvent11Action):
+    """Aslan University event 11 — clan war: flee (Outcast) or enlist in a military career."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.pre_career_aslan_event11_choice(character, action.choice)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
