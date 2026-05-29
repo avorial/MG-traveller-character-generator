@@ -5202,6 +5202,19 @@ function renderChooseCareer() {
 
     if (wasEjected) classes.push('career-ejected');
 
+    // INI return-to-Navy banner: shown on Navy cards when ini_can_return_to_navy is set
+    let iniReturnBadge = '';
+    const _INI_NAVY_IDS = new Set(['navy','confederation_navy','vargr_navy','zhodani_navy']);
+    if (_INI_NAVY_IDS.has(c.id) && character.ini_can_return_to_navy) {
+      const _iniSrc = character.ini_source_career_id || '';
+      if (_iniSrc === c.id || _INI_NAVY_IDS.has(_iniSrc)) {
+        iniReturnBadge = `
+          <div style="margin-top:6px;font-size:10px;font-weight:600;color:var(--success,#7fd87f)">
+            ← INI RETURN — Auto-qualify at held rank (no roll required)
+          </div>`;
+      }
+    }
+
     // Imperial Guard: show inline eligibility checklist on its card
     let igEligBadge = '';
     if (c.id === 'imperial_guard') {
@@ -5246,12 +5259,51 @@ function renderChooseCareer() {
         </div>`;
     }
 
+    // INI: show inline eligibility checklist
+    let iniEligBadge = '';
+    if (c.id === 'ini') {
+      const curTerm = character.current_term || null;
+      const _iniNavyIds = new Set(['navy','confederation_navy','vargr_navy','zhodani_navy']);
+      const _int = character.characteristics?.INT ?? 0;
+      const _edu = character.characteristics?.EDU ?? 0;
+      const iniChecks = [
+        {
+          ok: curTerm && _iniNavyIds.has(curTerm.career_id),
+          label: 'Currently serving in the Navy',
+        },
+        {
+          ok: _int >= 7,
+          label: `INT 7+ (yours: ${_int})`,
+        },
+        {
+          ok: _int >= 9,
+          label: `INT 9+ for bonus DM (yours: ${_int})`,
+        },
+        {
+          ok: _edu >= 9,
+          label: `EDU 9+ for bonus DM (yours: ${_edu})`,
+        },
+      ];
+      const iniAllMet = iniChecks.slice(0, 2).every(ch => ch.ok); // first 2 are hard gates
+      iniEligBadge = `
+        <div class="ig-elig" style="margin-top:6px;font-size:10px;line-height:1.6">
+          <span style="font-weight:600;color:${iniAllMet ? 'var(--success,#7fd87f)' : 'var(--amber)'}">
+            ${iniAllMet ? '✦ ELIGIBLE' : '⚠ PREREQUISITES'}
+          </span>
+          <ul style="list-style:none;padding:0;margin:2px 0 0 0">
+            ${iniChecks.map(ch => `<li style="color:${ch.ok ? 'var(--success,#7fd87f)' : 'var(--fg-dim)'}">
+              ${ch.ok ? '✓' : '✗'} ${escapeHTML(ch.label)}</li>`).join('')}
+          </ul>
+          <div style="color:var(--fg-dim);margin-top:2px">Failure is not permanent — posting can be re-requested next term.</div>
+        </div>`;
+    }
+
     return `
       <button class="${classes.join(' ')}" data-career="${c.id}">
         <div class="card-title">${esc(c.name)}${wasEjected ? ' <span class="ejected-flag">⚠ EJECTED</span>' : ''}</div>
         <div class="card-meta">${qualText}${qual.auto_qualify_if?.SOC ? ` · AUTO@SOC≥${qual.auto_qualify_if.SOC.replace('>=','')}` : ''}${riteScore !== null && qual.characteristic === 'RITE_OF_PASSAGE' ? ` · YOUR SCORE: ${riteScore}` : ''}</div>
         <div class="card-desc">${esc(c.description)}</div>
-        ${igEligBadge}
+        ${igEligBadge}${iniEligBadge}${iniReturnBadge}
       </button>
     `;
   }).join('');
@@ -10004,6 +10056,14 @@ function renderAdvanceStep() {
   const _forcedNext = character.forced_next_career_id || null;
   const _forcedNextName = _forcedNext ? (CAREERS.find(c => c.id === _forcedNext)?.name || _forcedNext) : null;
   const _igMustLeave = term.career_id === 'imperial_guard' && !!character.imperial_guard_must_leave;
+  const _iniCareer = term.career_id === 'ini';
+  const _iniReturnNote = _iniCareer ? `
+    <div class="event-box" style="border-color:var(--accent);margin-top:10px;font-size:12px">
+      <span class="event-label" style="color:var(--accent)">⚑ INI SERVICE</span>
+      Naval rank frozen at ${character.ini_frozen_navy_rank ?? '?'} during INI service.
+      You may return to ${esc(character.ini_source_career_id || 'Navy')} at any time — choose it
+      in the career picker and you will be automatically accepted back at your held rank.
+    </div>` : '';
   const decideActions = _forcedNext ? `
     <div class="event-box" style="border-color:var(--danger);margin-top:14px">
       <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${_forcedNextName.toUpperCase()}</span>
@@ -10025,6 +10085,7 @@ function renderAdvanceStep() {
     </div>
     ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
   ` : `
+    ${_iniReturnNote}
     <div class="phase-actions">
       <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
       <button class="btn" id="btn-leave-career">MUSTER OUT</button>

@@ -5120,6 +5120,37 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
                 "Imperial Guard: Vacc Suit 1 or higher is required."
             )
 
+    # Imperial Naval Intelligence: must currently be serving in a Navy career.
+    # Failure is NOT permanent — the posting is simply denied this term.
+    _INI_NAVY_SOURCE = {"navy", "confederation_navy", "vargr_navy", "zhodani_navy"}
+    if career_id == "ini":
+        _ini_cur = character.current_term
+        if _ini_cur is None or _ini_cur.career_id not in _INI_NAVY_SOURCE:
+            return _qual_block(
+                "Imperial Naval Intelligence: you must currently be serving in the Navy "
+                "to request an INI field-agent posting."
+            )
+        # No permanent ban on failure — posting denied, character may try again next term.
+
+    # INI return to Navy: if the character is leaving INI and returning to their Navy career,
+    # no qualification roll is required — they simply re-enter at their held rank.
+    if career_id in _INI_NAVY_SOURCE and character.ini_can_return_to_navy:
+        _src = character.ini_source_career_id or ""
+        if _src == career_id or _src in _INI_NAVY_SOURCE:
+            if character.ini_frozen_navy_rank is not None:
+                character.pending_transfer_rank = character.ini_frozen_navy_rank
+            character.ini_can_return_to_navy = False
+            character.ini_frozen_navy_rank = None
+            character.log(
+                f"INI → Navy: auto-qualified (no roll required); "
+                f"Navy rank {character.pending_transfer_rank} restored."
+            )
+            _ini_return_result = {
+                "total": 12, "succeeded": True, "natural": 12, "modifier": 0, "target": 0,
+                "characteristic_used": "Auto (INI return)", "pending_dm_consumed": 0,
+            }
+            return {"succeeded": True, "roll": _ini_return_result, "character": character.model_dump()}
+
     qual = career.get("qualification", {})
     if qual.get("automatic"):
         # Droyne caste check: career is locked to a specific caste
@@ -5492,6 +5523,16 @@ def start_term(
             character.imperial_guard_source_career_id = character.current_term.career_id
             character.log(
                 f"Imperial Guard: source career recorded as '{character.current_term.career_id}'."
+            )
+
+    # INI: record source Navy career and freeze the Navy rank before we replace current_term
+    if career_id == "ini" and first_term_in_this_career:
+        if character.current_term is not None:
+            character.ini_source_career_id = character.current_term.career_id
+            character.ini_frozen_navy_rank = character.current_term.rank
+            character.log(
+                f"INI: source career recorded as '{character.current_term.career_id}', "
+                f"Navy rank {character.current_term.rank} frozen for duration of service."
             )
 
     term = CareerTerm(
@@ -14748,6 +14789,14 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         # Clear the must-leave flag now that they've actually left
         if term.career_id == "imperial_guard":
             character.imperial_guard_must_leave = False
+
+        # INI: grant return-to-Navy token when leaving the career
+        if term.career_id == "ini":
+            character.ini_can_return_to_navy = True
+            character.log(
+                "Leaving INI — may return to Navy at held rank without a qualification roll. "
+                "Select your Navy career in the career picker to trigger the automatic return."
+            )
 
         character.log(
             f"Left {rules.careers()[term.career_id]['name']} "

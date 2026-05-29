@@ -238,6 +238,15 @@ class Character(BaseModel):
     imperial_guard_benefit_dm: int = 0
     imperial_guard_doubled_budget: bool = False
 
+    # Imperial Naval Intelligence (INI) service tracking.
+    # source_career_id: the Navy career from which the character entered INI.
+    # frozen_navy_rank: the character's Navy rank when they transferred to INI (restored on return).
+    # can_return_to_navy: flag allowing the character to re-enter their Navy career without a
+    #   qualification roll, at their held rank. Set when leaving INI; consumed on use.
+    ini_source_career_id: Optional[str] = None
+    ini_frozen_navy_rank: Optional[int] = None
+    ini_can_return_to_navy: bool = False
+
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0

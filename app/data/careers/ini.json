@@ -1,0 +1,102 @@
+{
+  "id": "ini",
+  "name": "Imperial Naval Intelligence",
+  "complete": true,
+  "societies": ["third_imperium"],
+  "description": "INI field agents are Navy officers seconded to intelligence operations. Naval rank is frozen during service. Failure to qualify merely means the posting is denied — there is no permanent ban. Agents may return to Navy line/crew at their held rank at any time without a qualification roll. When mustering out, benefit rolls may be taken on the Navy table or split between both careers by terms served.",
+  "qualification": {
+    "characteristic": "INT",
+    "target": 7,
+    "modifiers": [
+      {"type": "characteristic_minimum", "characteristic": "INT", "min_value": 9, "dm": 1},
+      {"type": "characteristic_minimum", "characteristic": "EDU", "min_value": 9, "dm": 1}
+    ]
+  },
+  "assignments": {
+    "field_agent": {
+      "name": "Field Agent",
+      "description": "You conduct covert intelligence operations for the Imperial Navy — running assets, managing networks, and executing classified missions.",
+      "survival": {
+        "characteristic": "INT",
+        "target": 7
+      },
+      "advancement": {
+        "characteristic": "INT",
+        "target": 5
+      }
+    }
+  },
+  "skill_tables": {
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Electronics",
+      "2": "Admin",
+      "3": "Gun Combat",
+      "4": "Streetwise",
+      "5": "Persuade",
+      "6": "Deception"
+    }
+  },
+  "ranks": {
+    "field_agent": {
+      "0": {
+        "title": "Operative",
+        "bonus": "Deception 1"
+      },
+      "1": {
+        "title": "Field Agent",
+        "bonus": "Streetwise 1"
+      },
+      "2": {
+        "title": "Senior Agent",
+        "bonus": null
+      },
+      "3": {
+        "title": "Case Officer",
+        "bonus": "Investigate 1"
+      },
+      "4": {
+        "title": null,
+        "bonus": null
+      },
+      "5": {
+        "title": "Section Chief",
+        "bonus": "Leadership 1"
+      },
+      "6": {
+        "title": "Director of Intelligence",
+        "bonus": "SOC +1"
+      }
+    }
+  },
+  "mishaps": {
+    "1": "An operation is compromised and you are caught in the blast. Roll on the Injury table. Lose one Benefit roll.",
+    "2": "A double-agent in your network betrays your cell. Gain an Enemy and lose SOC -1.",
+    "3": "A classified mission goes catastrophically wrong and you are made the scapegoat. Lose one rank.",
+    "4": "Political interference in your operation triggers an internal inquiry. Lose one Benefit roll.",
+    "5": "Your cover identity is burned. You are extracted and cannot continue in this role. You may return to your Navy source career without a qualification roll.",
+    "6": "A scandal — real or fabricated — forces your removal from active duty. Gain a Rival in the intelligence community."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table.",
+    "3": "Your network is compromised mid-operation. Roll INT 8+. If you fail, roll on the Injury table. If you succeed, gain Deception 1 or Stealth 1.",
+    "4": "Extended administrative work in an INI office hones your analytical skills. Gain Admin 1 or Electronics 1.",
+    "5": "You successfully cultivate a well-placed asset inside an enemy organisation. Gain Persuade 1 and a Contact.",
+    "6": "Deployed undercover in a hostile environment. Gain Streetwise 1 or Deception 1.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You manage a critical intelligence network spanning several systems. Gain Electronics 1 or Investigate 1, and D3 Contacts.",
+    "9": "Sent on a black-operations mission that cannot be discussed. Gain Stealth 1 or Gun Combat 1.",
+    "10": "Your intelligence work directly enables a major Navy fleet action. Gain DM+2 on your next advancement roll.",
+    "11": "A coup of intelligence work unravels a major threat to the Imperium. Gain SOC +1 and an immediate promotion.",
+    "12": "Your operation is commended at the highest level of the Admiralty. Gain SOC +1 and two extra Benefit rolls."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000,  "benefit": "Weapon"},
+    "2": {"cash": 5000,  "benefit": "INT +1 or EDU +1"},
+    "3": {"cash": 5000,  "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Weapon"},
+    "5": {"cash": 20000, "benefit": "TAS Membership"},
+    "6": {"cash": 50000, "benefit": "SOC +1"},
+    "7": {"cash": 50000, "benefit": "Ship's Boat or SOC +2"}
+  }
+}
