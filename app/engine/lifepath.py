@@ -903,6 +903,19 @@ def swap_characteristics(character: Character, stat_a: str, stat_b: str) -> dict
     }
 
 
+def _stat_cap(species_data: dict, stat: str) -> int:
+    """Return the effective maximum for *stat* for this species.
+
+    Uses ``characteristic_maximum_overrides`` for per-stat raises above the
+    species global cap (e.g. Ghenani STR 17, Murian STR/END 18), otherwise
+    falls back to ``characteristic_maximum`` (default 15).
+    """
+    overrides: dict = species_data.get("characteristic_maximum_overrides") or {}
+    if stat in overrides:
+        return int(overrides[stat])
+    return int(species_data.get("characteristic_maximum", 15))
+
+
 def _enforce_characteristic_caps(character: Character, species_data: dict) -> list[str]:
     """Reduce any characteristics that exceed the species-defined per-stat caps.
 
@@ -15747,7 +15760,7 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
         if b == f"{stat} +1":
             species_data = rules.species().get(character.species_id, {})
-            max_stat = species_data.get("characteristic_maximum", 15)
+            max_stat = _stat_cap(species_data, stat)
             current = character.characteristics.get(stat)
             if current < max_stat:
                 character.characteristics.set(stat, current + 1)
@@ -15757,7 +15770,7 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
             return
         if b == f"{stat} +2":
             species_data = rules.species().get(character.species_id, {})
-            max_stat = species_data.get("characteristic_maximum", 15)
+            max_stat = _stat_cap(species_data, stat)
             for _ in range(2):
                 current = character.characteristics.get(stat)
                 if current < max_stat:
@@ -16376,7 +16389,7 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
             character.extra_characteristics["TER"] = old + n
             return f"TER {old}→{old + n} (rank bonus)"
         species_data = rules.species().get(character.species_id, {})
-        max_stat = species_data.get("characteristic_maximum", 15)
+        max_stat = _stat_cap(species_data, stat)
         current = _get_stat(character, stat)
         new_val = min(max_stat, current + n)
         _set_stat(character, stat, new_val)
@@ -16586,7 +16599,7 @@ def _apply_skill_result(character: Character, result: str) -> str:
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC", "PSI", "RES"):
         if stripped == f"{stat} +1":
             species_data = rules.species().get(character.species_id, {})
-            max_stat = species_data.get("characteristic_maximum", 15)
+            max_stat = _stat_cap(species_data, stat)
             if stat == "PSI":
                 current = character.psi
                 character.psi = min(current + 1, max_stat)

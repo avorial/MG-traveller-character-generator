@@ -19,7 +19,7 @@
   "rolls_psi_at_start": true,
   "psi_roll": "2D_min2",
   "aging_starts_term": 8,
-  "aging_dm_bonus": 6,
+  "aging_bonus_dm": 6,
   "traits": [
     "Aging: No aging rolls until term 8. DM+6 on all aging rolls. PSI is treated as a mental characteristic for aging purposes.",
     "Echolocation: See well in low light with no penalty except in absolute darkness (DM-1, max 100m without Clairvoyance). Without darkened goggles in daylight, suffer DM-2 to vision checks or DM-1 if eyes closed and using echolocation.",
@@ -59,7 +59,7 @@
     ]
   },
   "career_notes": "All Traveller Core Rulebook careers including Psion are suitable. DM-4 when attempting to qualify for Army or Marine careers (those organisations are not equipped for Zhdianshe).",
-  "career_dms": {
+  "career_qualify_dms": {
     "army": -4,
     "marine": -4
   },
