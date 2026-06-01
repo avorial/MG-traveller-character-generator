@@ -718,24 +718,63 @@ function createRobotFoundryExport(cfg) {
     'anglic':'galanglic','galanglic':'galanglic',
   };
 
+  // Full MGT2e skill tree — every skill the sheet must show.
+  // Untrained entries appear at value 0 / trained:false so Foundry renders -3.
+  const _rbAllSkillTree = {
+    admin:[], advocate:[], astrogation:[], broker:[], carouse:[], deception:[],
+    diplomat:[], explosives:[], gambler:[], independence:[], investigate:[],
+    jackofalltrades:[], leadership:[], mechanic:[], medic:[], navigation:[],
+    persuade:[], recon:[], stealth:[], steward:[], streetwise:[], survival:[], vaccsuit:[],
+    animals:['handling','training','vetinary'],
+    art:['holography','instrument','performer','visualMedia','write'],
+    athletics:['dexterity','endurance','strength'],
+    drive:['hovercraft','mole','track','walker','wheel'],
+    electronics:['comms','computers','remoteOps','sensors'],
+    engineer:['jDrive','lifeSupport','mDrive','power'],
+    flyer:['airship','grav','ornithopter','rotor','wing'],
+    guncombat:['archaic','energy','slug'],
+    gunner:['capital','ortillery','screen','turret'],
+    heavyweapons:['artillery','portable','vehicle'],
+    language:['galanglic','gvegh','oynprith','trokh','vilani','zdetl'],
+    melee:['blade','bludgeon','natural','unarmed'],
+    pilot:['capitalShips','smallCraft','spacecraft'],
+    profession:['belter','biologicals','civilEngineering','construction','hydroponics','polymers','robotics'],
+    science:['archaeology','astronomy','biology','chemistry','cosmology','cybernetics',
+             'economics','genetics','history','linquistics','philosophy','physics',
+             'planetology','psionicology','psychology','sophontology','xenology'],
+    seafarer:['oceanShips','personal','sail','submarine'],
+    tactics:['military','naval'],
+  };
+
+  // Pre-seed every skill as untrained, then overlay robot's actual skills
   const _rbSkillWork = {};
+  Object.entries(_rbAllSkillTree).forEach(([sid, specIds]) => {
+    const specs = {};
+    specIds.forEach(sp => { specs[sp] = { level: 0, trained: false }; });
+    _rbSkillWork[sid] = { base: 0, trained: false, specs };
+  });
+
   calc.skills.forEach(sk => {
     const sid = _rbSkillIdMap[sk.name.toLowerCase()] || sk.name.toLowerCase().replace(/[^a-z0-9]+/g,'');
-    if (!_rbSkillWork[sid]) _rbSkillWork[sid] = { base: 0, specs: {} };
+    if (!_rbSkillWork[sid]) _rbSkillWork[sid] = { base: 0, trained: false, specs: {} };
     if (sk.specialty) {
       const specId = _rbSpecIdMap[sk.specialty.toLowerCase()] || sk.specialty.toLowerCase().replace(/[^a-z0-9]+/g,'');
-      _rbSkillWork[sid].specs[specId] = sk.level;
+      if (!_rbSkillWork[sid].specs[specId]) _rbSkillWork[sid].specs[specId] = { level: 0, trained: false };
+      _rbSkillWork[sid].specs[specId].level = Math.max(_rbSkillWork[sid].specs[specId].level, sk.level);
+      _rbSkillWork[sid].specs[specId].trained = true;
     } else {
       _rbSkillWork[sid].base = Math.max(_rbSkillWork[sid].base, sk.level);
+      _rbSkillWork[sid].trained = true;
     }
   });
+
   const skills = {};
   Object.entries(_rbSkillWork).forEach(([sid, data]) => {
-    const entry = { id: sid, value: data.base, trained: true };
+    const entry = { id: sid, value: data.base, trained: data.trained };
     if (Object.keys(data.specs).length) {
       entry.specialities = {};
-      Object.entries(data.specs).forEach(([spId, spLv]) => {
-        entry.specialities[spId] = { id: spId, value: String(spLv) };
+      Object.entries(data.specs).forEach(([spId, spData]) => {
+        entry.specialities[spId] = { id: spId, value: spData.trained && spData.level > 0 ? String(spData.level) : spData.level, trained: spData.trained };
       });
     }
     skills[sid] = entry;

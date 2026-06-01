@@ -197,6 +197,61 @@ def _norm(s: str) -> str:
     return s.strip().lower()
 
 
+# ---------------------------------------------------------------------------
+# Full MGT2e skill tree — every skill the sheet must show.
+# Untrained skills appear at value 0 / trained=False so Foundry renders -3.
+# Format: { parent_id: [spec_id, ...] }  — empty list = non-cascade skill.
+# ---------------------------------------------------------------------------
+
+_ALL_SKILL_TREE: dict[str, list[str]] = {
+    "admin":           [],
+    "advocate":        [],
+    "animals":         ["handling", "training", "vetinary"],
+    "art":             ["holography", "instrument", "performer", "visualMedia", "write"],
+    "astrogation":     [],
+    "athletics":       ["dexterity", "endurance", "strength"],
+    "broker":          [],
+    "carouse":         [],
+    "deception":       [],
+    "diplomat":        [],
+    "drive":           ["hovercraft", "mole", "track", "walker", "wheel"],
+    "electronics":     ["comms", "computers", "remoteOps", "sensors"],
+    "engineer":        ["jDrive", "lifeSupport", "mDrive", "power"],
+    "explosives":      [],
+    "flyer":           ["airship", "grav", "ornithopter", "rotor", "wing"],
+    "gambler":         [],
+    "guncombat":       ["archaic", "energy", "slug"],
+    "gunner":          ["capital", "ortillery", "screen", "turret"],
+    "heavyweapons":    ["artillery", "portable", "vehicle"],
+    "independence":    [],
+    "investigate":     [],
+    "jackofalltrades": [],
+    "language":        ["galanglic", "gvegh", "oynprith", "trokh", "vilani", "zdetl"],
+    "leadership":      [],
+    "mechanic":        [],
+    "medic":           [],
+    "melee":           ["blade", "bludgeon", "natural", "unarmed"],
+    "navigation":      [],
+    "persuade":        [],
+    "pilot":           ["capitalShips", "smallCraft", "spacecraft"],
+    "profession":      ["belter", "biologicals", "civilEngineering",
+                        "construction", "hydroponics", "polymers", "robotics"],
+    "recon":           [],
+    "science":         ["archaeology", "astronomy", "biology", "chemistry",
+                        "cosmology", "cybernetics", "economics", "genetics",
+                        "history", "linquistics", "philosophy", "physics",
+                        "planetology", "psionicology", "psychology",
+                        "sophontology", "xenology"],
+    "seafarer":        ["oceanShips", "personal", "sail", "submarine"],
+    "stealth":         [],
+    "steward":         [],
+    "streetwise":      [],
+    "survival":        [],
+    "tactics":         ["military", "naval"],
+    "vaccsuit":        [],
+}
+
+
 def _skill_id(name: str) -> str | None:
     return _SKILL_NAME_TO_ID.get(_norm(name))
 
@@ -273,11 +328,24 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
     # ------------------------------------------------------------------
     # 2. Skills
     # ------------------------------------------------------------------
-    # We build a working dict: {foundry_skill_id: {"base": level, "specs": {spec_id: level}}}
-    # then emit the Foundry skill object.
+    # Pre-seed every skill in the MGT2e tree as untrained (value=0, trained=False)
+    # so Foundry shows -3 for everything the character hasn't touched.
+    # Then overlay with the character's actual trained skills.
 
-    _skill_work: dict[str, dict] = {}   # skill_id → {"base": int, "specs": {id: int}}
+    _skill_work: dict[str, dict] = {}   # skill_id → {"base": int, "trained": bool, "specs": {id: int}}
 
+    # Seed all skills from the master tree
+    for sid, spec_ids in _ALL_SKILL_TREE.items():
+        _skill_work[sid] = {
+            "base": 0,
+            "trained": False,
+            "specs": {sp: {"level": 0, "trained": False} for sp in spec_ids},
+        }
+
+    # Also include psionic skills if the character has them (not in core tree)
+    _PSIONIC_SKILLS = {"telepathy", "clairvoyance", "telekinesis", "awareness", "teleportation"}
+
+    # Overlay character's actual skills
     for sk in (char.skills or []):
         skill_name = sk.get("name") if isinstance(sk, dict) else getattr(sk, "name", "")
         skill_level = sk.get("level", 0) if isinstance(sk, dict) else getattr(sk, "level", 0)
@@ -288,36 +356,48 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
             continue  # unknown skill — skip
 
         if sid not in _skill_work:
-            _skill_work[sid] = {"base": -1, "specs": {}}
+            # e.g. psionics, Independence — add dynamically
+            _skill_work[sid] = {"base": 0, "trained": False, "specs": {}}
 
         if not skill_spec or _norm(skill_spec) == "any":
-            # Base skill entry
             cur = _skill_work[sid]["base"]
             _skill_work[sid]["base"] = max(cur, int(skill_level))
+            _skill_work[sid]["trained"] = True
         else:
             spec_id = _spec_id(skill_spec)
             if spec_id is None:
-                # Unknown speciality — use lowercased slug
                 spec_id = re.sub(r"[^a-z0-9]", "", _norm(skill_spec))
-            cur = _skill_work[sid]["specs"].get(spec_id, -1)
-            _skill_work[sid]["specs"][spec_id] = max(cur, int(skill_level))
+            if spec_id not in _skill_work[sid]["specs"]:
+                _skill_work[sid]["specs"][spec_id] = {"level": 0, "trained": False}
+            cur = _skill_work[sid]["specs"][spec_id]["level"]
+            _skill_work[sid]["specs"][spec_id]["level"] = max(cur, int(skill_level))
+            _skill_work[sid]["specs"][spec_id]["trained"] = True
+            # Mark parent as at least seen (but not trained unless character has base too)
+            if not _skill_work[sid]["trained"]:
+                pass  # parent stays untrained; Foundry shows -3 for parent, actual level for spec
 
     # Build Foundry skills object
     skills: dict[str, Any] = {}
     for sid, data in _skill_work.items():
-        base_val = data["base"] if data["base"] >= 0 else 0
-        specs = data["specs"]
+        base_val = data["base"]
+        is_trained = data["trained"]
+        specs_raw = data["specs"]
 
         entry: dict[str, Any] = {
             "id": sid,
-            "value": str(base_val) if base_val > 0 else base_val,
-            "trained": True,
+            "value": str(base_val) if (is_trained and base_val > 0) else base_val,
+            "trained": is_trained,
         }
-        if specs:
-            entry["specialities"] = {
-                sp_id: {"id": sp_id, "value": str(sp_lv)}
-                for sp_id, sp_lv in specs.items()
-            }
+        if specs_raw:
+            entry["specialities"] = {}
+            for sp_id, sp_data in specs_raw.items():
+                sp_lv = sp_data["level"] if isinstance(sp_data, dict) else sp_data
+                sp_trained = sp_data["trained"] if isinstance(sp_data, dict) else True
+                entry["specialities"][sp_id] = {
+                    "id": sp_id,
+                    "value": str(sp_lv) if (sp_trained and sp_lv > 0) else sp_lv,
+                    "trained": sp_trained,
+                }
         skills[sid] = entry
 
     # ------------------------------------------------------------------
