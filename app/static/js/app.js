@@ -6502,6 +6502,8 @@ function wireCareerPhase() {
             total: response.roll?.total,
             text: response.mishap,
             frozenWatch: response.frozen_watch || false,
+            // Event says character is not ejected (e.g. Merchant[2])
+            noEject: /not ejected|career continues/i.test(uiState.lastRoll?.eventText || ''),
           };
         }
         renderAll();
@@ -7623,12 +7625,25 @@ function wireCareerPhase() {
         const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
         await applyResponse(response);
         if (response.treatment_choice_pending) {
-          // Show treatment choice screen before finalizing
           uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false, treatmentPending: true };
           renderAll();
           return;
         }
         uiState.lastRoll = { ...uiState.lastRoll, injuryPending: false };
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+    // Same handler for injury from an event-triggered non-ejecting mishap
+    const btnEv = document.getElementById(`btn-event-mishap-injury-stat-${stat}`);
+    if (btnEv) btnEv.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/injury-choice', { chosen_stat: stat });
+        await applyResponse(response);
+        if (response.treatment_choice_pending) {
+          uiState.lastRoll = { ...uiState.lastRoll, treatmentPending: true };
+          renderAll();
+          return;
+        }
         renderAll();
       } catch (e) { alert(e.message); }
     });
@@ -9707,22 +9722,25 @@ function renderEventStep() {
         </div>`;
     }
 
+    // Gate also on pending injury from an event-triggered mishap
+    const eventMishapInjuryPending = !!(forcesMishap && lr.mishapFromEvent && character.pending_injury_choice);
     const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
       || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen)
       || entertainerPending || citizenMishapPending
       || !!(pendingEventChoice && !lr.eventChoiceResolved)
-      || !!pendingLifeEventChoice;
+      || !!pendingLifeEventChoice
+      || eventMishapInjuryPending;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP
-    // - Forced mishap rolled, Frozen Watch: career continues (no advancement this term)
-    // - Forced mishap rolled, anything else: career ENDS — show END CAREER
+    // - Forced mishap rolled, Frozen Watch or noEject: career continues (show CONTINUE)
+    // - Forced mishap rolled, ejecting: career ENDS — show END CAREER
     // - Citizen ev8 survival failed: show mishap button (handled inline above)
     // - Normal flow: show ATTEMPT advancement
     const actionsHTML = pendingMishapRoll ? `
       <button class="btn danger" id="btn-event-forced-mishap">ROLL ON MISHAP TABLE →</button>
-    ` : (forcesMishap && lr.mishapFromEvent && lr.mishapFromEvent.frozenWatch) ? `
-      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>FROZEN WATCH — CONTINUE →</button>
+    ` : (forcesMishap && lr.mishapFromEvent && (lr.mishapFromEvent.frozenWatch || lr.mishapFromEvent.noEject)) ? `
+      <button class="btn primary" id="btn-post-event"${gateAdvance ? ' disabled' : ''}>CONTINUE IN CAREER →</button>
     ` : (forcesMishap && lr.mishapFromEvent) ? `
       <button class="btn danger" id="btn-post-mishap">END CAREER →</button>
     ` : `
@@ -9780,6 +9798,24 @@ function renderEventStep() {
         ${scoutBanHTML}
         ${eventEffectsHTML}
         ${disasterMishapHTML}
+        ${eventMishapInjuryPending ? (() => {
+          const inj = character.pending_injury_choice;
+          const choices = inj.choices || ['STR', 'DEX', 'END'];
+          const statDescriptions = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance' };
+          const cards = choices.map(stat => `
+            <button class="card" id="btn-event-mishap-injury-stat-${stat}">
+              <div class="card-title">${stat} — ${statDescriptions[stat] || stat}</div>
+              <div class="card-meta">Current: ${character.characteristics[stat] ?? '?'}</div>
+              <div class="card-desc">Damage: −${inj.damage_to_chosen}${inj.auto_reduce_others ? ` to ${stat}, −${inj.auto_reduce_others} to other two` : ''}. Then choose: accept stat loss (free) OR pay medical debt.</div>
+            </button>`).join('');
+          return `
+            <div class="event-skill-picker" style="margin-top:14px">
+              <span class="event-label">Injury — Choose Affected Stat</span>
+              <p class="phase-body" style="margin-top:6px"><strong>${escapeHTML(inj.prompt || 'Choose which stat absorbs the damage.')}</strong></p>
+              <p style="font-size:11px;color:var(--amber-dim)">Pick which stat takes the hit, then choose to accept the loss or pay to fix it.</p>
+              <div class="card-grid">${cards}</div>
+            </div>`;
+        })() : ''}
         ${pendingEventChoiceHTML}
         ${pendingCareerLifeEventHTML}
         <div class="phase-actions">

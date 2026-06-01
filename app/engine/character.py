@@ -8,7 +8,7 @@ updated version.
 """
 
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Characteristics(BaseModel):
@@ -120,6 +120,25 @@ class Character(BaseModel):
     equipment: list[Equipment] = Field(default_factory=list)
     associates: list[Associate] = Field(default_factory=list)
     traits: list[dict] = Field(default_factory=list)
+
+    @field_validator("traits", mode="before")
+    @classmethod
+    def _normalise_traits(cls, v: object) -> list:
+        """Accept traits as either dicts or 'Name: description' strings."""
+        if not isinstance(v, list):
+            return v  # let Pydantic raise the real error
+        out = []
+        for item in v:
+            if isinstance(item, str):
+                # Split on first ': ' to extract name and description
+                if ": " in item:
+                    name, _, desc = item.partition(": ")
+                else:
+                    name, desc = item, ""
+                out.append({"name": name.strip(), "description": desc.strip()})
+            else:
+                out.append(item)
+        return out
     pending_benefit_rolls: int = 0
     cash_rolls_used: int = 0
     dm_next_advancement: int = 0
