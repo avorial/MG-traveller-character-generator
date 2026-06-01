@@ -100,6 +100,14 @@ def roll(notation: str, modifier: int = 0, target: Optional[int] = None) -> Roll
 
     notation = notation.strip().upper().replace(" ", "")
 
+    # _MINX suffix: each die result is treated as at least X (e.g. 2D_MIN2 = roll 2D but
+    # every die showing 1 counts as 2 instead).  Strip the suffix before the normal parse.
+    min_per_die = 1
+    min_match = re.match(r"^(.+?)_MIN(\d+)$", notation)
+    if min_match:
+        notation = min_match.group(1)
+        min_per_die = int(min_match.group(2))
+
     # D3 is a special case - Traveller shorthand for "1 to 3"
     if notation in ("D3", "1D3"):
         dice = [roll_d6()]
@@ -125,7 +133,7 @@ def roll(notation: str, modifier: int = 0, target: Optional[int] = None) -> Roll
     die_size = int(match.group(2)) if match.group(2) else 6
     inline_mod = int(match.group(3)) if match.group(3) else 0
 
-    dice = [random.randint(1, die_size) for _ in range(num_dice)]
+    dice = [max(min_per_die, random.randint(1, die_size)) for _ in range(num_dice)]
     raw_total = sum(dice)
     total_mod = modifier + inline_mod
     total = raw_total + total_mod

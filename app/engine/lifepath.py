@@ -977,6 +977,29 @@ def apply_species(character: Character, species_id: str) -> dict:
         character.characteristics.set("SOC", cha_roll)
         character.log(f"CHA (SOC) re-rolled as 1D+2 = {cha_roll} (was {old_soc})")
 
+    # custom_characteristic_rolls: species-specific roll formulas (e.g. Zhdianshe STR fixed:1,
+    # DEX 2D+2).  Supports "fixed:N" (always exactly N) and any standard dice notation.
+    # PSI is intentionally skipped here — it is handled by the rolls_psi_at_start block below.
+    custom_roll_map = species_data.get("custom_characteristic_rolls", {})
+    if custom_roll_map:
+        custom_parts: list[str] = []
+        for stat, formula in custom_roll_map.items():
+            if stat.upper() == "PSI":
+                continue  # handled via rolls_psi_at_start
+            if isinstance(formula, str) and formula.startswith("fixed:"):
+                fixed_val = int(formula.split(":", 1)[1])
+                character.characteristics.set(stat, fixed_val)
+                custom_parts.append(f"{stat} = {fixed_val} (fixed)")
+            else:
+                cr = dice.roll(str(formula))
+                character.characteristics.set(stat, cr.total)
+                custom_parts.append(f"{stat} ({formula}) = {cr.total}")
+        if custom_parts:
+            character.log(
+                f"{species_data['name']} custom characteristic rolls: "
+                + ", ".join(custom_parts)
+            )
+
     # Species with custom characteristic dice (e.g. Ladybug, Selenite): re-roll those
     # stats using the species-defined formulas immediately after species is applied.
     # Droyne has its own caste-system path that handles characteristic_dice separately.
@@ -1113,7 +1136,12 @@ def apply_species(character: Character, species_id: str) -> dict:
         psi_r = dice.roll(psi_dice)
         character.psi = psi_r.total
         character.psi_tested = True
-        character.log(f"Zhodani: PSI rolled {psi_dice} = {psi_r.total}")
+        character.log(f"{species_data['name']}: PSI rolled {psi_dice} = {psi_r.total}")
+        # psi_linked_soc: starting SOC equals starting PSI (e.g. Zhdianshe).
+        # SOC can drop below PSI later but never exceed it.
+        if species_data.get("psi_linked_soc"):
+            character.characteristics.set("SOC", character.psi)
+            character.log(f"SOC set to PSI ({character.psi}) — psi_linked_soc rule")
         # Apply characteristic adjustments based on PSI / SOC / EDU interplay.
         sp_max = int(species_data.get("characteristic_maximum", 15))
         for adj in species_data.get("characteristic_adjustments", []):

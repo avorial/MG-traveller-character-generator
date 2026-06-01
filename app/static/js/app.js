@@ -10667,6 +10667,27 @@ function renderMusterPhase() {
   }
 
   if (rolls === 0) {
+    // If a forced career is still pending (e.g. crime conviction → prisoner), don't
+    // finalize — route back to the career picker so the sentence can be served.
+    if (character.forced_next_career_id) {
+      const _forcedDef = CAREERS.find(c => c.id === character.forced_next_career_id);
+      const _forcedName = _forcedDef?.name || character.forced_next_career_id;
+      return `
+        <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+        <div class="stage-content">
+          <h2 class="phase-title">Benefits Claimed</h2>
+          <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+            <span class="event-label" style="color:var(--danger)">⚠ MANDATORY SENTENCE — ${escapeHTML(_forcedName.toUpperCase())}</span>
+            Mustering out complete. A conviction still requires you to serve a term in
+            <strong>${escapeHTML(_forcedName)}</strong> before your career is over.
+          </div>
+          <div class="phase-actions" style="margin-top:16px">
+            <button class="btn danger" id="btn-muster-to-forced-career">SERVE YOUR SENTENCE →</button>
+          </div>
+        </div>
+      `;
+    }
+
     const _exemptIds = new Set(['scout','rogue','prisoner','drifter']);
     const _qualTerms = (character.term_history || []).filter(h => !_exemptIds.has(h.career_id)).length;
     const _isSol = character.society_id === 'solomani_confederation';
@@ -10868,6 +10889,20 @@ function wireMusterPhase() {
       }
     });
   });
+
+  // Forced-career sentence from muster-out (crime conviction, etc.)
+  const btnMusterToForcedCareer = document.getElementById('btn-muster-to-forced-career');
+  if (btnMusterToForcedCareer) {
+    btnMusterToForcedCareer.addEventListener('click', () => {
+      character.phase = 'career';
+      uiState.lastRoll = null;
+      uiState.subPhase = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
+      saveCharacter();
+      renderAll();
+    });
+  }
 
   const btnFinalize = document.getElementById('btn-finalize');
   if (btnFinalize) {
