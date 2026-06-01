@@ -1165,15 +1165,32 @@ def apply_species(character: Character, species_id: str) -> dict:
                     character.characteristics.set("EDU", 8)
                     character.log(adj.get("description", "EDU raised to 8"))
 
-        # After characteristic adjustments: Nobles and Intendants undergo psionic
-        # training before background skills / careers begin.
+        # After characteristic adjustments: enter psionic training phase if applicable.
         if species_data.get("psionic_training_at_start"):
-            zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
-            if zclass in ("noble", "intendant"):
-                character.phase = "zhodani_training"
-                character.log(
-                    f"Zhodani {zclass.capitalize()} — begins psionic talent training before careers."
-                )
+            if canonical_id == "zhodani":
+                # Zhodani: only Nobles and Intendants train.
+                zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+                if zclass in ("noble", "intendant"):
+                    character.phase = "zhodani_training"
+                    character.log(
+                        f"Zhodani {zclass.capitalize()} — begins psionic talent training before careers."
+                    )
+            else:
+                # Non-Zhodani species (e.g. Zhdianshe): apply auto-talents immediately,
+                # then enter training for any remaining interactive talent checks.
+                training_table = species_data.get("psionic_training_table", {})
+                for auto_t in training_table.get("auto_talents", []):
+                    t_name = auto_t["name"]
+                    t_level = int(auto_t.get("level", 0))
+                    character.add_skill(t_name, level=t_level)
+                    character.log(
+                        f"{species_data['name']} childhood psionics: auto-granted {t_name} {t_level}"
+                    )
+                if training_table.get("talents"):
+                    character.phase = "zhodani_training"
+                    character.log(
+                        f"{species_data['name']} — begins psionic talent training before careers."
+                    )
 
     # Droyne caste system: re-roll characteristics using species-defined dice,
     # roll caste (1D), apply casting bonus, and apply caste modifiers.
@@ -1428,21 +1445,37 @@ def zhodani_train_talent(character: Character, talent_name: str) -> dict:
     distinguished from gained talents.
     """
     if character.phase != "zhodani_training":
-        raise ValueError("Not in Zhodani training phase")
-    if character.species_id != "zhodani":
-        raise ValueError("Only Zhodani characters undergo psionic training")
+        raise ValueError("Not in psionic training phase")
 
-    zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
-    if zclass == "prole":
-        raise ValueError("Proles do not undergo psionic training")
-
-    # Load talent table from species data
-    species_data = rules.species().get("zhodani", {})
+    # Load talent table from the character's own species (works for Zhodani AND others)
+    sp_id = character.species_id or "zhodani"
+    species_data = rules.species().get(sp_id, {})
     talent_table = species_data.get("psionic_training_table", {})
+
+    # Zhodani-only gate: Proles do not train
+    if sp_id == "zhodani":
+        zclass = _zhodani_class(character.characteristics.get("SOC") or 0)
+        if zclass == "prole":
+            raise ValueError("Proles do not undergo psionic training")
+
     talents_list = talent_table.get("talents", [])
     talent_entry = next((t for t in talents_list if t["name"].lower() == talent_name.lower()), None)
     if talent_entry is None:
         raise ValueError(f"Unknown talent: {talent_name}")
+
+    # Enforce required_next: species may require a specific talent to be attempted first
+    required_next = talent_table.get("required_next")
+    if required_next:
+        req_name = required_next["name"]
+        already_attempted_req = any(
+            t == req_name or t == f"{req_name}/failed"
+            for t in (character.psi_trained_talents or [])
+        )
+        if not already_attempted_req and talent_name.lower() != req_name.lower():
+            raise ValueError(
+                f"Must attempt {req_name} before other talents "
+                f"(species training rule)."
+            )
 
     # Count attempts already made this session (both successes and failures)
     attempts_so_far = sum(
@@ -1458,6 +1491,11 @@ def zhodani_train_talent(character: Character, talent_name: str) -> dict:
     r = dice.roll("2D", modifier=total_dm, target=8)
     succeeded = bool(r.succeeded)
 
+    # required_next talent may be gained at a higher level than 0
+    success_level = 0
+    if succeeded and required_next and talent_name.lower() == required_next["name"].lower():
+        success_level = int(required_next.get("level", 0))
+
     dm_parts = []
     if psi_dm != 0:
         dm_parts.append(f"PSI DM{psi_dm:+d}")
@@ -1468,18 +1506,16 @@ def zhodani_train_talent(character: Character, talent_name: str) -> dict:
     dm_note = f" [{', '.join(dm_parts)}]" if dm_parts else ""
 
     if succeeded:
-        # Add as a skill at level 0 (psionic talents are top-level skills in MgT 2e)
-        character.add_skill(talent_name, level=0)
+        character.add_skill(talent_name, level=success_level)
         character.psi_trained_talents.append(talent_name)
         character.log(
-            f"Zhodani psionic training: {talent_name} — "
-            f"2D{total_dm:+d}=8+ roll: {r.total}{dm_note} — GAINED (level 0)"
+            f"Psionic training: {talent_name} — "
+            f"2D{total_dm:+d}=8+ roll: {r.total}{dm_note} — GAINED (level {success_level})"
         )
     else:
-        # Record the failure so we can show it in the UI
         character.psi_trained_talents.append(f"{talent_name}/failed")
         character.log(
-            f"Zhodani psionic training: {talent_name} — "
+            f"Psionic training: {talent_name} — "
             f"2D{total_dm:+d}=8+ roll: {r.total}{dm_note} — failed"
         )
 
@@ -1487,6 +1523,7 @@ def zhodani_train_talent(character: Character, talent_name: str) -> dict:
         "talent": talent_name,
         "roll": r.to_dict(),
         "succeeded": succeeded,
+        "success_level": success_level,
         "psi_dm": psi_dm,
         "talent_dm": talent_dm,
         "cumulative_dm": cumulative_dm,

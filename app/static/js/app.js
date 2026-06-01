@@ -5241,10 +5241,14 @@ function wireAslanSetupPhase() {
 
 function renderZhodaniTrainingPhase() {
   const sp = SPECIES.find(s => s.id === character.species_id) || {};
+  const isZhodani = character.species_id === 'zhodani';
+  const spName = sp.name || 'Unknown Species';
   const training = sp.psionic_training_table || {};
   const talents = training.talents || [];
+  const autoTalents = training.auto_talents || [];
+  const requiredNext = training.required_next || null; // { name, level }
   const soc = character.characteristics?.SOC ?? 0;
-  const zclass = soc >= 11 ? 'Noble' : 'Intendant';
+  const zclass = isZhodani ? (soc >= 11 ? 'Noble' : 'Intendant') : null;
   const psi = character.psi ?? 0;
   const psiDm = charDM(psi);
 
@@ -5252,53 +5256,79 @@ function renderZhodaniTrainingPhase() {
   const trainedList = character.psi_trained_talents || [];
   const gainedSet = new Set(trainedList.filter(t => !t.endsWith('/failed')));
   const failedSet = new Set(trainedList.filter(t => t.endsWith('/failed')).map(t => t.replace('/failed', '')));
-  const attemptsCount = trainedList.length; // both gains and fails count toward cumulative DM
+  const attemptsCount = trainedList.length;
+
+  // required_next: has it been attempted yet?
+  const reqAttempted = requiredNext
+    ? (gainedSet.has(requiredNext.name) || failedSet.has(requiredNext.name))
+    : true; // no constraint if no required_next
 
   const rows = talents.map(t => {
     const gained = gainedSet.has(t.name);
     const failed = failedSet.has(t.name);
     const attempted = gained || failed;
-    const cumDm = -attemptsCount + (attempted ? 0 : 0); // next check will include current attempt count
-    const nextCumDm = -attemptsCount; // DM for the NEXT attempt (current attempt count before rolling)
+    const nextCumDm = -attemptsCount;
     const totalDm = psiDm + t.dm + nextCumDm;
     const dmLabel = `${totalDm >= 0 ? '+' : ''}${totalDm}`;
     const dmBreak = `PSI DM${psiDm >= 0 ? '+' : ''}${psiDm}, talent DM${t.dm >= 0 ? '+' : ''}${t.dm}, cumulative DM${nextCumDm >= 0 ? '+' : ''}${nextCumDm}`;
     let statusBadge = '';
     if (gained) statusBadge = `<span class="badge badge-success">GAINED</span>`;
     else if (failed) statusBadge = `<span class="badge badge-danger">FAILED</span>`;
+    // Block non-required talents until required_next has been attempted
+    const isReqNext = requiredNext && t.name.toLowerCase() === requiredNext.name.toLowerCase();
+    const blocked = !attempted && requiredNext && !isReqNext && !reqAttempted;
+    const reqNote = isReqNext && !attempted
+      ? `<span class="empty" style="font-size:11px"> (must attempt first)</span>` : '';
+    const successNote = isReqNext && requiredNext?.level > 0
+      ? ` — gains at level ${requiredNext.level} if successful` : '';
 
     return `
-      <tr class="${attempted ? 'attempted' : ''}">
-        <td><strong>${esc(t.name)}</strong></td>
+      <tr class="${attempted ? 'attempted' : blocked ? 'locked' : ''}">
+        <td><strong>${esc(t.name)}</strong>${reqNote}${esc(successNote)}</td>
         <td class="text-center">${t.dm >= 0 ? '+' : ''}${t.dm}</td>
         <td class="text-center" title="${dmBreak}">2D${dmLabel} vs 8+</td>
         <td>${statusBadge}</td>
         <td>
-          ${!attempted
+          ${!attempted && !blocked
             ? `<button class="btn btn-sm primary" data-train-talent="${escapeAttr(t.name)}">ATTEMPT</button>`
+            : blocked ? `<span class="empty" style="font-size:11px">attempt ${esc(requiredNext.name)} first</span>`
             : ''}
         </td>
       </tr>`;
   }).join('');
 
+  // Auto-talents display
+  const autoHTML = autoTalents.length ? `
+    <div class="event-box" style="border-color:var(--success,#7fd87f);margin-bottom:12px">
+      <span class="event-label" style="color:var(--success,#7fd87f)">AUTO-GRANTED</span>
+      ${autoTalents.map(a => `<strong>${esc(a.name)} ${a.level}</strong>`).join(', ')} — automatically granted by species.
+    </div>` : '';
+
   const lastResult = uiState.zhodaniTrainResult || null;
+  const gainedLevel = lastResult?.success_level ?? 0;
   const resultHTML = lastResult ? `
     <div class="roll-result-block">
       <div class="roll-result-label">${esc(lastResult.talent)} — ${lastResult.succeeded ? '✓ Gained!' : '✗ Failed'}</div>
       <div class="roll-result-dice">2D${lastResult.total_dm >= 0 ? '+' : ''}${lastResult.total_dm} = <strong>${lastResult.roll.total}</strong> vs 8+</div>
-      ${lastResult.succeeded ? `<div class="roll-result-note">Added <strong>${esc(lastResult.talent)}</strong> as Psionic (${esc(lastResult.talent)}) 0.</div>` : ''}
+      ${lastResult.succeeded ? `<div class="roll-result-note">Added <strong>${esc(lastResult.talent)}</strong> at level ${gainedLevel}.</div>` : ''}
     </div>` : '';
 
+  const phaseTitle = isZhodani ? `Psionic Talent Training — ${zclass}` : `Psionic Talent Training`;
+  const phaseDesc = isZhodani
+    ? `Zhodani ${zclass}s undergo psionic training before entering careers.
+       For each talent, roll 2D + PSI DM + Talent DM − (checks made so far) vs 8+.
+       On success, you gain the talent at level 0. You may attempt any or all talents in any order.`
+    : `${esc(spName)} characters undergo psionic training before careers.
+       ${requiredNext ? `<strong>${esc(requiredNext.name)}</strong> must be attempted first (gained at level ${requiredNext.level} if successful). ` : ''}
+       Additional talents are gained at level 0 if the check succeeds. You may attempt as many as you wish.`;
+
   return `
-    <div class="panel-header"><span class="led"></span><span>ZHODANI PSIONIC TRAINING</span></div>
+    <div class="panel-header"><span class="led"></span><span>PSIONIC TALENT TRAINING</span></div>
     <div class="stage-content">
       <div class="phase-label">Pre-Career</div>
-      <div class="phase-title">Psionic Talent Training — ${zclass}</div>
-      <p class="phase-body">
-        Zhodani ${zclass}s undergo psionic training before entering careers.
-        For each talent, roll 2D + PSI DM + Talent DM − (checks made so far) vs 8+.
-        On success, you gain the talent at level 0. You may attempt any or all talents in any order.
-      </p>
+      <div class="phase-title">${phaseTitle}</div>
+      <p class="phase-body">${phaseDesc}</p>
+      ${autoHTML}
       <div class="phase-stats-row">
         <span>PSI: <strong>${psi}</strong></span>
         <span>PSI DM: <strong>${psiDm >= 0 ? '+' : ''}${psiDm}</strong></span>
