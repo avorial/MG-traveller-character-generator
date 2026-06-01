@@ -664,11 +664,82 @@ function createRobotFoundryExport(cfg) {
   calc.customOpts.forEach(o=>itemRows.push(rbItem(o.name,`${o.notes||""}. Slots ${o.calcSlots}.`,o.calcCost)));
   calc.weapons.forEach(w=>itemRows.push(rbItem(w.name,`${w.mount} mount. Slots ${w.calcSlots}.`,w.calcCost)));
 
-  const skills=calc.skills.reduce((all,sk)=>{
-    const base=sk.name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,28)||"skill";
-    const id=sk.specialty?`${base}${sk.specialty.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,8)}`:base;
-    return {...all,[id]:{id,value:String(sk.level),trained:true,speciality:sk.specialty||""}};
-  },{});
+  // Build skills in the same nested format the server-side character export uses:
+  //   parent key (e.g. "gunner") → { id, value, trained, specialities: { turret: { id, value } } }
+  // This is what MGT2e Foundry expects — NOT a flat "gunnerturret" key with a speciality string.
+  const _rbSkillIdMap = {
+    'gun combat':'guncombat','guncombat':'guncombat',
+    'gunner':'gunner',
+    'heavy weapons':'heavyweapons','heavyweapons':'heavyweapons',
+    'tactics':'tactics','drive':'drive','electronics':'electronics',
+    'engineer':'engineer','flyer':'flyer','pilot':'pilot',
+    'melee':'melee','athletics':'athletics','recon':'recon',
+    'stealth':'stealth','survival':'survival','medic':'medic',
+    'mechanic':'mechanic','science':'science','navigate':'navigation',
+    'navigation':'navigation','seafarer':'seafarer','language':'language',
+    'profession':'profession','art':'art','animals':'animals',
+    'admin':'admin','advocate':'advocate','astrogation':'astrogation',
+    'broker':'broker','carouse':'carouse','deception':'deception',
+    'diplomat':'diplomat','explosives':'explosives','gambler':'gambler',
+    'investigate':'investigate','jack of all trades':'jackofalltrades',
+    'leadership':'leadership','persuade':'persuade','steward':'steward',
+    'streetwise':'streetwise','vacc suit':'vaccsuit','vaccsuit':'vaccsuit',
+  };
+  const _rbSpecIdMap = {
+    // Gunner
+    'turret':'turret','capital':'capital','ortillery':'ortillery','screen':'screen',
+    // Gun Combat
+    'energy':'energy','slug':'slug','archaic':'archaic',
+    // Heavy Weapons
+    'artillery':'artillery','portable':'portable','vehicle':'vehicle',
+    // Tactics
+    'military':'military','naval':'naval',
+    // Drive
+    'wheel':'wheel','track':'track','walker':'walker','hovercraft':'hovercraft','mole':'mole',
+    // Electronics
+    'comms':'comms','computers':'computers','remote ops':'remoteOps','sensors':'sensors',
+    // Engineer
+    'm-drive':'mDrive','j-drive':'jDrive','life support':'lifeSupport','power':'power',
+    // Flyer
+    'grav':'grav','rotor':'rotor','wing':'wing','airship':'airship','ornithopter':'ornithopter',
+    // Pilot
+    'small craft':'smallCraft','spacecraft':'spacecraft','capital ships':'capitalShips',
+    // Melee
+    'blade':'blade','bludgeon':'bludgeon','unarmed':'unarmed','natural':'natural',
+    // Athletics
+    'strength':'strength','dexterity':'dexterity','endurance':'endurance',
+    // Science
+    'robotics':'robotics','cybernetics':'cybernetics','physics':'physics',
+    'biology':'biology','chemistry':'chemistry','astronomy':'astronomy',
+    'psychology':'psychology','archaeology':'archaeology','planetology':'planetology',
+    // Seafarer
+    'ocean ships':'oceanShips','personal':'personal','sail':'sail','submarine':'submarine',
+    // Language
+    'anglic':'galanglic','galanglic':'galanglic',
+  };
+
+  const _rbSkillWork = {};
+  calc.skills.forEach(sk => {
+    const sid = _rbSkillIdMap[sk.name.toLowerCase()] || sk.name.toLowerCase().replace(/[^a-z0-9]+/g,'');
+    if (!_rbSkillWork[sid]) _rbSkillWork[sid] = { base: 0, specs: {} };
+    if (sk.specialty) {
+      const specId = _rbSpecIdMap[sk.specialty.toLowerCase()] || sk.specialty.toLowerCase().replace(/[^a-z0-9]+/g,'');
+      _rbSkillWork[sid].specs[specId] = sk.level;
+    } else {
+      _rbSkillWork[sid].base = Math.max(_rbSkillWork[sid].base, sk.level);
+    }
+  });
+  const skills = {};
+  Object.entries(_rbSkillWork).forEach(([sid, data]) => {
+    const entry = { id: sid, value: data.base, trained: true };
+    if (Object.keys(data.specs).length) {
+      entry.specialities = {};
+      Object.entries(data.specs).forEach(([spId, spLv]) => {
+        entry.specialities[spId] = { id: spId, value: String(spLv) };
+      });
+    }
+    skills[sid] = entry;
+  });
 
   const charsFull=["STR","DEX","END","INT","EDU","SOC","CHA","TER","PSI","WLT","LCK","MRL","STY","RES","FOL","REP"].reduce((a,k)=>({...a,[k]:{value:chars[k]||0,current:chars[k]||0,show:k in chars,default:false}}),{});
 
