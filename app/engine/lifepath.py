@@ -5705,6 +5705,16 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
         character.log(f"Psionic Community graduate — automatic entry into Psion career.")
         return {"automatic": True, "succeeded": True, "character": character.model_dump()}
 
+    # Careers that require PSI to have been tested: block if PSI is untested or 0.
+    if career.get("qualification_requires_psi_tested") and not character.psi_tested:
+        character.failed_qualifications_this_term += 1
+        character.log("Psion qualification blocked — PSI must be tested first (visit a Psionics Institute).")
+        return {
+            "automatic": False, "succeeded": False, "character": character.model_dump(),
+            "roll": None,
+            "reason": "You must test for psionic potential before entering the Psion career.",
+        }
+
     # Aslan event 2 free-qualify for Outlaw/Wanderer
     if _consume_aslan_outlaw_wanderer_free_qualify(character, career_id):
         character.log(
@@ -6504,6 +6514,38 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         character.ejected_by_event = True
         msgs.append("Career ended — ejected from this career")
 
+    elif etype == "dm_next_advancement":
+        amount = int(effect.get("amount", 0))
+        character.dm_next_advancement += amount
+        msgs.append(f"DM{amount:+d} to next Advancement roll")
+        character.log(f"Mishap/event: dm_next_advancement {amount:+d}")
+
+    elif etype == "good_fortune_benefit_dm":
+        amount = int(effect.get("amount", 1))
+        character.good_fortune_benefit_dm += amount
+        msgs.append(f"DM{amount:+d} token for one Benefit roll")
+        character.log(f"Mishap/event: good_fortune_benefit_dm +{amount}")
+
+    elif etype == "d6_subtable":
+        # Auto-roll 1D and apply matching range effects inline (usable in mishap path too).
+        sub_r = dice.roll("1D")
+        sub = sub_r.total
+        msgs.append(f"1D sub-roll = {sub}")
+        character.log(f"Mishap d6_subtable: 1D={sub}")
+        for rng in effect.get("ranges", []):
+            if rng.get("min", 1) <= sub <= rng.get("max", 6):
+                for sub_eff in rng.get("effects", []):
+                    if sub_eff.get("type") == "injury":
+                        inj = apply_injury(character)
+                        if inj:
+                            msgs.append(f"Injury: {inj.get('description', 'injured')}")
+                    else:
+                        s_msgs, s_pend = _apply_mishap_effect(character, sub_eff, term)
+                        msgs.extend(s_msgs)
+                        if s_pend:
+                            set_pending = True
+                break
+
     elif etype == "dm_qualification_terms_in_career":
         # Officer-caste consideration: DM to next Qualification = terms served in current career
         if term is not None:
@@ -6733,6 +6775,30 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                 if not opts:
                     opts = [{"id": "auto_enemy",
                              "label": "No Allies or Contacts in band — gain Enemy [Corsair Betrayer]"}]
+                pending["options"] = opts
+            # psion_mishap6: pick Ally or Contact → Enemy (with skip if none)
+            elif choice_id == "psion_mishap6":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": str(i),
+                            "label": f"{assoc.kind.capitalize()} → Enemy: {assoc.description or '(unnamed)'}",
+                        })
+                if not opts:
+                    opts = [{"id": "skip", "label": "No Allies or Contacts — gain a generic Enemy [Former Friend]"}]
+                pending["options"] = opts
+            # psion_event3: pick Contact or Ally → Rival (with skip if none)
+            elif choice_id == "psion_event3":
+                opts = []
+                for i, assoc in enumerate(character.associates):
+                    if assoc.kind in ("contact", "ally"):
+                        opts.append({
+                            "id": str(i),
+                            "label": f"{assoc.kind.capitalize()} → Rival: {assoc.description or '(unnamed)'}",
+                        })
+                if not opts:
+                    opts = [{"id": "skip", "label": "No Contacts or Allies — no mechanical effect"}]
                 pending["options"] = opts
             character.pending_career_mishap_choice = pending
             set_pending = True
@@ -9779,6 +9845,137 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 )
                 character.log(f"Merchant mishap 4: not saved, Cr{_debt:,} debt, Cr{_cash_advance:,} cash, Enemy added")
             character.pending_career_mishap_choice = None
+
+        # ── Psion mishap handlers ─────────────────────────────────────────────
+
+        elif choice_id == "psion_mishap4":
+            # Mishap 4: unethical use — accept (enemy + career continues) or refuse (ejected)
+            if selected == "accept":
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Unethical Employer]")
+                )
+                auto_applied.append("Accepted — gained Enemy [Unethical Employer]; career continues (not ejected)")
+                if term is not None:
+                    term.survived = True
+                    term.mishap = None
+                character.log("Psion mishap 4: accepted, Enemy gained, career continues")
+            else:  # refuse
+                auto_applied.append("Refused — left this career")
+                character.log("Psion mishap 4: refused, ejected")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "psion_mishap6":
+            # Mishap 6: a former friend turns enemy — pick Ally or Contact to become Enemy
+            if selected == "skip":
+                # No allies/contacts — just gain an Enemy generically
+                character.associates.append(
+                    Associate(kind="enemy", description="Enemy [Former Friend — Gift Caused Betrayal]")
+                )
+                auto_applied.append("No Allies or Contacts — gained generic Enemy [Former Friend]")
+                character.log("Psion mishap 6: no associates, generic enemy added")
+            else:
+                try:
+                    idx = int(selected)
+                    if 0 <= idx < len(character.associates):
+                        old = character.associates[idx]
+                        old_desc = old.description or f"{old.kind.title()}"
+                        character.associates[idx] = Associate(
+                            kind="enemy",
+                            description=f"Enemy [Former Friend — Gift Caused Betrayal] (was: {old_desc})"
+                        )
+                        auto_applied.append(f"'{old_desc}' ({old.kind}) converted to Enemy")
+                        character.log(f"Psion mishap 6: converted {old.kind} '{old_desc}' to enemy")
+                except (ValueError, IndexError):
+                    pass
+            character.pending_career_mishap_choice = None
+
+        # ── Psion event choice handlers ───────────────────────────────────────
+
+        elif choice_id == "psion_event3":
+            # Event 3: psionic discomfort — pick Contact or Ally to become Rival
+            if selected == "skip":
+                # No eligible associates — just note it
+                auto_applied.append("No Contacts or Allies to convert — no mechanical effect")
+                character.log("Psion event 3: no associates to convert")
+            else:
+                try:
+                    idx = int(selected)
+                    if 0 <= idx < len(character.associates):
+                        old = character.associates[idx]
+                        old_desc = old.description or f"{old.kind.title()}"
+                        character.associates[idx] = Associate(
+                            kind="rival",
+                            description=f"Rival [Psionic Discomfort] (was: {old_desc})"
+                        )
+                        auto_applied.append(f"'{old_desc}' converted to Rival")
+                        character.log(f"Psion event 3: {old.kind} '{old_desc}' → Rival")
+                except (ValueError, IndexError):
+                    pass
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "psion_event5":
+            # Event 5: accept (roll PSI 8+) or refuse
+            if selected == "accept":
+                psi_dm = dice.characteristic_dm(character.psi)
+                r = dice.roll("2D", modifier=psi_dm, target=8)
+                auto_applied.append(f"Accepted — rolled PSI 8+: 2D{psi_dm:+d} = {r.total}")
+                if r.succeeded:
+                    # Chain reward choice
+                    character.pending_career_mishap_choice = {
+                        "type": "pending_choice",
+                        "id": "psion_event5_reward",
+                        "prompt": f"PSI 8+ succeeded (2D{psi_dm:+d}={r.total}). Choose your reward:",
+                        "options": [
+                            {"id": "benefit", "label": "Extra Benefit roll"},
+                            {"id": "soc", "label": "SOC +1"},
+                        ],
+                    }
+                else:
+                    sp_data = rules.species().get(character.species_id or "", {})
+                    soc = character.characteristics.get("SOC")
+                    character.characteristics.set("SOC", max(0, soc - 1))
+                    auto_applied.append(
+                        f"PSI 8+ failed — SOC {soc}→{character.characteristics.get('SOC')} (−1)"
+                    )
+                    character.log(f"Psion event 5: PSI roll failed, SOC {soc}→{character.characteristics.get('SOC')}")
+                    character.pending_career_mishap_choice = None
+            else:  # refuse
+                auto_applied.append("Refused — declined the opportunity")
+                character.log("Psion event 5: refused unethical opportunity")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "psion_event5_reward":
+            # Reward after successful PSI 8+ on event 5
+            if selected == "benefit":
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Chose extra Benefit roll — 1 Benefit roll added")
+                character.log("Psion event 5 reward: extra benefit roll")
+            else:  # soc
+                sp_data = rules.species().get(character.species_id or "", {})
+                soc = character.characteristics.get("SOC")
+                max_soc = _stat_cap(sp_data, "SOC")
+                character.characteristics.set("SOC", min(soc + 1, max_soc))
+                auto_applied.append(f"Chose SOC +1 — SOC {soc}→{character.characteristics.get('SOC')}")
+                character.log(f"Psion event 5 reward: SOC {soc}→{character.characteristics.get('SOC')}")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "psion_event9":
+            # Event 9: Roll EDU 8+ to gain any one skill except JoaT
+            edu_dm = dice.characteristic_dm(character.characteristics.get("EDU"))
+            r = dice.roll("2D", modifier=edu_dm, target=8)
+            auto_applied.append(f"Rolled EDU 8+: 2D{edu_dm:+d} = {r.total}")
+            if r.succeeded:
+                character.pending_career_mishap_choice = {
+                    "type": "free_skill_choice",
+                    "prompt": "EDU 8+ passed — gain any one skill (except Jack-of-all-Trades):",
+                    "exclude": ["Jack-of-all-Trades"],
+                }
+                auto_applied.append("EDU 8+ passed — choose any skill")
+                character.log(f"Psion event 9: EDU roll succeeded ({r.total}), skill choice pending")
+            else:
+                auto_applied.append("EDU 8+ failed — no skill gained")
+                character.log(f"Psion event 9: EDU roll failed ({r.total})")
+                character.pending_career_mishap_choice = None
 
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
@@ -13414,6 +13611,42 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "knight_commander_deed"},
              {"type": "extra_benefit", "amount": 2}],
     },
+
+    # ---- Psion ----
+    "psion": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        # Event 3: Contact or Ally → Rival (interactive choice)
+        3:  [{"type": "pending_choice", "id": "psion_event3",
+              "prompt": "Your psionic abilities make you uncomfortable to be around. "
+                        "Choose a Contact or Ally to become a Rival.",
+              "options": []}],  # populated dynamically
+        # Event 4: skill choice
+        4:  [{"type": "skill_choice",
+              "options": ["Athletics 1", "Stealth 1", "Survival 1", "Art 1"],
+              "prompt": "Gain one of these skills:"}],
+        # Event 5: accept/refuse unethical use (multi-step — first stage sets pending)
+        5:  [{"type": "pending_choice", "id": "psion_event5",
+              "prompt": "You have a chance to use your powers unethically to better your standing. Accept?",
+              "options": [
+                  {"id": "accept", "label": "Accept — roll PSI 8+ for reward (success: extra Benefit or SOC+1; fail: SOC−1)"},
+                  {"id": "refuse", "label": "Refuse — decline the opportunity"},
+              ]}],
+        6:  [{"type": "contact", "desc": "Contact [Unexpected Connection]"}],
+        7:  [],  # Life Event — auto-handled by text parsing
+        # Event 8: PSI +1 (handled via d6_subtable wrapper to avoid text-parser miss)
+        8:  [{"type": "stat", "stat": "PSI", "amount": 1}],
+        # Event 9: Roll EDU 8+ for any skill except JoaT
+        9:  [{"type": "pending_choice", "id": "psion_event9",
+              "prompt": "Advanced training — roll EDU 8+ to gain any one skill except Jack-of-all-Trades:",
+              "options": [{"id": "roll", "label": "Roll EDU 8+"}]}],
+        # Event 10: DM+1 to one Benefit roll
+        10: [{"type": "good_fortune_benefit_dm", "amount": 1}],
+        # Event 11: Ally + DM+4 to next Advancement
+        11: [{"type": "ally", "desc": "Ally [Mentor]"},
+             {"type": "dm_next_advancement", "amount": 4}],
+        # Event 12: auto-promotion (handled by text parser _AUTO_PROMOTE_RE)
+        12: [],
+    },
 }
 
 
@@ -14773,6 +15006,33 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         6: [{"type": "career_continues"},   # identity burned — lose Benefits + SOC, stay
             {"type": "forfeit_benefit"},
             {"type": "stat", "stat": "SOC", "amount": -1}],
+    },
+
+    # ---- Psion ----
+    "psion": {
+        1: [{"type": "injury_severity_choice"}],
+        2: [{"type": "stat", "stat": "PSI", "amount": -1}],
+        # Mishap 3: anti-psi encounter — roll 1D automatically: 1-2 injury, 3-4 SOC-1, 5-6 nothing
+        3: [{"type": "d6_subtable", "ranges": [
+                {"min": 1, "max": 2, "effects": [{"type": "injury"}]},
+                {"min": 3, "max": 4, "effects": [{"type": "stat", "stat": "SOC", "amount": -1}]},
+                {"min": 5, "max": 6, "effects": []},
+            ]}],
+        # Mishap 4: accept (enemy + NOT ejected) or refuse (ejected)
+        4: [{"type": "pending_choice", "id": "psion_mishap4",
+             "prompt": "You are asked to use your psionic powers in an unethical fashion. "
+                       "Accept and you may continue in this career but gain an Enemy. "
+                       "Refuse and you must leave the career.",
+             "options": [
+                 {"id": "accept", "label": "Accept — gain an Enemy but remain in career (not ejected)"},
+                 {"id": "refuse", "label": "Refuse — leave this career"},
+             ]}],
+        5: [],  # Experimented on — narrative only; ejected by normal mishap flow
+        # Mishap 6: a former friend becomes an Enemy (Ally or Contact)
+        6: [{"type": "pending_choice", "id": "psion_mishap6",
+             "prompt": "Your gift causes a former friend to betray you. "
+                       "Choose an Ally or Contact to become an Enemy.",
+             "options": []}],  # populated dynamically from character associates
     },
 }
 

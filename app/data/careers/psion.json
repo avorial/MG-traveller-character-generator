@@ -1,0 +1,151 @@
+{
+  "id": "psion",
+  "name": "Psion",
+  "description": "A career for Travellers who choose to focus on their psionic potential instead of more conventional lifestyles.",
+  "qualification": {
+    "characteristic": "PSI",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "qualification_requires_psi_tested": true,
+  "assignments": {
+    "wild_talent": {
+      "name": "Wild Talent",
+      "description": "You developed your powers without formal training.",
+      "survival": {"characteristic": "SOC", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 8}
+    },
+    "adept": {
+      "name": "Adept",
+      "description": "You are a scholar of the psionic disciplines.",
+      "survival": {"characteristic": "EDU", "target": 4},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    },
+    "psi_warrior": {
+      "name": "Psi-Warrior",
+      "description": "You combine combat training with psionic warfare.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "END", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "EDU +1",
+      "2": "INT +1",
+      "3": "STR +1",
+      "4": "DEX +1",
+      "5": "END +1",
+      "6": "PSI +1"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Telepathy",
+      "2": "Clairvoyance",
+      "3": "Telekinesis",
+      "4": "Awareness",
+      "5": "Teleportation",
+      "6": "Telepathy or Clairvoyance or Telekinesis or Awareness or Teleportation"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "requires_edu": 8,
+      "1": "Language",
+      "2": "Art",
+      "3": "Electronics",
+      "4": "Medic",
+      "5": "Science",
+      "6": "Mechanic"
+    },
+    "wild_talent": {
+      "name": "Wild Talent",
+      "assignment_only": "wild_talent",
+      "1": "Telepathy",
+      "2": "Telekinesis",
+      "3": "Deception",
+      "4": "Stealth",
+      "5": "Streetwise",
+      "6": "Melee or Gun Combat"
+    },
+    "adept": {
+      "name": "Adept",
+      "assignment_only": "adept",
+      "1": "Telepathy",
+      "2": "Clairvoyance",
+      "3": "Awareness",
+      "4": "Medic",
+      "5": "Persuade",
+      "6": "Science"
+    },
+    "psi_warrior": {
+      "name": "Psi-Warrior",
+      "assignment_only": "psi_warrior",
+      "1": "Telepathy",
+      "2": "Awareness",
+      "3": "Teleportation",
+      "4": "Gun Combat",
+      "5": "Vacc Suit",
+      "6": "Recon"
+    }
+  },
+  "ranks": {
+    "wild_talent": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Survivor", "bonus": "Survival 1 or Streetwise 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Witch", "bonus": "Deception 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    },
+    "adept": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Initiate", "bonus": "Science (Psionicology) 1"},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": "Acolyte", "bonus": "Telepathy 1 or Clairvoyance 1 or Telekinesis 1 or Awareness 1 or Teleportation 1"},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": "Master", "bonus": "Telepathy 1 or Clairvoyance 1 or Telekinesis 1 or Awareness 1 or Teleportation 1"}
+    },
+    "psi_warrior": {
+      "0": {"title": "Psi-Soldier", "bonus": null},
+      "1": {"title": null, "bonus": "Gun Combat (any) 1"},
+      "2": {"title": "Knight", "bonus": "Leadership 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": "Master of Wills", "bonus": "Tactics (any) 1"},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as result 2 on the Injury Table). Alternatively, roll twice on the Injury Table and take the lower result.",
+    "2": "You telepathically contact something dangerous. Lose one PSI. You also suffer from persistent and terrifying nightmares.",
+    "3": "An anti-psi cult or gang attempts to expose or attack you. Roll 1D: on a 1–2, you are injured; on a 3–4, lose one SOC; on a 5–6, nothing else happens but you still must leave this career.",
+    "4": "You are asked to use your psionic powers in an unethical fashion. Accept and you may continue in this career but gain an Enemy. Refuse and you must leave the career.",
+    "5": "You are experimented on by a corporation, government or other organisation. You escape but are forced to leave this career.",
+    "6": "Your gift causes a former friend to turn on you and betray you. One Ally or Contact becomes an Enemy."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap Table, but you are not ejected from this career.",
+    "3": "Your psionic abilities make you uncomfortable to be around. One Contact or Ally becomes a Rival.",
+    "4": "Choose one of these skills, reflecting your time spent mastering mind and body. Gain one of Athletics 1, Stealth 1, Survival 1 or Art 1.",
+    "5": "You have a chance to use your powers unethically to better your standing. If you accept, roll PSI 8+. If you succeed, gain an extra Benefit roll or +1 SOC. If you fail, lose one SOC.",
+    "6": "You make an unexpected connection outside your normal circles. Gain a Contact.",
+    "7": "Life Event. Roll on the Life Events Table.",
+    "8": "You achieve a new level of psionic strength. Increase your PSI by +1.",
+    "9": "You are given advanced training in a specialist field. Roll EDU 8+ to gain any one skill except Jack-of-all-Trades.",
+    "10": "You gain potentially useful information using your psychic powers. Gain DM+1 to any one Benefit roll.",
+    "11": "You gain a mentor. Gain an Ally and DM+4 to your next Advancement roll (in any career) thanks to their aid.",
+    "12": "You achieve a new level of discipline in your powers. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Weapon"},
+    "2": {"cash": 2000, "benefit": "2 Ship Shares"},
+    "3": {"cash": 4000, "benefit": "Contact"},
+    "4": {"cash": 4000, "benefit": "TAS Membership"},
+    "5": {"cash": 8000, "benefit": "Contact"},
+    "6": {"cash": 8000, "benefit": "Combat Implant"},
+    "7": {"cash": 16000, "benefit": "10 Ship Shares"}
+  },
+  "complete": true
+}
