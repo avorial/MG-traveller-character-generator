@@ -504,8 +504,15 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
 
     cost = talent.get("cost_cr", 200000)
     pcs = character.pre_career_status or {}
-    if pcs.get("pending_psionic_training"):
+    free_training = bool(pcs.get("pending_psionic_training"))
+    if free_training:
         cost = 0
+        # Each talent may only be attempted ONCE during free training (pass OR fail).
+        if talent_id in character.psi_free_training_attempts:
+            raise ValueError(
+                f"You have already attempted {talent['name']} during your free training. "
+                "Each talent may only be attempted once."
+            )
 
     # Allow purchase even without sufficient credits — shortfall goes to medical debt.
     debt_incurred = 0
@@ -529,12 +536,19 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
         f"[2D{dm:+d}={r.total} vs {target}+, cost {cost_note}]"
     )
 
+    # Record the attempt during free training so it cannot be retried.
+    if free_training:
+        character.psi_free_training_attempts.append(talent_id)
+
     if r.succeeded:
         character.add_skill(talent["skill"], level=0)
         character.psi_trained_talents.append(talent_id)
         log_msg += f": PASSED. Gained {talent['skill']} 0."
     else:
-        log_msg += ": FAILED. Credits spent anyway (training is expensive)."
+        if free_training:
+            log_msg += ": FAILED. This talent cannot be attempted again during free training."
+        else:
+            log_msg += ": FAILED. Credits spent anyway (training is expensive)."
 
     character.log(log_msg)
     return {
@@ -546,6 +560,8 @@ def train_psionic_talent(character: "Character", talent_id: str) -> dict:
         "debt_incurred": debt_incurred,
         "credits_remaining": character.credits,
         "medical_debt": character.medical_debt,
+        "free_training": free_training,
+        "free_training_attempts": list(character.psi_free_training_attempts),
         "character": character.model_dump(),
     }
 
@@ -2709,6 +2725,9 @@ def pre_career_graduate(
         outcome = "honours" if is_honours else "pass"
         # Enrollment pool for this character (used by "from_enrollment" pick types)
         enroll_pool = list(status.get("enrollment_skill_pool", []))
+        # Psionic talent upgrade pick rounds (built in the psionic block, queued below)
+        psi_upgrade_round: Optional[dict] = None
+        psi_to2_round: Optional[dict] = None
 
         # ── Standard stat bumps ──────────────────────────────────────────────────
         for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
@@ -2801,34 +2820,58 @@ def pre_career_graduate(
         psionics_data = rules.psionics()
         psi_talents_map = psionics_data.get("talents", {})
 
-        if block.get("psionic_talent_upgrade") and character.psi_trained_talents:
-            # Raise first trained talent's skill by 1 level
-            tid = character.psi_trained_talents[0]
-            talent_info = psi_talents_map.get(tid, {})
-            skill_name = talent_info.get("skill", "")
-            if skill_name:
-                for sk in character.skills:
-                    if sk.name == skill_name:
-                        sk.level = min(sk.level + 1, 4)
-                        break
-                applied_note.append(f"Raised {skill_name} (psionic talent) to higher level")
+        def _resolve_talent_skill(entry: str) -> str:
+            """Resolve a psi_trained_talents entry to its skill name.
 
+            Entries may be a lowercase talent id ('teleportation', from the
+            Psionic Community free training) OR a capitalised talent name
+            ('Teleportation', from species childhood training). May carry a
+            '/failed' suffix from zhodani-style training — strip it.
+            """
+            e = entry.replace("/failed", "").strip()
+            # Lowercase id lookup
+            info = psi_talents_map.get(e.lower())
+            if info and info.get("skill"):
+                return info["skill"]
+            # Match by capitalised name
+            for t in psi_talents_map.values():
+                if t.get("name", "").lower() == e.lower() or t.get("skill", "").lower() == e.lower():
+                    return t["skill"]
+            return e  # assume it's already a skill name
+
+        # Resolve all *successfully* trained talents (exclude '/failed' markers) to skills.
+        _trained_skills: list[str] = []
+        for entry in (character.psi_trained_talents or []):
+            if entry.endswith("/failed"):
+                continue
+            sk_name = _resolve_talent_skill(entry)
+            if sk_name and sk_name not in _trained_skills:
+                _trained_skills.append(sk_name)
+
+        # psionic_talent_upgrade: player CHOOSES which trained talent rises to level 1.
+        # Build a pick round (resolved later with the other graduation picks).
+        if block.get("psionic_talent_upgrade") and _trained_skills:
+            psi_upgrade_round = {
+                "count": 1, "level": 1, "pool": list(_trained_skills),
+                "label": "Raise one psionic talent to level 1",
+            }
+
+        # psionic_all_talents_to_1: raise every trained talent to at least level 1 (no choice).
         if block.get("psionic_all_talents_to_1"):
-            for tid in character.psi_trained_talents:
-                talent_info = psi_talents_map.get(tid, {})
-                skill_name = talent_info.get("skill", "")
-                if skill_name:
-                    for sk in character.skills:
-                        if sk.name == skill_name:
-                            sk.level = max(sk.level, 1)
-                            break
-            applied_note.append("All trained psionic talents raised to level 1")
+            for sk_name in _trained_skills:
+                for sk in character.skills:
+                    if sk.name == sk_name:
+                        sk.level = max(sk.level, 1)
+                        break
+            if _trained_skills:
+                applied_note.append("All trained psionic talents raised to level 1")
 
-        if block.get("psionic_one_talent_to_2") and character.psi_trained_talents:
-            # Flag: player should choose which talent to raise to 2 manually
-            applied_note.append(
-                "Raise one trained psionic talent to level 2 (use Psionics panel)"
-            )
+        # psionic_one_talent_to_2: player CHOOSES which trained talent rises to level 2.
+        if block.get("psionic_one_talent_to_2") and _trained_skills:
+            psi_to2_round = {
+                "count": 1, "level": 2, "pool": list(_trained_skills),
+                "label": "Raise one psionic talent to level 2",
+            }
 
         # ── Academy commission handling ───────────────────────────────────────────
         if track == "military_academy":
@@ -2900,6 +2943,14 @@ def pre_career_graduate(
             fe0_pool = list(enroll_pool) if enroll_pool else list(skill_pool)
             all_rounds.append({"count": from_enroll_0, "level": 0, "pool": fe0_pool,
                                 "label": "Pick enrollment skill at level 0"})
+
+        # Psionic talent picks go FIRST (highest level): level 2 before level 1.
+        if psi_to2_round:
+            all_rounds.insert(0, psi_to2_round)
+        if psi_upgrade_round:
+            # Insert after the level-2 round (if any) but before normal skill picks.
+            insert_at = 1 if psi_to2_round else 0
+            all_rounds.insert(insert_at, psi_upgrade_round)
 
         # Assign first round to skill_pool/picks_remaining, queue the rest
         if all_rounds:

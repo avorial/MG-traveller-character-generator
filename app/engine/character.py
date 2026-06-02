@@ -348,6 +348,10 @@ class Character(BaseModel):
     psi: int = 0
     psi_tested: bool = False
     psi_trained_talents: list[str] = Field(default_factory=list)
+    # Talents already attempted during the Psionic Community free pre-career training.
+    # Each talent may only be attempted ONCE while free training is active —
+    # records both successes and failures so the button can't be re-mashed.
+    psi_free_training_attempts: list[str] = Field(default_factory=list)
 
     # Skills this species can never gain (e.g. Broker, Gambler for Dolphins/Orca).
     # Populated from species JSON "forbidden_skills" field when species is applied.

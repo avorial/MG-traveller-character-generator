@@ -3786,7 +3786,7 @@ function renderPreCareerPhase() {
     const pickLevel = status.skill_pick_level ?? 1;
     const pickStage = status.skill_pick_stage ?? 'graduation';
     const stageLabel = pickStage === 'enrollment' ? 'Enrollment Skills' : 'Graduation Skills';
-    const levelLabel = pickLevel === 0 ? 'level 0 (your majors — you can raise them later)' : 'level 1';
+    const levelLabel = pickLevel === 0 ? 'level 0 (your majors — you can raise them later)' : `level ${pickLevel}`;
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
     const awaitingSpec = uiState.pcSkillSpecialtyPick; // skill name pending specialty
     const picker = pool.map(s => {
@@ -4156,17 +4156,24 @@ function renderPreCareerPhase() {
 
     if (track === 'psionic_community' && status.pending_psionic_training) {
       const trainedTalents = character.psi_trained_talents || [];
+      const attemptedTalents = character.psi_free_training_attempts || [];
       const talentsHTML = ['telepathy','clairvoyance','telekinesis','awareness','teleportation'].map(id => {
         const trained = trainedTalents.includes(id);
+        // Each talent may only be attempted ONCE during free training (pass or fail).
+        const attempted = attemptedTalents.includes(id);
+        const failed = attempted && !trained;
         const label = id.charAt(0).toUpperCase() + id.slice(1);
-        return `<button class="btn ${trained ? 'ghost' : ''}" data-pc-psi-talent="${id}" ${trained ? 'disabled' : ''}>${trained ? '✓ ' : ''}${label}${trained ? '' : ' — free'}</button>`;
+        let mark = '', suffix = ' — free';
+        if (trained) { mark = '✓ '; suffix = ''; }
+        else if (failed) { mark = '✗ '; suffix = ' — failed'; }
+        return `<button class="btn ${attempted ? 'ghost' : ''}" data-pc-psi-talent="${id}" ${attempted ? 'disabled' : ''}>${mark}${label}${suffix}</button>`;
       }).join('');
       return `
         <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
         <div class="stage-content">
           <div class="phase-label">Enrolled · ${trackName}</div>
           <h2 class="phase-title">Psionic Training</h2>
-          <p class="phase-body">Your community will train you at no cost. Train one or more talents, then graduate.</p>
+          <p class="phase-body">Your community will train you at no cost. Each talent may be attempted <strong>once</strong> — a failed attempt cannot be retried. Train your talents, then graduate.</p>
           <div class="psi-talents">${talentsHTML}</div>
           <div class="phase-actions" style="margin-top:1rem">
             <button class="btn primary" id="btn-pc-graduate">ROLL GRADUATION</button>
