@@ -329,11 +329,12 @@ def _zhodani_class(soc: int) -> str:
 
 
 def _char_dm(character: "Character", char_key: str) -> int:
-    """Return the DM for a characteristic, including REP, PSI, and RES.
+    """Return the DM for a characteristic, including REP, PSI, RES, TER, and FOL.
 
     REP is stored on character.reputation.
     PSI is stored on character.psi.
     RES (Hiver Resolve) is an alias for SOC (stored in characteristics.SOC).
+    TER/FOL are stored in extra_characteristics.
     All others use the standard Characteristics object.  Unknown keys return DM 0.
     """
     k = char_key.upper()
@@ -343,6 +344,8 @@ def _char_dm(character: "Character", char_key: str) -> int:
         return dice.characteristic_dm(character.psi)
     if k == "RES":
         return dice.characteristic_dm(character.characteristics.SOC)
+    if k in ("TER", "FOL"):
+        return dice.characteristic_dm(character.extra_characteristics.get(k, 0))
     val = character.characteristics.get(k)
     return dice.characteristic_dm(val) if val is not None else 0
 
@@ -6024,6 +6027,13 @@ def start_term(
            if commissioned_start else "")
     )
 
+    # Initialize career-specific extra characteristics (e.g. Truther's FOL starts at 0)
+    if first_term_in_this_career:
+        for ec_key, ec_val in career.get("extra_characteristic_start", {}).items():
+            if ec_key not in character.extra_characteristics:
+                character.extra_characteristics[ec_key] = int(ec_val)
+                character.log(f"  Career entry: {ec_key} initialized to {ec_val}")
+
     # Apply rank-0 bonus (e.g. Army Private gets Gun Combat 1).
     rank0_data = _rank_data(career, assignment_id, 0)
     if rank0_data and rank0_data.get("bonus") and first_term_in_this_career and not commissioned_start:
@@ -6084,6 +6094,9 @@ def start_term(
         if career.get("basic_training_from_specialist"):
             _asgn_table_key = f"{assignment_id}_skills"
             service_table = career.get("skill_tables", {}).get(_asgn_table_key, {})
+            if not service_table:
+                # Try without _skills suffix (Believer-style assignment tables)
+                service_table = career.get("skill_tables", {}).get(assignment_id, {})
             if not service_table:
                 # Fall back to service_skills if specialist table not found
                 service_table = career.get("skill_tables", {}).get("service_skills", {})
@@ -6517,6 +6530,12 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             character.extra_characteristics["TER"] = new_val
             msgs.append(f"TER {old}→{new_val} ({amount:+d})")
             character.log(f"Mishap/event: TER {amount:+d}")
+        elif stat == "FOL":
+            old = character.extra_characteristics.get("FOL", 0)
+            new_val = max(0, old + amount)
+            character.extra_characteristics["FOL"] = new_val
+            msgs.append(f"FOL {old}→{new_val} ({amount:+d})")
+            character.log(f"Mishap/event: FOL {amount:+d}")
         elif stat == "PSI":
             old = character.psi
             character.psi = max(0, old + amount)
@@ -6646,6 +6665,25 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append("This term's benefit roll forfeited")
         character.log("Mishap: benefit roll forfeited")
 
+    elif etype == "forfeit_all_benefits":
+        # Lose ALL pending benefit rolls (Truther/Believer mishap 5)
+        lost = character.pending_benefit_rolls
+        character.pending_benefit_rolls = 0
+        msgs.append(f"Lost all {lost} pending benefit roll(s) for this career")
+        character.log(f"Mishap: forfeit_all_benefits — lost {lost} pending rolls")
+
+    elif etype == "permanent_advancement_dm":
+        amount = int(effect.get("amount", 0))
+        character.permanent_advancement_dm += amount
+        msgs.append(f"Permanent advancement DM {amount:+d} (cumulative: {character.permanent_advancement_dm:+d})")
+        character.log(f"Event: permanent_advancement_dm {amount:+d}")
+
+    elif etype == "permanent_benefit_dm":
+        amount = int(effect.get("amount", 0))
+        character.permanent_benefit_dm += amount
+        msgs.append(f"Permanent benefit DM {amount:+d} (cumulative: {character.permanent_benefit_dm:+d})")
+        character.log(f"Event: permanent_benefit_dm {amount:+d}")
+
     elif etype == "extra_benefit":
         n = effect.get("amount", 1)
         character.pending_benefit_rolls += n
@@ -6695,6 +6733,12 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             character.extra_characteristics["TER"] = new_val
             msgs.append(f"TER {old}→{new_val} ({amount:+d}, rolled {r_d.total})")
             character.log(f"Mishap d_stat TER {amount:+d} ({dice_expr}={r_d.total})")
+        elif stat == "FOL":
+            old = character.extra_characteristics.get("FOL", 0)
+            new_val = max(0, old + amount)
+            character.extra_characteristics["FOL"] = new_val
+            msgs.append(f"FOL {old}→{new_val} ({amount:+d}, rolled {r_d.total})")
+            character.log(f"Mishap d_stat FOL {amount:+d} ({dice_expr}={r_d.total})")
         else:
             old = character.characteristics.get(stat)
             if old is not None:
@@ -10028,6 +10072,152 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.log(f"Psion event 9: EDU roll failed ({r.total})")
                 character.pending_career_mishap_choice = None
 
+        elif choice_id == "believer_mishap4":
+            # Lose 1 level in Profession (Religion) or Science (Belief)
+            if selected == "profession":
+                skill_name, spec = "Profession", "Religion"
+            else:
+                skill_name, spec = "Science", "Belief"
+            for sk in character.skills:
+                if sk.name == skill_name and (sk.speciality or "").lower() == spec.lower():
+                    if sk.level > 0:
+                        sk.level -= 1
+                        auto_applied.append(f"{skill_name} ({spec}) reduced to {sk.level}")
+                    else:
+                        auto_applied.append(f"{skill_name} ({spec}) already at 0 — no further reduction")
+                    break
+            else:
+                auto_applied.append(f"{skill_name} ({spec}) not found — no reduction possible")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "truther_event3":
+            if selected == "agree":
+                character.pending_benefit_rolls += 1
+                auto_applied.append("Agreed — gained 1 extra Benefit roll")
+                # Gain 1 level in any Science skill (pending choice)
+                sci_specs = rules.skill_specialities().get("Science", [])
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": [f"Science ({s})" for s in sci_specs] + ["Science"],
+                    "prompt": "Gain one level in any Science skill:",
+                }
+                # D3 Enemies
+                enemy_count = dice.roll("D3").total
+                for _ in range(enemy_count):
+                    character.associates.append(Associate(kind="enemy", description="Enemy [Knowledge Exploitation]"))
+                auto_applied.append(f"Gained {enemy_count} Enemies")
+                character.log(f"Truther event 3: agreed, +1 benefit, Science skill pending, {enemy_count} enemies")
+            else:
+                auto_applied.append("Declined — no effect")
+                character.log("Truther event 3: declined")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "truther_event5":
+            # Choose an Electronics or Science specialty not already possessed
+            existing = {(s.name, s.speciality) for s in character.skills}
+            el_specs = rules.skill_specialities().get("Electronics", [])
+            sci_specs = rules.skill_specialities().get("Science", [])
+            options = []
+            for sp in el_specs:
+                if ("Electronics", sp) not in existing:
+                    options.append(f"Electronics ({sp})")
+            for sp in sci_specs:
+                if ("Science", sp) not in existing:
+                    options.append(f"Science ({sp})")
+            if not options:
+                options = ["Electronics (any)", "Science (any)"]  # fallback
+            character.pending_career_mishap_choice = {
+                "type": "skill_choice",
+                "options": options,
+                "prompt": "Choose an Electronics or Science skill you don't already possess (gain at level 1):",
+            }
+            auto_applied.append("Choose a new Electronics or Science skill")
+            character.log("Truther event 5: skill choice pending (new Electronics/Science)")
+
+        elif choice_id == "truther_event9":
+            d3_enemies = dice.roll("D3").total
+            if selected == "exploit_fol":
+                fol_gain = dice.roll("D3").total
+                character.extra_characteristics["FOL"] = character.extra_characteristics.get("FOL", 0) + fol_gain
+                auto_applied.append(f"FOL +{fol_gain} (now {character.extra_characteristics['FOL']})")
+                for _ in range(d3_enemies):
+                    character.associates.append(Associate(kind="enemy", description="Enemy [Exploited Opportunity]"))
+                auto_applied.append(f"Gained {d3_enemies} Enemies (exploitation)")
+                character.log(f"Truther event 9: exploit FOL +{fol_gain}, {d3_enemies} enemies")
+            elif selected == "exploit_soc":
+                sp_data = rules.species().get(character.species_id or "", {})
+                soc = character.characteristics.get("SOC")
+                max_soc = _stat_cap(sp_data, "SOC")
+                character.characteristics.set("SOC", min(soc + 1, max_soc))
+                auto_applied.append(f"SOC {soc}→{character.characteristics.get('SOC')} (+1)")
+                for _ in range(d3_enemies):
+                    character.associates.append(Associate(kind="enemy", description="Enemy [Exploited Opportunity]"))
+                auto_applied.append(f"Gained {d3_enemies} Enemies (exploitation)")
+                character.log(f"Truther event 9: exploit SOC +1, {d3_enemies} enemies")
+            elif selected == "exploit_skill":
+                sci_specs = rules.skill_specialities().get("Science", [])
+                el_specs = rules.skill_specialities().get("Electronics", [])
+                options = [f"Science ({s})" for s in sci_specs] + [f"Electronics ({s})" for s in el_specs] + ["Medic"]
+                character.pending_career_mishap_choice = {
+                    "type": "skill_choice",
+                    "options": options,
+                    "prompt": "Choose Science/Medic/Electronics specialty to gain 2 levels in:",
+                }
+                for _ in range(d3_enemies):
+                    character.associates.append(Associate(kind="enemy", description="Enemy [Exploited Opportunity]"))
+                auto_applied.append(f"Gained {d3_enemies} Enemies; choose skill for +2 levels")
+                character.log(f"Truther event 9: exploit skill, {d3_enemies} enemies, skill choice pending")
+            else:  # decline
+                character.associates.append(Associate(kind="ally", description="Ally [Declined Exploitation]"))
+                auto_applied.append("Declined — gained Ally")
+                character.log("Truther event 9: declined, ally gained")
+                character.pending_career_mishap_choice = None
+
+        elif choice_id == "believer_event6":
+            # SOC -D3, D3 benefit rolls, permanent DM+1 benefits
+            soc_loss = dice.roll("D3").total
+            soc_old = character.characteristics.get("SOC")
+            character.characteristics.set("SOC", max(0, soc_old - soc_loss))
+            auto_applied.append(f"SOC {soc_old}→{character.characteristics.get('SOC')} (−{soc_loss})")
+            benefit_gain = dice.roll("D3").total
+            character.pending_benefit_rolls += benefit_gain
+            auto_applied.append(f"Gained {benefit_gain} Benefit roll(s)")
+            character.permanent_benefit_dm += 1
+            auto_applied.append("Permanent DM+1 on all future Benefit rolls")
+            character.log(f"Believer event 6: SOC -{soc_loss}, +{benefit_gain} benefits, permanent benefit DM+1")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "believer_event9":
+            if selected == "betray":
+                # Leave career + lose all benefits + Cr2D×10000 per benefit roll lost
+                lost_rolls = character.pending_benefit_rolls
+                character.pending_benefit_rolls = 0
+                cash_gain = sum(dice.roll("2D").total * 10000 for _ in range(max(1, lost_rolls)))
+                character.credits += cash_gain
+                character.force_career_end = True
+                character.ejected_by_event = True
+                auto_applied.append(f"Betrayed faith — left career, lost {lost_rolls} benefit roll(s), gained Cr{cash_gain:,}")
+                character.log(f"Believer event 9: betrayed, lost {lost_rolls} benefits, gained Cr{cash_gain:,}, ejected")
+            else:  # loyal
+                enemy_count = dice.roll("1D").total
+                for _ in range(enemy_count):
+                    character.associates.append(Associate(kind="enemy", description="Enemy [Temptation Refused]"))
+                auto_applied.append(f"Stayed loyal — gained {enemy_count} Enemies")
+                character.log(f"Believer event 9: stayed loyal, {enemy_count} enemies")
+            character.pending_career_mishap_choice = None
+
+        elif choice_id == "believer_event10":
+            if selected == "agree":
+                character.associates.append(Associate(kind="ally", description="Ally [Noble's Household — secret rites]"))
+                auto_applied.append("Agreed — gained Ally [Noble's Household]")
+                character.associates.append(Associate(kind="rival", description="Rival [Own Faith — disapproves]"))
+                auto_applied.append("Gained Rival [Own Faith — disapproves]")
+                character.log("Believer event 10: agreed, ally + rival")
+            else:
+                auto_applied.append("Refused — no effect")
+                character.log("Believer event 10: refused")
+            character.pending_career_mishap_choice = None
+
         else:
             raise ValueError(f"Unknown pending_choice id: '{choice_id}'")
 
@@ -10479,8 +10669,14 @@ def advancement_roll(character: Character) -> dict:
         cover_note = f" [Cover: {cover_career.get('name', term.cover_career_id)}, DM+1]"
     else:
         assignment = career["assignments"][term.assignment_id]
-        adv = assignment["advancement"]
+        adv = assignment.get("advancement")
         cover_dm = 0
+        if adv is None:
+            return {
+                "no_advancement": True,
+                "note": f"{career.get('name', 'This career')} has no advancement roll.",
+                "character": character.model_dump(),
+            }
 
     char_key = adv["characteristic"]
     target = adv["target"]
@@ -10564,6 +10760,9 @@ def advancement_roll(character: Character) -> dict:
     pending = character.dm_next_advancement
     character.dm_next_advancement = 0
     # dm_permanent_advancement is intentionally NOT zeroed — it applies every roll
+
+    dm += character.permanent_advancement_dm
+    # permanent_advancement_dm is intentionally NOT zeroed — it applies every roll
 
     # SolSec Monitor: DM+1 to advancement in any career except Drifter
     monitor_dm = 0
@@ -13729,6 +13928,65 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         # Event 12: auto-promotion (handled by text parser _AUTO_PROMOTE_RE)
         12: [],
     },
+    "truther": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "pending_choice", "id": "truther_event3",
+              "prompt": "A body wants to use your knowledge questionably. Agree (extra Benefit + any Science + D3 Enemies) or decline?",
+              "options": [
+                  {"id": "agree",   "label": "Agree — extra Benefit roll, +1 any Science skill, D3 Enemies"},
+                  {"id": "decline", "label": "Decline — no effect"},
+              ]}],
+        4:  [{"type": "contact", "desc": "Contact [Secret Research Project]"},
+             {"type": "good_fortune_benefit_dm", "amount": 1}],
+        5:  [{"type": "pending_choice", "id": "truther_event5",
+              "prompt": "Crash course — gain 1 level in an Electronics or Science skill you don't already have:",
+              "options": [{"id": "pick", "label": "Choose Electronics or Science specialty you don't possess"}]}],
+        6:  [{"type": "skill_choice", "options": ["Survival", "Recon"]}],
+        7:  [],
+        8:  [{"type": "skill_choice", "options": ["Carouse", "Persuade"]},
+             {"type": "stat", "stat": "FOL", "amount": 1}],
+        9:  [{"type": "pending_choice", "id": "truther_event9",
+              "prompt": "Golden opportunity — exploit it (FOL+D3 OR SOC+1 OR 2 skill levels + D3 Enemies) or decline (Ally)?",
+              "options": [
+                  {"id": "exploit_fol",   "label": "Exploit: FOL +D3 + D3 Enemies"},
+                  {"id": "exploit_soc",   "label": "Exploit: SOC +1 + D3 Enemies"},
+                  {"id": "exploit_skill", "label": "Exploit: choose Science/Medic/Electronics +2 levels + D3 Enemies"},
+                  {"id": "decline",       "label": "Decline: gain an Ally"},
+              ]}],
+        10: [{"type": "skill_choice", "options": ["Streetwise", "Recon", "Carouse"]},
+             {"type": "d_associates", "kind": "contact", "dice": "D3",
+              "desc_prefix": "Contact [Mysterious Group]"}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "rival", "desc": "Rival [Public Disagreement]"}],
+        12: [{"type": "d_stat", "stat": "FOL", "dice": "D3", "negative": False}],
+    },
+    "believer": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "ally", "desc": "Ally [Community]"}],
+        4:  [{"type": "contact", "desc": "Contact [Academic]"}],
+        5:  [{"type": "skill_choice", "options": ["Streetwise", "Persuade"]}],
+        6:  [{"type": "pending_choice", "id": "believer_event6",
+              "prompt": "Retreat from worldly concerns — lose SOC D3, gain D3 Benefit rolls and permanent DM+1 on all future Benefit rolls.",
+              "options": [{"id": "retreat", "label": "Accept — SOC −D3, gain D3 Benefit rolls + permanent DM+1 benefits"}]}],
+        7:  [],
+        8:  [{"type": "skill_choice", "options": ["Carouse", "Persuade"]}],
+        9:  [{"type": "pending_choice", "id": "believer_event9",
+              "prompt": "Offered inducements to betray your faith. Betray (leave + lose all benefits + Cr2D×10,000 per benefit) or stay loyal (1D Enemies)?",
+              "options": [
+                  {"id": "betray", "label": "Betray — leave career, lose all benefits, gain cash"},
+                  {"id": "loyal",  "label": "Stay loyal — gain 1D Enemies"},
+              ]}],
+        10: [{"type": "pending_choice", "id": "believer_event10",
+              "prompt": "Secretly provide rites for a dying noble not of your faith. Agree (Ally in their household + Rival in your own faith) or refuse?",
+              "options": [
+                  {"id": "agree",  "label": "Agree — Ally [Noble's Household] + Rival [Own Faith Dissenter]"},
+                  {"id": "refuse", "label": "Refuse — no effect"},
+              ]}],
+        11: [{"type": "permanent_advancement_dm", "amount": -2}],
+        12: [{"type": "auto_advance"},
+             {"type": "permanent_advancement_dm", "amount": 1}],
+    },
 }
 
 
@@ -15116,6 +15374,38 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                        "Choose an Ally or Contact to become an Enemy.",
              "options": []}],  # populated dynamically from character associates
     },
+    "truther": {
+        1: [{"type": "injury"}],
+        2: [{"type": "enemy", "desc": "Enemy [Offended by Truth]"}],
+        3: [{"type": "stat", "stat": "SOC", "amount": -2},
+            {"type": "d_stat", "stat": "FOL", "dice": "D3", "negative": True},
+            {"type": "career_continues"}],
+        4: [{"type": "skill_loss_choice",
+             "prompt": "Lose 1 skill level from any Science skill you possess:"},
+            {"type": "career_continues"}],
+        5: [{"type": "forfeit_all_benefits"},
+            {"type": "career_continues"}],
+        6: [{"type": "d_associates", "kind": "rival", "dice": "D3",
+             "desc_prefix": "Rival [Alienated by Truthing]"}],
+    },
+    "believer": {
+        1: [{"type": "injury"}],
+        2: [{"type": "enemy", "desc": "Enemy [Offended by Belief]"}],
+        3: [{"type": "rank_loss", "amount": 1},
+            {"type": "forfeit_benefit"},
+            {"type": "career_continues"}],
+        4: [{"type": "pending_choice", "id": "believer_mishap4",
+             "prompt": "Lose 1 skill level from Profession (Religion) or Science (Belief) — choose:",
+             "options": [
+                 {"id": "profession", "label": "Profession (Religion) — lose 1 level"},
+                 {"id": "science",    "label": "Science (Belief) — lose 1 level"},
+             ]},
+            {"type": "career_continues"}],
+        5: [{"type": "forfeit_all_benefits"},
+            {"type": "career_continues"}],
+        6: [{"type": "d_associates", "kind": "rival", "dice": "D3",
+             "desc_prefix": "Rival [Splinter Group]"}],
+    },
 }
 
 
@@ -15870,6 +16160,18 @@ def muster_out_roll(
     pending_dm = character.dm_next_benefit
     character.dm_next_benefit = 0
 
+    # Permanent benefit DM (e.g. Believer event 6)
+    if character.permanent_benefit_dm:
+        dm += character.permanent_benefit_dm
+    # Career benefit roll DM condition (e.g. Truther FOL 10+ → DM+1)
+    _fol_dm_cond = career.get("benefit_roll_dm_condition", {})
+    if _fol_dm_cond:
+        _cond_stat = _fol_dm_cond.get("stat", "")
+        _cond_thresh = int(_fol_dm_cond.get("threshold", 999))
+        _cond_dm = int(_fol_dm_cond.get("dm", 0))
+        if _cond_stat and _get_stat(character, _cond_stat) >= _cond_thresh:
+            dm += _cond_dm
+
     # Good Fortune token (Life Event 10) — voluntary DM+2 on benefit rolls.
     good_fortune_used = False
     if use_good_fortune and character.good_fortune_benefit_dm > 0:
@@ -16027,6 +16329,42 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
     if re.match(r"^1\s+Clan\s+Share$", b, re.IGNORECASE):
         character.clan_shares += 1
         character.log(f"Muster benefit: 1 Clan Share (total {character.clan_shares}).")
+        return
+
+    # FOL benefits (Truther)
+    if b.lower() == "minor following":
+        fol_gain = dice.roll("D3").total
+        character.extra_characteristics["FOL"] = character.extra_characteristics.get("FOL", 0) + fol_gain
+        character.associates.append(Associate(kind="contact", description="Contact [Minor Following]"))
+        character.log(f"Muster benefit: Minor Following — Contact + FOL +{fol_gain} (now {character.extra_characteristics['FOL']}).")
+        return
+    if b.lower() == "major following":
+        fol_gain = dice.roll("1D").total + 1
+        character.extra_characteristics["FOL"] = character.extra_characteristics.get("FOL", 0) + fol_gain
+        character.associates.append(Associate(kind="ally", description="Ally [Major Following]"))
+        character.log(f"Muster benefit: Major Following — Ally + FOL +{fol_gain} (now {character.extra_characteristics['FOL']}).")
+        return
+    if b.lower() == "patronage":
+        character.equipment.append(Equipment(name="Patronage", notes="Cr10,000/year stipend from patron"))
+        character.associates.append(Associate(kind="contact", description="Contact [Patron]"))
+        character.log("Muster benefit: Patronage — Patron Contact + Cr10,000/year stipend.")
+        return
+    # "A prominent statue and SOC +1"
+    if "prominent statue" in b.lower():
+        species_data = rules.species().get(character.species_id, {})
+        max_stat = _stat_cap(species_data, "SOC")
+        current = character.characteristics.get("SOC")
+        character.characteristics.set("SOC", min(current + 1, max_stat))
+        character.equipment.append(Equipment(name="Prominent Statue", notes="Public statue — social recognition"))
+        character.log(f"Muster benefit: Prominent Statue + SOC +1 (now {character.characteristics.get('SOC')}).")
+        return
+    if b.lower() == "sainthood candidacy":
+        character.equipment.append(Equipment(name="Sainthood Candidacy", notes="Recognized as a sainthood candidate — DM+2 on interactions with members of same belief system"))
+        character.log("Muster benefit: Sainthood Candidacy.")
+        return
+    # "The knowledge that your soul is saved" / "You will be rewarded in the next life" — narrative only
+    if "soul is saved" in b.lower() or "next life" in b.lower():
+        character.notes.append(f"Muster benefit: {b} (narrative benefit)")
         return
 
     # Hiver RES +1 = SOC +1 (Resolve is displayed as RES but stored as SOC)
@@ -16603,7 +16941,7 @@ def _rank_data(career: dict, assignment_id: str, rank: int,
 
 
 def _get_stat(character: "Character", stat: str) -> int:
-    """Get a characteristic value by name, handling PSI, RES, and TER."""
+    """Get a characteristic value by name, handling PSI, RES, TER, and FOL."""
     k = stat.upper()
     if k == "PSI":
         return character.psi
@@ -16611,11 +16949,13 @@ def _get_stat(character: "Character", stat: str) -> int:
         return character.characteristics.SOC
     if k == "TER":
         return character.extra_characteristics.get("TER", 0)
+    if k == "FOL":
+        return character.extra_characteristics.get("FOL", 0)
     return character.characteristics.get(k) or 0
 
 
 def _set_stat(character: "Character", stat: str, value: int) -> None:
-    """Set a characteristic value by name, handling PSI, RES, and TER."""
+    """Set a characteristic value by name, handling PSI, RES, TER, and FOL."""
     k = stat.upper()
     if k == "PSI":
         character.psi = max(0, value)
@@ -16625,6 +16965,9 @@ def _set_stat(character: "Character", stat: str, value: int) -> None:
         return
     if k == "TER":
         character.extra_characteristics["TER"] = max(0, value)
+        return
+    if k == "FOL":
+        character.extra_characteristics["FOL"] = max(0, value)
         return
     character.characteristics.set(k, value)
 
@@ -16721,11 +17064,15 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         character.reputation += n
         return f"REP {old_rep}→{character.reputation} (rank bonus)"
 
-    # "STAT +N" or "STAT+N" (positive increment, includes TER)
-    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*\+(\d+)$", text, re.IGNORECASE)
+    # "STAT +N" or "STAT+N" (positive increment, includes TER and FOL)
+    m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER|FOL)\s*\+(\d+)$", text, re.IGNORECASE)
     if m_stat:
         stat = m_stat.group(1).upper()
         n = int(m_stat.group(2))
+        if stat == "FOL":
+            old = character.extra_characteristics.get("FOL", 0)
+            character.extra_characteristics["FOL"] = old + n
+            return f"FOL {old}→{old + n} (rank bonus)"
         if stat == "TER":
             old = character.extra_characteristics.get("TER", 0)
             character.extra_characteristics["TER"] = old + n
@@ -16738,10 +17085,15 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         return f"{stat} {current}→{new_val} (rank bonus)"
 
     # "STAT -N" — stat penalty (e.g. "SOC -1" for Prisoner rank 6)
-    m_stat_neg = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER)\s*-(\d+)$", text, re.IGNORECASE)
+    m_stat_neg = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER|FOL)\s*-(\d+)$", text, re.IGNORECASE)
     if m_stat_neg:
         stat = m_stat_neg.group(1).upper()
         n = int(m_stat_neg.group(2))
+        if stat == "FOL":
+            old = character.extra_characteristics.get("FOL", 0)
+            new_val = max(0, old - n)
+            character.extra_characteristics["FOL"] = new_val
+            return f"FOL {old}→{new_val} (rank penalty)"
         if stat == "TER":
             old = character.extra_characteristics.get("TER", 0)
             new_val = max(0, old - n)
@@ -16957,6 +17309,14 @@ def _apply_skill_result(character: Character, result: str) -> str:
     if stripped == "Ally":
         character.associates.append(Associate(kind="ally", description="Met during career"))
         return "Gained an Ally"
+
+    # FOL +N (Truther Following characteristic)
+    m_fol_sr = re.match(r"^FOL\s*\+(\d+)$", stripped, re.IGNORECASE)
+    if m_fol_sr:
+        n = int(m_fol_sr.group(1))
+        old = character.extra_characteristics.get("FOL", 0)
+        character.extra_characteristics["FOL"] = old + n
+        return f"FOL {old}→{old + n}"
 
     # Characteristic bonuses ("STR +1", "DEX +1", "PSI +1", "RES +1", etc.)
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC", "PSI", "RES"):

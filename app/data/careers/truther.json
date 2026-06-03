@@ -1,0 +1,87 @@
+{
+  "id": "truther",
+  "name": "Truther",
+  "description": "A truther seeks (or claims to know) the truth about some fringe subject. In the Third Imperium the most universal truthers seek knowledge of the Ancients or paranormal phenomena.",
+  "qualification": {"automatic": true},
+  "extra_characteristic_start": {"FOL": 0},
+  "benefit_roll_dm_condition": {"stat": "FOL", "threshold": 10, "dm": 1},
+  "assignments": {
+    "truther": {
+      "name": "Truther",
+      "description": "Seek the truth, whatever it may be.",
+      "survival": {"characteristic": "FOL", "target": 4},
+      "advancement": null
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "FOL +1",
+      "4": "Admin",
+      "5": "Carouse",
+      "6": "Persuade"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Investigate",
+      "2": "Art (Write)",
+      "3": "Language",
+      "4": "Electronics (Computers)",
+      "5": "Diplomat",
+      "6": "Persuade"
+    },
+    "specialist": {
+      "name": "Specialist Skills",
+      "1": "Profession (any)",
+      "2": "Science (any) or Medic",
+      "3": "Science (any)",
+      "4": "Investigate",
+      "5": "Science (any)",
+      "6": "Science (any)"
+    }
+  },
+  "ranks": {
+    "truther": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": null, "bonus": null},
+      "2": {"title": null, "bonus": null},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": null, "bonus": null},
+      "5": {"title": null, "bonus": null},
+      "6": {"title": null, "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in a misadventure or attacked by a deranged objector to your work. Roll on the Injury table and leave this career.",
+    "2": "Someone affected by the Truth you seek bears a grudge and swears to kill you. Gain an Enemy.",
+    "3": "You are discredited, rightly or wrongly. Lose SOC -2 and FOL -D3, but you are not ejected from this career.",
+    "4": "You discover that some of your work is based on erroneous thinking. Lose 1 skill level from any Science skill but you do not have to leave this career.",
+    "5": "Your Truth is misused or misrepresented and you get the blame. Lose all Benefit rolls gained thus far in this career, but you do not have to leave this career.",
+    "6": "Your Truthing alienates former colleagues and contacts. Gain D3 Rivals."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "A corporate or government body wants to use your knowledge in a way you find questionable. If you agree, gain an extra Benefit roll and one level in any Science skill, but also D3 Enemies.",
+    "4": "You are called upon as a consultant for a secret research project. Gain one Contact and DM+1 on one Benefit roll.",
+    "5": "Understanding some new revelation requires a crash course in a field you lacked knowledge of. Gain one level in any Electronics or Science skill you previously did not already possess.",
+    "6": "Your search for Truth takes you out onto the frontiers. Gain one level of Survival or Recon.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You make a series of high-profile appearances on entertainment or news shows. Gain one level of Carouse or Persuade, and gain FOL +1.",
+    "9": "A golden opportunity lands in your lap, but taking advantage of it will harm someone else's career. Exploit it (FOL +D3 OR SOC +1 OR two levels in Science/Medic/Electronics, plus D3 Enemies) or decline (gain an Ally).",
+    "10": "You come into contact with a mysterious group interested in your Truth. Gain one level of Streetwise, Recon or Carouse, and gain D3 Contacts.",
+    "11": "A very public disagreement goes in your favour. Gain SOC +1 but also a Rival.",
+    "12": "Your work becomes mainstream after a scientific breakthrough. Gain FOL +D3."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000,   "benefit": "INT +1"},
+    "2": {"cash": 2000,   "benefit": "Minor Following"},
+    "3": {"cash": 5000,   "benefit": "Patronage"},
+    "4": {"cash": 10000,  "benefit": "SOC +1"},
+    "5": {"cash": 25000,  "benefit": "Major Following"},
+    "6": {"cash": 50000,  "benefit": "TAS Membership"},
+    "7": {"cash": 100000, "benefit": "3 Ship Shares"}
+  },
+  "complete": true
+}

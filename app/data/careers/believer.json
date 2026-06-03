@@ -1,0 +1,147 @@
+{
+  "id": "believer",
+  "name": "Believer",
+  "description": "A believer is a member of an organised religion or belief system who has made their faith the centre of their life and work.",
+  "qualification": {"automatic": true},
+  "basic_training_from_specialist": true,
+  "assignments": {
+    "mainstream_believer": {
+      "name": "Mainstream Believer",
+      "description": "Serve within the mainstream hierarchy of your faith.",
+      "survival": {"characteristic": "SOC", "target": 3},
+      "advancement": {"characteristic": "SOC", "target": 8}
+    },
+    "missionary_humanitarian": {
+      "name": "Missionary/Humanitarian",
+      "description": "Spread your faith or provide aid in the wider world.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    },
+    "holy_warrior": {
+      "name": "Holy Warrior",
+      "description": "Fight for your faith.",
+      "survival": {"characteristic": "INT", "target": 8},
+      "advancement": {"characteristic": "INT", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {
+      "name": "Personal Development",
+      "1": "INT +1",
+      "2": "EDU +1",
+      "3": "SOC +1",
+      "4": "Carouse",
+      "5": "Persuade",
+      "6": "Admin"
+    },
+    "service_skills": {
+      "name": "Service Skills",
+      "1": "Profession (Religion)",
+      "2": "Science (Belief)",
+      "3": "Persuade",
+      "4": "Admin",
+      "5": "Advocate",
+      "6": "Medic"
+    },
+    "advanced_education": {
+      "name": "Advanced Education",
+      "min_edu": 8,
+      "1": "Language",
+      "2": "Science (Belief)",
+      "3": "Diplomat",
+      "4": "Investigate",
+      "5": "Science (any)",
+      "6": "Admin"
+    },
+    "mainstream_believer": {
+      "name": "Mainstream Believer",
+      "assignment_only": true,
+      "1": "Profession (any)",
+      "2": "Profession (Religion)",
+      "3": "Science (Belief)",
+      "4": "Drive (any)",
+      "5": "Persuade",
+      "6": "Admin"
+    },
+    "missionary_humanitarian": {
+      "name": "Missionary/Humanitarian",
+      "assignment_only": true,
+      "1": "Jack-of-All-Trades",
+      "2": "Medic",
+      "3": "Persuade",
+      "4": "Diplomat",
+      "5": "Carouse",
+      "6": "Leadership"
+    },
+    "holy_warrior": {
+      "name": "Holy Warrior",
+      "assignment_only": true,
+      "1": "Gun Combat (any)",
+      "2": "Melee (any)",
+      "3": "Explosives",
+      "4": "Heavy Weapons (any)",
+      "5": "Tactics (Military)",
+      "6": "Athletics (any)"
+    }
+  },
+  "ranks": {
+    "mainstream_believer": {
+      "0": {"title": "Lay Person",      "bonus": null},
+      "1": {"title": "Initiate",        "bonus": "Science (Belief) 1"},
+      "2": {"title": "Lay Preacher",    "bonus": "Persuade 1"},
+      "3": {"title": "Priest",          "bonus": null},
+      "4": {"title": "Senior Priest",   "bonus": "SOC +1"},
+      "5": {"title": "Bishop",          "bonus": null},
+      "6": {"title": "Archbishop",      "bonus": "SOC +1"}
+    },
+    "missionary_humanitarian": {
+      "0": {"title": "Junior Project Worker", "bonus": null},
+      "1": {"title": "Project Worker",        "bonus": "Jack-of-All-Trades 1"},
+      "2": {"title": "Team Leader",           "bonus": "Leadership 1"},
+      "3": {"title": "Project Leader",        "bonus": null},
+      "4": {"title": "Project Coordinator",   "bonus": "Admin 1"},
+      "5": {"title": "Bishop",                "bonus": null},
+      "6": {"title": "Archbishop",            "bonus": "SOC +1"}
+    },
+    "holy_warrior": {
+      "0": {"title": "Hopeful",             "bonus": null},
+      "1": {"title": "Fighter",             "bonus": "Gun Combat (any) 1"},
+      "2": {"title": "Combat Leader",       "bonus": "Leadership 1"},
+      "3": {"title": "Force Commander",     "bonus": null},
+      "4": {"title": "Area Commander",      "bonus": "Tactics (Military) 1"},
+      "5": {"title": "Movement Sub-Leader", "bonus": null},
+      "6": {"title": "Movement Leader",     "bonus": null}
+    }
+  },
+  "mishaps": {
+    "1": "Injured in a conflict or persecuted for your faith. Roll on the Injury table and leave this career.",
+    "2": "Someone offended by your belief system bears a grudge. Gain an Enemy.",
+    "3": "You are demoted for failing your superiors. Lose one rank and forfeit this term's Benefit roll, but you do not have to leave this career.",
+    "4": "A doctrinal dispute causes you to doubt or revise your beliefs. Lose 1 level in Profession (Religion) or Science (Belief) but you do not have to leave this career.",
+    "5": "Your faith is tested and you are found wanting. Lose all Benefit rolls gained thus far in this career, but you do not have to leave this career.",
+    "6": "A splinter group within your faith turns against you. Gain D3 Rivals."
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+    "3": "Your faith wins you powerful friends in the community. Gain SOC +1 and an Ally.",
+    "4": "You come into contact with an academic interested in your belief system. Gain a Contact.",
+    "5": "Your faith drives you to engage with the wider world. Gain one level of Streetwise or Persuade.",
+    "6": "You retreat from worldly concerns to deepen your faith. Lose SOC D3 but gain D3 Benefit rolls and DM+1 on all future Benefit rolls.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You work to build your congregation or community. Gain one level of Carouse or Persuade.",
+    "9": "You are offered substantial inducements to betray your faith. If you betray it, leave this career and lose all Benefit rolls accumulated, but gain Cr2D×10,000 for each Benefit roll lost. If you stay loyal, gain 1D Enemies.",
+    "10": "You are asked to secretly provide last rites for a dying member of the nobility who is not of your faith. If you agree, gain an Ally in their household but also a Rival within your own faith community. If you refuse, there is no effect.",
+    "11": "Your superiors find fault with you and your dedication to doctrine is questioned. Permanent DM-2 on all future Advancement rolls in this career.",
+    "12": "You are recognized as a shining example of your faith. You are automatically promoted and gain a permanent DM+1 on all future Advancement rolls in this career."
+  },
+  "mustering_out": {
+    "1": {"cash": 0,     "benefit": "The knowledge that your soul is saved"},
+    "2": {"cash": 1000,  "benefit": "Prominent Statue and SOC +1"},
+    "3": {"cash": 2000,  "benefit": "Science (Belief) 1"},
+    "4": {"cash": 5000,  "benefit": "SOC +1"},
+    "5": {"cash": 10000, "benefit": "Sainthood Candidacy"},
+    "6": {"cash": 20000, "benefit": "You will be rewarded in the next life"},
+    "7": {"cash": 50000, "benefit": "TAS Membership"}
+  },
+  "complete": true
+}

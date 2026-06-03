@@ -270,6 +270,8 @@ class Character(BaseModel):
     # DM+2 tokens from Life Event 10 (Good Fortune). Each token can be
     # voluntarily applied to one mustering-out benefit roll.
     good_fortune_benefit_dm: int = 0
+    permanent_advancement_dm: int = 0   # permanent bonus/penalty on ALL future advancement rolls (e.g. Believer events 11/12)
+    permanent_benefit_dm: int = 0       # permanent bonus on ALL future benefit rolls (e.g. Believer event 6)
 
     # Pre-career education state
     pre_career_status: dict = Field(default_factory=dict)
