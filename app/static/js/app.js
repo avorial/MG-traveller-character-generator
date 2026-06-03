@@ -11247,13 +11247,462 @@ function renderDonePhase() {
       ${renderPsionicsCard()}
 
       <div class="phase-actions">
-        <button class="btn primary" id="btn-export-pdf">⬇ EXPORT PDF</button>
         <button class="btn ghost" id="btn-export-prominent">EXPORT JSON</button>
         <button class="btn ghost" id="btn-export-foundry">⬇ EXPORT TO FOUNDRY</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
       </div>
+
+      <div class="done-card tas-sheet-card">
+        <h3 class="done-card-title">Character Sheet</h3>
+        <p class="empty" style="margin-bottom:10px">Interactive Mongoose Traveller 2e sheet — click a stat or skill to roll, track wounds, conditions, weapons and gear. Use your browser's Print command to print it.</p>
+        <div id="tas-sheet-mount">${renderTASSheet()}</div>
+      </div>
     </div>
   `;
+}
+
+// ============================================================
+// Interactive Character Sheet (TAS Form — Mongoose Traveller 2e layout)
+// Rendered inline in the done phase. Fully interactive play aid:
+// click stats/skills to roll, track wounds & conditions, manage
+// weapons/gear/people/psionics/notes. State persists on character.play_state.
+// ============================================================
+
+// Lazily initialise and return the interactive play-state bucket.
+function tasPlay() {
+  if (!character.play_state || typeof character.play_state !== 'object') {
+    character.play_state = { dmg: {}, conditions: [], wielded: [], weapons: [], notes: '' };
+  }
+  const ps = character.play_state;
+  ps.dmg = ps.dmg || {};            // { STR: n, DEX: n, END: n } — current damage taken
+  ps.conditions = ps.conditions || [];
+  ps.wielded = ps.wielded || [];     // weapon names currently in hand
+  ps.weapons = ps.weapons || [];     // [{name, dmg, range}]
+  if (typeof ps.notes !== 'string') ps.notes = '';
+  return ps;
+}
+
+// Effective characteristic value after subtracting any current damage.
+function tasStatVal(stat) {
+  const base = (stat === 'PSI') ? (character.psi || 0) : (character.characteristics[stat] || 0);
+  const dmg = (tasPlay().dmg[stat] || 0);
+  return Math.max(0, base - dmg);
+}
+
+// Show a transient roll-result toast in the corner.
+function tasToast(html, kind) {
+  let t = document.getElementById('tas-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'tas-toast';
+    t.className = 'tas-toast';
+    document.body.appendChild(t);
+  }
+  t.className = 'tas-toast ' + (kind || '');
+  t.innerHTML = html;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4200);
+}
+
+// Roll 2D6 + modifier, return {d1, d2, raw, total, mod}.
+function tasRoll2D(mod) {
+  const d1 = 1 + Math.floor(Math.random() * 6);
+  const d2 = 1 + Math.floor(Math.random() * 6);
+  return { d1, d2, raw: d1 + d2, total: d1 + d2 + (mod || 0), mod: mod || 0 };
+}
+
+// Click-to-roll a characteristic check.
+function tasRollStat(stat) {
+  const dm = charDM(tasStatVal(stat));
+  const r = tasRoll2D(dm);
+  tasToast(
+    `<strong>${stat} check</strong> · 2D6 [${r.d1}+${r.d2}] ${formatDM(dm)} = <span class="tas-toast-total">${r.total}</span>`,
+    'roll'
+  );
+}
+
+// Click-to-roll a skill check (2D6 + relevant characteristic DM + skill level).
+// For untrained skills the level is -3 (unskilled penalty).
+function tasRollSkill(skillName, level, statForSkill) {
+  const trained = level != null;
+  const lvl = trained ? level : -3;
+  const dm = statForSkill ? charDM(tasStatVal(statForSkill)) : 0;
+  const r = tasRoll2D(dm + lvl);
+  const lvlStr = trained ? `skill ${formatDM(lvl)}` : 'unskilled −3';
+  const statStr = statForSkill ? ` · ${statForSkill} ${formatDM(dm)}` : '';
+  tasToast(
+    `<strong>${escapeHTML(skillName)}</strong> · 2D6 [${r.d1}+${r.d2}]${statStr} · ${lvlStr} = <span class="tas-toast-total">${r.total}</span>`,
+    'roll'
+  );
+}
+
+// Re-render just the sheet mount and re-wire it (keeps the rest of the page stable).
+function refreshTASSheet() {
+  saveCharacter();
+  const mount = document.getElementById('tas-sheet-mount');
+  if (mount) {
+    mount.innerHTML = renderTASSheet();
+    wireTASSheet();
+  }
+  // Keep the left character file panel in sync (stats/credits may have changed).
+  try { renderSheet(); } catch (e) {}
+}
+
+// Build a lookup of the character's trained skills.
+// Returns { base: { "Admin": level }, spec: { "Gun Combat": { "Slug": level } } }
+function tasSkillIndex() {
+  const base = {}, spec = {};
+  (character.skills || []).forEach(s => {
+    if (s.speciality) {
+      spec[s.name] = spec[s.name] || {};
+      spec[s.name][s.speciality] = s.level;
+    } else {
+      base[s.name] = s.level;
+    }
+  });
+  return { base, spec };
+}
+
+// Suggested characteristic for each skill's default roll (MGT2e common usage).
+const TAS_SKILL_STAT = {
+  'Admin':'INT','Advocate':'SOC','Astrogation':'EDU','Athletics':'DEX','Animals':'INT',
+  'Art':'INT','Broker':'INT','Carouse':'SOC','Deception':'INT','Diplomat':'SOC',
+  'Drive':'DEX','Electronics':'INT','Engineer':'INT','Explosives':'EDU','Flyer':'DEX',
+  'Gambler':'INT','Gun Combat':'DEX','Gunner':'INT','Heavy Weapons':'DEX','Investigate':'INT',
+  'Jack-of-All-Trades':'INT','Language':'EDU','Leadership':'SOC','Mechanic':'INT','Medic':'EDU',
+  'Melee':'STR','Navigation':'INT','Persuade':'SOC','Pilot':'DEX','Profession':'EDU',
+  'Recon':'INT','Science':'EDU','Seafarer':'DEX','Sensors':'INT','Stealth':'DEX',
+  'Steward':'INT','Streetwise':'INT','Survival':'EDU','Tactics':'INT','Vacc Suit':'DEX'
+};
+
+// Render one skill cell (base skill or a specialty line).
+function tasSkillCell(displayName, rollName, level, statForSkill) {
+  const trained = level != null;
+  const lvlBadge = trained ? `<span class="tas-skill-lvl">${level}</span>` : `<span class="tas-skill-lvl untrained">−</span>`;
+  return `<button class="tas-skill ${trained ? 'trained' : 'untrained'}"
+      data-skill-roll="${escapeAttr(rollName)}"
+      data-skill-level="${trained ? level : ''}"
+      data-skill-stat="${statForSkill || ''}"
+      title="Click to roll 2D6 + ${statForSkill || '—'} DM ${trained ? '+ skill ' + level : '(unskilled −3)'}">
+      <span class="tas-skill-name">${escapeHTML(displayName)}</span>${lvlBadge}
+    </button>`;
+}
+
+// Build the full MGT2e skill tree, overlaying the character's trained levels.
+function tasSkillsGrid() {
+  const idx = tasSkillIndex();
+  const core = SKILLS_DATA.core || [];
+  const specs = SKILLS_DATA.speciality || {};
+  // Combine: every core skill + every skill that has specialities, alphabetically.
+  const allBase = Array.from(new Set([...core, ...Object.keys(specs)])).sort((a, b) => a.localeCompare(b));
+  const cells = [];
+  allBase.forEach(name => {
+    const stat = TAS_SKILL_STAT[name] || 'INT';
+    if (specs[name]) {
+      // Parent line (level 0 if any specialty trained or parent itself trained), then specialties.
+      const parentLvl = idx.base[name];
+      cells.push(tasSkillCell(name, name, parentLvl != null ? parentLvl : (idx.spec[name] ? 0 : null), stat));
+      specs[name].forEach(sp => {
+        const lvl = idx.spec[name] ? idx.spec[name][sp] : undefined;
+        cells.push(tasSkillCell(`${name} (${sp})`, `${name} (${sp})`, (lvl != null ? lvl : null), stat));
+      });
+    } else {
+      cells.push(tasSkillCell(name, name, (idx.base[name] != null ? idx.base[name] : null), stat));
+    }
+  });
+  const total = (character.skills || []).reduce((sum, s) => sum + (s.level || 0), 0);
+  return { html: cells.join(''), total };
+}
+
+// Render the interactive TAS character sheet.
+function renderTASSheet() {
+  const ps = tasPlay();
+  const stats = character.characteristics;
+  const species = SPECIES.find(s => s.id === character.species_id) || { name: character.species_id || '—' };
+  const socLabel = socLabelForChar(character) || 'SOC';
+  const dossier = (character.name || 'TRAVELLER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6).padEnd(4, '0').slice(0, 6);
+  const initial = (character.name || 'F').trim().charAt(0).toUpperCase() || 'F';
+
+  // Characteristics (6 + PSI if any)
+  const statList = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'].filter(s => s !== 'SOC' || socLabelForChar(character) !== null);
+  if (character.psi > 0) statList.push('PSI');
+  const statNames = { STR:'Strength', DEX:'Dexterity', END:'Endurance', INT:'Intellect', EDU:'Education', SOC:'Social Standing', PSI:'Psionics' };
+  const statCards = statList.map(stat => {
+    const val = tasStatVal(stat);
+    const dm = charDM(val);
+    const dmgd = (ps.dmg[stat] || 0) > 0;
+    const label = stat === 'SOC' ? socLabel : (stat === 'PSI' ? 'PSI' : stat);
+    return `
+      <div class="tas-stat ${dmgd ? 'damaged' : ''}">
+        <div class="tas-stat-label">${label}</div>
+        <div class="tas-stat-sub">${statNames[stat] || ''}</div>
+        <button class="tas-stat-val" data-roll-stat="${stat}" title="Click to roll 2D6 ${formatDM(dm)}">${val}</button>
+        <div class="tas-stat-mod">Mod ${formatDM(dm)}</div>
+        <div class="tas-stat-adj">
+          <button data-stat-adj="${stat}" data-delta="-1" title="−1">–</button>
+          <span>·</span>
+          <button data-stat-adj="${stat}" data-delta="1" title="+1">+</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Wielded weapons
+  const wieldedHTML = ps.wielded.length
+    ? ps.wielded.map((w, i) => `<div class="tas-wielded-item">${escapeHTML(w)} <button class="tas-x" data-unwield="${i}">×</button></div>`).join('')
+    : `<p class="tas-empty">No weapons.</p>`;
+
+  // Wound status
+  const physDmg = (ps.dmg.STR || 0) + (ps.dmg.DEX || 0) + (ps.dmg.END || 0);
+  const woundClass = physDmg === 0 ? 'ok' : (tasStatVal('STR') === 0 || tasStatVal('DEX') === 0 || tasStatVal('END') === 0 ? 'serious' : 'hurt');
+  const woundLabel = physDmg === 0 ? 'UNWOUNDED' : (woundClass === 'serious' ? 'SERIOUSLY WOUNDED' : 'WOUNDED');
+  const condChips = ps.conditions.length
+    ? ps.conditions.map((c, i) => `<span class="tas-cond">${escapeHTML(c)} <button class="tas-x" data-cond-rm="${i}">×</button></span>`).join('')
+    : `<span class="tas-empty">No active conditions</span>`;
+
+  // Skills grid
+  const skills = tasSkillsGrid();
+
+  // Tabs
+  const tab = uiState.sheetTab || 'combat';
+  const tabBtn = (id, label) => `<button class="tas-tab ${tab === id ? 'active' : ''}" data-sheet-tab="${id}">${label}</button>`;
+
+  return `
+  <div class="tas-sheet">
+    <div class="tas-form-top">
+      <span>TRAVELLERS' AID SOCIETY</span>
+      <span>— IMPERIAL TRAVEL AUTHORITY —</span>
+      <span>FORM TAS-001 · CONFIDENTIAL</span>
+    </div>
+
+    <div class="tas-identity">
+      <div class="tas-portrait">${escapeHTML(initial)}<span>UPLOAD</span></div>
+      <div class="tas-id-fields">
+        <input class="tas-name" id="tas-name" value="${escapeAttr(character.name || '')}" placeholder="UNNAMED TRAVELLER" />
+        <div class="tas-id-row">
+          <div class="tas-field"><label>RACE / SPECIES</label><div>${escapeHTML(species.name)}</div></div>
+          <div class="tas-field"><label>AGE (YEARS)</label><div>${character.age ?? '—'}</div></div>
+          <div class="tas-field"><label>HOMEWORLD</label><div>${escapeHTML(character.homeworld || '—')}</div></div>
+        </div>
+        <div class="tas-dossier">DOSSIER № <strong>${escapeHTML(dossier)}</strong></div>
+      </div>
+    </div>
+
+    <div class="tas-grid-2">
+      <div class="tas-card">
+        <div class="tas-card-head"><span>⚡ CHARACTERISTICS</span><em>Click a value to roll 2D6 + that DM</em></div>
+        <div class="tas-stats">${statCards}</div>
+      </div>
+      <div class="tas-card">
+        <div class="tas-card-head"><span>⚔ WIELDED</span><em>Add weapons in the Combat tab</em></div>
+        <div class="tas-wielded">${wieldedHTML}</div>
+      </div>
+    </div>
+
+    <div class="tas-card">
+      <div class="tas-card-head"><span>✚ STATUS &amp; CONDITIONS</span><em>Wound status (derived) · active conditions</em></div>
+      <div class="tas-status">
+        <span class="tas-wound tas-wound-${woundClass}">${woundLabel}</span>
+        <button class="tas-btn-dmg" id="tas-take-damage">⚠ TAKE DAMAGE</button>
+        <button class="tas-btn-heal" id="tas-heal">HEAL ALL</button>
+        <button class="tas-btn-cond" id="tas-add-cond">+ Add condition</button>
+        <span class="tas-conds">${condChips}</span>
+      </div>
+    </div>
+
+    <div class="tas-card">
+      <div class="tas-card-head"><span>✦ SPECIES</span><em>${escapeHTML(species.name)}</em></div>
+      <div class="tas-species">
+        <span class="tas-species-tag">${escapeHTML(species.name)}</span>
+        ${(character.traits && character.traits.length)
+          ? character.traits.map(t => `<span class="tas-trait" title="${escapeAttr(t.description || '')}">${escapeHTML(t.name)}</span>`).join('')
+          : '<span class="tas-empty">No alien traits</span>'}
+      </div>
+    </div>
+
+    <div class="tas-card">
+      <div class="tas-card-head"><span>📖 SKILLS</span><em>Total levels: ${skills.total} · click a skill to roll</em></div>
+      <div class="tas-skills">${skills.html}</div>
+    </div>
+
+    <div class="tas-tabs">
+      ${tabBtn('combat','⚔ Combat')}
+      ${tabBtn('gear','🎒 Gear')}
+      ${tabBtn('holdings','🏦 Holdings')}
+      ${tabBtn('people','👥 People')}
+      ${tabBtn('psionics','✦ Psionics')}
+      ${tabBtn('notes','📝 Notes')}
+    </div>
+    <div class="tas-tab-body">${renderTASTab(tab)}</div>
+
+    <div class="tas-foot">
+      <span>Chargen complete · Mongoose Traveller 2.0 layout</span>
+      <span class="tas-foot-brand">TRAVELLER</span>
+    </div>
+  </div>`;
+}
+
+// Render the active lower tab.
+function renderTASTab(tab) {
+  const ps = tasPlay();
+  if (tab === 'combat') {
+    const arm = (character.equipment || []).filter(e => e.protection != null);
+    const armHTML = arm.length
+      ? arm.map(e => `<div class="tas-line"><span>${escapeHTML(e.name)}</span><span class="tas-tag">Protection +${e.protection}</span></div>`).join('')
+      : `<p class="tas-empty">No armour recorded.</p>`;
+    const wHTML = ps.weapons.length
+      ? ps.weapons.map((w, i) => `<div class="tas-line">
+          <button class="tas-weapon-roll" data-weapon-atk="${i}" title="Roll attack (2D6 + relevant skill DM — pick your skill above)">${escapeHTML(w.name)}</button>
+          <span class="tas-tag">${escapeHTML(w.dmg || '—')}</span>
+          ${w.range ? `<span class="tas-tag ghost">${escapeHTML(w.range)}</span>` : ''}
+          <button class="tas-wield-btn" data-wield="${i}" title="Hold this weapon">✋</button>
+          <button class="tas-x" data-weapon-rm="${i}">×</button>
+        </div>`).join('')
+      : `<p class="tas-empty">No weapons recorded yet.</p>`;
+    return `
+      <div class="tas-sub">
+        <div class="tas-sub-head">🛡 ARMOUR</div>
+        ${armHTML}
+      </div>
+      <div class="tas-sub">
+        <div class="tas-sub-head">💥 WEAPONS</div>
+        ${wHTML}
+        <div class="tas-add-row">
+          <input id="tas-w-name" placeholder="Weapon name" />
+          <input id="tas-w-dmg" placeholder="Damage e.g. 3D" class="narrow" />
+          <input id="tas-w-range" placeholder="Range" class="narrow" />
+          <button class="tas-btn-add" id="tas-w-add">Add</button>
+        </div>
+      </div>`;
+  }
+  if (tab === 'gear') {
+    const gear = (character.equipment || []).filter(e => e.protection == null);
+    return gear.length
+      ? `<div class="tas-list">${gear.map(e => `<div class="tas-line"><span>${escapeHTML(e.name)}</span>${e.notes ? `<span class="tas-note">${escapeHTML(e.notes)}</span>` : ''}</div>`).join('')}</div>`
+      : `<p class="tas-empty">No gear recorded.</p>`;
+  }
+  if (tab === 'holdings') {
+    const benefits = [];
+    benefits.push(`<div class="tas-line"><span>Credits</span><span class="tas-tag">Cr${(character.credits || 0).toLocaleString()}</span></div>`);
+    if (character.ship_shares) benefits.push(`<div class="tas-line"><span>Ship Shares</span><span class="tas-tag">${character.ship_shares}</span></div>`);
+    if (character.pension_per_year) benefits.push(`<div class="tas-line"><span>Pension</span><span class="tas-tag">Cr${character.pension_per_year.toLocaleString()}/yr</span></div>`);
+    if (character.medical_debt) benefits.push(`<div class="tas-line"><span>Medical Debt</span><span class="tas-tag danger">Cr${character.medical_debt.toLocaleString()}</span></div>`);
+    (character.benefits || []).forEach(b => benefits.push(`<div class="tas-line"><span>${escapeHTML(typeof b === 'string' ? b : (b.name || JSON.stringify(b)))}</span></div>`));
+    return `<div class="tas-list">${benefits.join('')}</div>`;
+  }
+  if (tab === 'people') {
+    const assoc = (character.associates || []).filter(a => a.kind !== 'wife');
+    if (!assoc.length) return `<p class="tas-empty">No contacts, allies, rivals or enemies.</p>`;
+    const order = [['contact','Contacts'],['ally','Allies'],['rival','Rivals'],['enemy','Enemies']];
+    return order.map(([k, title]) => {
+      const items = assoc.filter(a => a.kind === k);
+      if (!items.length) return '';
+      return `<div class="tas-sub"><div class="tas-sub-head tas-assoc-${k}">${title}</div>
+        ${items.map(a => `<div class="tas-line"><span>${escapeHTML(a.description || '(unnamed)')}</span></div>`).join('')}</div>`;
+    }).join('');
+  }
+  if (tab === 'psionics') {
+    if (!character.psi_tested) return `<p class="tas-empty">Not psionically tested.</p>`;
+    if (character.psi <= 0) return `<p class="tas-empty">Tested — no psionic potential (PSI 0).</p>`;
+    const talents = (character.skills || []).filter(s => ['Telepathy','Clairvoyance','Telekinesis','Awareness','Teleportation'].includes(s.name));
+    return `<div class="tas-line"><span><strong>PSI ${character.psi}</strong></span><span class="tas-tag">DM ${formatDM(charDM(character.psi))}</span></div>
+      ${talents.length ? talents.map(t => `<button class="tas-skill trained inline" data-skill-roll="${escapeAttr(t.name)}" data-skill-level="${t.level}" data-skill-stat=""><span class="tas-skill-name">${escapeHTML(t.name)}</span><span class="tas-skill-lvl">${t.level}</span></button>`).join('') : '<p class="tas-empty">No talents trained.</p>'}`;
+  }
+  if (tab === 'notes') {
+    return `<textarea id="tas-notes" class="tas-notes" placeholder="Free notes — quirks, goals, contacts, gear details…">${escapeHTML(ps.notes || '')}</textarea>`;
+  }
+  return '';
+}
+
+// Wire up all interactive controls on the sheet.
+function wireTASSheet() {
+  // Name edit
+  const nameEl = document.getElementById('tas-name');
+  if (nameEl) nameEl.addEventListener('change', () => { character.name = nameEl.value.trim(); refreshTASSheet(); });
+
+  // Stat roll
+  document.querySelectorAll('[data-roll-stat]').forEach(b =>
+    b.addEventListener('click', () => tasRollStat(b.dataset.rollStat)));
+
+  // Stat +/- adjust
+  document.querySelectorAll('[data-stat-adj]').forEach(b =>
+    b.addEventListener('click', () => {
+      const stat = b.dataset.statAdj, delta = parseInt(b.dataset.delta, 10);
+      if (stat === 'PSI') { character.psi = Math.max(0, (character.psi || 0) + delta); }
+      else { character.characteristics[stat] = Math.max(0, (character.characteristics[stat] || 0) + delta); }
+      refreshTASSheet();
+    }));
+
+  // Skill roll
+  document.querySelectorAll('[data-skill-roll]').forEach(b =>
+    b.addEventListener('click', () => {
+      const lvlStr = b.dataset.skillLevel;
+      const lvl = lvlStr === '' ? null : parseInt(lvlStr, 10);
+      tasRollSkill(b.dataset.skillRoll, lvl, b.dataset.skillStat || null);
+    }));
+
+  // Take damage
+  const dmgBtn = document.getElementById('tas-take-damage');
+  if (dmgBtn) dmgBtn.addEventListener('click', () => {
+    const amt = parseInt(prompt('Damage taken (applied to END, then STR, then DEX per MGT2e):', '1'), 10);
+    if (!amt || amt < 1) return;
+    const ps = tasPlay();
+    let remaining = amt;
+    ['END', 'STR', 'DEX'].forEach(stat => {
+      if (remaining <= 0) return;
+      const cur = tasStatVal(stat);
+      const take = Math.min(cur, remaining);
+      ps.dmg[stat] = (ps.dmg[stat] || 0) + take;
+      remaining -= take;
+    });
+    refreshTASSheet();
+  });
+
+  // Heal all
+  const healBtn = document.getElementById('tas-heal');
+  if (healBtn) healBtn.addEventListener('click', () => { tasPlay().dmg = {}; refreshTASSheet(); });
+
+  // Add condition
+  const condBtn = document.getElementById('tas-add-cond');
+  if (condBtn) condBtn.addEventListener('click', () => {
+    const c = prompt('Condition (e.g. Stunned, Prone, Diseased):', '');
+    if (c && c.trim()) { tasPlay().conditions.push(c.trim()); refreshTASSheet(); }
+  });
+  document.querySelectorAll('[data-cond-rm]').forEach(b =>
+    b.addEventListener('click', () => { tasPlay().conditions.splice(parseInt(b.dataset.condRm, 10), 1); refreshTASSheet(); }));
+
+  // Tabs
+  document.querySelectorAll('[data-sheet-tab]').forEach(b =>
+    b.addEventListener('click', () => { uiState.sheetTab = b.dataset.sheetTab; refreshTASSheet(); }));
+
+  // Weapons add / remove / wield
+  const wAdd = document.getElementById('tas-w-add');
+  if (wAdd) wAdd.addEventListener('click', () => {
+    const name = (document.getElementById('tas-w-name').value || '').trim();
+    if (!name) return;
+    tasPlay().weapons.push({
+      name,
+      dmg: (document.getElementById('tas-w-dmg').value || '').trim(),
+      range: (document.getElementById('tas-w-range').value || '').trim(),
+    });
+    refreshTASSheet();
+  });
+  document.querySelectorAll('[data-weapon-rm]').forEach(b =>
+    b.addEventListener('click', () => { tasPlay().weapons.splice(parseInt(b.dataset.weaponRm, 10), 1); refreshTASSheet(); }));
+  document.querySelectorAll('[data-wield]').forEach(b =>
+    b.addEventListener('click', () => { const w = tasPlay().weapons[parseInt(b.dataset.wield, 10)]; if (w) { tasPlay().wielded.push(w.name); refreshTASSheet(); } }));
+  document.querySelectorAll('[data-unwield]').forEach(b =>
+    b.addEventListener('click', () => { tasPlay().wielded.splice(parseInt(b.dataset.unwield, 10), 1); refreshTASSheet(); }));
+  document.querySelectorAll('[data-weapon-atk]').forEach(b =>
+    b.addEventListener('click', () => {
+      const w = tasPlay().weapons[parseInt(b.dataset.weaponAtk, 10)];
+      const r = tasRoll2D(0);
+      tasToast(`<strong>${escapeHTML(w.name)}</strong> attack · 2D6 [${r.d1}+${r.d2}] = <span class="tas-toast-total">${r.total}</span> (add your skill + DEX DM)${w.dmg ? ` · dmg ${escapeHTML(w.dmg)}` : ''}`, 'roll');
+    }));
+
+  // Notes
+  const notesEl = document.getElementById('tas-notes');
+  if (notesEl) notesEl.addEventListener('change', () => { tasPlay().notes = notesEl.value; saveCharacter(); });
 }
 
 // Psionics is optional and GM-approved — only visible once the Traveller
@@ -11346,8 +11795,9 @@ function wireDonePhase() {
   const btnExport = document.getElementById('btn-export-prominent');
   if (btnExport) btnExport.addEventListener('click', exportCharacter);
 
-  const btnPdf = document.getElementById('btn-export-pdf');
-  if (btnPdf) btnPdf.addEventListener('click', exportPDF);
+  // Interactive character sheet (replaces the old PDF export).
+  if (document.getElementById('tas-sheet-mount')) wireTASSheet();
+
   const btnFoundry = document.getElementById('btn-export-foundry');
   if (btnFoundry) btnFoundry.addEventListener('click', exportFoundry);
   const btnBack = document.getElementById('btn-back-careers');

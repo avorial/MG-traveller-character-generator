@@ -1,0 +1,180 @@
+/* ============================================================
+   Interactive Character Sheet — TAS Form (Mongoose Traveller 2e)
+   Self-contained blue/navy theme, scoped under .tas-sheet so it
+   does not inherit the amber CRT app theme.
+   ============================================================ */
+.tas-sheet-card { padding: 0 !important; background: transparent !important; border: none !important; }
+.tas-sheet {
+  --t-bg: #0d1a2b;
+  --t-bg2: #11233a;
+  --t-card: #0f2036;
+  --t-border: #1d3a5c;
+  --t-border2: #2a5688;
+  --t-red: #c0392b;
+  --t-red2: #e0503e;
+  --t-blue: #5fa8e8;
+  --t-cyan: #7ed0ff;
+  --t-text: #c8dcf0;
+  --t-muted: #6a87a8;
+  --t-white: #eaf2fb;
+  background: var(--t-bg);
+  border: 2px solid var(--t-red);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--t-text);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12px;
+  box-shadow: 0 0 0 1px #000, 0 8px 32px rgba(0,0,0,0.5);
+}
+.tas-sheet * { box-sizing: border-box; }
+
+.tas-form-top {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--t-red); color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  padding: 5px 10px; border-radius: 4px; margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* Identity */
+.tas-identity { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+.tas-portrait {
+  width: 78px; min-height: 78px; border: 2px solid var(--t-blue); border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 34px; font-weight: 700; color: var(--t-blue);
+}
+.tas-portrait span { font-size: 8px; letter-spacing: 1px; color: var(--t-muted); margin-top: 2px; }
+.tas-id-fields { flex: 1; }
+.tas-name {
+  width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--t-border2);
+  color: var(--t-white); font-size: 26px; font-weight: 700; font-family: inherit;
+  padding: 2px 0; margin-bottom: 8px; letter-spacing: 1px;
+}
+.tas-name:focus { outline: none; border-bottom-color: var(--t-red2); }
+.tas-id-row { display: flex; gap: 24px; }
+.tas-field label { display: block; font-size: 9px; color: var(--t-red2); letter-spacing: 1px; margin-bottom: 2px; }
+.tas-field div { color: var(--t-white); font-size: 13px; }
+.tas-dossier { margin-top: 8px; font-size: 10px; color: var(--t-muted); }
+.tas-dossier strong { color: var(--t-blue); }
+
+/* Cards */
+.tas-card { background: var(--t-card); border: 1px solid var(--t-border); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+.tas-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--t-border); }
+.tas-card-head span { color: var(--t-red2); font-weight: 700; font-size: 11px; letter-spacing: 1px; }
+.tas-card-head em { color: var(--t-muted); font-style: italic; font-size: 10px; }
+.tas-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 720px) { .tas-grid-2 { grid-template-columns: 1fr; } }
+
+/* Characteristics */
+.tas-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tas-stat { border: 1px solid var(--t-border2); border-radius: 5px; padding: 8px; text-align: center; background: var(--t-bg2); }
+.tas-stat.damaged { border-color: var(--t-red); background: rgba(192,57,43,0.12); }
+.tas-stat-label { color: var(--t-red2); font-weight: 700; font-size: 11px; letter-spacing: 1px; }
+.tas-stat-sub { color: var(--t-muted); font-size: 8px; margin-bottom: 4px; }
+.tas-stat-val {
+  display: block; width: 100%; background: transparent; border: none; cursor: pointer;
+  color: var(--t-white); font-size: 30px; font-weight: 700; font-family: inherit; line-height: 1; padding: 2px 0;
+}
+.tas-stat-val:hover { color: var(--t-cyan); text-shadow: 0 0 8px rgba(126,208,255,0.6); }
+.tas-stat-mod { color: var(--t-blue); font-size: 11px; }
+.tas-stat-adj { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+.tas-stat-adj button { background: var(--t-bg); border: 1px solid var(--t-border2); color: var(--t-text); width: 22px; height: 20px; border-radius: 3px; cursor: pointer; font-size: 13px; line-height: 1; }
+.tas-stat-adj button:hover { border-color: var(--t-red2); color: var(--t-white); }
+.tas-stat-adj span { color: var(--t-muted); }
+
+/* Wielded */
+.tas-wielded { min-height: 60px; }
+.tas-wielded-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--t-border); }
+
+/* Status */
+.tas-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tas-wound { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 11px; letter-spacing: 1px; border: 1px solid; }
+.tas-wound-ok { color: var(--t-blue); border-color: var(--t-border2); background: var(--t-bg2); }
+.tas-wound-hurt { color: #e8a13e; border-color: #8a5a1a; background: rgba(232,161,62,0.12); }
+.tas-wound-serious { color: var(--t-red2); border-color: var(--t-red); background: rgba(192,57,43,0.15); }
+.tas-btn-dmg, .tas-btn-heal, .tas-btn-cond, .tas-btn-add {
+  background: var(--t-bg2); border: 1px solid var(--t-border2); color: var(--t-text);
+  padding: 4px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 11px;
+}
+.tas-btn-dmg { border-color: var(--t-red); color: var(--t-red2); }
+.tas-btn-dmg:hover { background: rgba(192,57,43,0.2); }
+.tas-btn-heal:hover, .tas-btn-cond:hover, .tas-btn-add:hover { border-color: var(--t-blue); color: var(--t-white); }
+.tas-conds { display: flex; gap: 6px; flex-wrap: wrap; }
+.tas-cond { background: rgba(192,57,43,0.15); border: 1px solid var(--t-red); color: var(--t-red2); padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+
+/* Species */
+.tas-species { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tas-species-tag { background: var(--t-blue); color: #06121f; font-weight: 700; padding: 3px 12px; border-radius: 4px; font-size: 11px; letter-spacing: 1px; }
+.tas-trait { background: var(--t-bg2); border: 1px solid var(--t-border2); padding: 3px 10px; border-radius: 4px; font-size: 10px; color: var(--t-cyan); }
+
+/* Skills grid */
+.tas-skills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+@media (max-width: 720px) { .tas-skills { grid-template-columns: repeat(2, 1fr); } }
+.tas-skill {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  background: transparent; border: 1px solid var(--t-border); border-radius: 4px;
+  padding: 4px 8px; cursor: pointer; font-family: inherit; font-size: 11px; text-align: left;
+  color: var(--t-muted);
+}
+.tas-skill.trained { color: var(--t-white); border-color: var(--t-border2); background: var(--t-bg2); }
+.tas-skill.trained .tas-skill-name { color: var(--t-white); font-weight: 600; }
+.tas-skill:hover { border-color: var(--t-red2); color: var(--t-cyan); }
+.tas-skill-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tas-skill-lvl { color: var(--t-cyan); font-weight: 700; min-width: 16px; text-align: right; }
+.tas-skill-lvl.untrained { color: var(--t-muted); }
+.tas-skill.inline { display: inline-flex; width: auto; margin: 2px 4px 2px 0; }
+
+/* Tabs */
+.tas-tabs { display: flex; gap: 2px; margin-top: 4px; border-bottom: 2px solid var(--t-red); flex-wrap: wrap; }
+.tas-tab { background: transparent; border: none; color: var(--t-muted); padding: 6px 12px; cursor: pointer; font-family: inherit; font-size: 11px; border-radius: 4px 4px 0 0; }
+.tas-tab:hover { color: var(--t-text); }
+.tas-tab.active { background: var(--t-red); color: #fff; font-weight: 700; }
+.tas-tab-body { background: var(--t-card); border: 1px solid var(--t-border); border-top: none; border-radius: 0 0 6px 6px; padding: 12px; min-height: 80px; margin-bottom: 10px; }
+
+/* Tab content */
+.tas-sub { margin-bottom: 12px; }
+.tas-sub-head { color: var(--t-red2); font-weight: 700; font-size: 11px; letter-spacing: 1px; margin-bottom: 6px; }
+.tas-sub-head.tas-assoc-contact { color: var(--t-blue); }
+.tas-sub-head.tas-assoc-ally { color: var(--t-cyan); }
+.tas-sub-head.tas-assoc-rival { color: #e8a13e; }
+.tas-sub-head.tas-assoc-enemy { color: var(--t-red2); }
+.tas-line { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--t-border); }
+.tas-line span:first-child { flex: 1; color: var(--t-text); }
+.tas-tag { background: var(--t-bg2); border: 1px solid var(--t-border2); color: var(--t-cyan); padding: 1px 8px; border-radius: 4px; font-size: 10px; }
+.tas-tag.ghost { color: var(--t-muted); }
+.tas-tag.danger { color: var(--t-red2); border-color: var(--t-red); }
+.tas-note { color: var(--t-muted); font-size: 10px; font-style: italic; }
+.tas-empty { color: var(--t-muted); font-style: italic; font-size: 11px; text-align: center; padding: 8px; }
+.tas-weapon-roll, .tas-wield-btn { background: var(--t-bg2); border: 1px solid var(--t-border2); color: var(--t-white); padding: 3px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 11px; }
+.tas-weapon-roll { flex: 1; text-align: left; }
+.tas-weapon-roll:hover, .tas-wield-btn:hover { border-color: var(--t-red2); color: var(--t-cyan); }
+.tas-add-row { display: flex; gap: 6px; margin-top: 8px; }
+.tas-add-row input { flex: 1; background: var(--t-bg); border: 1px solid var(--t-border2); color: var(--t-text); padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; }
+.tas-add-row input.narrow { flex: 0 0 90px; }
+.tas-add-row input:focus { outline: none; border-color: var(--t-red2); }
+.tas-notes { width: 100%; min-height: 100px; background: var(--t-bg); border: 1px solid var(--t-border2); color: var(--t-text); padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px; resize: vertical; }
+.tas-x { background: transparent; border: none; color: var(--t-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; }
+.tas-x:hover { color: var(--t-red2); }
+
+/* Footer */
+.tas-foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px 2px; font-size: 10px; color: var(--t-muted); }
+.tas-foot-brand { color: var(--t-red2); font-weight: 700; font-size: 16px; letter-spacing: 2px; }
+
+/* Roll toast */
+.tas-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #0d1a2b; border: 1px solid #2a5688; border-left: 4px solid #c0392b;
+  color: #c8dcf0; padding: 10px 18px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; z-index: 9999; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s; box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+}
+.tas-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tas-toast-total { color: #7ed0ff; font-weight: 700; font-size: 16px; }
+
+/* Print: show only the sheet, expand it cleanly */
+@media print {
+  body * { visibility: hidden; }
+  .tas-sheet, .tas-sheet * { visibility: visible; }
+  .tas-sheet { position: absolute; left: 0; top: 0; width: 100%; border-color: #c0392b; box-shadow: none; }
+  .tas-stat-adj, .tas-btn-dmg, .tas-btn-heal, .tas-btn-cond, .tas-add-row, .tas-x { display: none !important; }
+}
