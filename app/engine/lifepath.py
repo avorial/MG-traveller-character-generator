@@ -8733,8 +8733,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     "target": 10,
                     "on_nat2": [],
                     "on_pass": [{"type": "dm_advancement", "amount": 2}],
-                    "on_fail": [{"type": "forfeit_benefit"}],
-                    "prompt": "Research race — roll Science 10+: pass DM+2 Advancement; fail forfeit Benefit roll",
+                    "on_fail": [{"type": "forfeit_all_benefits"}],
+                    "prompt": "Research race — roll Science 10+: pass DM+2 Advancement; fail lose all Benefits this term",
                 }
             elif selected == "sabotage":
                 character.associates.append(
@@ -11628,10 +11628,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         2:  [{"type": "trigger_disaster_mishap"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
               "target": 8,
-              "on_pass": [],
+              "on_pass": [{"type": "dm_advancement", "amount": 2}],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
-                          {"type": "forfeit_benefit"}],
-              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+                          {"type": "forfeit_all_benefits"}],
+              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs pirates — fail: Enemy + lose all Benefits"}],
         4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
               "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
               "options": [
@@ -11663,10 +11663,10 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     "aslan_space_officer": {
         2:  [{"type": "trigger_disaster_mishap"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
-              "on_pass": [],
+              "on_pass": [{"type": "dm_advancement", "amount": 2}],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
-                          {"type": "forfeit_benefit"}],
-              "prompt": "Roll Tactics or Engineer 8+ vs pirates — fail: Enemy + forfeit benefit"}],
+                          {"type": "forfeit_all_benefits"}],
+              "prompt": "Roll Tactics or Engineer 8+ vs pirates — fail: Enemy + lose all Benefits"}],
         4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
               "prompt": "Opportunity to smuggle illegal goods — decline (no effect) or accept (Deception 8+)?",
               "options": [
@@ -11796,9 +11796,9 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         2:  [{"type": "trigger_disaster_mishap"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
               "target": 8,
-              "on_pass": [],
-              "on_fail": [{"type": "forfeit_benefit"}],
-              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs Hierate attack — fail: forfeit Benefit rolls"}],
+              "on_pass": [{"type": "dm_advancement", "amount": 2}],
+              "on_fail": [{"type": "forfeit_all_benefits"}],
+              "prompt": "Roll Pilot, Gunner or Mechanic 8+ vs Hierate attack — fail: lose all Benefits"}],
         4:  [{"type": "skill_choice", "options": ["Steward", "Mechanic", "Electronics"]}],
         5:  [{"type": "dm_qualification_terms_in_career"}],
         6:  [{"type": "skill_check", "skills": [{"name": "EDU", "is_stat": True}], "target": 8,
@@ -11833,8 +11833,8 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Hierate Corsair Captain]"},
-                          {"type": "forfeit_benefit"}],
-              "prompt": "Roll Tactics or Engineer 8+ vs Hierate corsairs — fail: Enemy + forfeit benefit"}],
+                          {"type": "forfeit_all_benefits"}],
+              "prompt": "Roll Tactics or Engineer 8+ vs Hierate corsairs — fail: Enemy + lose all Benefits"}],
         4:  [{"type": "pending_choice", "id": "event_aslan_smuggle",
               "prompt": "Opportunity to skim profits from commerce raiding — decline (no effect) or accept (Deception/Admin 8+)?",
               "options": [
@@ -11984,8 +11984,8 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [], "prompt": "Roll EDU 8+ to increase a skill you have"}],
         8:  [{"type": "skill_check", "skills": [{"name": "Melee"}, {"name": "Stealth"}], "target": 8,
               "on_pass": [{"type": "extra_benefit", "amount": 1}],
-              "on_fail": [{"type": "forfeit_benefit"}],
-              "prompt": "Roll Melee or Stealth 8+ vs attackers — pass: extra Benefit; fail: forfeit Benefit"}],
+              "on_fail": [{"type": "forfeit_all_benefits"}],
+              "prompt": "Roll Melee or Stealth 8+ vs attackers — pass: extra Benefit; fail: lose all Benefits"}],
         9:  [{"type": "skill_choice", "options": ["Deception", "Stealth", "Streetwise"]}],
         10: [{"type": "ally", "desc": "Ally [Fellow Slave / Shrine Community]"},
              {"type": "skill_choice", "options": ["Carouse", "Art", "Language"]}],
@@ -12723,8 +12723,8 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         8:  [{"type": "skill_check",
               "skills": [{"name": "Melee"}, {"name": "Stealth"}], "target": 8,
               "on_pass": [{"type": "extra_benefit", "amount": 1}],
-              "on_fail": [{"type": "forfeit_benefit"}],
-              "prompt": "Attacked by thieves — roll Melee 10+ or Stealth 8+ to fight/escape: pass extra Benefit; fail forfeit Benefit"}],
+              "on_fail": [{"type": "forfeit_all_benefits"}],
+              "prompt": "Attacked by thieves — roll Melee 10+ or Stealth 8+ to fight/escape: pass extra Benefit; fail lose all Benefits"}],
         9:  [{"type": "pending_choice", "id": "aslan_outcast_join_ihatei",
               "prompt": "An ihatei offers you a place in their retinue — join or decline?",
               "options": [
@@ -13848,6 +13848,56 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Tactics", "level": 1},
              {"type": "contact", "desc": "Contact [Outside Hiver Society]"}],
     },
+    # ---- Imperial Guard ----
+    "imperial_guard": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "END", "is_stat": True}, {"name": "STR", "is_stat": True}],
+              "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Athletics", "Gun Combat"]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Suppress planetary uprising — roll END 8+ or STR 8+: pass skill; fail Injury"}],
+        4:  [{"type": "skill_choice", "options": ["Admin", "Carouse"]}],
+        5:  [{"type": "skill", "name": "Melee", "level": 1, "speciality": "Blade"},
+             {"type": "contact", "desc": "Contact [Imperial Nobility]"}],
+        6:  [{"type": "skill_choice", "options": ["Gun Combat", "Tactics (Military)"]}],
+        7:  [],  # Life Event
+        8:  [{"type": "skill_choice", "options": ["Diplomat", "Carouse"]},
+             {"type": "d_associates", "kind": "contact", "dice": "D3",
+              "desc_prefix": "Contact [Imperial Nobility]"}],
+        9:  [{"type": "skill_choice", "options": ["Stealth", "Recon"]}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "auto_advance"}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "extra_benefit", "amount": 2}],
+    },
+
+    # ---- INI (Imperial Naval Intelligence) ----
+    "ini": {
+        2:  [{"type": "trigger_disaster_mishap"}],
+        3:  [{"type": "skill_check",
+              "skills": [{"name": "INT", "is_stat": True}],
+              "target": 8,
+              "on_pass": [{"type": "skill_choice", "options": ["Deception", "Stealth"]}],
+              "on_fail": [{"type": "injury"}],
+              "prompt": "Network compromised — roll INT 8+: pass skill; fail Injury"}],
+        4:  [{"type": "skill_choice", "options": ["Admin", "Electronics"]}],
+        5:  [{"type": "skill", "name": "Persuade", "level": 1},
+             {"type": "contact", "desc": "Contact [Asset in Enemy Organisation]"}],
+        6:  [{"type": "skill_choice", "options": ["Streetwise", "Deception"]}],
+        7:  [],  # Life Event
+        8:  [{"type": "skill_choice", "options": ["Electronics", "Investigate"]},
+             {"type": "d_associates", "kind": "contact", "dice": "D3",
+              "desc_prefix": "Contact [Intelligence Network]"}],
+        9:  [{"type": "skill_choice", "options": ["Stealth", "Gun Combat"]}],
+        10: [{"type": "dm_advancement", "amount": 2}],
+        11: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "auto_advance"}],
+        12: [{"type": "stat", "stat": "SOC", "amount": 1},
+             {"type": "extra_benefit", "amount": 2}],
+    },
+
     # ---- Storm Knight careers ----
     "storm_knight_thunder": {
         2:  [{"type": "trigger_disaster_mishap"}],
@@ -14086,10 +14136,10 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "merchant": {
         1: [{"type": "injury_severity_choice"}],
-        2: [{"type": "enemy", "desc": "Enemy [Pirates/Corsairs]"}, {"type": "forfeit_benefit"}],
-        3: [{"type": "forfeit_benefit"}],
+        2: [{"type": "enemy", "desc": "Enemy [Pirates/Corsairs]"}, {"type": "forfeit_all_benefits"}],
+        3: [{"type": "forfeit_all_benefits"}],   # "Benefit rolls from this term are forfeit"
         4: [{"type": "rival", "desc": "Rival [Political/Legal Dispute]"}],
-        5: [{"type": "forfeit_benefit"}],
+        5: [{"type": "forfeit_benefit"}],         # "one less Benefit roll" — single roll only
         6: [{"type": "injury"}],
     },
     "navy": {
@@ -14123,7 +14173,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     "rogue": {
         1: [{"type": "injury_severity_choice"}],
         2: [{"type": "force_next_career", "career_id": "prisoner"}, {"type": "forfeit_benefit"}],
-        3: [{"type": "enemy", "desc": "Enemy [Crime Job]"}, {"type": "forfeit_benefit"}],
+        3: [{"type": "enemy", "desc": "Enemy [Crime Job]"}, {"type": "forfeit_all_benefits"}],
         4: [{"type": "enemy", "desc": "Enemy [Partner in Crime]"}],
         5: [],  # forced to flee — narrative
         6: [{"type": "injury"}],
@@ -14648,7 +14698,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         4: [{"type": "skill_loss_choice",
              "prompt": "Your training suffered — lose one level in a skill you possess (choose which):"},
             {"type": "career_continues"}],
-        5: [{"type": "forfeit_benefit"},
+        5: [{"type": "forfeit_all_benefits"},
             {"type": "career_continues"}],
         6: [{"type": "d_associates", "kind": "rival", "dice": "D3"}],
     },
@@ -14786,8 +14836,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         # 2: Co-worker sabotage — Enemy + Re-education
         2: [{"type": "enemy", "desc": "Enemy [Sabotaging Co-worker]"},
             {"type": "zhodani_re_education"}],
-        # 3: Economic hardship — forfeit this term's benefit rolls
-        3: [{"type": "forfeit_benefit"}],
+        # 3: Economic hardship — "Lose all Benefit rolls for this term"
+        3: [{"type": "forfeit_all_benefits"}],
         # 4: Attack or unusual event — Re-education
         4: [{"type": "zhodani_re_education"}],
         # 5: Family member/lover killed — lose Ally/Contact + Re-education
@@ -15222,13 +15272,15 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
         1: [{"type": "injury"}],
         2: [{"type": "stat", "stat": "SOC", "amount": -1}],
         3: [{"type": "enemy", "desc": "Enemy [Rival Loner]"}],
+        # Mishap 4: "you may remain in this career but you lose all Benefit rolls"
         4: [{"type": "skill_choice", "options": ["Animals (handling)", "Recon", "Survival"]},
-            {"type": "forfeit_benefit"}],
-        5: [{"type": "forfeit_benefit"},
+            {"type": "forfeit_all_benefits"},
+            {"type": "career_continues"}],
+        5: [{"type": "forfeit_all_benefits"},
             {"type": "skill_check", "skills": [{"name": "END", "is_stat": True}], "target": 6,
              "on_pass": [],
              "on_fail": [{"type": "injury"}],
-             "prompt": "Ambushed by corsairs (benefit forfeited always) — roll END 6+: fail also roll on Injury table"}],
+             "prompt": "Ambushed by corsairs (all benefits forfeited) — roll END 6+: fail also roll on Injury table"}],
         6: [],  # Gap in memory — no mechanical effect
     },
 
@@ -15265,7 +15317,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
                          {"type": "rival", "desc": "Rival [Ambitious Employee]"}],
              "on_fail": [{"type": "enemy", "desc": "Enemy [Ambitious Employee — ousted you]"}],
              "prompt": "Employee bids for pack leadership — roll SOC 8+: pass stay + Rival; fail Enemy and lose business"}],
-        6: [{"type": "forfeit_benefit"}],
+        6: [{"type": "forfeit_all_benefits"}],
     },
 
     "vargr_navy": {
@@ -15368,8 +15420,8 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
             {"type": "rank_loss", "amount": 1}],
         4: [{"type": "stat", "stat": "END", "amount": -1}],
         5: [{"type": "rival", "desc": "Rival [Order Betrayer]"}],
-        6: [{"type": "career_continues"},   # identity burned — lose Benefits + SOC, stay
-            {"type": "forfeit_benefit"},
+        6: [{"type": "career_continues"},   # identity burned — lose ALL Benefits + SOC, stay
+            {"type": "forfeit_all_benefits"},
             {"type": "stat", "stat": "SOC", "amount": -1}],
     },
 
