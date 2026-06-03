@@ -6653,10 +6653,13 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
 
     elif etype == "skill_loss_choice":
         if not character.pending_career_mishap_choice:
-            character.pending_career_mishap_choice = {
+            _slc = {
                 "type": "skill_loss_choice",
                 "prompt": effect.get("prompt", "Lose one level in a skill you possess (choose which):"),
             }
+            if effect.get("filter"):
+                _slc["filter"] = effect["filter"]   # e.g. "Science" restricts picker to Science skills
+            character.pending_career_mishap_choice = _slc
             set_pending = True
 
     elif etype == "forfeit_benefit":
@@ -7416,22 +7419,29 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         if not skill:
             raise ValueError("skill_loss_choice requires a 'skill' key in choice_data")
         sn, spec = _split_skill_speciality(skill)
-        # Find current level — look for base name or speciality match
-        old_level = character.skills.get(skill, character.skills.get(sn, 0))
-        if old_level <= 0:
-            auto_applied.append(f"{skill} already at 0 — no change")
-        elif old_level == 1:
-            # Remove the skill entirely at level 0
-            character.skills.pop(skill, None)
-            character.skills.pop(sn, None)
-            auto_applied.append(f"{skill} reduced to 0 (removed)")
-            character.log(f"Mishap skill loss: {skill} removed (was 1)")
+        # Find the matching Skill object in the list (character.skills is a list, not a dict)
+        matched: Optional["Skill"] = None
+        for sk in character.skills:
+            if sk.name == sn and (sk.speciality or "").lower() == (spec or "").lower():
+                matched = sk
+                break
+        if matched is None:
+            # Try base-name-only match (ignore speciality)
+            for sk in character.skills:
+                if sk.name == sn:
+                    matched = sk
+                    break
+        if matched is None:
+            auto_applied.append(f"{skill} not found on this character — no level lost")
+            character.log(f"Mishap skill loss: {skill} not found, no change")
+        elif matched.level <= 0:
+            auto_applied.append(f"{skill} already at level 0 — no further reduction")
+            character.log(f"Mishap skill loss: {skill} already at 0")
         else:
-            new_level = old_level - 1
-            key = skill if skill in character.skills else sn
-            character.skills[key] = new_level
-            auto_applied.append(f"{skill} reduced {old_level}→{new_level}")
-            character.log(f"Mishap skill loss: {skill} {old_level}→{new_level}")
+            old_lvl = matched.level
+            matched.level -= 1
+            auto_applied.append(f"{skill} {old_lvl}→{matched.level}")
+            character.log(f"Mishap skill loss: {skill} {old_lvl}→{matched.level}")
         character.pending_career_mishap_choice = None
 
     elif ptype == "pending_choice":
@@ -15383,6 +15393,7 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
             {"type": "d_stat", "stat": "FOL", "dice": "D3", "negative": True},
             {"type": "career_continues"}],
         4: [{"type": "skill_loss_choice",
+             "filter": "Science",
              "prompt": "Lose 1 skill level from any Science skill you possess:"},
             {"type": "career_continues"}],
         5: [{"type": "forfeit_all_benefits"},
