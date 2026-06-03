@@ -11640,39 +11640,115 @@ function renderTASTab(tab) {
   return '';
 }
 
-// Open the sheet in a standalone window (reads the live CSS from the page).
+// Open the sheet in a standalone window with a theme/colour switcher for printing.
 function openTASFullscreen() {
-  const cssHref = Array.from(document.styleSheets)
+  const cssLinks = Array.from(document.styleSheets)
     .map(s => { try { return s.href; } catch(e) { return null; } })
-    .filter(Boolean)
-    .join('\n')
-    .split('\n').filter(h => h)
+    .filter(h => h && !h.includes('fonts.googleapis'))
     .map(h => `<link rel="stylesheet" href="${h}" />`)
     .join('\n');
   const sheetHTML = document.getElementById('tas-sheet-mount')?.innerHTML || '';
-  const w = window.open('', '_blank', 'width=900,height=900,scrollbars=yes,resizable=yes');
+  const charName = (character.name || 'Traveller');
+  const w = window.open('', '_blank', 'width=920,height=960,scrollbars=yes,resizable=yes');
   if (!w) return;
   w.document.write(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${(character.name || 'Traveller')} — Character Sheet</title>
+  <title>${charName} — Character Sheet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=VT323&family=Cormorant+Garamond:wght@400;600;700&display=swap" />
-  ${cssHref}
+  ${cssLinks}
   <style>
-    body { margin: 0; padding: 16px; background: #0a0806; }
+    /* ── base layout ── */
+    body { margin: 0; padding: 0 16px 24px; background: var(--bg-deep, #0a0806); }
     .tas-sheet { max-width: 860px; margin: 0 auto; }
-    .tas-btn-fullscreen { display: none; }
+    .tas-btn-fullscreen { display: none !important; }
+    button, input { pointer-events: none; opacity: 0.7; }
+    label.tas-portrait { pointer-events: none; }
+
+    /* ── colour switcher toolbar ── */
+    #sheet-toolbar {
+      max-width: 860px; margin: 0 auto; padding: 8px 2px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    }
+    #sheet-toolbar span { color: #9a8064; letter-spacing: 1px; }
+    .tb-btn {
+      padding: 4px 12px; border-radius: 4px; cursor: pointer; border: 1px solid;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      transition: opacity 0.15s;
+    }
+    .tb-btn:hover { opacity: 0.85; }
+    .tb-amber  { background:#120e0a; border-color:#6b4a20; color:#ffb347; }
+    .tb-green  { background:#0a120a; border-color:#3fa85c; color:#6fff8f; }
+    .tb-print  { background:#ffffff; border-color:#aaaaaa; color:#111111; }
+    .tb-print-dark { background:#111111; border-color:#444444; color:#eeeeee; }
+    .tb-active { outline: 2px solid currentColor; outline-offset: 2px; }
+    .tb-sep { flex: 1; }
+    .tb-print-btn {
+      padding: 4px 14px; border-radius: 4px; cursor: pointer;
+      border: 1px solid #c0392b; background: rgba(192,57,43,0.15); color: #e0503e;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+    }
+    .tb-print-btn:hover { background: rgba(192,57,43,0.3); }
+
+    /* ── PRINT mode: black on white ── */
+    body.theme-print {
+      --bg-deep: #ffffff; --bg-panel: #f8f8f8; --bg-panel-alt: #eeeeee;
+      --border: #cccccc; --border-glow: #999999;
+      --amber: #111111; --amber-bright: #000000; --amber-dim: #444444;
+      --amber-deep: #333333; --cream: #111111; --muted: #555555;
+      --danger: #000000; --danger-bg: #f0f0f0;
+      --success: #111111; --tint-rgb: 0,0,0;
+      background: #ffffff;
+    }
+    body.theme-print .tas-form-top { background: #111111; color: #ffffff; }
+    body.theme-print .tas-stat-val { text-shadow: none; }
+    body.theme-print .tas-skill.trained { background: #eeeeee; }
+
+    /* ── PRINT DARK: white on black ── */
+    body.theme-print-dark {
+      --bg-deep: #000000; --bg-panel: #0d0d0d; --bg-panel-alt: #1a1a1a;
+      --border: #333333; --border-glow: #555555;
+      --amber: #eeeeee; --amber-bright: #ffffff; --amber-dim: #aaaaaa;
+      --amber-deep: #666666; --cream: #dddddd; --muted: #777777;
+      --danger: #cccccc; --danger-bg: rgba(200,200,200,0.1);
+      --success: #aaaaaa; --tint-rgb: 220,220,220;
+      background: #000000;
+    }
+    body.theme-print-dark .tas-form-top { background: #222222; }
+    body.theme-print-dark .tas-stat-val { text-shadow: none; }
+
+    /* ── suppress toolbar when printing ── */
+    @media print {
+      #sheet-toolbar { display: none !important; }
+      body { padding: 0; }
+      .tas-sheet { box-shadow: none !important; border: none !important; }
+    }
   </style>
 </head>
 <body>
+  <div id="sheet-toolbar">
+    <span>COLOUR:</span>
+    <button class="tb-btn tb-amber tb-active" data-theme="">AMBER</button>
+    <button class="tb-btn tb-green"           data-theme="gm-active">GREEN</button>
+    <button class="tb-btn tb-print"           data-theme="theme-print">B &amp;W PRINT</button>
+    <button class="tb-btn tb-print-dark"      data-theme="theme-print-dark">DARK PRINT</button>
+    <span class="tb-sep"></span>
+    <button class="tb-print-btn" onclick="window.print()">⎙ PRINT</button>
+  </div>
   ${sheetHTML}
   <script>
-    // Disable all interactive controls (sheet is for display/print in this window)
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('button,input').forEach(el => { el.disabled = true; });
+    document.querySelectorAll('[data-theme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const themes = ['gm-active','theme-print','theme-print-dark'];
+        themes.forEach(t => document.body.classList.remove(t));
+        if (btn.dataset.theme) document.body.classList.add(btn.dataset.theme);
+        document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('tb-active'));
+        btn.classList.add('tb-active');
+      });
     });
   <\/script>
 </body>
