@@ -11255,7 +11255,7 @@ function renderDonePhase() {
       <div class="done-card tas-sheet-card">
         <h3 class="done-card-title">Character Sheet</h3>
         <p class="empty" style="margin-bottom:10px">Interactive Mongoose Traveller 2e sheet — click a stat or skill to roll, track wounds, conditions, weapons and gear. Use your browser's Print command to print it.</p>
-        <div id="tas-sheet-mount">${renderTASSheetSafe()}</div>
+        <div id="tas-sheet-mount">${renderTASSheet()}</div>
       </div>
     </div>
   `;
