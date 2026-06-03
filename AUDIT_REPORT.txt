@@ -1,0 +1,489 @@
+========================================================================================================================
+COMPREHENSIVE CAREER AUDIT REPORT
+========================================================================================================================
+
+SUMMARY
+------------------------------------------------------------------------------------------------------------------------
+Total Issues: 94
+  CRITICAL: 8
+  MEDIUM: 86
+
+========================================================================================================================
+CRITICAL ISSUES (must fix)
+========================================================================================================================
+
+Career: droyne_drone
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  The Oytrip prospers due to the diligence of its members. Your Leaders are please
+
+Career: droyne_leader
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  Everything is as it should be.
+
+Career: droyne_sport
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  The Oytrip prospers. All is well.
+
+Career: droyne_technician
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  You carry out your duties. The Oytrip suffers few breakdowns and equipment probl
+
+Career: droyne_warrior
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  You guard the Oytrip. The Oytrip prospers.
+
+Career: droyne_worker
+  Item:    event 7
+  Problem: Missing from _EVENT_EFFECTS
+  Detail:  You work every day. The Oytrip prospers.
+
+Career: imperial_guard
+  Item:    all mishaps
+  Problem: NO _MISHAP_EFFECTS entry
+  Detail:  6 mishaps
+
+Career: ini
+  Item:    all mishaps
+  Problem: NO _MISHAP_EFFECTS entry
+  Detail:  6 mishaps
+
+
+========================================================================================================================
+MEDIUM ISSUES (should fix)
+========================================================================================================================
+
+Career: agent
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: army
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: aslan_ceremonial
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_envoy
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_management
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_military
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_military_officer
+  Item:    event 10
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept 
+
+Career: aslan_military_officer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_outcast
+  Item:    mishap 2
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  Your friends desert you. Lose an Ally or Contact. If you have none, lose all Ben
+
+Career: aslan_scientist
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_space_officer
+  Item:    event 10
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  You are challenged to a duel by a rival. If you refuse, you lose SOC −1D. Accept
+
+Career: aslan_space_officer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_spacer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: aslan_spacer
+  Item:    mishap 5
+  Problem: 'not ejected' but no career_continues
+  Detail:  You get into trouble on an alien world. Roll Tolerance 8+; if you succeed, you l
+
+Career: aslan_wanderer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: believer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: believer
+  Item:    event 9
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  You are offered substantial inducements to betray your faith. If you betray it, 
+
+Career: citizen
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: confederation_army
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: confederation_navy
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: confederation_navy
+  Item:    mishap 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  You spend the entire term in the Frozen Watch, in cold sleep within a cryoberth.
+
+Career: dolphin_civilian
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: dolphin_military
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: drifter
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: drifter
+  Item:    event 6
+  Problem: 'not ejected' but no career_continues
+  Detail:  You are hired for a brief but dangerous job. Roll END 8+; on success, gain DM+2 
+
+Career: entertainer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: ge_fleet
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: ge_fleet
+  Item:    mishap 3
+  Problem: 'not ejected' but no career_continues
+  Detail:  You are infected by an alien parasite. Roll END 8+; if you succeed, you do not l
+
+Career: ge_fleet_officer
+  Item:    event 10
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept 
+
+Career: ge_fleet_officer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: ge_fleet_officer
+  Item:    mishap 2
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  Your ship is crippled in battle with the Hierate and you are blamed. Roll Advoca
+
+Career: ge_landless_one
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: ge_landless_one
+  Item:    mishap 2
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  Your friends desert you. Lose an Ally or Contact. If you have none, lose all Ben
+
+Career: ge_slave
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: ge_warrior_officer
+  Item:    event 10
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  You are challenged to a duel by a rival. If you refuse, you lose 1D SOC. Accept 
+
+Career: ge_warrior_officer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: girug_kagh_translator
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from the career.
+
+Career: kkree_merchant
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: kkree_noble
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: kkree_pastoral
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: kkree_servant
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: marine
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: merchant
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: merchant
+  Item:    event 3
+  Problem: 'not ejected' but no career_continues
+  Detail:  Your ship is attacked. Roll Gun Combat 8+ or Gunner 8+ to escape; on failure, ro
+
+Career: merchant
+  Item:    event 9
+  Problem: 'not ejected' but no career_continues
+  Detail:  You are pursued by creditors, authorities or pirates. Roll Pilot 8+ or Deception
+
+Career: navy
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: navy
+  Item:    event 3
+  Problem: 'not ejected' but no career_continues
+  Detail:  Your ship engages an enemy vessel. Roll Gunner 8+ or Tactics (Naval) 8+; on succ
+
+Career: noble
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: party
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: philosopher_elder
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: prisoner
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected.
+
+Career: psion
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: rogue
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: rogue
+  Item:    event 3
+  Problem: 'not ejected' but no career_continues
+  Detail:  A job goes wrong and you are pursued by the law. Roll Stealth 8+ or Deception 8+
+
+Career: rogue
+  Item:    event 8
+  Problem: 'not ejected' but no career_continues
+  Detail:  You are given a delicate job by a major criminal syndicate. Roll Stealth 8+ or D
+
+Career: scholar
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: scout
+  Item:    event 10
+  Problem: 'not ejected' but no career_continues
+  Detail:  You spend a great deal of time on the fringes of Charted Space. Roll Survival 8+
+
+Career: scout
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: scout
+  Item:    event 8
+  Problem: 'not ejected' but no career_continues
+  Detail:  When dealing with an alien race, you have an opportunity to gather extra intelli
+
+Career: solomani_marine
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: solsec
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table, but you are not ejected from this career.
+
+Career: solsec
+  Item:    event 5
+  Problem: 'not ejected' but no career_continues
+  Detail:  You are sent on a cross-border operation into Imperial space. Roll Deception or 
+
+Career: spirit_singer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: truther
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: vargr_army
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: vargr_citizen
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap table but you are not ejected from this career.
+
+Career: vargr_corsair
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_emissary
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table, but you are not ejected from this career.
+
+Career: vargr_law_enforcement
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_loner
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_marines
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_merchant
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_navy
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_psion
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: vargr_scientist
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: zhodani_agent
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_agent
+  Item:    event 9
+  Problem: 'not ejected' but no career_continues
+  Detail:  You go undercover to investigate an enemy. Roll Investigate 8+. If successful, r
+
+Career: zhodani_army
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_entertainer
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_government
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career.
+
+Career: zhodani_guard
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps Table but you are not ejected from this career.
+
+Career: zhodani_merchant
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_navy
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_prole
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishap Table but you are not ejected from this career.
+
+Career: zhodani_scholar
+  Item:    event 2
+  Problem: 'not ejected' but no career_continues
+  Detail:  Disaster! Roll on the Mishaps table but you are not ejected from this career, ev
+
+Career: zhodani_scholar
+  Item:    mishap 3
+  Problem: 'lose all benefits' but no forfeit_all_benefits
+  Detail:  The planetary government interferes with your research for political reasons. If
+
