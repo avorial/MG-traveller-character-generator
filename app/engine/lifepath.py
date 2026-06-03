@@ -7372,6 +7372,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
     elif ptype == "skill_choice":
         skill = choice_data["skill"]
         options = pending.get("options", [])
+        skill_level = int(pending.get("level", 1))   # custom level (e.g. 2 for Truther event 9)
         # Empty options list means "any skill" — skip validation
         if options and skill not in options:
             raise ValueError(f"'{skill}' not in options {options}")
@@ -7406,7 +7407,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             # Strip literal "(any)" speciality — shouldn't be stored as a real speciality
             if spec and spec.lower() == "any":
                 spec = None
-            msg = character.add_skill(sn, level=1, speciality=spec)
+            msg = character.add_skill(sn, level=skill_level, speciality=spec)
             auto_applied.append(msg)
             character.pending_career_mishap_choice = None
 
@@ -10161,6 +10162,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 character.pending_career_mishap_choice = {
                     "type": "skill_choice",
                     "options": options,
+                    "level": 2,   # rulebook: "two levels in any of the following skills"
                     "prompt": "Choose Science/Medic/Electronics specialty to gain 2 levels in:",
                 }
                 for _ in range(d3_enemies):
@@ -13937,7 +13939,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "decline", "label": "Decline — no effect"},
               ]}],
         4:  [{"type": "contact", "desc": "Contact [Secret Research Project]"},
-             {"type": "good_fortune_benefit_dm", "amount": 1}],
+             {"type": "dm_benefit", "amount": 1}],
         5:  [{"type": "pending_choice", "id": "truther_event5",
               "prompt": "Crash course — gain 1 level in an Electronics or Science skill you don't already have:",
               "options": [{"id": "pick", "label": "Choose Electronics or Science specialty you don't possess"}]}],
