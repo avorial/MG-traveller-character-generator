@@ -11829,7 +11829,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "ge_fleet_officer": {
-        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}, {"type": "forfeit_all_benefits"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Hierate Corsair Captain]"},
@@ -11949,7 +11949,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ]}],
     },
     "ge_landless_one": {
-        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}, {"type": "forfeit_all_benefits"}],
         3:  [{"type": "extra_benefit", "amount": 1},
              {"type": "skill_choice", "options": ["Streetwise", "Broker"]}],
         4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
@@ -12714,7 +12714,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Aslan Outcast ----
     "aslan_outcast": {
-        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}, {"type": "forfeit_all_benefits"}],
         3:  [{"type": "dm_qualification", "amount": 4}],
         4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
         5:  [{"type": "skill_choice",

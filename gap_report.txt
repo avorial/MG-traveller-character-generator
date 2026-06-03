@@ -1,0 +1,89 @@
+=== VARGR: Entire _MISHAP_EFFECTS block is MISSING ===
+
+  vargr_army mishaps:
+    1: Severely injured in action. Roll twice on the Injury table and take the lower result.
+    2: Most of your unit are killed in battle, for which you blame your pack leader. With no other survivors to witness their l
+    3: You are sent to a hostile region to battle guerrilla fighters and rebels. You are discharged due to stress or injury. In
+    4: You discover your pack leader is involved in illegal activities such as weapon or drug smuggling. You can join their rin
+    5: You fail a critical mission. Lose SOC −1 and leave the service.
+    6: Injured. Roll on the Injury table.
+
+  vargr_citizen mishaps:
+    1: Injured. Roll on the Injury table.
+    2: You make a terrible mistake in your job causing a halt in production or the loss of a client. Lose SOC −1 and suffer DM-
+    3: Hard times caused by a poor economic climate puts you out of a job. You must change your career.
+    4: The company you work for is suspected of illegal activities. You can aid in the investigations and gain DM+2 to the Qual
+    5: A revolution, attack or other unusual event forces you to leave the planet. Roll SOC 7+ to find a new pack or receive DM
+    6: A power struggle in your pack ends badly for you. Lose SOC −1 and gain a Rival.
+
+  vargr_corsair mishaps:
+    1: Severely injured in action. Roll twice on the Injury table and take the lower result.
+    2: You are arrested but are able to pay a fine to earn your freedom. Lose one Benefit roll from this career and lose SOC −1
+    3: You are betrayed by a member of your band, ending your career as a Corsair. If you have an Ally or Contact in the band, 
+    4: A job goes wrong and the pack looks for new leadership. Roll SOC 8+ to support the winning side. If you fail, you are fo
+    5: You make a mistake forcing your pack to flee from the local law enforcement. Lose SOC −1 and you are forced to leave you
+    6: Injured. Roll on the Injury table.
+
+  vargr_emissary mishaps:
+    1: Injured. Roll on the Injury table.
+    2: Your failed negotiations earn you a bad reputation. You are forced out of your position and lose SOC −1.
+    3: You are outclassed by another Emissary. Gain them as a Rival and roll SOC 6+ to avoid losing SOC −1 in the fallout.
+    4: Failed dealings force your pack to look for new leadership. Roll SOC 8+ to support the winning side. If you fail, suffer
+    5: An assassin attempts to take your life. Roll END or Melee (Infighting) 8+. If you fail, roll on the Injury table. If you
+    6: An opposing Emissary attempts to humiliate you. Roll Broker, Diplomat or Persuade 10+ to outmanoeuvre them. If you succe
+
+  vargr_law_enforcement mishaps:
+    1: Severely injured in action. Roll twice on the Injury table and take the lower result.
+    2: A charismatic criminal under investigation offers you a deal. Accept and you are forced from this career and lose SOC −1
+    3: An investigation goes critically wrong, ending your career. Roll Advocate 8+. If you succeed you may keep the Benefit ro
+    4: A failed investigation forces your pack to find new leadership. Roll SOC 8+ to be on the winning side and remain in this
+    5: You uncover important information and people want to kill you for it. Gain one Enemy and suffer DM-2 to your next Surviv
+    6: Injured. Roll on the Injury table.
+
+  vargr_loner mishaps:
+    1: Injured. Roll on the Injury table.
+    2: You fail to provide for your pack or find suitable territory. Lose SOC −1.
+    3: Another Loner is operating in the area and you struggle to be successful. Gain them as an Enemy.
+    4: You crash on an uninhabited world or are stranded in a hostile region. Gain one of Animals 1, Recon 1 or Survival 1. You
+    5: You are ambushed by a corsair band and lose all Benefit rolls for this term. Roll END 6+. If you fail, roll on the Injur
+    6: There is a gap in your memory and you have no idea what happened to you.
+
+  vargr_marines mishaps:
+    1: Severely injured in action. Roll twice on the Injury table and take the lower result.
+    2: You are captured and tortured by an opposing force. Lose SOC −1 and roll END 8+. If you fail, roll on the Injury table.
+    3: Your pack fails to defeat an enemy or corsair band. Lose SOC −1 and gain the opponent as an Enemy.
+    4: A mission goes wrong and you are stranded behind enemy lines. Increase Stealth or Survival by one level but due to the f
+    5: You oppose your pack leader but fail to win over the rest of the pack. Roll SOC 8+. If you fail, you are ejected from th
+    6: Injured. Roll on the Injury table.
+
+  vargr_merchant mishaps:
+    1: Injured. Roll on the Injury table.
+    2: A war or local hostilities block trade routes, putting you out of business. Roll END 8+. If you fail, roll on the Injury
+    3: You, or a member of your business pack, were involved in illegal activities. Your business is closed and you lose SOC −1
+    4: A rival company puts you out of business. You keep your Benefit roll for this term but gain the rival merchant as a Riva
+    5: One of your employees attempts to take leadership of the pack. Roll SOC 8+. If you fail, you lose your business and gain
+    6: The economic climate hits you hard forcing you into bankruptcy. Your business fails and you lose all Benefit rolls for t
+
+  vargr_navy mishaps:
+    1: Severely injured in action. Roll twice on the Injury table and take the lower result.
+    2: You compete with another pack member for power and respect. Gain a Rival.
+    3: Your pack fails to defeat an enemy or corsair band. Lose SOC −1 and gain the opponent as an Enemy.
+    4: You make a critical mistake in battle causing your ship to be disabled. Lose SOC −1 and you are dismissed from service.
+    5: There is a power struggle in your pack and you support the losing side. Roll SOC 8+. If you fail, you suffer DM-2 to you
+    6: Injured. Roll on the Injury table.
+
+  vargr_psion mishaps:
+    1: Injured. Roll on the Injury table.
+    2: You make telepathic contact with an unknown entity. You go missing for 1D days and have no memory of the event. If the r
+    3: Your pack discovers you are a psion and does not look favourably on your kind. You are humiliated and outcast from the p
+    4: You visit a world where psionics are outlawed. You are arrested and your time in prison forces you to leave this career.
+    5: You join a pack of other psions and lose the power struggle for leadership. Gain a Rival.
+    6: You are experimented on by a corporation, government or psionic institute. Roll 1D: on a 1–2 you suffer an injury (roll 
+
+  vargr_scientist mishaps:
+    1: Injured. Roll on the Injury table.
+    2: A lab accident exposes you to a dangerous substance. Lose END −1.
+    3: An experiment goes critically wrong and causes the death of several pack members. You are forced to leave this career an
+    4: You are assigned to an off-world laboratory but your ship crashes en route. Gain Survival 1 and roll END 8+. If you fail
+    5: Your employers cancel your research. You may continue this career but gain no Benefit rolls this term. Alternatively, ro
+    6: A rival scientist discredits you or steals your research. Gain a Rival, lose SOC −1 and suffer DM-2 to your next Surviva

@@ -1,0 +1,784 @@
+{
+  "vargr_army": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "You are assigned to a hostile planet. Gain one of Vacc Suit 1, Engineer (any) 1 or Survival 1.",
+      "4": "You are assigned to a war-torn urban region. Gain one of Stealth 1, Streetwise 1, Persuade 1 or Recon 1.",
+      "5": "Your pack is given a special assignment or duty. Gain DM+1 to one Benefit roll for this career or SOC +1.",
+      "6": "You are thrown into a brutal ground war and your leader is killed. Roll END 8+ to avoid injury; if successful, gain one level in Gun Combat (any) or Leadership and roll SOC 8+ to become the pack leader, gaining an automatic promotion.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You receive advanced training. Roll EDU 8+ to increase any one skill you already have by one level.",
+      "9": "Surrounded by a superior enemy, you hold out until relief arrives. Gain DM+1 to your next Advancement roll or SOC +1.",
+      "10": "You are assigned to a peacekeeping role. Gain one of Admin 1, Investigate 1, Recon 1 or SOC +1.",
+      "11": "You save your pack leader's life in battle. Gain them as an Ally and receive DM+2 to your next Advancement roll.",
+      "12": "You perform a heroic deed in battle. Gain SOC +1 and an automatic promotion."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "Most of your unit are killed in battle, for which you blame your pack leader. With no other survivors to witness their lack of skill, they have you removed from the service. Lose SOC \u22121 and gain them as an Enemy.",
+      "3": "You are sent to a hostile region to battle guerrilla fighters and rebels. You are discharged due to stress or injury. Increase Recon or Survival by one level and lose SOC \u22121.",
+      "4": "You discover your pack leader is involved in illegal activities such as weapon or drug smuggling. You can join their ring and gain them as an Ally before the inevitable investigation gets you discharged and you lose SOC \u22121, or you can testify against them \u2014 gaining SOC +1 but they become an Enemy and you are discharged as part of the official cover-up.",
+      "5": "You fail a critical mission. Lose SOC \u22121 and leave the service.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "vargr_citizen": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "A power struggle in your pack forces you to choose sides. Roll SOC 8+ to support the winning side and gain DM+2 to your next Advancement roll. If you fail, suffer DM-2 to your next Survival roll.",
+      "4": "You enrol for further education. Roll on the Advanced Education skills table whether you qualify for it or not.",
+      "5": "Your corporation or organisation grows. Gain DM+1 to one Benefit roll.",
+      "6": "You receive advanced training. Roll EDU 8+ to increase one skill you already have by one level.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You learn a corporate secret or political scandal. If you choose to profit by this, gain DM+2 to your next Advancement roll, DM+1 to one Benefit roll from this career, lose SOC \u22121, and gain one of Streetwise 1, Deception 1 or a criminal Contact.",
+      "9": "Your pack leader praises you on your excellent work. Gain DM+2 to your next Advancement roll.",
+      "10": "Your leader is losing the respect of the pack. Roll SOC 10+ to become the new pack leader and gain an automatic promotion.",
+      "11": "You support a pack member who becomes the new leader. Gain an Ally and DM+4 to your next Advancement roll.",
+      "12": "You are well respected by your pack and superiors. Gain SOC +1 or an automatic promotion."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "You make a terrible mistake in your job causing a halt in production or the loss of a client. Lose SOC \u22121 and suffer DM-2 to your next Advancement roll.",
+      "3": "Hard times caused by a poor economic climate puts you out of a job. You must change your career.",
+      "4": "The company you work for is suspected of illegal activities. You can aid in the investigations and gain DM+2 to the Qualification check for your next career or refuse and gain an Ally.",
+      "5": "A revolution, attack or other unusual event forces you to leave the planet. Roll SOC 7+ to find a new pack or receive DM-2 to your next Qualification roll.",
+      "6": "A power struggle in your pack ends badly for you. Lose SOC \u22121 and gain a Rival."
+    }
+  },
+  "vargr_corsair": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You are arrested and hire a lawyer who gets the charges dropped. You lose one Benefit roll from this career but gain the lawyer as a Contact.",
+      "4": "You are forced into hiding on a hostile world. Gain Survival 1.",
+      "5": "You gain a Contact in the criminal underworld.",
+      "6": "One of your raids is particularly successful. Gain a Benefit roll.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "Your time spent in the criminal underworld gives you one of Streetwise 1, Stealth 1, Melee (any) 1 or Gun Combat (any) 1.",
+      "9": "You become involved in a territorial war with a rival corsair band. Roll Gun Combat (any) or Melee (any) 8+ to help defeat them. Gain SOC +1 if you succeed or roll on the Injury table if you fail.",
+      "10": "Your leader uses poor judgement and your band suffers heavy losses. Roll SOC 10+ to become the new pack leader and gain an automatic promotion.",
+      "11": "You support a pack member who becomes the new leader. Gain an Ally and DM+4 to your next Advancement roll.",
+      "12": "Your raiding skills have become legendary. You gain an automatic promotion and SOC +1."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "You are arrested but are able to pay a fine to earn your freedom. Lose one Benefit roll from this career and lose SOC \u22121.",
+      "3": "You are betrayed by a member of your band, ending your career as a Corsair. If you have an Ally or Contact in the band, they are now an Enemy; otherwise gain an Enemy.",
+      "4": "A job goes wrong and the pack looks for new leadership. Roll SOC 8+ to support the winning side. If you fail, you are forced to leave the band and gain a Rival.",
+      "5": "You make a mistake forcing your pack to flee from the local law enforcement. Lose SOC \u22121 and you are forced to leave your corsair band.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "vargr_emissary": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+      "3": "Negotiations are going badly. You can either cut your losses and lose SOC \u22121, or roll Broker, Diplomat or Persuade 10+. If you fail, you lose SOC \u22121, one Benefit roll from this career and suffer DM-2 to your next Advancement roll. If you succeed, gain SOC +1 and DM+2 to your next Advancement roll.",
+      "4": "You successfully negotiate a difficult situation and are rewarded. Gain DM+1 to one Benefit roll.",
+      "5": "Through your many dealings and negotiations you have met many influential people. Roll SOC 8+ to gain an Ally. If you fail, you gain a Contact instead.",
+      "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "Your dedication and diligence to your career earns you one of Advocate 1, Broker 1 or Diplomat 1.",
+      "9": "During high-stakes negotiations, a charismatic pack leader from the opposing side offers you a lucrative deal to switch sides. If you accept, gain one Benefit roll and your previous employer becomes a Rival. If you refuse, your current employer becomes an Ally and you gain DM+2 to your next Survival roll.",
+      "10": "Your continued success has earned you much respect from your pack. Roll SOC 10+ to become pack leader and gain an automatic promotion.",
+      "11": "Your successful career has placed you in a favourable position. Gain one Benefit roll or DM+4 to your next Advancement roll.",
+      "12": "You have done exemplary work for your pack and organisation. Gain an automatic promotion and SOC +1."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "Your failed negotiations earn you a bad reputation. You are forced out of your position and lose SOC \u22121.",
+      "3": "You are outclassed by another Emissary. Gain them as a Rival and roll SOC 6+ to avoid losing SOC \u22121 in the fallout.",
+      "4": "Failed dealings force your pack to look for new leadership. Roll SOC 8+ to support the winning side. If you fail, suffer DM-2 to your next Survival roll.",
+      "5": "An assassin attempts to take your life. Roll END or Melee (Infighting) 8+. If you fail, roll on the Injury table. If you succeed, you may continue this career.",
+      "6": "An opposing Emissary attempts to humiliate you. Roll Broker, Diplomat or Persuade 10+ to outmanoeuvre them. If you succeed, you may continue in this career and gain them as a Rival. If you fail, you are forced out of your position and gain them as an Enemy."
+    }
+  },
+  "vargr_law_enforcement": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "An investigation takes a dangerous turn. Roll Investigate or Streetwise 8+. If you fail, roll on the Mishap table. If you succeed, gain SOC +1 or increase one of the following skills by one level: Deception, Jack-of-all-Trades, Stealth, Streetwise or Tactics (Military).",
+      "4": "You establish a network of contacts. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+      "5": "You are rewarded for a successful mission. Gain DM+1 to any Benefit roll from this career.",
+      "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "An investigation uncovers a warehouse full of illegal goods. You may choose to profit from your discovery and roll Deception 8+. If you fail, lose SOC \u22121 and suffer DM-4 to your next Survival roll. If you succeed, gain one Benefit roll.",
+      "9": "You go undercover to pursue an investigation. Pick another career to use as your cover and roll Deception 8+. If you fail, roll on the Mishap table for that career. If you succeed, roll on any specialist skill table for the chosen career and gain DM+2 to your next Advancement roll in this career.",
+      "10": "During a dangerous investigation you save the life of one of your pack members. Gain an Ally.",
+      "11": "Your successes have earned you much respect from your superiors. Gain DM+4 to your next Advancement roll.",
+      "12": "You solve a big case or uncover a conspiracy against your employers. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "A charismatic criminal under investigation offers you a deal. Accept and you are forced from this career and lose SOC \u22121. Refuse and you must roll on the Injury table and gain an Enemy.",
+      "3": "An investigation goes critically wrong, ending your career. Roll Advocate 8+. If you succeed you may keep the Benefit roll from this term. If you fail you lose SOC \u22121.",
+      "4": "A failed investigation forces your pack to find new leadership. Roll SOC 8+ to be on the winning side and remain in this career. If you fail, you leave your pack and career.",
+      "5": "You uncover important information and people want to kill you for it. Gain one Enemy and suffer DM-2 to your next Survival roll if you remain in this career.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "vargr_loner": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "A patron offers you a job. If you accept, gain DM+4 to your next Qualification roll and gain them as a Contact.",
+      "4": "Your independence has forced you to rely on your own specialist skills. Roll EDU 6+ to gain one skill from your specialist skill table.",
+      "5": "Your self-reliance allows you to adapt to all situations. Gain Jack-of-all-Trades 1.",
+      "6": "You are boarded or attacked by a corsair band but you have nothing of value. Roll SOC 6+. If you succeed, the Corsairs offer you a position in their band and you automatically qualify for the Corsair career. If you fail or refuse, roll on the Injury table.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You find some salvage or abandoned goods on your travels. Gain one Benefit roll.",
+      "9": "You have a successful expedition. Gain DM+1 to one Benefit roll for this career.",
+      "10": "You thrive on adversity. Roll Survival 8+. If you succeed, gain +1 to STR, DEX or END. If you fail, roll on the Injury table.",
+      "11": "You excel at your career. Gain DM+2 to your next Survival roll and DM+2 to your next Advancement roll.",
+      "12": "You hit the mother lode. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "You fail to provide for your pack or find suitable territory. Lose SOC \u22121.",
+      "3": "Another Loner is operating in the area and you struggle to be successful. Gain them as an Enemy.",
+      "4": "You crash on an uninhabited world or are stranded in a hostile region. Gain one of Animals 1, Recon 1 or Survival 1. You may remain in this career but you lose all Benefit rolls for this term.",
+      "5": "You are ambushed by a corsair band and lose all Benefit rolls for this term. Roll END 6+. If you fail, roll on the Injury table.",
+      "6": "There is a gap in your memory and you have no idea what happened to you."
+    }
+  },
+  "vargr_marines": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You are captured and tortured by an enemy. You eventually escape and gain END +1 from the ordeal.",
+      "4": "Your time aboard spacecraft has made you proficient in the space environment. Gain one level in Vacc Suit or Athletics (Dexterity).",
+      "5": "You have become an experienced fighter. Gain one level in Gun Combat, Melee or Recon.",
+      "6": "You are given advanced training. Roll EDU 8+ to gain any skill you are eligible for in this career.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You save the life of a pack member. Gain an Ally.",
+      "9": "You are assigned to a black ops mission. Gain Tactics 1 and DM+2 to your next Advancement roll.",
+      "10": "Your leader is killed and you attempt to take command of the unit. Roll SOC 8+. If you succeed, you become the pack leader and gain DM+2 to your next Advancement roll.",
+      "11": "Your skill and performance in battle earns much respect from your leader. Gain DM+4 to your next Advancement roll.",
+      "12": "You perform a heroic deed in battle. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "You are captured and tortured by an opposing force. Lose SOC \u22121 and roll END 8+. If you fail, roll on the Injury table.",
+      "3": "Your pack fails to defeat an enemy or corsair band. Lose SOC \u22121 and gain the opponent as an Enemy.",
+      "4": "A mission goes wrong and you are stranded behind enemy lines. Increase Stealth or Survival by one level but due to the failure you lose SOC \u22121 and are dismissed from service.",
+      "5": "You oppose your pack leader but fail to win over the rest of the pack. Roll SOC 8+. If you fail, you are ejected from this career. If successful, you stay on this career, gain a Rival and suffer DM-2 to your next Advancement roll.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "vargr_merchant": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You are approached by someone to buy or smuggle illegal goods for them. If you accept, roll Deception 8+ to gain a Benefit roll with DM+1. If you fail, you are arrested and lose SOC \u22121. If you refuse the deal, you gain an Enemy.",
+      "4": "You find a bargain. Gain DM+1 to any Benefit roll for this career.",
+      "5": "You enrol on a training course to further your knowledge. Roll EDU 8+ to gain any skill.",
+      "6": "Your business is suspected of illegal activities but your own efforts prove your innocence. Gain one of Advocate 1, Admin 1, Diplomat 1, Investigate 1 or Persuade 1.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You negotiate a lucrative business deal. Gain one Benefit roll.",
+      "9": "You do a lot of business with one company, preventing them from going out of business. Gain an Ally.",
+      "10": "You establish a network of business contacts. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+      "11": "You do business with an influential corporation or organisation. Gain SOC +1 and DM+2 to your next Advancement roll.",
+      "12": "Your business thrives. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "A war or local hostilities block trade routes, putting you out of business. Roll END 8+. If you fail, roll on the Injury table.",
+      "3": "You, or a member of your business pack, were involved in illegal activities. Your business is closed and you lose SOC \u22121.",
+      "4": "A rival company puts you out of business. You keep your Benefit roll for this term but gain the rival merchant as a Rival.",
+      "5": "One of your employees attempts to take leadership of the pack. Roll SOC 8+. If you fail, you lose your business and gain an Enemy. If you succeed, you may continue in this career and gain a Rival.",
+      "6": "The economic climate hits you hard forcing you into bankruptcy. Your business fails and you lose all Benefit rolls for this term."
+    }
+  },
+  "vargr_navy": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You are given a special assignment onboard ship. Gain DM+1 to any Benefit roll for this career.",
+      "4": "You help out a member of the crew. Gain a Contact.",
+      "5": "Your time aboard spacecraft has made you proficient in the space environment. Gain one level in Vacc Suit or Athletics (Dexterity).",
+      "6": "You are given advanced training. Roll EDU 8+ to gain one level in any skill you are eligible for in this career.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You have become an experienced space hand. Gain one level in Astrogation, Electronics or Pilot.",
+      "9": "You have learned to adapt to a variety of situations during your time in space. Gain Jack-of-all-Trades 1.",
+      "10": "Your leader is killed and you attempt to take command of the unit. Roll SOC 8+. If you succeed, you become the pack leader and gain DM+2 to your next Advancement roll.",
+      "11": "Your exemplary performance earns respect from your leader. Gain DM+4 to your next Advancement roll.",
+      "12": "Your quick thinking and actions save your ship from destruction. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "You compete with another pack member for power and respect. Gain a Rival.",
+      "3": "Your pack fails to defeat an enemy or corsair band. Lose SOC \u22121 and gain the opponent as an Enemy.",
+      "4": "You make a critical mistake in battle causing your ship to be disabled. Lose SOC \u22121 and you are dismissed from service.",
+      "5": "There is a power struggle in your pack and you support the losing side. Roll SOC 8+. If you fail, you suffer DM-2 to your next Advancement roll and must leave this career.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "vargr_psion": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You make telepathic contact with an unknown entity. You go missing for 1D days and have no memory of the event. If the roll for number of days was 5\u20136, you also lose PSI \u22121.",
+      "4": "You come into contact with an alien device. Roll 1D: on a 1\u20132 you are injured (roll on the Injury table); on a 3\u20134 you gain one level in a Talent you already know; on a 5\u20136 you gain PSI +1.",
+      "5": "You excel as a psion. Gain DM+1 to one Benefit roll from this career.",
+      "6": "You receive advanced training. Roll EDU 8+ to gain one level in any non-psionic skill.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You receive additional psionic training. Roll PSI 10+ to gain a new psionic talent. If you fail, gain one level in Science (Psionicology).",
+      "9": "Your quick thinking and use of psionic abilities save the life of a pack member. Gain SOC +1 and an Ally.",
+      "10": "You dedicate your spare time to psionic training. Gain PSI +1.",
+      "11": "You befriend a mentor. Gain a Contact and DM+4 to your next Advancement roll.",
+      "12": "You have a natural aptitude for psionics. You are automatically promoted."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "You make telepathic contact with an unknown entity. You go missing for 1D days and have no memory of the event. If the roll for number of days was 5 or 6, you also lose PSI \u22121.",
+      "3": "Your pack discovers you are a psion and does not look favourably on your kind. You are humiliated and outcast from the pack and community. Lose SOC \u22121 and your next Survival roll suffers DM-2.",
+      "4": "You visit a world where psionics are outlawed. You are arrested and your time in prison forces you to leave this career.",
+      "5": "You join a pack of other psions and lose the power struggle for leadership. Gain a Rival.",
+      "6": "You are experimented on by a corporation, government or psionic institute. Roll 1D: on a 1\u20132 you suffer an injury (roll on the Injury table); on a 3\u20134 you lose PSI \u22121; on a 5\u20136 there are no complications but you are forced to leave this career."
+    }
+  },
+  "vargr_scientist": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "You are assigned to a military project. Gain a Contact and one of Gun Combat 1, Engineer 1, Heavy Weapons 1 or Science 1.",
+      "4": "You are singled out and assigned to work on a secret project and forbidden to discuss it with anyone, even members of your pack. Gain Deception 1.",
+      "5": "You are assigned to an orbiting laboratory or lab ship. Gain one level in Vacc Suit or Athletics (Dexterity).",
+      "6": "You are given advanced training. Roll EDU 8+ to gain one level in any skill you are eligible for in this career.",
+      "7": "Life Event. Roll on the Vargr Life Events table.",
+      "8": "You work with several institutes and research facilities. Gain a number of Contacts equal to your SOC modifier (minimum 1).",
+      "9": "You become friends with a brilliant but eccentric mentor. Gain an Ally and one level in any Science skill.",
+      "10": "You make a minor scientific discovery. Gain SOC +1 and DM+1 to a Benefit roll from this career.",
+      "11": "You work for a prestigious organisation. Gain DM+1 to a Benefit roll from this career and DM+4 to your next Advancement roll.",
+      "12": "You make a scientific breakthrough. You are automatically promoted and gain SOC +1."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "A lab accident exposes you to a dangerous substance. Lose END \u22121.",
+      "3": "An experiment goes critically wrong and causes the death of several pack members. You are forced to leave this career and lose SOC \u22121.",
+      "4": "You are assigned to an off-world laboratory but your ship crashes en route. Gain Survival 1 and roll END 8+. If you fail, roll on the Injury table.",
+      "5": "Your employers cancel your research. You may continue this career but gain no Benefit rolls this term. Alternatively, roll SOC 8+: if successful, you continue your work with another pack and stay in this career but gain an Enemy of your previous employer. If you fail, you are forced to leave this career.",
+      "6": "A rival scientist discredits you or steals your research. Gain a Rival, lose SOC \u22121 and suffer DM-2 to your next Survival roll."
+    }
+  },
+  "zhodani_agent": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "You are given specialist training in vehicles. Gain one level of Drive, Flyer, Pilot or Seafarer.",
+      "4": "A natural disaster strikes. Roll 1D; on a 1, roll on the Injury table. Otherwise, gain one level of Survival or Medic.",
+      "5": "You complete a mission for your superiors and are suitably rewarded. Gain DM+1 to one Benefit roll.",
+      "6": "You establish a network of contacts. Gain D3 Contacts.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "You go undercover to investigate an enemy. Roll Investigate 8+. If successful, roll immediately on the Prole Events table and make one roll on any Prole Specialist skills table. If failed, roll immediately on the Prole Mishaps table but you are not ejected from this career.",
+      "10": "You are re-assigned to a desk job. Gain one level of Admin, Electronics (Computers) or Electronics (Comms).",
+      "11": "Your superiors take an interest in your career. Gain an Ally and take DM+2 to your next Advancement roll.",
+      "12": "Your efforts uncover a major conspiracy. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "An investigation goes critically wrong or leads to the top, ruining your career. Roll Advocate 8+. If successful, you may keep the Benefit roll from this term. If failed, roll on the Re-education Events table.",
+      "3": "A mission goes wrong and you are held responsible for it. You may accept your fate and leave this career with an extra Benefit roll as compensation or may contest the accusation. If contested, roll Advocate 8+. If successful, you may stay in this career. If failed, roll on the Re-education Events table.",
+      "4": "You suffer psychological stress and must leave this career. Roll on the Re-education Events table.",
+      "5": "You are injured in an act of sabotage. Roll on the Injury table but gain a Contact in the medical field.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_army": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "You are assigned to an urbanised world torn by war. Gain one level of Stealth, Persuade or Recon.",
+      "4": "You are assigned to a world with a hostile or wild environment. Gain one level of Vacc Suit, Engineer, Animals or Recon.",
+      "5": "You are sent to Commando training. Gain one level of Vacc Suit, Heavy Weapons or Athletics (Dexterity). If you have SOC 10+, you may leave this career (mustering out as normal) and then automatically qualify for the Guard career (with the same rank) next term.",
+      "6": "You are thrown into a brutal ground war. Roll Gun Combat or Stealth 8+ to avoid injury; if successful, gain one level of Gun Combat, Leadership or Tactics (Military).",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "Surrounded and outnumbered, you hold out until relief arrives. Gain DM+2 to the next Advancement roll.",
+      "10": "You are assigned to a peacekeeping role. Gain one level of Admin, Investigate or Recon.",
+      "11": "Your commanding officer takes an interest in your career. Gain him as an Ally and gain DM+2 to your next Advancement roll.",
+      "12": "You display heroism in battle. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "You are involved in a disastrous campaign and barely escape off planet. Gain D3 Contacts as you return home. Roll on the Re-education Events table.",
+      "3": "You are sent to battle against insurgents and discharged because of stress or injury. Gain one level of Recon or Survival. If SOC 10+, gain an Enemy as the government buries the incident. If SOC 9-, roll on the Re-education Events table.",
+      "4": "You discover that your commanding officer is engaged in illegal activity. If you join him, gain an Ally before the inevitable investigation; roll on the Re-education Events table. Alternatively, cooperate with the Thought Police \u2014 you must leave the career but keep your Benefit roll.",
+      "5": "You have problems working with an officer or fellow soldier. If SOC 10+, gain that officer as a Rival as he drives you out of the Army. If SOC 9-, roll on the Re-education Events table.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_entertainer": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "You are invited to take part in a controversial event or exhibition. If you refuse, nothing happens. If you accept, roll Art or Persuade 8+. If successful, gain an extra Benefit roll. If you fail, roll on the Mishaps table.",
+      "4": "You become part of the celebrity circle on your world of residence. Gain one level of Carouse, Persuade or Steward.",
+      "5": "One of your works is especially well received and popular, making you a minor celebrity. Gain an extra Benefit roll.",
+      "6": "You gain a patron in the arts and receive DM+2 to the next Advancement roll and an Ally.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You receive advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "You go on a tour of the sector, visiting several worlds. Gain D3 Contacts.",
+      "10": "You attempt an extremely challenging task in your field. Roll Art or Persuade 8+. If successful, gain DM+2 to your next Advancement roll. If failed, suffer DM-2 to your next Advancement roll.",
+      "11": "You have the opportunity to criticise or bring down a questionable council leader. If you refuse and support the leader, gain DM+2 to your next Advancement roll. If you accept, gain an Enemy and roll Art or Persuade 8+. If successful, your next Advancement roll is automatically successful. If you fail, increase a skill you already possess by one level and roll on the Mishaps table.",
+      "12": "You win a prestigious prize for your work. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Injured. Roll on the Injury table.",
+      "2": "Your art becomes the centre of a scandal. Gain one level of Carouse, Diplomat or Persuade. If SOC 10+, you are forced to move to another world. Roll on the Re-education Events table but you may remain in this career.",
+      "3": "You commit a grievous breach of protocol and public opinion turns against you, ruining your career. Roll Persuade 8+. If successful, you may keep the Benefit roll from this term. If failed, roll on the Re-education Events table.",
+      "4": "One of your Contacts or Allies betrays you, ending your career. That Contact or Ally becomes a Rival or Enemy. If you have no Contacts or Allies, gain a Rival or Enemy.",
+      "5": "An investigation, tour, project or expedition goes wrong, stranding you far from home and ending your career. Gain D3 Contacts as you return home.",
+      "6": "You are tormented by or quarrel with another Entertainer. If SOC 10+, you are forced out of the career and gain that Entertainer as a Rival. If SOC 9-, roll on the Re-education Events table."
+    }
+  },
+  "zhodani_government": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career.",
+      "3": "Your time in government service gives you a wide range of experiences. Gain one level in Animals (Riding), Art or Carouse.",
+      "4": "You are seconded to act as a special advisor to another career for the remainder of the term. Roll on any other Zhodani career Service Skills table for one skill and gain one cash Benefit roll from that career.",
+      "5": "You inherit a gift from a grateful patron. Gain DM+1 to any one Benefit roll.",
+      "6": "You become deeply involved in politics on your world of residence. Gain one level in Admin, Advocate, Diplomat or Persuade but also gain a Rival.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "A group of conspiring Nobles attempts to recruit you. If refused, gain the conspiracy as an Enemy. If accepted, roll Diplomat or Persuade 8+. If failed, roll on the Mishaps table as the conspiracy collapses. If successful, gain one level of Carouse, Persuade or Tactics.",
+      "10": "You are recognised as building bridges between councils and other groups in Zhodani society. Gain one level of Advocate, Diplomat or Leadership.",
+      "11": "You make an alliance with a powerful and charismatic Noble, who becomes an Ally. Either gain one level of Leadership or take DM+2 to your next Advancement roll.",
+      "12": "You excel in your role. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "An error of judgement leads to a severe diplomatic incident. You are discharged from this career in disgrace. Forfeit all but one Benefit roll.",
+      "2": "Diplomatic efforts to secure a peace settlement or trade deal backfire. Forego all Advancement this term but remain in the career.",
+      "3": "Your posting loses its diplomatic status following the deterioration of relations between governments. Gain a Rival and leave this career.",
+      "4": "Someone attempts to murder you. Roll one of PSI 8+, Melee 8+ or Recon 8+ to avoid the attempt. If failed, roll on the Injury table. If successful, you may continue in this career.",
+      "5": "A foreign ambassador insults you. Roll Diplomat 8+ to avoid a diplomatic incident. If failed, roll on the Re-education Events table and leave this career. If successful, gain an extra Benefit roll.",
+      "6": "Terrorists attack your embassy. Roll on the Injury table."
+    }
+  },
+  "zhodani_guard": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps Table but you are not ejected from this career.",
+      "3": "You are assigned to the security staff of a space station. Increase Vacc Suit or Athletics (Dexterity) by one level.",
+      "4": "You are on the front lines of a planetary assault and occupation. Gain one level in Recon, Gun Combat, Leadership or Electronics (Comms).",
+      "5": "You are sent to Thought Police training. Gain one level of Advocate, Investigate or Persuade. If you have SOC 10+, you may leave this career (mustering out as normal) and then automatically qualify for the Agent (Thought Police) career (with the same rank) in the next term.",
+      "6": "You are assigned to an assault on an enemy fortress. Roll Melee or Gun Combat 8+. If successful, gain Tactics (Military) or Leadership. If failed, you are injured; roll on the Injury table.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "You have the opportunity to volunteer for a deadly rescue mission. If refused, nothing happens. If accepted, roll Survival or END 8+. If successful, you are granted DM+2 to your next Advancement roll and gain an extra Benefit roll. If failed, roll on the Injury table.",
+      "10": "A mission goes disastrously wrong due to your commander's error or incompetence but you survive. If you report your commanding officer for the failure, gain DM+2 to your next Advancement roll. If you report nothing and protect your commander, gain the commander as an Ally.",
+      "11": "Your commanding officer takes an interest in your career. Either gain one level of Leadership or Tactics (Military), or gain DM+2 to your next Advancement roll.",
+      "12": "You display heroism in battle. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "The ship that you boarded is set to self-destruct; in the scramble to get out, soldiers are unnecessarily injured. Suffer DM-2 on the next Advancement roll and gain an Enemy.",
+      "3": "Your unit is dropped into an unpleasant and potentially hostile environment to battle local insurgents. Gain one level of Recon, Survival or Vacc Suit but also gain an Enemy.",
+      "4": "You are ordered to take part in a mission that goes against your conscience. If accepted, you stay with the Guards but gain the lone survivor as an Enemy. If refused, roll on the Re-education Events table.",
+      "5": "A mission goes wrong; you and several others are captured and mistreated by the enemy. Gain an Enemy, reduce STR and DEX by -1 each. While discharged from the service, keep all Benefit rolls from the term.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_merchant": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "The government drafts your ship for military use. You must leave this career (mustering out as normal) but may automatically qualify for the Navy (with the same rank) in the next career term.",
+      "4": "From time spent dealing with suppliers and spacers, you gain a level in any one of Animals, Engineer, Science or Profession.",
+      "5": "You are put in temporary charge of the paperwork for the crew. Gain one level of Admin, Broker or Electronics (Computers).",
+      "6": "You expand into new territories. Gain one level of Broker, Diplomat, Profession or a Contact.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "A good deal ensures you are living the high life for a few years. Gain DM+1 to any one Benefit roll.",
+      "10": "Your ship is chosen for elite duty on a very selective route, making it famous in one subsector. Gain an extra Benefit roll.",
+      "11": "Your superiors take an interest in your career. Gain an Ally and take DM+2 to your next Advancement roll.",
+      "12": "Your business or ship thrives. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "A war extends across your travel routes enough to disrupt shipping and you are severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "A series of bad deals and decisions forces your employer into bankruptcy, which forces you to leave the career. By salvaging what you can, you may take a Benefit roll for this term as well as any others you are entitled to.",
+      "3": "You are fined Cr1000 x 1D for poorly filed paperwork. Pay this immediately to stay in the career. If not paid and your SOC is 9-, roll on the Re-education Events table.",
+      "4": "Your ship or company faces declining fortunes. You may continue in this career but will gain no Benefit rolls for this term or the next.",
+      "5": "You are asked to leave the career for business reasons and paid off with Cr1000 x 1D.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_navy": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "Your vessel participates in a diplomatic mission. Gain one level in Diplomat, Recon or Steward, or gain a Contact.",
+      "4": "Your vessel participates in a notable military engagement. Gain one level in Engineer, Gunner, Pilot or Electronics (Sensors).",
+      "5": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill you already possessed.",
+      "6": "You work helping with a refit of your ship. Gain one level in Engineer, Mechanic or Science.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You perform a tour of border worlds. Roll SOC 8+ to gain one level in Animals, Recon or Survival, or a Contact.",
+      "9": "You spend this term in the asteroid belts of a system, showing the navy's presence and deterring pirates. Gain one level in Athletics (Dexterity), Electronics (Sensors) or Vacc Suit.",
+      "10": "An explosion occurs in your section. Roll Mechanic or Engineer 8+ to help the damage control party. If failed, roll on the Injury table. If successful, gain DM+2 to your next Advancement roll.",
+      "11": "Your commanding officer takes an interest in your career. Gain him as an Ally and take DM+2 to your next Advancement roll.",
+      "12": "You display heroism in battle, saving the whole ship. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "You are placed in the frozen watch (cryogenically stored on board ship) and revived improperly. Roll on the Injury table. Roll SOC 8+ to remain in this career.",
+      "3": "You have problems working with an officer or fellow crewman. If SOC 10+, gain that officer as a Rival as he drives you out of the Navy. Otherwise, roll on the Re-education Events table.",
+      "4": "Your ship suffers heavy damage in battle and you are injured. Roll twice on the Injury table, taking the lower result. However your actions help save the lives of several colleagues, gaining you an additional Benefit roll.",
+      "5": "A serious accident occurs on your watch and you are blamed for it despite it being another crew member's negligence. If SOC 10+, suffer DM-2 to your next Advancement roll and gain an Enemy. Otherwise, roll on the Re-education Events table.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_prole": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap Table but you are not ejected from this career.",
+      "3": "An investigation takes on a dangerous turn. Roll Investigate 8+ or Streetwise 8+. If you fail, roll on the Mishap Table. If you succeed, increase one of these skills by one level: Deception, Jack-of-all-Trades, Persuade or Tactics.",
+      "4": "You complete a mission for your superiors and are suitably rewarded. Gain DM+1 to any one Benefit roll from this career.",
+      "5": "You establish a network of contacts. Gain D3 Contacts.",
+      "6": "You are given advanced training in a specialist field. Roll EDU 8+ to increase any one skill you already have by one level.",
+      "7": "Life Event. Roll on the Life Events table.",
+      "8": "You go undercover to investigate an enemy. Roll Deception 8+. If you succeed, roll immediately on the Rogue or Citizen Events table and make one roll on any Specialist skill table for that career. If you fail, roll immediately on the Rogue or Citizen Mishap Table.",
+      "9": "You go above and beyond the call of duty. Gain DM+2 to your next Advancement check.",
+      "10": "You are given specialist training in vehicles. Gain one of Drive 1, Flyer 1, Pilot 1 or Gunner 1.",
+      "11": "You are befriended by a senior agent. Either increase Investigate by one level or DM+4 to an Advancement roll.",
+      "12": "Your efforts uncover a major conspiracy against your employers. You are automatically promoted."
+    },
+    "mishaps": {
+      "1": "Severely injured. Roll twice on the Injury table and take the lower result.",
+      "2": "One of your co-workers develops hatred towards you, sabotaging your life. Gain an Enemy and roll on the Re-education Events table.",
+      "3": "A lack of interstellar trade causes economic hardship. Lose all Benefit rolls for this term.",
+      "4": "An attack or other unusual event throws your life into chaos. Roll on the Re-education Events table.",
+      "5": "A family member or lover is killed in a freak accident. Lose one Ally or Contact and roll on the Re-education Events table.",
+      "6": "Injured. Roll on the Injury table."
+    }
+  },
+  "zhodani_scholar": {
+    "events": {
+      "2": "Disaster! Roll on the Mishaps table but you are not ejected from this career, even from a Re-education Event.",
+      "3": "You are called upon to perform research that goes against your conscience. Accept and gain an extra Benefit roll, one level in each of any two Science skills and D3 Enemies; or refuse and gain an Ally.",
+      "4": "You are assigned to work on a secret project. Gain one level of Electronics, Engineer, Investigate, Medic or Science.",
+      "5": "You win a prestigious prize for your work, garnering the praise of your peers. Gain DM+1 to any one Benefit roll.",
+      "6": "You spend time on the fringes of known space. Roll Survival or Pilot 8+. If successful, gain a Contact with an alien race and one level in any selected skill. If failed, roll on the Mishaps table.",
+      "7": "Life Event. Roll on the Zhodani Life Events table.",
+      "8": "You are given advanced training in a specialist field. Roll EDU 8+ to gain one level in any skill already possessed.",
+      "9": "You make a breakthrough in your field. Gain DM+2 to your next Advancement roll.",
+      "10": "You become entangled in a bureaucratic or legal distraction. Gain one level of Admin, Advocate, Diplomat or Persuade.",
+      "11": "You work for an eccentric but brilliant Noble mentor, who becomes an Ally. Increase any one Science skill by one level and take DM+2 to your next Advancement roll.",
+      "12": "Your work leads to a considerable breakthrough. Your next Advancement roll is automatically successful."
+    },
+    "mishaps": {
+      "1": "Severely injured in action. Roll twice on the Injury table and take the lower result.",
+      "2": "A disaster leaves several injured and others blame you, forcing you to leave the career. Roll on the Injury table twice, taking the higher result and roll on the Re-education Events table.",
+      "3": "The planetary government interferes with your research for political reasons. If you continue openly, increase any Science skill by one level. If you continue secretly, increase any Science skill by one level but lose all Benefit rolls. If SOC 9-, roll on the Re-education Events table.",
+      "4": "An expedition or voyage goes wrong, leaving you stranded in the wilderness. Gain a level of Survival or Athletics. By the time you find your way home, your job is gone.",
+      "5": "Your work is sabotaged by unknown parties. You may give up (leave the career but retain this term's Benefit roll) or start again from scratch (not leaving the career but losing all Benefit rolls for this term).",
+      "6": "You are assigned to an off-world laboratory but your ship crashes en route. Gain one level of Survival and roll END 8+. If failed, roll on the Injury table."
+    }
+  },
+  "kkree_merchant": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "Your herd is involved in a highly successful endeavour. You do your part with honour, earning deserved praise from your herdlord and SOC +1. You also gain D3 Rivals.",
+      "4": "You learned new skills appropriate to your status. Gain one roll on any skill table available to this caste.",
+      "5": "You solved many problems to bring your herd great success. Gain Jack-of-all-Trades 1 and words of praise from your herdlord.",
+      "6": "Your herd needs to prepare for war. Gain 1 level in Electronics (Remote Ops) or Gun Combat.",
+      "7": "Life Event. Roll on the K'kree Life Events table.",
+      "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+      "9": "Your clan journeys among the stars. Gain 1 level in Engineer, Astrogation, or Electronics.",
+      "10": "Your clanlord selects you to be a member of a special delegation providing hospitality to a powerful rival. Gain Steward 1 and make an Average (8+) Profession (K'kree ritual) check. If successful, gain SOC +1 and your clanlord's favour. If you fail, gain your clanlord's rival as an Enemy.",
+      "11": "You serve aboard a warship with your herdlord. Gain 1 level in Pilot, Electronics (Remote Ops), or Gunner.",
+      "12": "A Herdlord offers you one of his daughters in marriage. Gain an extra wife, SOC 11, elevation to rankholder as the head of a small family in the Noble caste and the admiration of your former peers."
+    },
+    "mishaps": {
+      "1": "Injured in an accident. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+      "2": "You anger your herdlord and are punished with reduced status. SOC is lowered by D3 (which may drop you into the Servant caste). You do not leave the career.",
+      "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+      "4": "You exceed your status when offering advice to your superiors. Lose one Benefit roll and gain a Rival who profited from your eclipse. You do not leave the career.",
+      "5": "War or serious inter-herd conflict kills 1D of your family members. Make an Average (8+) Patriarchy check. If you pass, you marry a new wife quickly enough to avoid embarrassment. If not, lose SOC -1. You do not leave the career.",
+      "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+    }
+  },
+  "kkree_noble": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "You lead your family well and with great honour. You are automatically promoted. Your success gains you D3 Rivals or one Enemy.",
+      "4": "You have to deal with outsiders on behalf of your clan. Gain 1 level of Diplomat or Leadership.",
+      "5": "You are challenged to a contest of martial prowess by a rival. Make an Average (8+) Melee check. Success earns you an Ally who admires your skills and noble bearing.",
+      "6": "You lead your people in conflict. Gain 1 level in Melee, Gun Combat, or Tactics.",
+      "7": "Life Event. Roll on the K'kree Life Events table.",
+      "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+      "9": "Your clan journeys among the stars. Gain 1 level of Astrogation or Pilot.",
+      "10": "You are charged with a complex and distasteful mission by your superior. Gain 1 level of Diplomat, Persuade, or Streetwise.",
+      "11": "You serve at the side of your superior during a difficult challenge and gain his favour. Gain 1 level of Carouse and your superior as an Ally.",
+      "12": "A superior noble offers you one of his daughters in marriage. Gain an extra wife, SOC +1 and enter the new social level as kinsman-of-rankholder."
+    },
+    "mishaps": {
+      "1": "Injured in an attack by enemies of your clan. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+      "2": "Your leadership is called into question, almost inciting a revolt among your household. Make a Difficult (10+) Patriarchy check. If successful, lose 1 level of Patriarchy and dismiss one of your wives in disgrace. If you fail, reduce SOC by 1 and revert to servant-to-rankholder at the new rank. You do not leave the career unless you drop into the Merchant caste.",
+      "3": "One of your wives is killed by enemies. Make an Average (8+) Patriarchy check. If successful, your bloody vengeance earns you respect and D3 Enemies. If you fail, you are humiliated and must reduce SOC by 1 and revert to servant-to-rankholder at the new rank. You do not leave the career unless you drop into the Merchant caste.",
+      "4": "Your immediate superior suffers a huge setback. Roll 1D: on 1-2 it was your fault \u2014 you are ejected from this career and cannot begin another. On 3-4 it was not your fault but you were blamed anyway \u2014 same result plus an Enemy. On 5-6 it was not your fault and you won acclaim for preventing the situation worsening. Gain an Ally from outside your clan.",
+      "5": "You narrowly survive an accident or conflict that kills some of your family. 1D family members are slain and every third one is a wife. You lose SOC points equal to the number of wives slain. You do not leave the career unless you drop into the Merchant caste.",
+      "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+    }
+  },
+  "kkree_pastoral": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "Your herd is involved in a vigorous or even violent dispute with another. You do your part with honour, earning deserved praise from your herdlord. You also gain D3 Enemies.",
+      "4": "You are part of a diplomatic mission to a non-K'kree group. Gain 1 level of Diplomat or a non-K'kree Contact for this weird and unsettling experience.",
+      "5": "You have to undertake tasks outside the normal pastoral existence and are very glad to get back to the correct and proper life you wanted. Gain 1 level in any skill.",
+      "6": "Your herd undertakes a long trek for reasons that presumably makes sense to your leaders. Gain 1 level of Navigation or Survival.",
+      "7": "Life Event. Roll on the K'kree Life Events table.",
+      "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+      "9": "Defending your family and herd bravely, you suffer an injury that reduces END by -1, but you gain 1 level of Melee or Gun Combat.",
+      "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
+      "11": "You are offered the chance to be adopted into the big family of a herdlord or clanlord. If you agree, your SOC jumps to 13 and you enter the Noble career as servant-of-rankholder next term.",
+      "12": "You got cut off from the herd. It was horrible but then the ancestors came and sang to you. They revealed great truths and led you home. Gain SOC +1 and an Ally among the herd's elders."
+    },
+    "mishaps": {
+      "1": "Injured in a predator or enemy attack. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+      "2": "You anger your herdlord and are punished with a period of ostracism. Gain one level of Outsider skill. You do not leave the career.",
+      "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+      "4": "After a dispute whose origins are way over your head, your herd now has powerful enemies. You gain an Enemy. You do not leave the career.",
+      "5": "Your herd is involved in a dispute with another and you are used as cannon-fodder. Make a Melee check 8+. On success you survive uninjured. On failure, lose 1 point from STR or END. You do not leave the career.",
+      "6": "You are ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+    }
+  },
+  "kkree_servant": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table but you are not ejected from this career.",
+      "3": "Your herd is involved in a highly successful endeavour. You do your part with honour, earning deserved praise from your herdlord and an additional Benefits roll. You also gain D3 Enemies.",
+      "4": "Your herd goes on a mission. You complete your tasks to the herdlord's satisfaction. Gain 1 Contact or 1 level in any skill available to this caste.",
+      "5": "You are given an onerous task you do not know how to complete. Roll INT 10+. On success, gain Jack-of-all-Trades 1 and a Rival made to look stupid. On failure, you suffer humiliation and abuse.",
+      "6": "Your herd needs to prepare for war. Gain 1 level in Melee or Gun Combat.",
+      "7": "Life Event. Roll on the K'kree Life Events table.",
+      "8": "Your herd meets with many others for a great ceremony. Gain 1 level of Profession (K'kree ritual) and a Contact outside your herd.",
+      "9": "You have to follow your herdlord on a space voyage. It is unpleasant, especially when they make you practice wearing a vacc suit. Gain 1 level of Vacc Suit.",
+      "10": "You serve well and are personally commended by the Steppelord. Gain SOC +1 and a Contact at the Steppelord's court.",
+      "11": "An important Merchant-caste leader offers you one of his daughters in marriage. Gain an extra wife, SOC 7, elevation to servant-of-rankholder in the Merchant caste and the admiration of your former peers.",
+      "12": "A relative of yours was lost for a time, then came home as one-with-the-sky. You are not sure what to make of his ramblings but gain D3 Contacts among the dignitaries who have come to hear them and also SOC +1."
+    },
+    "mishaps": {
+      "1": "Injured in a predator or enemy attack. Lose D3 points from among STR, DEX and END. You do not leave the career.",
+      "2": "You anger your herdlord and are punished with a period of ostracism. Gain one level of Outsider skill. You do not leave the career.",
+      "3": "One of your wives dies or is otherwise taken from you. In your grief you offend many other K'kree. Gain D3 Rivals or one Enemy and lose a wife. You do not leave the career.",
+      "4": "Your status in the herd is diminished. If you accept this, SOC -1 and gain an Ally who respects your correct attitude. If you refuse, gain Outsider 1 and an Enemy. You do not leave the career.",
+      "5": "D3 of your family members are killed or otherwise lost. Their sacrifice compensates with SOC +1 (which may elevate you to the next caste). You do not leave the career.",
+      "6": "You were ejected from the herd. Gain 1 level of Outsider skill. You are no longer a K'kree; you are nothing."
+    }
+  },
+  "hiver_academic": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You are manipulated into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+      "4": "Things generally go rather well whenever you are involved and you are pleased with the results. More importantly, you get the credit. Gain DM+4 on your next advancement check.",
+      "5": "You realise some 'accidents' were attempts on your life. You are not sure who is behind it despite checking out all likely culprits. Gain 3 Contacts, one of whom is secretly an Enemy. You now carry a gun and have gained a level of Gun Combat skill.",
+      "6": "An opportunity arises to obtain specialist training. Make a RES check. If successful you may gain a level in any skill you possess.",
+      "7": "A Life Event occurs.",
+      "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+      "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+      "10": "You spend considerable time outside the Hive Federation and have extensively studied various alien races. By 'studied' you mean manipulated, of course. Gain an Ally. If you want, you may make an immediate Benefits cash roll but this brings with it a Rival who may have been the source of the money.",
+      "11": "You provide expert advice to teams engaged in preservation work in the local wilderness. Gain a level of Animals, Recon or Survival.",
+      "12": "Your nest is threatened and you help figure out a complex manipulation to deflect the threat. Gain a level of Science (sociology) and RES +1 or gain a level of Persuade and a Contact."
+    },
+    "mishaps": {
+      "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+      "2": "Repeated failures have disheartened you. Make a RES check. If you fail, your confidence was shaken and you pass up several opportunities. Lose a number of Benefit rolls equal to the negative Effect. If you succeed, you prove you were right all along (or convince others that you were even if you were not). Gain an Enemy whose plans you cleverly thwarted.",
+      "3": "You presented a well-researched thesis with a powerful argument for its acceptance and ended up embarrassed and discredited. You do not know if you were just plain wrong or if there are other manipulators working against you. Either way, you lose RES \u22121.",
+      "4": "One of your projects went horribly awry but your community rallied around and got you out of trouble without even being manipulated by you, at least. It is clear someone intervened but you do not know why. You do not have to leave the career but gain a Contact to whom you owe a huge favour. If this is not repaid you will gain a powerful Enemy but if you do what they ask of you when the time comes you will gain them as an Ally instead.",
+      "5": "Whether you deserved it or not, word got out about some actions on your part that look bad. You cannot manipulate anyone who knows about this, so have left your old life behind to find a new start.",
+      "6": "Your nest has ceased to exist due to a disaster you may or may not have caused. The survivors were mostly absorbed by other nests but for some reason none would take you."
+    }
+  },
+  "hiver_generalist": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You are manipulated into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+      "4": "Things generally go rather well whenever you are involved and you are pleased with the results. More importantly, you get the credit. Gain DM+4 on your next advancement check.",
+      "5": "You make contacts and influence people. Gain D3 Contacts.",
+      "6": "An opportunity arises to obtain specialist training. Make a RES check. If successful you may gain a level in any skill you possess.",
+      "7": "A Life Event occurs.",
+      "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+      "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+      "10": "You spend considerable time outside the Hive Federation. Gain a level of Deception or Streetwise.",
+      "11": "You are involved in preservation work in the local wilderness. Gain a level of Animals, Recon or Survival.",
+      "12": "Your nest is threatened and everyone receives militia training to help defend it. Gain a level of Gun Combat or Heavy Weapons."
+    },
+    "mishaps": {
+      "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+      "2": "You are threatened with violence and do not like it at all. Make a RES check. If you fail, your confidence is shaken and you pass up several opportunities. Lose a number of Benefit rolls equal to the negative Effect. If you succeed, gain an Enemy who is even more resentful at being manipulated into not hurting you the first time.",
+      "3": "It all went wrong. You do not know if you failed to plan properly or there are other manipulators working against you. Either way, you lose RES \u22121.",
+      "4": "Everything went wrong, then suddenly it was all fine again. Someone intervened but you do not know why. You do not have to leave the career but gain a Contact to whom you owe a huge favour. If this is not repaid you will gain a powerful Enemy but if you do what they ask of you when the time comes you will gain them as an Ally instead.",
+      "5": "Your reputation is blackened, which you may or may not deserve, but either way you cannot manipulate anyone who knows about your shame. You left your old life behind to get away from this situation.",
+      "6": "Your nest was involved in conflict and has ceased to exist. The survivors were mostly absorbed by other nests but for some reason none would take you."
+    }
+  },
+  "hiver_manipulator": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You inveigle your way into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+      "4": "You work towards advancement and of course you succeed! Gain DM+4 on your next advancement check.",
+      "5": "You are determined to achieve Manipulator status and become a legend among your people. Gain DM+1 to all future advancement checks. You may receive this bonus in future terms.",
+      "6": "You decide you need to develop a particular skill. Make a RES check. If successful you may gain a level in any skill you possess.",
+      "7": "A Life Event occurs.",
+      "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+      "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+      "10": "You spend considerable time outside the Hive Federation, practising your manipulation skills on aliens with a very different culture. Gain a level of Streetwise and a non-Hiver Contact.",
+      "11": "You act as a facilitator for a major endeavour \u2014 a diplomatic mission, a trade treaty or something similar. Gain RES +1 and an Ally.",
+      "12": "Your home region suffers a disaster and naturally you are tasked with resolving it. Make a RES check. If successful you may make an immediate additional advancement check with DM+4. If this results in higher status than you already hold, you are advanced to this status. In addition, gain one level in any skill of your choice and a Contact outside Hiver society."
+    },
+    "mishaps": {
+      "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+      "2": "Repeated failures have disheartened you. Make a RES check. If you fail, you conclude that you are not fit to be a Manipulator. Lose a number of points from RES equal to the negative Effect. If you succeed, you realise someone is working against you. Gain an Enemy but you do not have to leave the career.",
+      "3": "A series of disasters befalls you and your reputation as a manipulator is in tatters. You must leave the career but are determined to prove you are in fact the best at what you do. Gain RES +1 but also D3 Rivals.",
+      "4": "You needed help and had to beg another Manipulator to assist you. This did not sit well but at least the rival demanded an extortionate price in money and deeds. You now have a Rival to whom you owe an enormous favour. If you do not repay your benefactor when the time comes you will gain a powerful Enemy.",
+      "5": "You were ejected from your home nest for taking your manipulations too far on a constant basis. The inferior nest-citizens were just too susceptible and that is not your fault.",
+      "6": "Your nest suffered a disaster and broke up, with most citizens finding new nests quickly. There are rumours you caused the problem \u2014 which may or may not be true. You are out on your own and have gained D3 Rivals who resent what you may or may not have done."
+    }
+  },
+  "hiver_merchant": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You are manipulated into taking part in a major project outside your normal field of endeavour. You may roll on any Service Skills table for any career and gain the indicated skill.",
+      "4": "Things generally go rather well whenever you are involved, and you are pleased with the results. More importantly, you get the credit. Gain DM+4 on your next advancement check.",
+      "5": "You make a big score. You can take the money or claim the credit but not both. If you take the money, you gain Cr2Dx100000. If you claim the credit you gain DM+1 on all advancement checks in this career and a Contact who is impressed with your work.",
+      "6": "An opportunity arises to obtain specialist training. Make a RES check. If successful you may gain a level in any skill you possess at level 0 or higher.",
+      "7": "A Life Event occurs.",
+      "8": "You travel aboard starships. Take one level in Pilot, Astrogation or Engineer.",
+      "9": "You become involved with the embassy and visit many other nests. Gain an Ally and a Contact.",
+      "10": "You spend considerable time outside the Hive Federation, making a living among aliens with a very different culture. Gain a level of Streetwise and a non-Hiver Contact.",
+      "11": "You facilitate a big transaction on the part of a major organisation such as a planetary administration. This boosts your confidence and you gain RES +1 along with an Ally.",
+      "12": "You help get your home nest out of a major financial problem. Gain one level of Tactics (economic) and a Contact outside Hiver society."
+    },
+    "mishaps": {
+      "1": "You are seriously injured, equivalent to a roll of 2 on the Hiver Injury table.",
+      "2": "Repeated failures have disheartened you. Make a RES check. If you fail, your confidence was shaken and you passed up several opportunities. Lose a number of benefits equal to the negative Effect. If you succeed, you suffer no significant consequences but gain an Enemy who is trying to discredit you for their own reasons.",
+      "3": "Your carefully laid plans result in a major financial loss for the people who were supposed to benefit. You do not know if you were just plain wrong or if there are other manipulators working against you. Either way, you lose RES \u22121.",
+      "4": "Everything was going well until a gigantic financial sinkhole swallowed you up. You are in debt for MCr2Dx1 and the people you owe it to \u2014 or who say you owe it to them \u2014 are dangerous. It is possible a mysterious benefactor straightens out the mess, in which case you do not have to leave the career but owe a favour to this benefactor. If this is not repaid you will gain a powerful Enemy but if you do what they ask when the time comes you will gain them as an Ally instead. If nobody helps you, you still owe the money. Gain an Enemy who is pursuing you but also 10% of the amount you owe as cash.",
+      "5": "Whether you deserved it or not, word got out about some actions on your part that look bad. You cannot manipulate anyone who knows about this, so have left your old life behind to find a new start.",
+      "6": "Your nest suffered total financial collapse and its members found other nests more to their liking. You may or may not be to blame but no local nest would take you so you have had to leave the region."
+    }
+  },
+  "droyne_worker": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+      "4": "Your fellow Workers ask you to raise concerns with your Leader. Make an Appeal check. If successful, you are heard and the situation is positively resolved. Your rank increases by +1. Whether you succeed or fail, gain one level of Appeal.",
+      "5": "Your Leader asks much of you. If you follow their directions, gain one level of a Black Skill (Carouse, Deception, Gambler, Persuade or Streetwise). If you refuse to obey, you are ejected from the Oytrip.",
+      "6": "You do good work and your Leader is pleased. Gain one level in Profession, Drive, Flyer or Appeal.",
+      "7": "You work every day. The Oytrip prospers.",
+      "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "You have an idea. If you dare suggest it to the Leader, make an Appeal check. If successful, your rank is increased by +1. If you fail, your rank is reduced by \u22121. If you keep quiet, gain one level in Profession or Caste.",
+      "10": "You are involved with outsiders and find them less confusing than most others of your Caste. Gain one level in Outsider skill and a Contact outside the Oytrip.",
+      "11": "You are involved in the creation of a starship and you learn a little about how it works. Gain one level in Electronics, Engineer, Gunner or Vacc Suit.",
+      "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You tend and sometimes carry it for him. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. In desperation the Leaders order your fellow Workers to shield the remaining Warriors with your bodies. Many die but the Oytrip is saved. Gain your choice of Gun Combat, Melee or Medic but suffer \u2212D3 to STR, DEX or END due to your wounds. Make a continuation check.",
+      "2": "A junior Leader challenges the seniors in your Oytrip. If you side with the junior Leader you are driven from the Oytrip. If you did not side with them, nothing happens to you. Make a continuation check.",
+      "3": "A dangerous situation arises and the workers are ordered to make great sacrifices to save the Oytrip. If you behave correctly, you suffer injuries and lose \u22121 in each of STR, DEX and END, and must make a continuation check. If you do not behave correctly, you are driven from the Oytrip.",
+      "4": "Bad things occur. The Leaders do not confide in you because you are a lowly Worker. You have no idea what happened but the Oytrip endures. Make a continuation check but suffer no other ill-effects.",
+      "5": "Your Leader undertakes an expedition that goes badly wrong. You are forced to survive outside Droyne society for several months. You gain Outsider (any) 1 and may choose to take Streetwise 1 (a Black Skill). Make a continuation check.",
+      "6": "You behave incorrectly. Your rank is reduced by \u22121. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  },
+  "droyne_warrior": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+      "4": "Your Leader honours you by recommending training in Ancients technology. Gain one level in Ancients Tech.",
+      "5": "Your Leader orders you to defend a position to the last drop of blood. Make a Gun Combat check. If successful, it was the enemy's blood and you gain one level of Gun Combat, Melee or Heavy Weapons. If you fail, it was your blood and you gain one level of Medic.",
+      "6": "You do good work and your Leader is pleased. Gain one level in Gun Combat, Heavy Weapons, Vacc Suit or Leadership.",
+      "7": "You guard the Oytrip. The Oytrip prospers.",
+      "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "You showed initiative and other Warriors followed you. Make a Tactics check. If successful, you were correct and your diligence is rewarded rank +1. If you failed, rank is reduced by \u22121 but you learned from your mistakes; gain one level of Tactics (any).",
+      "10": "You were involved with outsiders. Some of them fought quite well, considering. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+      "11": "You are honoured to serve aboard a starship. Gain one level in any of Electronics, Engineer, Gunner, Vacc Suit or Pilot.",
+      "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You guard it diligently. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. You defend it and are wounded to an acceptable level. Gain your choice of Gun Combat, Melee or Medic but lose \u2212D3 on STR, DEX or END due to your wounds. Make a continuation check.",
+      "2": "A junior Leader challenges the seniors in your Oytrip. You are placed on alert but there is no violence. The junior Leader is driven from the Oytrip. If they were your Leader and you go with them you are exiled from the Oytrip and joined their Kroyloss, which breaks up soon afterward. Muster out and begin adventuring now. If they were not your Leader, everything goes on as before but you must still make a continuation check.",
+      "3": "A dangerous situation arises and the Warriors took heavy losses. If you behave correctly, you lose \u22121 in each of STR, DEX and END and must make a continuation check. If you do not behave correctly, you betrayed your role in the Oytrip and are rightly driven from it. You may continue to betray your Oytrip by mustering out and beginning your adventuring now or may commit ritual suicide as is correct in these situations.",
+      "4": "Bad things occur. The Leaders formulate a plan and corrected the situation. You do not know the details and you are not meant to for you are a Warrior, not a Leader. Make a continuation check but suffer no other ill-effects.",
+      "5": "Your Leader undertakes an expedition that goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+      "6": "You behave incorrectly. Your rank is reduced by \u22121. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  },
+  "droyne_drone": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+      "4": "You attempt to bring various matters to the attention of the Leaders. Make an Appeal check. If you succeed, you gain rank +1 or one level of Caste. If you fail, you are discredited for a time but gain a level of Appeal.",
+      "5": "Your Leader engages in a voyage and brings you along as a performer of rituals. You learn much about starfaring and the wider universe. Gain one level in any of Outsider, Science (any), Vacc Suit.",
+      "6": "You do good work and your Leader is pleased. Gain one level in Profession, Admin, Art (Droyne) or Appeal.",
+      "7": "The Oytrip prospers due to the diligence of its members. Your Leaders are pleased.",
+      "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "You made a prediction. It was alarming. If you reveal it to the Leader, make an immediate Appeal check. If successful, your rank is increased by +1. If you fail, your rank is reduced by \u22121 and you are given onerous tasks to perform.",
+      "10": "You are involved with outsiders. It was overall quite disturbing but you think you benefited from the experience. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+      "11": "You are involved in the creation of an installation owned by your Oytrip but far outside it. Your managerial skills are tested. Gain one level of Admin, Appeal or Leadership.",
+      "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You perform the appropriate rituals to keep it safe and functional. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. Roll 1D. On 1\u20134 the Warriors protect you and no adverse effects are suffered. On 5\u20136 the family areas are penetrated and the young endangered. Gain one level of Medic but you suffer a \u2212D3 reduction on STR, DEX or END due to your wounds. Make a continuation check.",
+      "2": "A junior Leader challenges the seniors in your Oytrip. You are called upon to consult the coyns. Make a Prediction check. If you succeed, you may choose the outcome you desire. If you fail, decide whether to support the challenge or oppose it. Then roll 1D. On 1\u20133 the junior Leader was incorrect and is driven from the Oytrip. If you supported them, you are sent with them. You join their Kroyloss, which breaks up soon afterward. Muster out and begin adventuring or commit ritual suicide. If you did not support them, you suffer no ill effects but must make a continuation check. On 4\u20136 the junior Leader was correct and the senior leaders step aside in their favour. If you supported them no ill effects befall you. If not, you participate in the death rituals for the previous leadership and are expected to join them. You may commit ritual suicide or leave the Oytrip.",
+      "3": "A dangerous situation arises and the whole Oytrip suffers. You are tasked with getting the young to safety. If you take extraordinary risks, you suffer a 1 point reduction in each of STR, DEX and END and must make a continuation check. If you allow others to make the sacrifice you suffer no harm but your rank drops by \u22121 and you gain an Enemy within the Oytrip.",
+      "4": "Bad things occur. It is best not to speak of them, for fear of frightening the young and the Workers. You are involved in coordinating the response at the mid-level. Make a Leadership or Admin check. If successful, you organise a useful response and all is well. If you fail, you witness terrible events which shake your confidence in the Leaders. You may leave the Oytrip now or make a continuation check in each subsequent term at DM\u22124.",
+      "5": "Your Leader undertakes an expedition which goes badly wrong. Make a Prediction check. If successful, you advised against it and receive due honour when the situation is resolved. If you fail, you advised that the expedition go ahead. Your rank is reduced by \u22121 but you gain one level of Outsider (any).",
+      "6": "You behave incorrectly. Your rank is reduced by \u22121. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  },
+  "droyne_technician": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+      "4": "You come up with a new and better way of accomplishing a task. Make an Appeal check. If successful, your rank is increased by +1. If unsuccessful you are chided by your leader for raising such trivial concerns but gain a level in Caste (technician) as a result of better knowing your place.",
+      "5": "Your Leader asks much of you. If you follow their directions, gain one level in any of: Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them. If you refuse to obey, you are ejected from the Oytrip. It is not the place of Technicians to challenge their Leaders.",
+      "6": "You serve the Oytrip well and your Leader is pleased. Gain one level in Profession, Drive, Flyer or Appeal.",
+      "7": "You carry out your duties. The Oytrip suffers few breakdowns and equipment problems.",
+      "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "You proved unusually adept at your primary role. If you are a Fixing Technician, gain DEX +1. If you are an Artificer, gain EDU +1. If you are a Dreaming Technician, gain INT +1.",
+      "10": "You are involved with outsiders and find them less confusing than most others of your Caste. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+      "11": "You are involved in the creation or crewing of a starship. Gain one level in any of Electronics, Engineer, Gunner, Pilot or Vacc Suit.",
+      "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You are charged with looking after it. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. Roll 1D: on 1\u20134 the Warriors deal with the problem and you continue your work uninterrupted. On 5\u20136 you are caught in the fighting. Gain your choice of Gun Combat, Melee or Medic but lose \u2212D3 from STR, DEX or END due to your wounds. Make a continuation check.",
+      "2": "A junior Leader challenges the seniors in your Oytrip. This causes serious disruption to your work and you are punished for the failure of a project. The junior Leader offers you a place in their Kroyloss if you left with them. If you did, you are exiled from the Oytrip; the Kroyloss breaks up and you are alone. Muster out and begin adventuring or commit ritual suicide as is correct. If you do not leave the Oytrip, your rank is reduced by \u22121. You must still make a continuation check.",
+      "3": "A dangerous situation arises and the Technicians are instructed to work under hazardous conditions. If you behave correctly, you lose 1 point in each of STR, DEX and END and must make a continuation check. If you do not behave correctly, you betray your role in the Oytrip and are rightly driven from it. You may continue to betray your Oytrip by mustering out and begin adventuring now or may commit ritual suicide as is correct in these situations.",
+      "4": "Bad things occur. You are asked to make emergency repairs under dangerous conditions. If you try your hardest regardless of your own safety, you lose \u2212D3 points from STR, DEX or END and your rank increases by +1. If you do the minimum expected of you and let the burden fall on your fellow Technicians you suffer no injuries but rank is reduced by \u22121. You must also make a continuation check.",
+      "5": "Your Leader leads you on an expedition which goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+      "6": "You behave incorrectly. Your rank is reduced by \u22121. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  },
+  "droyne_sport": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You accompany an eminent Leader and gain their respect for your diligence. Your rank is increased by +1.",
+      "4": "The Workers of your Oytrip ask you to raise concerns with the senior Leaders. Make an Appeal check. If successful, you are heard and the situation is positively resolved. Your rank increases by +1. Whether you succeed or fail, gain one level of Appeal.",
+      "5": "You are sent to live among non-Droyne and learn about them. Gain one level of Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them.",
+      "6": "You have to work outside your normal area of expertise. Gain one level in any skill from any table available to your caste.",
+      "7": "The Oytrip prospers. All is well.",
+      "8": "Your Leader takes you on an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "You interact with non-Droyne. Gain one level in Outsider or any Black Skill.",
+      "10": "You travel aboard starships for much of this term. Gain one level in any of Astrogation, Electronics, Engineer, Gunner, Pilot, Vacc Suit.",
+      "11": "It is necessary to approach and investigate a piece of Ancients technology. You are sent to undertake a preliminary investigation. Make an Ancients Tech or Art (Droyne) check. If successful, you gain PSI +1 and a level in Ancients Tech. If you fail, you may choose one or the other.",
+      "12": "Your Leader is honoured with possession or guardianship of an Ancients artefact. You tend and sometimes carry it for him. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. You are one of the emissaries sent to negotiate an end to the conflict. Make an Appeal check. If successful, the fighting is ended quickly although you lose \u22121 to STR, DEX or END due to a stray shot or blow. If you fail, the damage is increased to \u22121 on each of these characteristics. Make a continuation check.",
+      "2": "A junior Leader challenges the seniors in your Oytrip. They are ejected from the Oytrip for their temerity and choose to form a Kroyloss with their immediate followers. You are sent to monitor this group and follow it very far from home before it meets a sad end. Realising you may never get back to the Oytrip, you have the option of beginning your adventuring now \u2014 or committing ritual suicide. If you choose to try to get home, make an END check. If successful, you made it and are welcomed back. If you fail, you eventually arrived half-starved and in a near-deranged state from loneliness. Reduce INT, EDU and PSI by \u22121 each. You must also make a continuation check.",
+      "3": "A dangerous situation arises and you have a chance to stop it getting worse. Make an Appeal check. If successful, you bring to the attention of the Oytrip's highest Leader a series of incorrect actions by another Leader, which results in them being ejected from the Oytrip. You gain this Leader and their Kroyloss as an Enemy. If you fail, you do not deliver the news in time and the situation goes out of control. Reduce rank by \u22121 and make a continuation check.",
+      "4": "Bad things occur. You are instructed to go to another Oytrip and ask for assistance but not to reveal what has happened. Make an Appeal check. If successful, your request is granted and the situation is salvaged. If you fail, desperate measures have to be taken. The Leaders arrange a Ritual of Cleansing whereby those involved commit suicide to carry away the stigma of the deeds done. You have been selected to take part. You may do so if you wish. If not, you must betray your Oytrip and flee, living in disgrace among outsiders. Muster out and begin adventuring now.",
+      "5": "Your Leader undertakes an expedition which goes badly wrong. Those involved are forced to survive outside Droyne society for several months. You are sent to find them and get them home. Make an Outsider check. If successful, you suffer no ill effects. If you fail, reduce rank by \u22121. Either way, you gain a Contact outside the Oytrip.",
+      "6": "You behave incorrectly. Your rank is reduced by \u22121. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  },
+  "droyne_leader": {
+    "events": {
+      "2": "Disaster! Roll on the Mishap table.",
+      "3": "You work closely with your Oytrip's most senior Leaders and gain their respect. Your rank is increased by +1.",
+      "4": "A Worker comes to you with serious concerns. If you support them, you gain one level of Leadership but also a Rival among your own Oytrip. If you put the uppity Worker in their place you gain a level of Caste (leader) and an Ally among your own Oytrip.",
+      "5": "You are sent with a diplomatic party to a starport or installation run by non-Droyne. It is a cesspit of incorrect behaviour! If you choose to learn the ways of the outsiders, gain one level in any of Carouse, Deception, Gambler, Persuade or Streetwise. These are Black Skills and you are diminished by knowing them. If you prefer not to sully yourself, you gain nothing.",
+      "6": "Your leadership keeps everything running smoothly. Gain one level in Appeal, Diplomat, or Leadership.",
+      "7": "Everything is as it should be.",
+      "8": "You lead an expedition into the wilds. Gain one level of Recon or Survival.",
+      "9": "A non-Leader comes to you with an idea. It has merit but will upset the traditional order of things. If you supported the idea and took it to the Oytrip's senior-most Leaders, gain a level of Appeal. If you put the underling in their place, gain a level of Caste (leader).",
+      "10": "You are forced to interact with outsiders. Gain one level in Outsider (any) and a Contact outside the Oytrip.",
+      "11": "You are involved in the creation or operation of a starship. Gain one level in any of Astrogation, Tactics (any) or Vacc Suit.",
+      "12": "You are honoured for a time with possession or guardianship of an Ancients artefact. Gain 1 level in Ancients Tech."
+    },
+    "mishaps": {
+      "1": "Your Oytrip comes under attack. Desperate measures are required. Make a Leadership check. If you are successful, your response is correct \u2014 whether you won the fight or not. Gain your choice of Gun Combat, Melee or Tactics. If you fail, lose \u2212D3 to STR, DEX or END due to your wounds. Make a continuation check.",
+      "2": "You challenge the seniors in your Oytrip. Your challenge fails but you remain convinced you are right. You are driven from the Oytrip with some companions, who form a Kroyloss. This collapses after a time, leaving you alone in the universe. You are determined to prove you were right all along and this conviction overrides your urge to commit ritual suicide. Muster out, begin adventuring and gain an Enemy in your old Oytrip.",
+      "3": "A dangerous situation arises and the Oytrip looks to you for leadership. You are able to rally the nearest Droyne and prevent things getting any worse but are injured in the process. You suffer injuries and lose \u22121 to each of STR, DEX and END and must make a continuation check. You gain an Ally within the Oytrip.",
+      "4": "A band of non-Droyne enter the Oytrip and attempt to subvert your way of life. They cause utter mayhem and steal some items before being caught. If you take the stance that they did not know any better and should be educated rather than punished, you are ejected from the Oytrip and sent to carry out that education. Muster out and begin adventuring career with an Ally who is an outsider. If you choose to punish them, you gain three Enemies, all of them from outside your Oytrip.",
+      "5": "You undertake an expedition which goes badly wrong. You are forced to survive outside Droyne society for several months. You gain an immediate level in Outsider (any) and may choose to take one level of Streetwise. However, this is a Black Skill and will diminish you as a Droyne. Make a continuation check with the negative DM for any Black Skills you may have.",
+      "6": "You behave incorrectly. Your rank is reduced by \u22122, because this is particularly serious among Leaders. If this takes it below zero you are ejected from the Oytrip. Make a continuation check."
+    }
+  }
+}
