@@ -11491,7 +11491,7 @@ def purchase_solomani_documents(character: "Character") -> dict:
 _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ---- Aslan Hierate careers ----
     "aslan_ceremonial": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_ceremonial_secret",
               "prompt": "You uncover an embarrassing secret — trade it for 1D Clan Shares (gain Elder as Enemy) or keep it in reserve?",
               "options": [
@@ -11525,7 +11525,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_envoy": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_aslan_envoy_fight",
               "prompt": "Your clan places you in a difficult situation — flee (SOC−1) or stay and fight (Diplomat/Investigate/Stealth 8+)?",
               "options": [
@@ -11562,7 +11562,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_military": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Recon"}, {"name": "Gun Combat"}], "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "injury"}],
@@ -11591,7 +11591,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_military_officer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Stealth", "Heavy Weapons", "Vacc Suit", "Drive"]}],
         8:  [{"type": "skill_choice", "options": ["Gun Combat", "Recon", "Melee (natural)", "Tactics (military)"]}],
         4:  [{"type": "skill_check", "skills": [{"name": "Persuade"}, {"name": "Melee (natural)"}], "target": 8,
@@ -11625,7 +11625,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_spacer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
               "target": 8,
               "on_pass": [{"type": "dm_advancement", "amount": 2}],
@@ -11661,7 +11661,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_space_officer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
               "on_pass": [{"type": "dm_advancement", "amount": 2}],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Pirate Captain]"},
@@ -11702,7 +11702,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_management": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Melee (natural)"}, {"name": "Stealth"}, {"name": "Gun Combat"}],
               "target": 8,
@@ -11731,7 +11731,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_scientist": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Carouse", "Survival", "Streetwise"]}],
         4:  [{"type": "skill_choice", "options": ["Science", "Engineer", "Gunner", "Gun Combat"]}],
         5:  [{"type": "skill", "name": "Tolerance", "level": 1},
@@ -11761,7 +11761,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "aslan_wanderer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Survival", "Recon", "Streetwise"]}],
         4:  [{"type": "skill", "name": "Tolerance", "level": 1},
              {"type": "skill_choice", "options": ["Broker", "Diplomat", "Independence"]}],
@@ -11793,7 +11793,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     # ---- GE Aslan careers ----
     "ge_fleet": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Pilot"}, {"name": "Gunner"}, {"name": "Mechanic"}],
               "target": 8,
               "on_pass": [{"type": "dm_advancement", "amount": 2}],
@@ -11829,7 +11829,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "ge_fleet_officer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Tactics"}, {"name": "Engineer"}], "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "enemy", "desc": "Enemy [Hierate Corsair Captain]"},
@@ -11871,7 +11871,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "ge_warrior": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Recon"}, {"name": "Gun Combat"}], "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "injury"}],
@@ -11909,7 +11909,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "ge_warrior_officer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Recon", "Heavy Weapons", "Vacc Suit", "Drive"]}],
         4:  [{"type": "skill_choice", "options": ["Independence", "Admin", "Diplomat", "Streetwise", "Deception"]},
              {"type": "ally", "desc": "Ally [Empire Capital Contact]"}],
@@ -11949,7 +11949,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ]}],
     },
     "ge_landless_one": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "extra_benefit", "amount": 1},
              {"type": "skill_choice", "options": ["Streetwise", "Broker"]}],
         4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
@@ -11975,7 +11975,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "force_next_career", "career_id": "ge_warrior"}],
     },
     "ge_slave": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "enemy", "desc": "Enemy [Brutal Overseer]"}],
         4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
         5:  [{"type": "skill_choice", "options": ["Deception", "Mechanic", "Streetwise"]}],
@@ -11995,7 +11995,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- K'kree careers ----
     "kkree_pastoral": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "enemy", "desc": "Enemy [K'kree Herd Rival]"}],
         4:  [{"type": "skill_choice", "options": ["Diplomat", "Contact (non-K'kree)"]}],
         5:  [{"type": "free_skill_choice", "prompt": "Gain 1 level in any skill"}],
@@ -12011,7 +12011,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "ally", "desc": "Ally [Herd Elder]"}],
     },
     "kkree_servant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "extra_benefit", "amount": 1},
              {"type": "enemy", "desc": "Enemy [Herd Rival]"}],
         4:  [{"type": "skill_choice", "options": ["Melee", "Stealth", "Deception"]}],
@@ -12030,7 +12030,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "kkree_merchant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "stat", "stat": "SOC", "amount": 1},
              {"type": "rival", "desc": "Rival [Herd Competitor]"}],
         4:  [{"type": "free_skill_choice", "prompt": "Gain one roll on any skill table available to Merchant caste"}],
@@ -12044,7 +12044,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "kkree_noble": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
               "on_pass": [{"type": "ally", "desc": "Ally [Loyal Rankholder]"}],
               "on_fail": [{"type": "rival", "desc": "Rival [Disgruntled Vassal]"}],
@@ -12064,7 +12064,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "girug_kagh_translator": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "Diplomat"}], "target": 8,
               "on_pass": [{"type": "dm_advancement", "amount": 2}],
               "on_fail": [{"type": "rival", "desc": "Rival [Negotiation Fallout]"}],
@@ -12083,7 +12083,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Core Imperial careers ----
     "agent": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Investigate"}, {"name": "Streetwise"}], "target": 8,
               "on_pass": [{"type": "skill_choice",
@@ -12112,7 +12112,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "army": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice",
               "options": ["Vacc Suit", "Engineer", "Animals (riding)", "Recon"]}],
         4:  [{"type": "skill_choice",
@@ -12140,7 +12140,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "citizen": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "free_skill_choice",
               "prompt": "Gain any one Service Skill at level 1"}],
         4:  [{"type": "rival", "desc": "Rival [Co-worker/Competitor]"},
@@ -12171,7 +12171,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "drifter": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Melee", "Gun Combat", "Athletics"]}],
         4:  [{"type": "skill_choice",
               "options": ["Steward", "Vacc Suit", "Mechanic", "Astrogation"]}],
@@ -12200,7 +12200,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "entertainer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rival", "desc": "Rival [Critic/Corporate Backer]"}],
         4:  [{"type": "skill_choice",
               "options": ["Art", "Persuade", "Deception", "Carouse"]}],
@@ -12233,7 +12233,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "stat", "stat": "SOC", "amount": 1}],
     },
     "marine": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice",
               "options": ["Vacc Suit", "Gun Combat", "Melee", "Tactics (military)"]}],
         4:  [{"type": "skill_choice",
@@ -12266,7 +12266,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "notes": "Awarded for actions in a critical operation"}],
     },
     "merchant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
              {"type": "skill_check",
               "skills": [{"name": "Gun Combat"}, {"name": "Gunner"}], "target": 8,
@@ -12302,7 +12302,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "navy": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Gunner"}, {"name": "Tactics (naval)"}], "target": 8,
               "on_pass": [{"type": "skill_choice", "options": ["Gunner", "Tactics (naval)"]},
@@ -12342,7 +12342,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "notes": "Awarded for heroism in a major fleet action"}],
     },
     "noble": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_noble_duel",
               "prompt": "Challenged to a duel for your honour — accept or refuse?",
               "options": [
@@ -12381,7 +12381,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "prisoner": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Melee (unarmed)"}, {"name": "Stealth"}], "target": 8,
               "on_pass": [],
@@ -12414,7 +12414,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "ally", "desc": "Ally [Fellow Prisoner]"}],
     },
     "rogue": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "enemy", "desc": "Enemy [Law Enforcement]"},
              {"type": "skill_check",
               "skills": [{"name": "Stealth"}, {"name": "Deception"}], "target": 8,
@@ -12458,7 +12458,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "scholar": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Survival"}, {"name": "Medic"}], "target": 8,
               "on_pass": [{"type": "skill_choice", "options": ["Survival", "Medic"]}],
@@ -12489,7 +12489,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}, {"type": "dm_benefit", "amount": 2}],
     },
     "scout": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
              {"type": "skill_check",
               "skills": [{"name": "Pilot"}, {"name": "Persuade"}], "target": 8,
@@ -12533,7 +12533,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Bounty Hunter ----
     "bounty_hunter": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rival", "desc": "Rival [Competing Bounty Hunter]"},
              {"type": "skill_check",
               "skills": [{"name": "Investigate"}], "target": 8,
@@ -12571,7 +12571,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Dolphin Civilian ----
     "dolphin_civilian": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "cetacean_conflict_choice",
               "prompt": "Ocean resource conflict — diplomacy or violence?",
               "diplomacy_skills": ["Advocate", "Diplomat"],
@@ -12611,7 +12611,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Dolphin Military ----
     "dolphin_military": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "dm_advancement", "amount": 2},
              {"type": "contact", "desc": "Contact [Elite Military Unit]"}],
         4:  [{"type": "skill_check", "skills": [{"name": "Vacc Suit"}], "target": 4,
@@ -12645,7 +12645,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Philosopher-Elder (Uplifted Orca) ----
     "philosopher_elder": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "cetacean_conflict_choice",
               "prompt": "Ocean resource conflict — diplomacy or violence?",
               "diplomacy_skills": ["Advocate", "Diplomat"],
@@ -12685,7 +12685,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Spirit Singer (Orca) ----
     "spirit_singer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "stat", "stat": "SOC", "amount": 1},
              {"type": "ally", "desc": "Ally [Clan Elder — proved your guidance]"}],
         4:  [{"type": "contact", "desc": "Contact [Matriarch — spiritual consultation]"}],
@@ -12714,7 +12714,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Aslan Outcast ----
     "aslan_outcast": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "dm_qualification", "amount": 4}],
         4:  [{"type": "skill", "name": "Jack-of-All-Trades", "level": 1}],
         5:  [{"type": "skill_choice",
@@ -12743,7 +12743,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Aslan Outlaw ----
     "aslan_outlaw": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "stat", "stat": "END", "amount": -1},
              {"type": "free_skill_choice", "prompt": "Barely survived — gain any one skill at level 1"}],
         4:  [{"type": "extra_benefit", "amount": 1}],
@@ -12785,7 +12785,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Solomani careers ----
     "confederation_army": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice",
               "options": ["Vacc Suit", "Engineer", "Animals (riding)", "Recon"]}],
         4:  [{"type": "skill_choice",
@@ -12813,7 +12813,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "confederation_navy": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice",
               "options": ["Animals (riding)", "Survival", "Recon", "Science"]}],
         4:  [{"type": "pending_choice", "id": "event_confnav_recreation",
@@ -12849,7 +12849,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "party": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "auto_qualify_careers", "career_ids": ["citizen", "merchant"]}],
         4:  [{"type": "skill_check",
               "skills": [{"name": "Advocate"}, {"name": "Art"}], "target": 7,
@@ -12893,7 +12893,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "solsec": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_report_or_suppress",
               "prompt": "Evidence of SolSec corruption — report or suppress?",
               "ally_desc": "Ally [Corrupt SolSec Contact]",
@@ -12941,7 +12941,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "auto_advance"}],
     },
     "solomani_marine": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice",
               "options": ["Vacc Suit", "Gun Combat", "Melee", "Tactics (military)"]}],
         4:  [{"type": "skill_choice",
@@ -12977,7 +12977,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ================================================================
 
     "vargr_army": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Vacc Suit", "Engineer", "Survival"]}],
         4:  [{"type": "skill_choice", "options": ["Stealth", "Streetwise", "Persuade", "Recon"]}],
         5:  [{"type": "pending_choice", "id": "event_stat_or_dm",
@@ -13026,7 +13026,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_citizen": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check", "skills": [{"name": "SOC", "is_stat": True}], "target": 8,
               "on_nat2": [],
               "on_pass": [{"type": "dm_advancement", "amount": 2}],
@@ -13062,7 +13062,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_corsair": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "forfeit_benefit"},
              {"type": "contact", "desc": "Contact [Lawyer Who Got Charges Dropped]"}],
         4:  [{"type": "skill", "name": "Survival", "level": 1}],
@@ -13085,7 +13085,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_emissary": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_emissary_negot",
               "prompt": "Negotiations going badly — cut your losses (SOC−1) or roll Broker/Diplomat/Persuade 10+?",
               "options": [
@@ -13123,7 +13123,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_law_enforcement": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Investigate"}, {"name": "Streetwise"}], "target": 8,
               "on_nat2": [],
@@ -13163,7 +13163,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_loner": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "vargr_loner_patron",
               "prompt": "A patron offers you a job — accept (DM+4 Qualification + Contact) or decline?",
               "options": [
@@ -13200,7 +13200,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_marines": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "stat", "stat": "END", "amount": 1}],
         4:  [{"type": "skill_choice", "options": ["Vacc Suit", "Athletics (dexterity)"]}],
         5:  [{"type": "skill_choice", "options": ["Gun Combat", "Melee", "Recon"]}],
@@ -13219,7 +13219,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_merchant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_merchant_smuggle",
               "prompt": "You are approached to buy or smuggle illegal goods — accept or refuse?",
               "options": [
@@ -13239,7 +13239,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_navy": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "dm_benefit", "amount": 1}],
         4:  [{"type": "contact", "desc": "Contact [Crew Member]"}],
         5:  [{"type": "skill_choice", "options": ["Vacc Suit", "Athletics (dexterity)"]}],
@@ -13259,7 +13259,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_psion": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "d6_result",
               "ranges": [
                   {"min": 1, "max": 4, "effects": []},
@@ -13292,7 +13292,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "vargr_scientist": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "contact", "desc": "Contact [Military Project]"},
              {"type": "skill_choice", "options": ["Gun Combat", "Engineer", "Heavy Weapons", "Science"]}],
         4:  [{"type": "skill", "name": "Deception", "level": 1}],
@@ -13314,7 +13314,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # ================================================================
 
     "zhodani_agent": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Drive", "Flyer", "Pilot", "Seafarer"]}],
         4:  [{"type": "d6_result",
               "ranges": [
@@ -13342,7 +13342,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_army": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Stealth", "Persuade", "Recon"]}],
         4:  [{"type": "skill_choice", "options": ["Vacc Suit", "Engineer", "Animals", "Recon"]}],
         5:  [{"type": "skill_choice", "options": ["Vacc Suit", "Heavy Weapons", "Athletics (dexterity)"]},
@@ -13371,7 +13371,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_entertainer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_entertainer_controversial",
               "prompt": "Invited to a controversial event — refuse (nothing) or accept (Art/Persuade 8+)?",
               "options": [
@@ -13401,7 +13401,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_government": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Animals (riding)", "Art", "Carouse"]}],
         4:  [{"type": "free_skill_choice",
               "prompt": "Special advisor to another Zhodani career — roll on any other career's Service Skills table:"},
@@ -13433,7 +13433,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_guard": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Vacc Suit", "Athletics (dexterity)"]}],
         4:  [{"type": "skill_choice", "options": ["Recon", "Gun Combat", "Leadership", "Electronics (comms)"]}],
         5:  [{"type": "skill_choice", "options": ["Advocate", "Investigate", "Persuade"]},
@@ -13476,7 +13476,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_merchant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_zhodani_merchant_drafted",
               "prompt": "Government drafts your ship — must leave Merchant career.",
               "options": [
@@ -13498,7 +13498,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_navy": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Diplomat", "Recon", "Steward"]},
              {"type": "contact", "desc": "Contact [Diplomatic Mission]"}],
         4:  [{"type": "skill_choice", "options": ["Engineer", "Gunner", "Pilot", "Electronics (sensors)"]}],
@@ -13525,7 +13525,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_prole": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Investigate"}, {"name": "Streetwise"}], "target": 8,
               "on_nat2": [],
@@ -13559,7 +13559,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
 
     "zhodani_scholar": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "event_scholar_conscience",
               "prompt": "Called to perform research against your conscience — accept (benefit + 2 Science skills + D3 Enemies) or refuse (Ally)?",
               "options": [
@@ -13592,7 +13592,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # All events 3 = rank+1; 8 = Recon or Survival
     # Career-specific events follow below.
     "droyne_worker": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
               "on_pass": [{"type": "rank_adjustment", "amount": 1}],
@@ -13606,6 +13606,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "refuse","label": "Refuse — ejected from the Oytrip"},
               ]}],
         6:  [{"type": "skill_choice", "options": ["Profession", "Drive", "Flyer", "Appeal"]}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "pending_choice", "id": "droyne_worker_idea",
               "prompt": "Dare to suggest your idea (Appeal 8+) or keep quiet (gain Profession/Caste)?",
@@ -13619,7 +13620,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
     },
     "droyne_warrior": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "skill", "name": "Ancients Tech", "level": 1}],
         5:  [{"type": "skill_check", "skills": [{"name": "Gun Combat"}], "target": 8,
@@ -13627,6 +13628,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_fail": [{"type": "skill", "name": "Medic", "level": 1}],
               "prompt": "Gun Combat 8+ — pass: gain Gun Combat/Melee/Heavy Weapons; fail: gain Medic"}],
         6:  [{"type": "skill_choice", "options": ["Gun Combat", "Heavy Weapons", "Vacc Suit", "Leadership"]}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "skill_check", "skills": [{"name": "Tactics"}], "target": 8,
               "on_pass": [{"type": "rank_adjustment", "amount": 1}],
@@ -13639,7 +13641,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
     },
     "droyne_drone": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
               "on_pass": [{"type": "pending_choice", "id": "droyne_drone_appeal_pass",
@@ -13652,6 +13654,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "Appeal 8+ — pass: rank+1 or Caste 1; fail: gain Appeal 1"}],
         5:  [{"type": "skill_choice", "options": ["Outsider", "Science", "Vacc Suit"]}],
         6:  [{"type": "skill_choice", "options": ["Profession", "Admin", "Art", "Appeal"]}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
               "on_pass": [{"type": "rank_adjustment", "amount": 1}],
@@ -13663,7 +13666,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
     },
     "droyne_technician": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
               "on_pass": [{"type": "rank_adjustment", "amount": 1}],
@@ -13676,6 +13679,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "refuse","label": "Refuse — ejected from the Oytrip"},
               ]}],
         6:  [{"type": "skill_choice", "options": ["Profession", "Drive", "Flyer", "Appeal"]}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "pending_choice", "id": "droyne_tech_assignment_stat",
               "prompt": "Proved adept — choose your assignment bonus stat:",
@@ -13690,7 +13694,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
     },
     "droyne_sport": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "skill_check", "skills": [{"name": "Appeal"}], "target": 8,
               "on_pass": [{"type": "rank_adjustment", "amount": 1}],
@@ -13701,6 +13705,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "options": ["Carouse", "Deception", "Gambler", "Persuade", "Streetwise"],
               "prompt": "Sent to live among non-Droyne — gain a Black Skill (you are diminished by knowing it):"}],
         6:  [{"type": "free_skill_choice", "prompt": "Work outside normal expertise — gain any skill from your career tables:"}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "pending_choice", "id": "droyne_sport_outsider_or_black",
               "prompt": "Interact with non-Droyne — gain Outsider or a Black Skill?",
@@ -13719,7 +13724,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill", "name": "Ancients Tech", "level": 1}],
     },
     "droyne_leader": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "rank_adjustment", "amount": 1}],
         4:  [{"type": "pending_choice", "id": "droyne_leader_worker_concern",
               "prompt": "A Worker brings concerns. Support them or put them in their place?",
@@ -13734,6 +13739,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
                   {"id": "abstain", "label": "Abstain — gain nothing"},
               ]}],
         6:  [{"type": "skill_choice", "options": ["Appeal", "Diplomat", "Leadership"]}],
+        7:  [],  # Narrative event
         8:  [{"type": "skill_choice", "options": ["Recon", "Survival"]}],
         9:  [{"type": "pending_choice", "id": "droyne_leader_idea_support",
               "prompt": "A non-Leader brings an idea with merit. Raise it to senior Leaders or discipline them?",
@@ -13751,7 +13757,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     # Event 7 = Life Event; Event 8 = starship skills (Pilot/Astrogation/Engineer)
     # Event 9 = Ally + Contact; common events shared across all 4 careers
     "hiver_academic": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
         4:  [{"type": "dm_advancement", "amount": 4}],
         5:  [{"type": "contact", "desc": "Contact [Possible Enemy — one of 3 is secretly an Enemy]"},
@@ -13782,7 +13788,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               ]}],
     },
     "hiver_generalist": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
         4:  [{"type": "dm_advancement", "amount": 4}],
         5:  [{"type": "d_associates", "kind": "contact", "dice": "D3", "desc_prefix": "Contact"}],
@@ -13799,7 +13805,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "skill_choice", "options": ["Gun Combat", "Heavy Weapons"]}],
     },
     "hiver_manipulator": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
         4:  [{"type": "dm_advancement", "amount": 4}],
         5:  [{"type": "dm_permanent_advancement", "amount": 1}],
@@ -13824,7 +13830,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "prompt": "RES 8+ — pass: immediate DM+4 advancement check + skill + Contact; fail: skill + Contact"}],
     },
     "hiver_merchant": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "free_skill_choice", "prompt": "Roll on any Service Skills table for any career:"}],
         4:  [{"type": "dm_advancement", "amount": 4}],
         5:  [{"type": "pending_choice", "id": "hiver_merchant_big_score",
@@ -13850,7 +13856,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     # ---- Imperial Guard ----
     "imperial_guard": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "END", "is_stat": True}, {"name": "STR", "is_stat": True}],
               "target": 8,
@@ -13875,7 +13881,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- INI (Imperial Naval Intelligence) ----
     "ini": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "INT", "is_stat": True}],
               "target": 8,
@@ -13900,7 +13906,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Storm Knight careers ----
     "storm_knight_thunder": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Recon"}, {"name": "Survival"}],
               "target": 8,
@@ -13925,7 +13931,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "knight_commander_deed"}],
     },
     "storm_knight_inconstant_star": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_choice", "options": ["Astrogation", "Navigation"]},
              {"type": "dm_benefit", "amount": 1}],
         4:  [{"type": "skill_choice", "options": ["Science", "Electronics"]}],
@@ -13945,7 +13951,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
              {"type": "knight_commander_deed"}],
     },
     "storm_knight_shadows": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "skill_check",
               "skills": [{"name": "Stealth"}, {"name": "Deception"}],
               "target": 9,
@@ -13969,7 +13975,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
 
     # ---- Psion ----
     "psion": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         # Event 3: Contact or Ally → Rival (interactive choice)
         3:  [{"type": "pending_choice", "id": "psion_event3",
               "prompt": "Your psionic abilities make you uncomfortable to be around. "
@@ -14003,7 +14009,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [],
     },
     "truther": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "pending_choice", "id": "truther_event3",
               "prompt": "A body wants to use your knowledge questionably. Agree (extra Benefit + any Science + D3 Enemies) or decline?",
               "options": [
@@ -14035,7 +14041,7 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
         12: [{"type": "d_stat", "stat": "FOL", "dice": "D3", "negative": False}],
     },
     "believer": {
-        2:  [{"type": "trigger_disaster_mishap"}],
+        2:  [{"type": "trigger_disaster_mishap"}, {"type": "career_continues"}],
         3:  [{"type": "stat", "stat": "SOC", "amount": 1},
              {"type": "ally", "desc": "Ally [Community]"}],
         4:  [{"type": "contact", "desc": "Contact [Academic]"}],
@@ -14512,6 +14518,26 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
              "on_fail": [{"type": "force_next_career", "career_id": "prisoner"}],
              "prompt": "Roll Stealth or Persuade 8+ to escape capture — pass: stay free; fail: Prisoner career next"}],
         6: [{"type": "career_continues"}],
+    },
+
+    # ---- Imperial Guard ----
+    "imperial_guard": {
+        1: [{"type": "injury"}, {"type": "forfeit_benefit"}],
+        2: [{"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "rank_adjustment", "amount": -1}, {"type": "career_continues"}],
+        4: [{"type": "forfeit_benefit"}],
+        5: [{"type": "enemy", "desc": "Enemy [Off-world Contact]"}, {"type": "forfeit_benefit"}],
+        6: [{"type": "stat", "stat": "SOC", "amount": -1}],
+    },
+
+    # ---- Imperial Naval Intelligence (INI) ----
+    "ini": {
+        1: [{"type": "injury"}, {"type": "forfeit_benefit"}],
+        2: [{"type": "enemy", "desc": "Enemy [Double Agent]"}, {"type": "stat", "stat": "SOC", "amount": -1}],
+        3: [{"type": "rank_adjustment", "amount": -1}],
+        4: [{"type": "forfeit_benefit"}],
+        5: [{"type": "career_continues"}],  # "You are extracted — cannot continue in this role"
+        6: [{"type": "rival", "desc": "Rival [Intelligence Community]"}],
     },
 
     # ---- K'kree careers ----
