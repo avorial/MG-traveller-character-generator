@@ -11255,7 +11255,7 @@ function renderDonePhase() {
       <div class="done-card tas-sheet-card">
         <h3 class="done-card-title">Character Sheet</h3>
         <p class="empty" style="margin-bottom:10px">Interactive Mongoose Traveller 2e sheet — click a stat or skill to roll, track wounds, conditions, weapons and gear. Use your browser's Print command to print it.</p>
-        <div id="tas-sheet-mount">${renderTASSheet()}</div>
+        <div id="tas-sheet-mount">${renderTASSheetSafe()}</div>
       </div>
     </div>
   `;
@@ -11354,11 +11354,13 @@ function refreshTASSheet() {
 function tasSkillIndex() {
   const base = {}, spec = {};
   (character.skills || []).forEach(s => {
+    if (!s || s.name == null) return;          // skip null / malformed entries
+    const lvl = (s.level == null) ? 0 : s.level;
     if (s.speciality) {
       spec[s.name] = spec[s.name] || {};
-      spec[s.name][s.speciality] = s.level;
+      spec[s.name][s.speciality] = lvl;
     } else {
-      base[s.name] = s.level;
+      base[s.name] = lvl;
     }
   });
   return { base, spec };
@@ -11415,6 +11417,22 @@ function tasSkillsGrid() {
   return { html: cells.join(''), total };
 }
 
+// Lore-appropriate banner text for the TAS form header, keyed by society then species.
+function tasFormBanner() {
+  const soc = character.society_id || '';
+  const sp  = character.species_id  || '';
+  if (soc === 'zhodani_consulate'  || sp.startsWith('zhodani'))  return ['ZHODANI CONSULATE',         'CITIZEN DOSSIER',            'FORM ZCONS-7 · PRITHYIR'];
+  if (soc === 'aslan_hierate'      || sp.includes('aslan'))      return ['ASLAN HIERATE',              'PRIDE REGISTRY',             'FTEIRLE AOKHALTE · SEALED'];
+  if (soc === 'two_thousand_worlds'|| sp.includes('kkree'))      return ['TWO THOUSAND WORLDS',        'HERD MANIFEST',              'KTEIRLE-FORM 1 · SEALED'];
+  if (soc === 'vargr_extents'      || sp.includes('vargr'))      return ['VARGR EXTENTS',              'PACK CHARTER',               'CORSAIR REGISTRY · AEKHU'];
+  if (soc === 'solomani_confederation' || sp === 'confederation_human' || sp === 'solomani') return ['SOLOMANI CONFEDERATION', 'GENETIC RECORD', 'FORM SOL-GR1 · RACIAL REGISTRY'];
+  if (soc === 'droyne_oytrip'      || sp === 'droyne')           return ['DROYNE OYTRIP',              'CASTE CLASSIFICATION',       'FORM OY-7 · SPORT RESTRICTED'];
+  if (soc === 'hiver_federation'   || sp === 'hiver')            return ['HIVER FEDERATION',           'NEST COLLECTIVE PROFILE',    'FORM HF-NEST · MANIPULATOR ONLY'];
+  if (sp === 'dolphin' || sp === 'orca') return ['CETACEAN UPLIFT AUTHORITY',   'CITIZENSHIP RECORD',         'FORM CUA-3 · OCEAN TERRITORY'];
+  // default — Third Imperium / mixed / unknown
+  return ['TRAVELLERS\' AID SOCIETY',                            '— IMPERIAL TRAVEL AUTHORITY —', 'FORM TAS-001 · CONFIDENTIAL'];
+}
+
 // Render the interactive TAS character sheet.
 function renderTASSheet() {
   const ps = tasPlay();
@@ -11423,6 +11441,8 @@ function renderTASSheet() {
   const socLabel = socLabelForChar(character) || 'SOC';
   const dossier = (character.name || 'TRAVELLER').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6).padEnd(4, '0').slice(0, 6);
   const initial = (character.name || 'F').trim().charAt(0).toUpperCase() || 'F';
+  const [bannerLeft, bannerCenter, bannerRight] = tasFormBanner();
+  const portrait = ps.portrait || null;
 
   // Characteristics (6 + PSI if any)
   const statList = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'].filter(s => s !== 'SOC' || socLabelForChar(character) !== null);
@@ -11470,13 +11490,18 @@ function renderTASSheet() {
   return `
   <div class="tas-sheet">
     <div class="tas-form-top">
-      <span>TRAVELLERS' AID SOCIETY</span>
-      <span>— IMPERIAL TRAVEL AUTHORITY —</span>
-      <span>FORM TAS-001 · CONFIDENTIAL</span>
+      <span>${escapeHTML(bannerLeft)}</span>
+      <span>${escapeHTML(bannerCenter)}</span>
+      <span>${escapeHTML(bannerRight)}</span>
     </div>
 
     <div class="tas-identity">
-      <div class="tas-portrait">${escapeHTML(initial)}<span>UPLOAD</span></div>
+      <label class="tas-portrait" title="Click to upload a character portrait" style="cursor:pointer">
+        ${portrait
+          ? `<img src="${portrait}" alt="portrait" class="tas-portrait-img" />`
+          : `<span class="tas-portrait-initial">${escapeHTML(initial)}</span><span class="tas-portrait-hint">UPLOAD</span>`}
+        <input type="file" id="tas-portrait-input" accept="image/*" style="display:none" />
+      </label>
       <div class="tas-id-fields">
         <input class="tas-name" id="tas-name" value="${escapeAttr(character.name || '')}" placeholder="UNNAMED TRAVELLER" />
         <div class="tas-id-row">
@@ -11486,7 +11511,7 @@ function renderTASSheet() {
         </div>
         <div class="tas-dossier">DOSSIER № <strong>${escapeHTML(dossier)}</strong></div>
       </div>
-    </div>
+    </div><!-- /tas-identity -->
 
     <div class="tas-grid-2">
       <div class="tas-card">
@@ -11537,6 +11562,7 @@ function renderTASSheet() {
 
     <div class="tas-foot">
       <span>Chargen complete · Mongoose Traveller 2.0 layout</span>
+      <button class="tas-btn-fullscreen" id="tas-open-fullscreen" title="Open sheet in its own window">⛶ FULL SCREEN</button>
       <span class="tas-foot-brand">TRAVELLER</span>
     </div>
   </div>`;
@@ -11614,8 +11640,67 @@ function renderTASTab(tab) {
   return '';
 }
 
+// Open the sheet in a standalone window (reads the live CSS from the page).
+function openTASFullscreen() {
+  const cssHref = Array.from(document.styleSheets)
+    .map(s => { try { return s.href; } catch(e) { return null; } })
+    .filter(Boolean)
+    .join('\n')
+    .split('\n').filter(h => h)
+    .map(h => `<link rel="stylesheet" href="${h}" />`)
+    .join('\n');
+  const sheetHTML = document.getElementById('tas-sheet-mount')?.innerHTML || '';
+  const w = window.open('', '_blank', 'width=900,height=900,scrollbars=yes,resizable=yes');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${(character.name || 'Traveller')} — Character Sheet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=VT323&family=Cormorant+Garamond:wght@400;600;700&display=swap" />
+  ${cssHref}
+  <style>
+    body { margin: 0; padding: 16px; background: #0a0806; }
+    .tas-sheet { max-width: 860px; margin: 0 auto; }
+    .tas-btn-fullscreen { display: none; }
+  </style>
+</head>
+<body>
+  ${sheetHTML}
+  <script>
+    // Disable all interactive controls (sheet is for display/print in this window)
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('button,input').forEach(el => { el.disabled = true; });
+    });
+  <\/script>
+</body>
+</html>`);
+  w.document.close();
+}
+
 // Wire up all interactive controls on the sheet.
 function wireTASSheet() {
+  // Portrait upload
+  const portraitInput = document.getElementById('tas-portrait-input');
+  if (portraitInput) {
+    portraitInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        tasPlay().portrait = ev.target.result;
+        refreshTASSheet();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Fullscreen button
+  const fsBtn = document.getElementById('tas-open-fullscreen');
+  if (fsBtn) fsBtn.addEventListener('click', openTASFullscreen);
+
   // Name edit
   const nameEl = document.getElementById('tas-name');
   if (nameEl) nameEl.addEventListener('change', () => { character.name = nameEl.value.trim(); refreshTASSheet(); });

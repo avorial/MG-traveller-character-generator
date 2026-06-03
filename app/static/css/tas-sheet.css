@@ -32,12 +32,15 @@
 /* ---- Identity --------------------------------------------- */
 .tas-identity { display: flex; gap: 12px; margin-bottom: 10px; align-items: stretch; }
 .tas-portrait {
-  width: 72px; min-height: 72px; border: 1px solid var(--amber-dim); border-radius: 4px;
+  width: 72px; min-height: 72px; flex-shrink: 0; border: 1px solid var(--amber-dim); border-radius: 4px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-size: 30px; font-weight: 700; color: var(--amber);
-  background: var(--bg-panel-alt);
+  background: var(--bg-panel-alt); overflow: hidden; position: relative;
+  transition: border-color 0.15s;
 }
-.tas-portrait span { font-size: 8px; letter-spacing: 1px; color: var(--muted); margin-top: 2px; }
+.tas-portrait:hover { border-color: var(--amber); }
+.tas-portrait-initial { font-size: 30px; font-weight: 700; color: var(--amber); line-height: 1; }
+.tas-portrait-hint { font-size: 8px; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+.tas-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .tas-id-fields { flex: 1; min-width: 0; }
 .tas-name {
   width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-glow);
@@ -170,8 +173,14 @@
 .tas-x:hover { color: var(--danger); }
 
 /* ---- Footer ----------------------------------------------- */
-.tas-foot { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px 0; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 4px; }
+.tas-foot { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px 0; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 4px; gap: 8px; }
 .tas-foot-brand { color: var(--amber); font-weight: 700; font-size: 15px; letter-spacing: 2px; font-family: var(--font-crt); }
+.tas-btn-fullscreen {
+  background: var(--bg-panel-alt); border: 1px solid var(--border-glow); color: var(--amber-dim);
+  padding: 3px 10px; border-radius: 4px; cursor: pointer; font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.5px; transition: border-color 0.15s, color 0.15s;
+}
+.tas-btn-fullscreen:hover { border-color: var(--amber); color: var(--amber); }
 
 /* ---- Roll result toast ------------------------------------ */
 .tas-toast {
