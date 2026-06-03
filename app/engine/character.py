@@ -460,8 +460,13 @@ class Character(BaseModel):
         new_level = max(level, 0)
         self.skills.append(Skill(name=name, level=new_level, speciality=speciality))
 
-        # Auto-seed parent skill at level 0 when gaining a speciality at 1+.
-        if speciality and new_level >= 1:
+        # Auto-seed parent skill at level 0 whenever a speciality is added (any level).
+        # Previously only triggered for level 1+, which caused a duplicate entry when a
+        # background/basic-training speciality (e.g. "Electronics (Computers) 0") was
+        # stored without a parent, and a later career table added "Electronics 1" —
+        # the career-table call couldn't find the non-existent parent entry and added a
+        # second "Electronics 1" (no spec) entry instead of incrementing the right one.
+        if speciality:
             has_parent = any(
                 s.name == name and s.speciality is None for s in self.skills
             )

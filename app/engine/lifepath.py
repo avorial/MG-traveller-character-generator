@@ -10811,14 +10811,28 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
                 _or_outside_parens_pos = _ci
                 break
     if _or_outside_parens_pos >= 0:
-        # Split into two options at the first top-level " or "
-        _opt_a = result[:_or_outside_parens_pos].strip()
-        _opt_b = result[_or_outside_parens_pos + 4:].strip()
-        _or_parts = [_opt_a, _opt_b]
+        # Collect ALL top-level " or " options, not just the first split.
+        # Bug: splitting only at the first " or " made the second option carry the entire
+        # remainder string (e.g. "Clairvoyance or Telekinesis or Awareness or Teleportation"),
+        # which then got stored as a literal skill name if the player chose it.
+        _or_parts = []
+        _cur_start = 0
+        _or_depth = 0
+        for _ci2, _ch2 in enumerate(result):
+            if _ch2 == "(":
+                _or_depth += 1
+            elif _ch2 == ")":
+                _or_depth -= 1
+            elif _or_depth == 0 and result[_ci2: _ci2 + 4] == " or ":
+                _or_parts.append(result[_cur_start:_ci2].strip())
+                _cur_start = _ci2 + 4
+        _or_parts.append(result[_cur_start:].strip())
+        _or_parts = [p for p in _or_parts if p]
+        _prompt_str = " / ".join(_or_parts)
         character.pending_career_event_choice = {
             "type": "skill_choice",
             "options": _or_parts,
-            "prompt": f"Choose one: {_opt_a} or {_opt_b}:",
+            "prompt": f"Choose one: {_prompt_str}:",
         }
         term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
         character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — choice pending")
@@ -10867,7 +10881,24 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
         return {"roll": r.to_dict(), "result": result, "applied": f"{_base_skill} speciality choice pending",
                 "pending_choice": True, "character": character.model_dump()}
 
-    # The result is either a skill name, a characteristic bonus ("DEX +1"), or similar.
+    # ── Bare skill name that has specialities → treat as "(any)" and prompt ──
+    # e.g. career table entry "Gun Combat" should trigger a speciality picker,
+    # not silently add "Gun Combat 1" with no spec.
+    _bare_name, _bare_spec = _split_skill_speciality(result.strip())
+    if not _bare_spec and not re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES)\s*[+-]\d+", result.strip(), re.IGNORECASE):
+        _bare_specs = rules.skill_specialities().get(_bare_name, [])
+        if _bare_specs:
+            character.pending_career_event_choice = {
+                "type": "skill_choice",
+                "options": [f"{_bare_name} ({s})" for s in _bare_specs],
+                "prompt": f"Choose a {_bare_name} speciality to gain at level 1:",
+            }
+            term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
+            character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — speciality choice pending")
+            return {"roll": r.to_dict(), "result": result, "applied": f"{_bare_name} speciality choice pending",
+                    "pending_choice": True, "character": character.model_dump()}
+
+    # The result is a specific skill, characteristic bonus, or associate grant.
     applied = _apply_skill_result(character, result)
     term.skills_gained.append(f"{table.get('name', table_key)}: {result}")
     character.log(f"Skill roll ({table.get('name', table_key)}) [1D={r.total}]: {result} — {applied}")
@@ -16778,8 +16809,29 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
             break
         i += 1
     if or_pos >= 0:
-        first_choice = text[:or_pos].strip()
-        return _apply_rank_bonus(character, first_choice) + " (auto-picked)"
+        # Collect ALL top-level "or" options and present a pending player choice.
+        # Previously this auto-picked the first option without player input.
+        _rb_parts: list[str] = []
+        _rb_cur = 0
+        _rb_depth = 0
+        for _rbi, _rbc in enumerate(text):
+            if _rbc == "(":
+                _rb_depth += 1
+            elif _rbc == ")":
+                _rb_depth -= 1
+            elif _rb_depth == 0 and text[_rbi: _rbi + 4] == " or ":
+                _rb_parts.append(text[_rb_cur:_rbi].strip())
+                _rb_cur = _rbi + 4
+        _rb_parts.append(text[_rb_cur:].strip())
+        _rb_parts = [p for p in _rb_parts if p]
+        if len(_rb_parts) == 1:
+            return _apply_rank_bonus(character, _rb_parts[0])
+        character.pending_career_event_choice = {
+            "type": "skill_choice",
+            "options": _rb_parts,
+            "prompt": f"Rank bonus: choose one of: {' / '.join(_rb_parts)}",
+        }
+        return f"Rank bonus: {bonus_str} — choice pending"
 
     # "Skill (spec) N" or "Skill N" or plain "Skill"
     # Try to strip a trailing digit as the level
