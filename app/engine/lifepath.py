@@ -6516,6 +6516,18 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         msgs.append(f"Gained {etype.capitalize()}: {desc}")
         character.log(f"Mishap: gained {etype} — {desc}")
 
+    elif etype == "enemy_if_none":
+        # Add enemy only if the character has no existing enemies (e.g. Drifter event 8).
+        desc = effect.get("desc", "Enemy")
+        has_enemy = any(a.kind == "enemy" for a in character.associates)
+        if not has_enemy:
+            character.associates.append(Associate(kind="enemy", description=desc))
+            msgs.append(f"Gained Enemy: {desc}")
+            character.log(f"Event: enemy_if_none — {desc} (no prior enemies, added)")
+        else:
+            msgs.append(f"Enemy not added (already has an enemy; {desc})")
+            character.log(f"Event: enemy_if_none — skipped, character already has an enemy")
+
     elif etype == "stat":
         stat = effect["stat"]
         amount = effect["amount"]
@@ -12169,13 +12181,13 @@ _EVENT_EFFECTS: dict[str, dict[int, list[dict]]] = {
               "on_pass": [{"type": "dm_benefit", "amount": 2}],
               "on_fail": [{"type": "trigger_disaster_mishap"}],
               "prompt": "Dangerous job — roll END 8+: pass DM+2 Benefit; fail Mishap (career continues)"}],
-        8:  [{"type": "enemy", "desc": "Enemy [Attacker]"},
+        8:  [{"type": "enemy_if_none", "desc": "Enemy [Attacker]"},
              {"type": "skill_check",
               "skills": [{"name": "Melee"}, {"name": "Gun Combat"}, {"name": "Stealth"}],
               "target": 8,
               "on_pass": [],
               "on_fail": [{"type": "injury"}],
-              "prompt": "Attacked by enemies (Enemy gained regardless) — roll Melee/Gun Combat/Stealth 8+ to avoid injury"}],
+              "prompt": "Attacked by enemies (Enemy added if you have none) — roll Melee/Gun Combat/Stealth 8+ to avoid injury"}],
         9:  [{"type": "dm_benefit", "amount": 2}],
         10: [{"type": "ally", "desc": "Ally [Local in Trouble — helped]"},
              {"type": "dm_advancement", "amount": 2}],
@@ -14049,10 +14061,11 @@ _MISHAP_EFFECTS: dict[str, dict[int, list[dict]]] = {
     },
     "drifter": {
         1: [{"type": "injury_severity_choice"}],
-        2: [{"type": "enemy", "desc": "Enemy [Kidnapper]"}],
+        2: [{"type": "enemy", "desc": "Enemy [Kidnapper/Enslaver]"}],
         3: [{"type": "stat_choice", "options": ["STR", "DEX", "END"], "amount": -1}],
         4: [{"type": "rival", "desc": "Rival [Local Criminals/Police]"}],
-        5: [{"type": "forfeit_benefit"}],
+        # Mishap 5: "Lose all Benefit rolls from this term" — not just one.
+        5: [{"type": "forfeit_all_benefits"}],
         6: [{"type": "injury"}],
     },
     "entertainer": {
