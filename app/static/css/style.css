@@ -1915,6 +1915,76 @@ body.hide-card-desc .card-desc { display: none !important; }
   font-size: 13px;
 }
 
+/* --- Species picker: "other alien races" book-grouped collapsibles --- */
+.species-other-wrap {
+  margin-top: 16px;
+}
+.species-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.species-book {
+  border: 1px solid var(--border, var(--amber-dim));
+  border-radius: 6px;
+  overflow: hidden;
+}
+.species-other-toggle,
+.species-book-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border, var(--amber-dim));
+  color: var(--amber-bright);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 11px 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.species-book-toggle {
+  border: none;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.18);
+}
+.species-other-toggle:hover,
+.species-book-toggle:hover {
+  background: rgba(255, 176, 0, 0.12);
+  border-color: var(--amber);
+}
+.species-other-toggle.open {
+  border-color: var(--amber);
+}
+.species-book-caret {
+  display: inline-block;
+  width: 1em;
+  color: var(--amber);
+  font-size: 12px;
+}
+.species-book-name { flex: 1 1 auto; }
+.species-book-count {
+  flex: 0 0 auto;
+  min-width: 1.6em;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bg, #1a1208);
+  background: var(--amber-dim);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+.species-book .card-grid {
+  padding: 12px;
+  margin: 0;
+}
+
 .species-traits-panel {
   background: var(--bg-panel-alt);
   border: 1px solid var(--border);

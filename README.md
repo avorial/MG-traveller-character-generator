@@ -323,33 +323,30 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 ---
 
-### Species (36)
+### Species (90 selectable across all societies)
 
-Species are listed in picker order and filtered by society. Single-click a card to preview traits; double-click (or click Confirm) to apply.
+Species are filtered by the chosen society and rendered in a **book-grouped picker** so the larger societies stay readable:
 
-#### Third Imperium (15)
+- Each society shows only the species available to it (Third Imperium has 42; the catch-all **Other / Far Domains** has 50).
+- Societies with a defined **common set** (currently Third Imperium) show those species as cards by default — Imperial Human, Vargr, Aslan, Bwap, and the four Uplifted species — with the remaining aliens collapsed under an **"Other alien races ▸"** expander.
+- The expanded / large lists are grouped by **sourcebook** (Core Rulebook, *Aliens of Charted Space* Vol. 1/2/5, *The Spinward Extents*, *Pirates of Drinax*, …), each a collapsible section. Open/closed state persists while you browse.
+- Single-click a card to preview traits; double-click (or click Confirm) to apply.
 
-| Species | Modifiers |
+The common set per society is data-driven via the optional `common_species_ids` field in `app/data/tables/societies.json`; add it to any society to curate its default cards.
+
+| Society | Species available |
 |---|---|
-| **Imperial Human** | — |
-| **Vargr (Imperial Raised)** | DEX +1, END −1, STR −1 |
-| **Aslan (Imperial Raised)** | STR +2, DEX −2 |
-| **Bwap** | STR −4, END −4 |
-| **Jonkeereen** | END +2 |
-| **Luriani** | DEX +1, END +1, SOC −2 |
-| **Sydite** | STR +2, END +2, DEX −2, INT −3, EDU −3 |
-| **Akeed** | INT +1, STR −2, END −2 |
-| **Capry (Female)** | DEX +2, INT +1, STR −3, END −2 |
-| **Capry (Big Male)** | END +1, STR −1 |
-| **Capry (Small Male)** | DEX +3, EDU +2, STR −4, END −3 |
-| **Droashav** | STR +2, END +3, DEX −1, INT −1 |
-| **Faar** | INT +1 |
-| **Caprisap (Alpine)** | DEX +2, STR −2 |
-| **Caprisap (Boar)** | DEX +1, STR −1 |
+| **Third Imperium** | 42 (8 common + 34 grouped by book) |
+| **Other / Far Domains** | 50 (grouped by book) |
+| **Solomani Confederation** | 9 |
+| **Two Thousand Worlds** | 3 |
+| **Aslan Hierate / Glorious Empire** | 3 |
+| **Hiver Federation** | 2 |
+| **Droyne Oytrip** | 1 |
+| **Zhodani Consulate** | 1 |
+| **Vargr Extents** | 1 |
 
-#### Cetacean (2), Solomani (4), Aslan (2), Zhodani (1), Vargr Extents (1), K'kree (2), Hiver (2), Droyne (1), Other/Far Domains (5)
-
-See the full species tables in-app — all 36 species are available with their modifiers, traits, and society restrictions.
+All species carry their characteristic modifiers, traits, and society restrictions; see the in-app picker or the JSON files under `app/data/species/` for the full set.
 
 ---
 

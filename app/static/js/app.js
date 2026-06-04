@@ -3100,6 +3100,41 @@ function renderZhodaniPsiChoice() {
   `;
 }
 
+// Normalise a species' freeform `source` string into a clean sourcebook label
+// so the "other alien races" list can be grouped by book. Order is controlled
+// by SPECIES_BOOK_ORDER below.
+function speciesBookLabel(source) {
+  const s = (source || '').toLowerCase();
+  if (s.includes('spinward extents')) return 'The Spinward Extents';
+  if (s.includes('pirates of drinax')) return 'Pirates of Drinax';
+  if (s.includes('glorious empire')) return 'The Glorious Empire';
+  if (s.includes('vol. 2') || s.includes('volume 2')) return 'Aliens of Charted Space, Vol. 2';
+  if (s.includes('vol. 5') || s.includes('volume 5')) return 'Aliens of Charted Space, Vol. 5';
+  if (s.includes('vol. 1') || s.includes('volume 1')) return 'Aliens of Charted Space, Vol. 1';
+  if (s.includes('aliens of charted space')) return 'Aliens of Charted Space';
+  if (s.includes('solomani')) return 'Solomani Confederation';
+  if (s.includes('hiver')) return 'Hiver Federation';
+  if (s.includes("k'kree") || s.includes('kkree')) return "K'kree";
+  if (s.includes('core rulebook') || s.includes('frontier human') || s.includes('spinward marches')) {
+    return 'Core Rulebook & Setting';
+  }
+  return 'Other Supplements';
+}
+const SPECIES_BOOK_ORDER = {
+  'Core Rulebook & Setting': 0,
+  'Aliens of Charted Space': 1,
+  'Aliens of Charted Space, Vol. 1': 2,
+  'Aliens of Charted Space, Vol. 2': 3,
+  'Aliens of Charted Space, Vol. 5': 4,
+  'The Spinward Extents': 5,
+  'Pirates of Drinax': 6,
+  'The Glorious Empire': 7,
+  'Solomani Confederation': 8,
+  'Hiver Federation': 9,
+  "K'kree": 10,
+  'Other Supplements': 99,
+};
+
 function renderSpeciesPhase() {
   // If a Heritage Roll result is pending, show the result panel instead
   if (uiState.racialBackgroundResult) {
@@ -3126,7 +3161,7 @@ function renderSpeciesPhase() {
   const allowedIds = activeSociety ? new Set(activeSociety.species_ids) : null;
   const filteredSpecies = allowedIds ? SPECIES.filter(sp => allowedIds.has(sp.id)) : SPECIES;
 
-  const cards = filteredSpecies.map(sp => {
+  const renderSpeciesCard = (sp) => {
     const isRollTrigger = !!sp.racial_background_roll;
     const _fmtCustomRoll = v => v.replace('fixed:', 'always ').replace('_min', ' min ');
     const modsText = isRollTrigger
@@ -3154,7 +3189,66 @@ function renderSpeciesPhase() {
         ${isRollTrigger ? '<div class="card-meta" style="color:var(--amber)">🎲 Roll determines your exact heritage</div>' : ''}
       </button>
     `;
-  }).join('');
+  };
+
+  // Split the filtered list into a "common" set (shown by default) and the rest
+  // ("other alien races"), which are grouped by sourcebook and collapsed so the
+  // picker isn't overwhelming. Small societies (no common set, short list) keep
+  // the original flat grid.
+  const commonIds = (activeSociety && activeSociety.common_species_ids) || [];
+  const commonIdSet = new Set(commonIds);
+  const hasCommon = filteredSpecies.some(sp => commonIdSet.has(sp.id));
+  const groupOther = hasCommon || filteredSpecies.length > 12;
+
+  let speciesPickerHTML;
+  if (!groupOther) {
+    speciesPickerHTML = `<div class="card-grid">${filteredSpecies.map(renderSpeciesCard).join('')}</div>`;
+  } else {
+    const commonSpecies = hasCommon ? filteredSpecies.filter(sp => commonIdSet.has(sp.id)) : [];
+    const otherSpecies = filteredSpecies.filter(sp => !commonIdSet.has(sp.id));
+
+    // Bucket the "other" species by normalised book label.
+    const books = {};
+    otherSpecies.forEach(sp => {
+      const label = speciesBookLabel(sp.source);
+      (books[label] = books[label] || []).push(sp);
+    });
+    const bookOrder = Object.keys(books).sort((a, b) =>
+      (SPECIES_BOOK_ORDER[a] ?? 50) - (SPECIES_BOOK_ORDER[b] ?? 50) || a.localeCompare(b));
+
+    // Before any interaction speciesOpenBooks is undefined → default the first
+    // book open so there's always visible content; once the user toggles
+    // anything, their explicit open/closed state takes over.
+    const openMap = uiState.speciesOpenBooks;
+    const bookSectionsHTML = bookOrder.map((book, idx) => {
+      const open = openMap ? !!openMap[book] : idx === 0;
+      return `
+        <div class="species-book${open ? ' open' : ''}">
+          <button type="button" class="species-book-toggle" data-book="${escapeAttr(book)}">
+            <span class="species-book-caret">${open ? '▾' : '▸'}</span>
+            <span class="species-book-name">${esc(book)}</span>
+            <span class="species-book-count">${books[book].length}</span>
+          </button>
+          ${open ? `<div class="card-grid">${books[book].map(renderSpeciesCard).join('')}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    if (hasCommon) {
+      const expanded = !!uiState.speciesExpandOther;
+      speciesPickerHTML = `
+        <div class="card-grid">${commonSpecies.map(renderSpeciesCard).join('')}</div>
+        <div class="species-other-wrap">
+          <button type="button" class="species-other-toggle${expanded ? ' open' : ''}" id="btn-species-other">
+            <span class="species-book-caret">${expanded ? '▾' : '▸'}</span>
+            <span class="species-book-name">Other alien races</span>
+            <span class="species-book-count">${otherSpecies.length}</span>
+          </button>
+          ${expanded ? `<div class="species-book-list">${bookSectionsHTML}</div>` : ''}
+        </div>`;
+    } else {
+      speciesPickerHTML = `<div class="species-book-list">${bookSectionsHTML}</div>`;
+    }
+  }
 
   const selectedSp = SPECIES.find(s => s.id === selected);
   const _spNotes = selectedSp && selectedSp.species_notes && selectedSp.species_notes.length
@@ -3193,7 +3287,7 @@ function renderSpeciesPhase() {
         </p>
       </div>
 
-      <div class="card-grid">${cards}</div>
+      ${speciesPickerHTML}
 
       ${traitsPanel}
 
@@ -3379,6 +3473,31 @@ function wireSpeciesPhase() {
       renderAll();
     } catch (e) { alert(e.message); }
   }
+
+  // "Other alien races" master expander (societies with a common set)
+  const otherToggle = document.getElementById('btn-species-other');
+  if (otherToggle) {
+    otherToggle.addEventListener('click', () => {
+      uiState.speciesExpandOther = !uiState.speciesExpandOther;
+      renderStage();
+    });
+  }
+  // Per-sourcebook collapse toggles. Lazily materialise speciesOpenBooks on the
+  // first interaction (until then the renderer defaults the first book open).
+  document.querySelectorAll('.species-book-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const book = btn.getAttribute('data-book');
+      if (!uiState.speciesOpenBooks) {
+        // Seed from the current default (first book open) so the first click
+        // doesn't silently close an already-open section.
+        uiState.speciesOpenBooks = {};
+        const firstOpen = document.querySelector('.species-book.open .species-book-toggle');
+        if (firstOpen) uiState.speciesOpenBooks[firstOpen.getAttribute('data-book')] = true;
+      }
+      uiState.speciesOpenBooks[book] = !uiState.speciesOpenBooks[book];
+      renderStage();
+    });
+  });
 
   document.querySelectorAll('[data-species]').forEach(card => {
     // Single click → highlight + preview traits panel.
