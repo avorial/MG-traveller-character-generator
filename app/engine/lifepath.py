@@ -6418,6 +6418,17 @@ def event_roll(character: Character) -> dict:
         if life_auto:
             event_effects_applied = life_auto + event_effects_applied
 
+    # When the event created a pending interactive choice (e.g. a skill_check
+    # whose on_pass/on_fail already encode the conditional rewards), drop any
+    # *unapplied* (conditional) text-parsed DM grants. Otherwise the UI could
+    # surface a stray, independently-claimable "DM+N to <roll>" button that lets
+    # the player collect the reward without — or even after FAILING — the gating
+    # roll. See bounty_hunter event 9: "...DM+1 to one Benefit roll. If you
+    # fail, roll on the Mishaps table..." where the DM+1 is owned by the
+    # skill_check's on_pass and must never be granted on a failed/un-rolled check.
+    if character.pending_career_event_choice is not None:
+        dm_grants = [g for g in dm_grants if g.get("applied")]
+
     return {
         "roll": r.to_dict(),
         "event": event_text,

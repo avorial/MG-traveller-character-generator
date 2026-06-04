@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-25.40-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-30.45-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -141,7 +141,7 @@ The character goes directly to finalization (skill package phase) — no further
 | **Technician** | — | Mechanic 2, Electronics 2, Engineer; EDU+1 |
 | **Wanderer** | — | Survival, Recon, Stealth, Streetwise |
 
-### Careers (75 fully encoded)
+### Careers (83 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -366,8 +366,8 @@ traveller-creator/
 │   │   ├── lifepath.py             # Rules engine (all phases)
 │   │   └── foundry_export.py       # FoundryVTT MGT2e actor JSON export for biological characters
 │   ├── data/
-│   │   ├── species/                # 36 species JSON files
-│   │   ├── careers/                # 75 career JSON files
+│   │   ├── species/                # 94 species JSON files
+│   │   ├── careers/                # 83 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_packages.json
@@ -392,7 +392,7 @@ traveller-creator/
 │   ├── test_dice.py
 │   ├── test_api_smoke.py
 │   ├── test_data_schemas.py
-│   └── smoke_all_careers.py        # Full engine smoke test — 442 paths, 0 failures across all 75 careers
+│   └── smoke_all_careers.py        # Full engine smoke test — 478 paths, 0 failures across all 83 careers
 ├── Dockerfile
 ├── docker-compose.yml
 ├── pytest.ini
@@ -534,7 +534,7 @@ pytest
 
 # Full engine smoke — exercises every career × assignment × skill table × event × mishap
 python tests/smoke_all_careers.py
-# Expected output: PASS paths: 442   FAIL paths: 0
+# Expected output: PASS paths: 478   FAIL paths: 0
 ```
 
 | File | What it covers |
@@ -542,7 +542,7 @@ python tests/smoke_all_careers.py
 | `tests/test_dice.py` | Dice helpers, DM table, forced-roll queue |
 | `tests/test_api_smoke.py` | FastAPI route smoke (new character, roll characteristics, apply species) |
 | `tests/test_data_schemas.py` | All career and species JSON schema validation |
-| `tests/smoke_all_careers.py` | Full rules-engine smoke: all 75 careers, all assignments, skill tables 1–6, events 2–12, mishaps 1–6, pass and fail survival paths |
+| `tests/smoke_all_careers.py` | Full rules-engine smoke: all 83 careers, all assignments, skill tables 1–6, events 2–12, mishaps 1–6, pass and fail survival paths |
 
 ---
 
