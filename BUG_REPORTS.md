@@ -2,6 +2,19 @@
 
 ## Fixed Bugs
 
+### v30.56: Import Reads Both Native and FoundryVTT JSON (feature)
+**Request:** Let IMPORT JSON read both normal (native) exports and FoundryVTT actor JSON.
+
+**Implementation (two tiers):**
+- **Tier A — lossless round-trip for our own exports.** `character_to_foundry()` now stashes the full native character in `flags.tvgen.character` (Foundry ignores unknown flag namespaces, so it's inert there). On import, that character is restored verbatim.
+- **Tier B — best-effort import of third-party Foundry actors.** `foundry_to_character()` reverse-maps a Mongoose `traveller` actor: characteristics, skills (via inverse skill-id/spec-id tables, seeding cascade parents at 0), finance (credits/pension/debt/ship shares), bio (species via reverse name lookup, age, gender, homeworld), and `items[]` → associates + equipment. The result is a finished character (phase `done`); career history and the lifepath log are not reconstructed (a one-time alert says so).
+- `app/main.py`: `POST /api/character/import-foundry` (+ `FoundryImportAction`).
+- `app/static/js/app.js`: `importCharacter()` detects a Foundry actor (`type:"traveller"` + `system`, unwrapping `[actor]` / `{actor:…}` shapes), routes it through the endpoint, and keeps native JSON on the existing client path.
+
+**Verification:** Round-trip (export→import) is lossless; a stripped (third-party) actor reconstructs characteristics, skills with specialties, credits/pension, species_id, associates and equipment — verified both directly and through the live `importCharacter` flow. All 660 tests pass.
+
+---
+
 ### v30.55: Re-Import Finished Characters to Clean Them Up at the Finish Stage
 **Request:** Be able to pull a finished character back into the generator and clean it up (cascade specialties, etc.) at the finish stage.
 

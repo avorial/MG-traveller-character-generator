@@ -12557,9 +12557,42 @@ async function exportFoundry() {
 
 async function importCharacter(file) {
   const text = await file.text();
+  let data;
   try {
-    const imported = JSON.parse(text);
-    character = imported;
+    data = JSON.parse(text);
+  } catch (e) {
+    alert('Invalid character JSON: ' + e.message);
+    return;
+  }
+  try {
+    // Detect a FoundryVTT MGT2e actor (vs a native TravllerCC export). Handle the
+    // wrapper shapes Foundry sometimes uses: a bare actor, [actor], {actor:…}.
+    let actor = data;
+    if (Array.isArray(actor)) actor = actor[0];
+    if (actor && typeof actor === 'object' && actor.actor && typeof actor.actor === 'object') actor = actor.actor;
+    const isFoundry = !!(actor && typeof actor === 'object' && actor.type === 'traveller' && actor.system);
+
+    if (isFoundry) {
+      const res = await fetch('/api/character/import-foundry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        let detail; try { detail = JSON.parse(body).detail; } catch { detail = body; }
+        throw new Error(detail || `Foundry import failed (HTTP ${res.status})`);
+      }
+      const resp = await res.json();
+      character = resp.character;
+      if (resp.lossless === false) {
+        alert('Imported from a Foundry actor. Stats, skills, gear and contacts were '
+            + 'restored, but career history and the lifepath log are not stored in a '
+            + 'Foundry export — review the sheet before play.');
+      }
+    } else {
+      character = data;
+    }
     // Reset transient navigation/selection state so the imported character
     // renders cleanly from its OWN phase rather than inheriting the current
     // view. In particular a finished (phase "done") character lands on the
@@ -12579,7 +12612,7 @@ async function importCharacter(file) {
     saveCharacter();
     renderAll();
   } catch (e) {
-    alert('Invalid character JSON: ' + e.message);
+    alert('Import failed: ' + (e.message || e));
   }
 }
 

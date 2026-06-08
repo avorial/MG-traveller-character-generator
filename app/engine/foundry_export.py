@@ -12,7 +12,16 @@ import time
 import uuid
 from typing import Any
 
-from .character import Character
+from .character import Character, Skill, Associate, Equipment
+from . import rules
+
+
+def _embed_source(char: Any) -> dict:
+    """Serialise the source character for the lossless round-trip flag."""
+    if hasattr(char, "model_dump"):
+        return char.model_dump()
+    return char if isinstance(char, dict) else {}
+
 
 # ---------------------------------------------------------------------------
 # Skill name → Foundry skill-ID lookup
@@ -643,7 +652,9 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         "items":  items,
         "effects": [],
         "folder": None,
-        "flags":  {"mgt2e": {}},
+        # Stash the full native character so a round-trip import is lossless.
+        # Foundry ignores unknown flag namespaces, so this is inert there.
+        "flags":  {"mgt2e": {}, "tvgen": {"app": "TravllerCC", "character": _embed_source(char)}},
         "prototypeToken": {
             "name":        name,
             "displayName": 0,
@@ -659,6 +670,207 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Foundry → native reverse maps (for importing third-party Foundry actors)
+# ---------------------------------------------------------------------------
+
+_ID_TO_SKILL: dict[str, str] = {
+    "admin": "Admin", "advocate": "Advocate", "animals": "Animals", "art": "Art",
+    "astrogation": "Astrogation", "athletics": "Athletics", "broker": "Broker",
+    "carouse": "Carouse", "deception": "Deception", "diplomat": "Diplomat",
+    "drive": "Drive", "electronics": "Electronics", "engineer": "Engineer",
+    "explosives": "Explosives", "flyer": "Flyer", "gambler": "Gambler",
+    "guncombat": "Gun Combat", "gunner": "Gunner", "heavyweapons": "Heavy Weapons",
+    "independence": "Independence", "investigate": "Investigate",
+    "jackofalltrades": "Jack-of-All-Trades", "language": "Language",
+    "leadership": "Leadership", "mechanic": "Mechanic", "medic": "Medic",
+    "melee": "Melee", "navigation": "Navigation", "persuade": "Persuade",
+    "pilot": "Pilot", "profession": "Profession", "recon": "Recon",
+    "science": "Science", "seafarer": "Seafarer", "stealth": "Stealth",
+    "steward": "Steward", "streetwise": "Streetwise", "survival": "Survival",
+    "tactics": "Tactics", "vaccsuit": "Vacc Suit",
+    "telepathy": "Telepathy", "clairvoyance": "Clairvoyance",
+    "telekinesis": "Telekinesis", "awareness": "Awareness", "teleportation": "Teleportation",
+}
+
+_ID_TO_SPEC: dict[str, str] = {
+    "strength": "Strength", "dexterity": "Dexterity", "endurance": "Endurance",
+    "handling": "Handling", "vetinary": "Veterinary", "training": "Training",
+    "performer": "Performer", "holography": "Holography", "instrument": "Instrument",
+    "visualMedia": "Visual Media", "write": "Write",
+    "hovercraft": "Hovercraft", "mole": "Mole", "track": "Track", "walker": "Walker", "wheel": "Wheel",
+    "comms": "Comms", "computers": "Computers", "remoteOps": "Remote Ops", "sensors": "Sensors",
+    "mDrive": "M-drive", "jDrive": "J-drive", "lifeSupport": "Life Support", "power": "Power",
+    "airship": "Airship", "grav": "Grav", "ornithopter": "Ornithopter", "rotor": "Rotor", "wing": "Wing",
+    "turret": "Turret", "ortillery": "Ortillery", "screen": "Screen", "capital": "Capital",
+    "archaic": "Archaic", "energy": "Energy", "slug": "Slug",
+    "artillery": "Artillery", "portable": "Man Portable", "vehicle": "Vehicle",
+    "galanglic": "Anglic", "vilani": "Vilani", "zdetl": "Zdetl", "oynprith": "Oynprith",
+    "trokh": "Trokh", "gvegh": "Gvegh",
+    "unarmed": "Unarmed", "blade": "Blade", "bludgeon": "Bludgeon", "natural": "Natural",
+    "smallCraft": "Small Craft", "spacecraft": "Spacecraft", "capitalShips": "Capital Ships",
+    "belter": "Belter", "biologicals": "Biologicals", "civilEngineering": "Civil Engineering",
+    "construction": "Construction", "hydroponics": "Hydroponics", "polymers": "Polymers", "robotics": "Robotics",
+    "archaeology": "Archaeology", "astronomy": "Astronomy", "biology": "Biology", "chemistry": "Chemistry",
+    "cosmology": "Cosmology", "cybernetics": "Cybernetics", "economics": "Economics", "genetics": "Genetics",
+    "history": "History", "linquistics": "Linguistics", "philosophy": "Philosophy", "physics": "Physics",
+    "planetology": "Planetology", "psionicology": "Psionicology", "psychology": "Psychology",
+    "sophontology": "Sophontology", "xenology": "Xenology",
+    "oceanShips": "Ocean Ships", "personal": "Personal", "sail": "Sail", "submarine": "Submarine",
+    "military": "Military", "naval": "Naval",
+}
+
+
+def _humanize_id(s: str) -> str:
+    """Fallback: turn a camelCase/lowercase id into a readable name."""
+    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s or "")
+    return s[:1].upper() + s[1:] if s else s
+
+
+def _intish(v: Any, default: int = 0) -> int:
+    try:
+        return int(str(v).replace(",", "").strip() or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _species_id_from_name(name: str) -> str:
+    """Best-effort reverse of the export's species display name → a species_id."""
+    raw = (name or "").strip()
+    if not raw:
+        return ""
+    try:
+        all_species = rules.species()
+    except Exception:
+        all_species = {}
+    candidate = raw.lower().replace(" ", "_")
+    if candidate in all_species:
+        return candidate
+    # Match by display name (the export title-cases the id)
+    target = raw.lower()
+    for sid, sdef in all_species.items():
+        if str(sdef.get("name", "")).strip().lower() == target:
+            return sdef.get("id", sid)
+    if candidate.replace("_", " ").title() == raw and candidate:
+        return candidate  # accept the round-tripped form even if unknown
+    return ""
+
+
+def foundry_to_character(actor: Any) -> dict:
+    """Convert a FoundryVTT MGT2e 'traveller' actor into a native character.
+
+    Two paths:
+      • If the actor carries our `flags.tvgen.character` (an actor exported by
+        this app), restore that native character verbatim — lossless.
+      • Otherwise reverse-map the Foundry actor (characteristics, skills,
+        finance, associates, equipment, bio) into a finished character. Career
+        history and the lifepath log are NOT reconstructed.
+
+    Returns {"character": <native dict>, "lossless": bool}.
+    """
+    # Unwrap common export wrappers: [actor], {"actor": actor}.
+    if isinstance(actor, list) and actor:
+        actor = actor[0]
+    if isinstance(actor, dict) and isinstance(actor.get("actor"), dict):
+        actor = actor["actor"]
+    if not isinstance(actor, dict):
+        raise ValueError("Not a recognised Foundry actor (expected a JSON object).")
+
+    # ── Tier A: our embedded source character ─────────────────────────────
+    flags = actor.get("flags") or {}
+    embedded = (flags.get("tvgen") or {}).get("character")
+    if isinstance(embedded, dict) and embedded:
+        char = Character(**embedded)
+        return {"character": char.model_dump(), "lossless": True}
+
+    # ── Tier B: reverse-map a third-party Foundry actor ───────────────────
+    if actor.get("type") != "traveller":
+        raise ValueError("Not a Mongoose Traveller actor (system 'mgt2e', type 'traveller').")
+    system = actor.get("system") or {}
+    char = Character()
+    char.name = str(actor.get("name") or "")
+
+    # Characteristics
+    fc = system.get("characteristics") or {}
+
+    def _cv(key: str) -> int:
+        return _intish((fc.get(key) or {}).get("value"))
+
+    for key in ("STR", "DEX", "END", "INT", "EDU", "SOC"):
+        char.characteristics.set(key, _cv(key))
+    if _cv("PSI"):
+        char.psi = _cv("PSI")
+        char.psi_tested = True
+    if _cv("REP"):
+        char.reputation = _cv("REP")
+    for key in ("TER", "WLT", "LCK", "MRL", "STY", "CHA", "FOL"):
+        if _cv(key):
+            char.extra_characteristics[key] = _cv(key)
+
+    # Skills
+    out_skills: list[Skill] = []
+    for sid, entry in (system.get("skills") or {}).items():
+        if not isinstance(entry, dict):
+            continue
+        name = _ID_TO_SKILL.get(sid)
+        if name is None:
+            continue  # unknown/custom skill — skip
+        specs = entry.get("specialities") or entry.get("specialties") or {}
+        had_spec = False
+        for spid, sp in specs.items():
+            if not isinstance(sp, dict) or not sp.get("trained"):
+                continue
+            spec_name = _ID_TO_SPEC.get(spid) or _humanize_id(spid)
+            out_skills.append(Skill(name=name, level=_intish(sp.get("value")), speciality=spec_name))
+            had_spec = True
+        if entry.get("trained"):
+            out_skills.append(Skill(name=name, level=_intish(entry.get("value")), speciality=None))
+        elif had_spec and not any(s.name == name and s.speciality is None for s in out_skills):
+            # Parent sits at 0 when only specialties are trained (cascade rule).
+            out_skills.append(Skill(name=name, level=0, speciality=None))
+    char.skills = out_skills
+
+    # Finance
+    fin = system.get("finance") or {}
+    char.credits = _intish(fin.get("cash"))
+    char.pension_per_year = _intish(fin.get("pension"))
+    char.medical_debt = _intish(fin.get("medicalDebt"))
+    char.ship_shares = _intish(fin.get("shipShares"))
+
+    # Bio
+    soph = system.get("sophont") or {}
+    char.age = _intish(soph.get("age")) or _intish(system.get("entryAge"), 18)
+    char.homeworld = str(soph.get("homeworld") or "")
+    gender = str(soph.get("gender") or "").strip().lower()
+    if gender in ("male", "female"):
+        char.gender = gender
+    char.species_id = _species_id_from_name(str(soph.get("species") or ""))
+
+    # Items → associates + equipment (terms/career history are not reconstructed)
+    _assoc_kinds = {"ally", "contact", "rival", "enemy"}
+    for it in (actor.get("items") or []):
+        if not isinstance(it, dict):
+            continue
+        isys = it.get("system") or {}
+        if it.get("type") == "associate":
+            kind = str(isys.get("relation")
+                       or (isys.get("associate") or {}).get("relationship")
+                       or "contact").lower()
+            if kind not in _assoc_kinds:
+                kind = "contact"
+            desc = str(isys.get("description") or it.get("name") or "").strip()
+            char.associates.append(Associate(kind=kind, description=desc or f"Unnamed {kind.title()}"))
+        elif it.get("type") == "item":
+            char.equipment.append(Equipment(
+                name=str(it.get("name") or "Item"),
+                notes=str(isys.get("notes") or "") or None,
+            ))
+
+    char.phase = "done"
+    char.log("Imported from a FoundryVTT MGT2e actor — career history and lifepath log were not reconstructed.")
+    return {"character": char.model_dump(), "lossless": False}
+
 
 def _career_summary(char: Character) -> str:
     """Return a short career/profession string, e.g. 'Scholar: Physician'."""

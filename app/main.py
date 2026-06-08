@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, Response
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel
 
 from .engine import lifepath, rules, dice as _dice
@@ -1231,6 +1231,22 @@ async def api_export_foundry(action: CharacterAction):
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{name}_foundry.json"'},
     )
+
+
+class FoundryImportAction(BaseModel):
+    """A FoundryVTT MGT2e actor JSON (or a wrapper around one) to import."""
+    actor: Any
+
+
+@app.post("/api/character/import-foundry")
+async def api_import_foundry(action: FoundryImportAction):
+    """Convert a FoundryVTT MGT2e actor JSON into a native character."""
+    try:
+        return foundry_export.foundry_to_character(action.actor)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Foundry import failed: {type(e).__name__}: {e}")
 
 
 @app.get("/api/character/generate-npc")
