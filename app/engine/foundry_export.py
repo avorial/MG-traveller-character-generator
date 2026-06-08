@@ -12,7 +12,7 @@ import time
 import uuid
 from typing import Any
 
-from .character import Character, Skill, Associate, Equipment
+from .character import Character, Skill, Associate, Equipment, CareerTerm, CareerRecord
 from . import rules
 
 
@@ -761,6 +761,130 @@ def _species_id_from_name(name: str) -> str:
     return ""
 
 
+def _rank_bonus_rolls(rank: int) -> int:
+    """Muster-out roll bonus for the highest rank reached (MgT 2e p.53)."""
+    if rank >= 5:
+        return 3
+    if rank >= 3:
+        return 2
+    if rank >= 1:
+        return 1
+    return 0
+
+
+def _iter_rank_titles(ranks: Any):
+    """Yield (rank_number, title) pairs from a career's ranks structure,
+    which may be flat ({num: {...}}) or keyed by assignment ({aid: {num: {...}}})."""
+    if not isinstance(ranks, dict):
+        return
+    for k, v in ranks.items():
+        if not isinstance(v, dict):
+            continue
+        if "title" in v or "bonus" in v:
+            ks = str(k).lstrip("-")
+            if ks.isdigit():
+                yield int(k), v.get("title")
+        else:
+            yield from _iter_rank_titles(v)
+
+
+def _rank_num_from_title(cdef: dict, title: str) -> int:
+    if not title:
+        return 0
+    tnorm = _norm(title)
+    for num, rt in _iter_rank_titles(cdef.get("ranks") or {}):
+        if rt and _norm(rt) == tnorm:
+            return num
+    return 0
+
+
+def _reconstruct_careers(actor: dict, char: Character) -> None:
+    """Best-effort: rebuild completed_careers + term_history from the Foundry
+    'term' items. The term's `assignment` string ("Career: Assignment (Rank)")
+    carries enough to map back to career_id / assignment_id / rank, even though
+    per-term rolls and benefit counts aren't stored in a Foundry export.
+    """
+    careers_data = rules.careers()
+    name_to_career = {_norm(cdef.get("name", cid)): cid for cid, cdef in careers_data.items()}
+
+    term_items = [
+        it for it in (actor.get("items") or [])
+        if isinstance(it, dict) and it.get("type") == "term"
+    ]
+    if not term_items:
+        return
+
+    def _tnum(it):
+        return _intish(((it.get("system") or {}).get("term") or {}).get("number"), 0)
+
+    term_items.sort(key=_tnum)
+
+    history: list[CareerTerm] = []
+    for idx, it in enumerate(term_items, start=1):
+        tsys = (it.get("system") or {}).get("term") or {}
+        assignment_str = str(tsys.get("assignment") or it.get("name") or "")
+        # Strip a leading "Term N: " if present (item names carry it).
+        assignment_str = re.sub(r"^Term\s+\d+:\s*", "", assignment_str).strip()
+        career_part, _, rest = assignment_str.partition(":")
+        career_name = career_part.strip()
+        assign_name = rest.strip()
+        rank_title = ""
+        m = re.search(r"\(([^)]*)\)\s*$", assign_name)
+        if m:
+            rank_title = m.group(1).strip()
+            assign_name = assign_name[: m.start()].strip()
+
+        cid = name_to_career.get(_norm(career_name), "")
+        aid = ""
+        rank_num = 0
+        if cid and cid in careers_data:
+            cdef = careers_data[cid]
+            for akey, adef in (cdef.get("assignments") or {}).items():
+                if _norm(adef.get("name", "")) == _norm(assign_name):
+                    aid = akey
+                    break
+            rank_num = _rank_num_from_title(cdef, rank_title)
+
+        desc = str((it.get("system") or {}).get("description") or "")
+        history.append(CareerTerm(
+            career_id=cid or (_norm(career_name).replace(" ", "_") or "unknown"),
+            assignment_id=aid or (_norm(assign_name).replace(" ", "_")),
+            term_number=idx,
+            overall_term_number=_tnum(it) or idx,
+            rank=rank_num,
+            rank_title=rank_title or None,
+            survived=True,
+            basic_training=(idx == 1),
+            events=[desc] if desc else [],
+        ))
+
+    # Group consecutive terms in the same career into a completed-career record.
+    completed: list[CareerRecord] = []
+    for th in history:
+        if completed and completed[-1].career_id == th.career_id:
+            rec = completed[-1]
+            rec.terms_served += 1
+            rec.assignment_id = th.assignment_id or rec.assignment_id
+            if th.rank > rec.final_rank:
+                rec.final_rank = th.rank
+                rec.final_rank_title = th.rank_title
+            rec.benefit_rolls_earned = rec.terms_served + _rank_bonus_rolls(rec.final_rank)
+        else:
+            completed.append(CareerRecord(
+                career_id=th.career_id,
+                assignment_id=th.assignment_id,
+                terms_served=1,
+                final_rank=th.rank,
+                final_rank_title=th.rank_title,
+                benefit_rolls_used=0,
+                benefit_rolls_earned=1 + _rank_bonus_rolls(th.rank),
+            ))
+
+    char.term_history = history
+    char.completed_careers = completed
+    char.total_terms = len(history)
+
+
 def foundry_to_character(actor: Any) -> dict:
     """Convert a FoundryVTT MGT2e 'traveller' actor into a native character.
 
@@ -861,7 +985,7 @@ def foundry_to_character(actor: Any) -> dict:
         char.gender = gender
     char.species_id = _species_id_from_name(str(soph.get("species") or ""))
 
-    # Items → associates + equipment (terms/career history are not reconstructed)
+    # Items → associates + equipment
     _assoc_kinds = {"ally", "contact", "rival", "enemy"}
     for it in (actor.get("items") or []):
         if not isinstance(it, dict):
@@ -881,8 +1005,12 @@ def foundry_to_character(actor: Any) -> dict:
                 notes=str(isys.get("notes") or "") or None,
             ))
 
+    # Career history — best-effort from the Foundry "term" items.
+    _reconstruct_careers(actor, char)
+
     char.phase = "done"
-    char.log("Imported from a FoundryVTT MGT2e actor — career history and lifepath log were not reconstructed.")
+    char.log("Imported from a FoundryVTT MGT2e actor — career history reconstructed from term records; "
+             "per-term rolls and benefit counts are approximate.")
     return {"character": char.model_dump(), "lossless": False}
 
 

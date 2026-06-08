@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.59: Foundry Import Reconstructs Career History from Term Items
+**Request:** Importing a third-party Foundry actor brought in contacts/equipment but not careers — even though the Foundry `term` items carry the career/assignment/rank (Foundry itself shows them as a Career Terms list).
+
+**Implementation (`app/engine/foundry_export.py`):** `foundry_to_character()` now reconstructs `term_history` + `completed_careers` from the `term` items. Each term's `system.term.assignment` ("Career: Assignment (Rank Title)") is parsed and mapped: career name → career_id, assignment name → assignment_id, rank title → rank number (via the career's rank table). Consecutive same-career terms are grouped into one `CareerRecord` with terms_served, final_rank/title, and benefit_rolls_earned (terms + rank bonus). Per-term rolls/benefit counts aren't in a Foundry export, so those remain approximate.
+
+**Verification:** Both supplied Emma Colbert actors → `solsec / secret_agent`, 5 terms, rank 5 (Colonel); a synthetic Darren Cogs (Scholar/Physician) → 7 terms, rank 6 (Dean) with per-term ranks (Researcher 1, Scientist 3, Professor 5, Dean 6). Contacts and equipment still import. All 660 tests pass.
+
+---
+
 ### v30.58: Foundry Export Writes Untrained Skills as -3 (MGT2e convention)
 **Request:** Our Foundry export wrote untrained skills as value `0`; the current Foundry MGT2e convention (and real-world actors) use `-3`. Re-exporting an older character should produce the full skill tree with untrained skills at `-3`.
 
