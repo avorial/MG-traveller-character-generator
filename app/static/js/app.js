@@ -1439,6 +1439,13 @@ function renderSheet() {
           <span class="stat-value">${character.psi}</span>
           <span class="stat-dm">DM ${formatDM(charDM(character.psi))}</span>
         </div>
+      ` : '')
+    + (character.reputation > 0 ? `
+        <div class="stat-cell stat-cell-rep">
+          <span class="stat-label">REP</span>
+          <span class="stat-value">${character.reputation}</span>
+          <span class="stat-dm">DM ${formatDM(charDM(character.reputation))}</span>
+        </div>
       ` : '');
 
   const skillsList = character.skills.length
@@ -11440,7 +11447,9 @@ function tasPlay() {
 
 // Effective characteristic value after subtracting any current damage.
 function tasStatVal(stat) {
-  const base = (stat === 'PSI') ? (character.psi || 0) : (character.characteristics[stat] || 0);
+  const base = (stat === 'PSI') ? (character.psi || 0)
+             : (stat === 'REP') ? (character.reputation || 0)
+             : (character.characteristics[stat] || 0);
   const dmg = (tasPlay().dmg[stat] || 0);
   return Math.max(0, base - dmg);
 }
@@ -11535,10 +11544,11 @@ const TAS_SKILL_STAT = {
 };
 
 // Render one skill cell (base skill or a specialty line).
-function tasSkillCell(displayName, rollName, level, statForSkill) {
+// isSpec=true marks a specialty so it can be visually indented under its parent.
+function tasSkillCell(displayName, rollName, level, statForSkill, isSpec) {
   const trained = level != null;
   const lvlBadge = trained ? `<span class="tas-skill-lvl">${level}</span>` : `<span class="tas-skill-lvl untrained">−</span>`;
-  return `<button class="tas-skill ${trained ? 'trained' : 'untrained'}"
+  return `<button class="tas-skill ${trained ? 'trained' : 'untrained'}${isSpec ? ' spec' : ''}"
       data-skill-roll="${escapeAttr(rollName)}"
       data-skill-level="${trained ? level : ''}"
       data-skill-stat="${statForSkill || ''}"
@@ -11554,23 +11564,28 @@ function tasSkillsGrid() {
   const specs = SKILLS_DATA.speciality || {};
   // Combine: every core skill + every skill that has specialities, alphabetically.
   const allBase = Array.from(new Set([...core, ...Object.keys(specs)])).sort((a, b) => a.localeCompare(b));
-  const cells = [];
+  // Each base skill (and its specialties) is wrapped in a group block so the CSS
+  // multi-column layout keeps a parent and its sub-skills together — specialties
+  // always render directly under their main skill rather than scattering across
+  // the column flow.
+  const groups = [];
   allBase.forEach(name => {
     const stat = TAS_SKILL_STAT[name] || 'INT';
     if (specs[name]) {
       // Parent line (level 0 if any specialty trained or parent itself trained), then specialties.
       const parentLvl = idx.base[name];
-      cells.push(tasSkillCell(name, name, parentLvl != null ? parentLvl : (idx.spec[name] ? 0 : null), stat));
+      let block = tasSkillCell(name, name, parentLvl != null ? parentLvl : (idx.spec[name] ? 0 : null), stat, false);
       specs[name].forEach(sp => {
         const lvl = idx.spec[name] ? idx.spec[name][sp] : undefined;
-        cells.push(tasSkillCell(`${name} (${sp})`, `${name} (${sp})`, (lvl != null ? lvl : null), stat));
+        block += tasSkillCell(`${name} (${sp})`, `${name} (${sp})`, (lvl != null ? lvl : null), stat, true);
       });
+      groups.push(`<div class="tas-skill-group">${block}</div>`);
     } else {
-      cells.push(tasSkillCell(name, name, (idx.base[name] != null ? idx.base[name] : null), stat));
+      groups.push(`<div class="tas-skill-group">${tasSkillCell(name, name, (idx.base[name] != null ? idx.base[name] : null), stat, false)}</div>`);
     }
   });
   const total = (character.skills || []).reduce((sum, s) => sum + (s.level || 0), 0);
-  return { html: cells.join(''), total };
+  return { html: groups.join(''), total };
 }
 
 // Lore-appropriate banner text for the TAS form header, keyed by society then species.
@@ -11603,7 +11618,8 @@ function renderTASSheet() {
   // Characteristics (6 + PSI if any)
   const statList = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC'].filter(s => s !== 'SOC' || socLabelForChar(character) !== null);
   if (character.psi > 0) statList.push('PSI');
-  const statNames = { STR:'Strength', DEX:'Dexterity', END:'Endurance', INT:'Intellect', EDU:'Education', SOC:'Social Standing', PSI:'Psionics' };
+  if (character.reputation > 0) statList.push('REP');
+  const statNames = { STR:'Strength', DEX:'Dexterity', END:'Endurance', INT:'Intellect', EDU:'Education', SOC:'Social Standing', PSI:'Psionics', REP:'Reputation' };
   const statCards = statList.map(stat => {
     const val = tasStatVal(stat);
     const dm = charDM(val);
