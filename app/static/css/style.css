@@ -1462,6 +1462,37 @@ body.hide-card-desc .card-desc { display: none !important; }
   color: var(--amber-dim);
 }
 
+/* Mustering-out associate naming rows */
+.muster-assoc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+.muster-assoc-row .assoc-label {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+.muster-assoc-input {
+  flex: 1 1 240px;
+  min-width: 180px;
+  background: var(--bg2, rgba(0,0,0,0.35));
+  color: var(--fg, var(--cream));
+  border: 1px solid var(--border, var(--amber-dim));
+  border-radius: 4px;
+  padding: 5px 9px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.muster-assoc-input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.muster-assoc-gen { flex: 0 0 auto; white-space: nowrap; }
+
 /* ============ Background skills picker ============ */
 
 .skill-search {

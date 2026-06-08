@@ -181,11 +181,11 @@ class EventStatChangeAction(CharacterAction):
 
 
 class AssociateAction(CharacterAction):
-    """Add a new Associate or convert an existing Contact/Ally → Rival/Enemy."""
-    op: str  # "add" | "convert"
+    """Add a new Associate, rename one, or convert an existing Contact/Ally → Rival/Enemy."""
+    op: str  # "add" | "update" | "convert"
     kind: str | None = None         # required for op="add"  — "contact"|"ally"|"rival"|"enemy"
-    description: str | None = None  # optional for op="add"
-    index: int | None = None        # required for op="convert" — index into character.associates
+    description: str | None = None  # required for op="add"/"update"
+    index: int | None = None        # required for op="convert"/"update" — index into character.associates
     to_kind: str | None = None      # required for op="convert" — "rival"|"enemy"
 
 
@@ -912,6 +912,11 @@ async def api_associate(action: AssociateAction):
         if action.op == "add":
             return lifepath.add_associate(
                 character, action.kind or "", action.description or ""
+            )
+        if action.op == "update":
+            return lifepath.update_associate(
+                character, action.index if action.index is not None else -1,
+                action.description or "",
             )
         if action.op == "convert":
             return lifepath.convert_associate(

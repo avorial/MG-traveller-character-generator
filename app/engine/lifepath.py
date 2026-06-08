@@ -16330,6 +16330,7 @@ def muster_out_roll(
     if row is None:
         raise ValueError(f"No row for result {key}")
 
+    new_associates: list[dict] = []
     if column == "cash":
         raw_cash_value = row["cash"]
         if raw_cash_value < 0:
@@ -16384,7 +16385,14 @@ def muster_out_roll(
             }
             character.log(f"Muster out (benefit)[{r.total}]: {benefit} — PENDING player choice")
         else:
+            _assoc_before = len(character.associates)
             _apply_benefit(character, benefit)
+            # Surface any associates this benefit added so the UI can offer the
+            # same type+name generator used elsewhere in the generator.
+            new_associates = [
+                {"index": _assoc_before + j, "kind": a.kind, "description": a.description}
+                for j, a in enumerate(character.associates[_assoc_before:])
+            ]
             character.log(f"Muster out (benefit)[{r.total}]: {benefit}")
         result_text = benefit
 
@@ -16400,6 +16408,7 @@ def muster_out_roll(
         "good_fortune_used": good_fortune_used,
         "good_fortune_remaining": character.good_fortune_benefit_dm,
         "pending_skill_choice": character.pending_muster_benefit_choice,
+        "new_associates": new_associates,
         "character": character.model_dump(),
     }
 
@@ -17729,6 +17738,28 @@ def convert_associate(character: Character, index: int, to_kind: str) -> dict:
             "description": a.description,
             "index": index,
         },
+        "character": character.model_dump(),
+    }
+
+
+def update_associate(character: Character, index: int, description: str) -> dict:
+    """Rename an existing Associate (e.g. naming a mustering-out Contact/Ally).
+
+    Lets the player attach the generated type+name to an associate that was
+    added with a placeholder description.
+    """
+    if index < 0 or index >= len(character.associates):
+        raise ValueError(
+            f"Associate index {index} out of range (have {len(character.associates)})"
+        )
+    desc = (description or "").strip()
+    if not desc:
+        raise ValueError("Associate description cannot be empty.")
+    a = character.associates[index]
+    a.description = desc
+    character.log(f"Renamed {a.kind.capitalize()} → {desc}")
+    return {
+        "updated": {"kind": a.kind, "description": desc, "index": index},
         "character": character.model_dump(),
     }
 

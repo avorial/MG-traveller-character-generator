@@ -10965,6 +10965,30 @@ function _musterChoiceButtons(choice) {
   }).join('');
 }
 
+// Naming UI for associates granted by a mustering-out benefit roll — reuses the
+// same D66 personage + species-name generator offered during career events.
+function musterAssocNamingHTML(newAssociates) {
+  const list = Array.isArray(newAssociates) ? newAssociates : [];
+  if (!list.length) return '';
+  const labelAssoc = (k) => ({ contact: 'Contact', ally: 'Ally', rival: 'Rival', enemy: 'Enemy' }[k] || k);
+  const rows = list.map(a => {
+    const cur = (character.associates && character.associates[a.index]) || a;
+    return `
+      <div class="muster-assoc-row">
+        <span class="assoc-label assoc-kind-${escapeAttr(a.kind)}">[${labelAssoc(a.kind)}]</span>
+        <input type="text" class="muster-assoc-input" data-assoc-index="${a.index}"
+               value="${escapeAttr(cur.description || '')}" placeholder="Type and name — e.g. Corrupt Politician — Nina Moussa" />
+        <button class="btn ghost muster-assoc-gen" data-assoc-index="${a.index}" title="Generate a random type and name">🎲 Generate</button>
+      </div>`;
+  }).join('');
+  return `
+    <div class="event-skill-picker" style="margin-top:12px">
+      <span class="event-label">Name your new ${list.length === 1 ? 'associate' : 'associates'}</span>
+      <p class="picker-status" style="margin:0 0 8px 0;color:var(--amber-dim)"><em>Generate a type + name, or type your own. Saved automatically.</em></p>
+      ${rows}
+    </div>`;
+}
+
 function renderMusterPhase() {
   const careers = character.completed_careers;
   const rolls = character.pending_benefit_rolls;
@@ -11010,6 +11034,7 @@ function renderMusterPhase() {
             ${_musterChoiceButtons(pendingSkillChoice)}
           </div>
         ` : `
+          ${musterAssocNamingHTML(lr.newAssociates)}
           <p class="phase-body">${lr.remaining_rolls > 0
             ? `${lr.remaining_rolls} benefit roll${lr.remaining_rolls === 1 ? '' : 's'} remaining.`
             : `All benefits claimed.`}</p>
@@ -11223,6 +11248,7 @@ function wireMusterPhase() {
           careerId,
           careerName: careerDef?.name || careerId,
           pendingSkillChoice: response.pending_skill_choice || null,
+          newAssociates: response.new_associates || [],
         };
         renderAll();
       } catch (e) {
@@ -11252,6 +11278,38 @@ function wireMusterPhase() {
       } catch (e) {
         alert(e.message);
       }
+    });
+  });
+
+  // Mustering-out associate naming: persist a description without re-rendering
+  // (so the inputs keep focus/value while the player edits several in a row).
+  const saveMusterAssoc = async (index, description) => {
+    const desc = (description || '').trim();
+    if (!desc) return;
+    try {
+      const response = await apiCall('/api/character/associate', {
+        op: 'update', index, description: desc,
+      });
+      await applyResponse(response);   // updates character + sidebar, no stage re-render
+    } catch (e) { /* keep the typed value; surface only hard errors */ console.warn(e); }
+  };
+  document.querySelectorAll('.muster-assoc-gen').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.getAttribute('data-assoc-index'), 10);
+      const input = document.querySelector(`.muster-assoc-input[data-assoc-index="${index}"]`);
+      if (!input) return;
+      const d1 = Math.ceil(Math.random() * 6);
+      const d2 = Math.ceil(Math.random() * 6);
+      const personage = _SOL_CONTACTS[d1 * 10 + d2] || 'Unknown Personage';
+      const name = generateSpeciesName(character.species_id || 'solomani_human');
+      input.value = `${personage} — ${name}`;
+      await saveMusterAssoc(index, input.value);
+    });
+  });
+  document.querySelectorAll('.muster-assoc-input').forEach(input => {
+    input.addEventListener('change', () => {
+      const index = parseInt(input.getAttribute('data-assoc-index'), 10);
+      saveMusterAssoc(index, input.value);
     });
   });
 

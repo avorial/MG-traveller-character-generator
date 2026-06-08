@@ -2,6 +2,19 @@
 
 ## Fixed Bugs
 
+### v30.52: Name/Type Generator for Mustering-Out Contacts & Allies (feature)
+**Request:** Allow associates gained at muster-out (Contact / Ally / D3 Contacts, etc.) to use the same type+name generator already available earlier in the generator (the D66 personage table + species-name generator used for career-event associates).
+
+**Implementation:**
+- `app/engine/lifepath.py`: `muster_out_roll()` now returns `new_associates` (index/kind/description of any associates the benefit added). Added `update_associate(character, index, description)` to rename an associate.
+- `app/main.py`: `AssociateAction` / `/api/character/associate` gained an `op: "update"` (rename by index).
+- `app/static/js/app.js`: the muster-out result screen lists each newly granted associate with an editable field + a **🎲 Generate** button that fills a D66 personage type + a species-appropriate name (reusing `_SOL_CONTACTS` + `generateSpeciesName`). Edits save automatically via the update op without re-rendering (inputs keep focus while naming several in a row).
+- `app/static/css/style.css`: styling for the naming rows.
+
+**Verification:** Backend returns `new_associates` for a Contact benefit; live UI — Generate fills "Alien Ambassador or Trade Delegate — Abraham Balde" and persists to the associate; manual typing also persists. All 660 tests pass.
+
+---
+
 ### v30.51: Muster-Out Couldn't Roll Benefits for a Second Stint in the Same Career
 **Status:** FIXED  
 **Symptom:** A character who served the **same career twice** (e.g. two separate Bounty Hunter careers) could not claim the second stint's mustering-out rolls. Selecting the later Bounty Hunter card showed the *first* one's table ("0 of 1 rolls remaining"), and the ROLL CASH / ROLL BENEFIT buttons were disabled.
