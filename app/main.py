@@ -872,6 +872,21 @@ async def api_apply_specialty(action: EventSkillGrantAction):
         raise HTTPException(400, str(e))
 
 
+class CleanupCascadeAction(CharacterAction):
+    """{parent_skill_name: speciality} — move over-leveled cascade parents into specialties."""
+    choices: dict[str, str]
+
+
+@app.post("/api/character/cleanup-cascade-specialties")
+async def api_cleanup_cascade(action: CleanupCascadeAction):
+    """Move levels held on bare cascade parent skills into chosen specialties."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.cleanup_cascade_specialties(character, action.choices)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/event-dm-grant")
 async def api_event_dm_grant(action: EventDmGrantAction):
     """Apply the 'DM+N' side of an 'either skill or DM+N' event choice."""

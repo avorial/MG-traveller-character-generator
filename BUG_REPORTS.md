@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.53: Clean-Up Button for Over-Leveled Cascade Skills (feature)
+**Request:** At character completion ("Your Traveller is ready"), add a button to fix cascade skills held above level 0 with no specialty (e.g. "Gun Combat 2", "Pilot 1") — letting the player choose which specialty each level moves into.
+
+**Implementation:**
+- `app/engine/lifepath.py`: `cleanup_cascade_specialties(character, {parent: speciality})` moves each over-leveled bare cascade parent's level into the chosen specialty and drops the parent to 0 (MgT 2e p.59). Validates against `rules.skill_specialities()`.
+- `app/main.py`: `POST /api/character/cleanup-cascade-specialties`.
+- `app/static/js/app.js`: the muster-out "All Benefits Claimed" screen now warns when cascade parents are over-leveled and shows a **🧹 CLEAN UP SPECIALTIES (N)** button. It opens a picker listing each offending skill with its specialty options; APPLY is gated until every one is assigned. (`invalidCascadeParents()` detects them via `CASCADE_SKILLS`.)
+
+**Verification:** Engine test — Gun Combat 2 → Gun Combat (Slug) 2 + Gun Combat 0; Admin (non-cascade) untouched. Live UI end-to-end — button appears with count, picker assigns Slug/Small Craft, APPLY converts both and clears the warning. All 660 tests pass.
+
+---
+
 ### v30.52: Name/Type Generator for Mustering-Out Contacts & Allies (feature)
 **Request:** Allow associates gained at muster-out (Contact / Ally / D3 Contacts, etc.) to use the same type+name generator already available earlier in the generator (the D66 personage table + species-name generator used for career-event associates).
 

@@ -17764,6 +17764,38 @@ def update_associate(character: Character, index: int, description: str) -> dict
     }
 
 
+def cleanup_cascade_specialties(character: Character, choices: dict[str, str]) -> dict:
+    """Move levels held on a bare cascade parent skill into a chosen specialty.
+
+    Cascade skills (Gun Combat, Pilot, Melee, Science, …) may only be held at
+    level 0 as the parent — any level 1+ must live in a specialty. This takes a
+    {parent_skill_name: speciality} map and, for each bare parent skill with
+    level > 0, moves that level into the chosen speciality and drops the parent
+    back to level 0 (per MgT 2e p.59).
+    """
+    specs_map = rules.skill_specialities()
+    applied: list[str] = []
+    for name, spec in (choices or {}).items():
+        valid = specs_map.get(name, [])
+        if not valid:
+            raise ValueError(f"'{name}' is not a cascade skill.")
+        if spec not in valid:
+            raise ValueError(f"'{spec}' is not a valid {name} speciality.")
+        parent = next(
+            (s for s in character.skills
+             if s.name == name and s.speciality is None and (s.level or 0) > 0),
+            None,
+        )
+        if parent is None:
+            continue  # nothing to move (already clean or not present)
+        level = parent.level
+        parent.level = 0  # parent stays, dropped to 0
+        msg = character.add_skill(name, level=level, speciality=spec, fixed_level=True)
+        applied.append(f"{name} {level} → {name} ({spec}) {level}")
+        character.log(f"Cleanup: moved {name} {level} into {name} ({spec}) — {msg}")
+    return {"applied": applied, "character": character.model_dump()}
+
+
 # ============================================================
 # NPC Auto-generation
 # ============================================================

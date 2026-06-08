@@ -10989,7 +10989,58 @@ function musterAssocNamingHTML(newAssociates) {
     </div>`;
 }
 
+// Cascade parent skills held above level 0 without a specialty — an invalid
+// state in MgT (e.g. "Gun Combat 2"). These need their level moved into a
+// chosen specialty at character completion.
+function invalidCascadeParents() {
+  return (character.skills || []).filter(s =>
+    s && s.speciality == null && (s.level || 0) > 0 && CASCADE_SKILLS[s.name]
+  );
+}
+
+function renderCascadeCleanup() {
+  const invalid = invalidCascadeParents();
+  if (!invalid.length) {
+    return `
+      <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+      <div class="stage-content">
+        <h2 class="phase-title">Specialties Clean</h2>
+        <p class="phase-body">No cascade skills need a specialty — your Traveller is good to go.</p>
+        <div class="phase-actions" style="margin-top:16px">
+          <button class="btn primary" id="btn-cascade-cancel">← BACK</button>
+        </div>
+      </div>`;
+  }
+  const choices = uiState.cascadeCleanupChoices || {};
+  const rows = invalid.map(s => {
+    const opts = CASCADE_SKILLS[s.name] || [];
+    const chosen = choices[s.name];
+    return `
+      <div class="event-skill-picker" style="margin-top:10px">
+        <span class="event-label">${escapeHTML(s.name)} ${s.level} — choose a specialty</span>
+        <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>Level ${s.level} moves into your chosen ${escapeHTML(s.name)} specialty; the base skill drops to 0.</em></p>
+        <div class="skill-picker">
+          ${opts.map(o => `<button class="skill-chip cascade-cleanup-opt${chosen === o ? ' selected' : ''}" data-cleanup-skill="${escapeAttr(s.name)}" data-cleanup-spec="${escapeAttr(o)}">${escapeHTML(o)}${chosen === o ? ' ✓' : ''}</button>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+  const allChosen = invalid.every(s => choices[s.name]);
+  return `
+    <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+    <div class="stage-content">
+      <div class="phase-label">Cleanup · Cascade Specialties</div>
+      <h2 class="phase-title">Assign Cascade Specialties</h2>
+      <p class="phase-body">These skills are held above level 0 without a specialty. In Traveller a cascade skill (Gun Combat, Pilot, Melee, …) sits at level 0 as the parent — pick which specialty each level belongs to.</p>
+      ${rows}
+      <div class="phase-actions" style="margin-top:16px">
+        <button class="btn primary" id="btn-cascade-apply" ${allChosen ? '' : 'disabled'}>APPLY SPECIALTIES →</button>
+        <button class="btn ghost" id="btn-cascade-cancel">CANCEL</button>
+      </div>
+    </div>`;
+}
+
 function renderMusterPhase() {
+  if (uiState.cascadeCleanupMode) return renderCascadeCleanup();
   const careers = character.completed_careers;
   const rolls = character.pending_benefit_rolls;
   const cashRolled = character.cash_rolls_used;
@@ -11091,7 +11142,13 @@ function renderMusterPhase() {
         <h2 class="phase-title">All Benefits Claimed</h2>
         <p class="phase-body">You've rolled all your mustering-out benefits. Your Traveller is ready.</p>
         ${pensionNote}
+        ${invalidCascadeParents().length ? `
+          <div class="event-box" style="border-color:var(--amber);margin-top:14px">
+            <span class="event-label" style="color:var(--amber)">CASCADE SKILLS NEED SPECIALTIES</span>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text)">${invalidCascadeParents().map(s => `${escapeHTML(s.name)} ${s.level}`).join(', ')} ${invalidCascadeParents().length === 1 ? 'is' : 'are'} held above level 0 with no specialty. Assign ${invalidCascadeParents().length === 1 ? 'it' : 'them'} before finishing.</p>
+          </div>` : ''}
         <div class="phase-actions" style="margin-top:16px">
+          ${invalidCascadeParents().length ? `<button class="btn" id="btn-cascade-cleanup">🧹 CLEAN UP SPECIALTIES (${invalidCascadeParents().length})</button>` : ''}
           <button class="btn primary" id="btn-finalize">FINALIZE CHARACTER →</button>
         </div>
       </div>
@@ -11337,6 +11394,45 @@ function wireMusterPhase() {
       }
       saveCharacter();
       renderAll();
+    });
+  }
+
+  // Cascade-specialty cleanup flow
+  const btnCascadeCleanup = document.getElementById('btn-cascade-cleanup');
+  if (btnCascadeCleanup) {
+    btnCascadeCleanup.addEventListener('click', () => {
+      uiState.cascadeCleanupMode = true;
+      uiState.cascadeCleanupChoices = {};
+      renderStage();
+    });
+  }
+  document.querySelectorAll('.cascade-cleanup-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const skill = btn.getAttribute('data-cleanup-skill');
+      const spec = btn.getAttribute('data-cleanup-spec');
+      uiState.cascadeCleanupChoices = uiState.cascadeCleanupChoices || {};
+      uiState.cascadeCleanupChoices[skill] = spec;
+      renderStage();
+    });
+  });
+  const btnCascadeCancel = document.getElementById('btn-cascade-cancel');
+  if (btnCascadeCancel) {
+    btnCascadeCancel.addEventListener('click', () => {
+      uiState.cascadeCleanupMode = false;
+      renderStage();
+    });
+  }
+  const btnCascadeApply = document.getElementById('btn-cascade-apply');
+  if (btnCascadeApply) {
+    btnCascadeApply.addEventListener('click', async () => {
+      try {
+        const response = await apiCall('/api/character/cleanup-cascade-specialties',
+          { choices: uiState.cascadeCleanupChoices || {} });
+        await applyResponse(response);
+        uiState.cascadeCleanupMode = false;
+        uiState.cascadeCleanupChoices = {};
+        renderAll();
+      } catch (e) { alert(e.message); }
     });
   }
 }
