@@ -2,6 +2,24 @@
 
 ## Fixed Bugs
 
+### v30.51: Muster-Out Couldn't Roll Benefits for a Second Stint in the Same Career
+**Status:** FIXED  
+**Symptom:** A character who served the **same career twice** (e.g. two separate Bounty Hunter careers) could not claim the second stint's mustering-out rolls. Selecting the later Bounty Hunter card showed the *first* one's table ("0 of 1 rolls remaining"), and the ROLL CASH / ROLL BENEFIT buttons were disabled.
+
+**Root Cause:** The muster-out flow identified careers by `career_id` on both ends:
+- Frontend: `data-muster-career="${career_id}"`, and `careers.find(x => x.career_id === selected)` always returned the **first** record.
+- Backend: `muster_out_roll()` did `next(c for c in completed_careers if c.career_id == career_id)` — same first-match collapse.
+
+So two stints of the same career collapsed onto the first record; once it was exhausted, the second could never be rolled.
+
+**Fix:** Identify careers by their **index** in `completed_careers`:
+- `app/static/js/app.js`: cards key on `data-muster-career-index`; selection stores `uiState.selectedMusterIndex`; the table and roll handlers resolve the record via `completed_careers[index]` and send `career_index` to the API; selected card now highlights.
+- `app/main.py` / `app/engine/lifepath.py`: `MusterOutAction` and `muster_out_roll()` accept an optional `career_index` and use it to locate the exact record (validated against `career_id`), falling back to first-match for backward compatibility.
+
+**Verification:** Engine test — rolling with `career_index=2` claims the 3-term Bounty Hunter stint and leaves the exhausted 1-term stint untouched; the exhausted index still correctly errors. Live UI: selecting the second Bounty Hunter shows "3 of 3 rolls remaining" with enabled buttons; rolling decrements that stint only and spends one of the shared 7 benefit rolls. All 660 tests pass.
+
+---
+
 ### v30.50: Solomani "Racial Incident" Life Event Locked the Character
 **Status:** FIXED  
 **Symptom:** A Solomani character who rolled the **Racial Incident** life event during a career term (pending_life_event_choice = {kind: "racial_incident"}) could not progress. Choosing Rival or Enemy did nothing / errored, and reloading the save dropped the player back at Basic Training with no way to reach the choice.

@@ -847,6 +847,7 @@ let uiState = {
   selectedBgSkills: new Set(),
   selectedPreCareerSkills: new Set(),
   selectedCareer: null,
+  selectedMusterIndex: null,
   selectedAssignment: null,
   selectedCoverCareer: null,   // SolSec Secret Agent cover career
   // After-roll dialog state
@@ -971,6 +972,7 @@ async function freshCharacter() {
     selectedBgSkills: new Set(),
     selectedPreCareerSkills: new Set(),
     selectedCareer: null,
+    selectedMusterIndex: null,
     selectedAssignment: null,
     selectedCoverCareer: null,
     lastRoll: null,
@@ -1116,6 +1118,7 @@ function renderSavesModal() {
         selectedBgSkills: new Set(),
         selectedPreCareerSkills: new Set(),
         selectedCareer: null,
+        selectedMusterIndex: null,
         selectedAssignment: null,
         selectedCoverCareer: null,
         lastRoll: null,
@@ -11070,7 +11073,7 @@ function renderMusterPhase() {
     `;
   }
 
-  const careerPicker = careers.map(c => {
+  const careerPicker = careers.map((c, ci) => {
     const careerDef = CAREERS.find(x => x.id === c.career_id);
     const hasTable = careerDef?.mustering_out && Object.keys(careerDef.mustering_out).length > 0;
     const rollsUsed = c.benefit_rolls_used || 0;
@@ -11079,11 +11082,15 @@ function renderMusterPhase() {
     const rankBonus = maxRolls - c.terms_served;
     const exhausted = rollsLeft <= 0;
     const locked = !hasTable || exhausted;
+    const selected = uiState.selectedMusterIndex === ci;
     const rollsDesc = rankBonus > 0
       ? `${c.terms_served} terms + ${rankBonus} rank bonus = ${maxRolls} total`
       : `${c.terms_served} term${c.terms_served === 1 ? '' : 's'}`;
+    // Key by index, not career_id — the same career can be served more than once
+    // (e.g. two Bounty Hunter stints), and a career_id key collapses them onto
+    // the first record so the later stint's rolls can never be claimed.
     return `
-      <button class="card ${locked ? 'locked' : ''}" data-muster-career="${c.career_id}" ${locked ? 'disabled' : ''}>
+      <button class="card ${locked ? 'locked' : ''} ${selected ? 'selected' : ''}" data-muster-career-index="${ci}" ${locked ? 'disabled' : ''}>
         <div class="card-title">${careerDef?.name || c.career_id}</div>
         <div class="card-meta">${c.terms_served} TERMS · RANK ${c.final_rank} · ${exhausted ? 'NO ROLLS LEFT' : `${rollsLeft} ROLL${rollsLeft === 1 ? '' : 'S'} LEFT`}</div>
         <div class="card-desc">${!hasTable ? 'Mustering-out table not yet encoded for this career.' : exhausted ? 'All benefit rolls used.' : `${rollsLeft} of ${maxRolls} rolls remaining (${rollsDesc}).`}</div>
@@ -11103,9 +11110,9 @@ function renderMusterPhase() {
       <h3 style="margin-top:20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.3em;color:var(--amber-dim);text-transform:uppercase">Pick Career</h3>
       <div class="card-grid">${careerPicker}</div>
 
-      ${uiState.selectedCareer ? (() => {
-        const selDef = CAREERS.find(x => x.id === uiState.selectedCareer);
-        const selRec = careers.find(x => x.career_id === uiState.selectedCareer);
+      ${(uiState.selectedMusterIndex != null && careers[uiState.selectedMusterIndex]) ? (() => {
+        const selRec = careers[uiState.selectedMusterIndex];
+        const selDef = CAREERS.find(x => x.id === selRec.career_id);
         const selMaxRolls = selRec ? (selRec.benefit_rolls_earned || selRec.terms_served) : 0;
         const selRollsLeft = selMaxRolls - (selRec?.benefit_rolls_used || 0);
         return `
@@ -11134,9 +11141,9 @@ function renderMusterPhase() {
 }
 
 function wireMusterPhase() {
-  document.querySelectorAll('[data-muster-career]').forEach(card => {
+  document.querySelectorAll('[data-muster-career-index]').forEach(card => {
     card.addEventListener('click', () => {
-      uiState.selectedCareer = card.dataset.musterCareer;
+      uiState.selectedMusterIndex = parseInt(card.dataset.musterCareerIndex, 10);
       renderStage();
     });
   });
@@ -11159,15 +11166,18 @@ function wireMusterPhase() {
   if (btnCash) {
     btnCash.addEventListener('click', async () => {
       try {
-        const careerId = uiState.selectedCareer;
+        const careerIndex = uiState.selectedMusterIndex;
+        const careerRec = character.completed_careers?.[careerIndex];
+        const careerId = careerRec?.career_id;
         const careerDef = CAREERS.find(x => x.id === careerId);
         const response = await apiCall('/api/character/muster-out',
-          { career_id: careerId, column: 'cash' });
+          { career_id: careerId, career_index: careerIndex, column: 'cash' });
         await applyResponse(response);
         // Auto-clear selection if this career has no rolls left after the roll
-        const updatedRec = character.completed_careers?.find(x => x.career_id === careerId);
-        const updatedRollsLeft = updatedRec ? (updatedRec.terms_served - (updatedRec.benefit_rolls_used || 0)) : 0;
-        if (updatedRollsLeft <= 0) uiState.selectedCareer = null;
+        const updatedRec = character.completed_careers?.[careerIndex];
+        const updatedMax = updatedRec ? (updatedRec.benefit_rolls_earned || updatedRec.terms_served) : 0;
+        const updatedRollsLeft = updatedRec ? (updatedMax - (updatedRec.benefit_rolls_used || 0)) : 0;
+        if (updatedRollsLeft <= 0) uiState.selectedMusterIndex = null;
         uiState.lastRoll = {
           type: 'muster',
           column: 'cash',
@@ -11188,17 +11198,20 @@ function wireMusterPhase() {
   if (btnBenefit) {
     btnBenefit.addEventListener('click', async () => {
       try {
-        const careerId = uiState.selectedCareer;
+        const careerIndex = uiState.selectedMusterIndex;
+        const careerRec = character.completed_careers?.[careerIndex];
+        const careerId = careerRec?.career_id;
         const careerDef = CAREERS.find(x => x.id === careerId);
         const useGoodFortune = !!(uiState.useGoodFortune && character.good_fortune_benefit_dm > 0);
         const response = await apiCall('/api/character/muster-out',
-          { career_id: careerId, column: 'benefit', use_good_fortune: useGoodFortune });
+          { career_id: careerId, career_index: careerIndex, column: 'benefit', use_good_fortune: useGoodFortune });
         await applyResponse(response);
         uiState.useGoodFortune = false;
         // Auto-clear selection if this career has no rolls left after the roll
-        const updatedRec = character.completed_careers?.find(x => x.career_id === careerId);
-        const updatedRollsLeft = updatedRec ? (updatedRec.terms_served - (updatedRec.benefit_rolls_used || 0)) : 0;
-        if (updatedRollsLeft <= 0) uiState.selectedCareer = null;
+        const updatedRec = character.completed_careers?.[careerIndex];
+        const updatedMax = updatedRec ? (updatedRec.benefit_rolls_earned || updatedRec.terms_served) : 0;
+        const updatedRollsLeft = updatedRec ? (updatedMax - (updatedRec.benefit_rolls_used || 0)) : 0;
+        if (updatedRollsLeft <= 0) uiState.selectedMusterIndex = null;
         uiState.lastRoll = {
           type: 'muster',
           column: 'benefit',
@@ -11221,7 +11234,7 @@ function wireMusterPhase() {
   if (btnPostMuster) {
     btnPostMuster.addEventListener('click', () => {
       uiState.lastRoll = null;
-      uiState.selectedCareer = null;
+      uiState.selectedMusterIndex = null;
       renderStage();
     });
   }
@@ -11234,7 +11247,7 @@ function wireMusterPhase() {
         const response = await apiCall('/api/character/muster-benefit-choice', { chosen });
         await applyResponse(response);
         uiState.lastRoll = null;
-        uiState.selectedCareer = null;
+        uiState.selectedMusterIndex = null;
         renderAll();
       } catch (e) {
         alert(e.message);

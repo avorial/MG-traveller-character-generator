@@ -16187,7 +16187,8 @@ def resolve_aging_choice(character: Character, reductions: list[dict]) -> dict:
 
 
 def muster_out_roll(
-    character: Character, career_id: str, column: str, use_good_fortune: bool = False
+    character: Character, career_id: str, column: str, use_good_fortune: bool = False,
+    career_index: Optional[int] = None,
 ) -> dict:
     """Roll on the mustering-out table (1D), applying the chosen column: cash or benefits."""
     if character.pending_benefit_rolls <= 0:
@@ -16226,10 +16227,19 @@ def muster_out_roll(
     if not table:
         raise ValueError(f"{career['name']} has no mustering-out table encoded yet")
 
-    # Enforce: at most one roll per term served in this career
-    career_rec = next(
-        (c for c in character.completed_careers if c.career_id == career_id), None
-    )
+    # Enforce: at most one roll per term served in this career.
+    # Prefer the explicit index (disambiguates duplicate stints of the same
+    # career_id, e.g. two Bounty Hunter careers); fall back to first match.
+    career_rec = None
+    if career_index is not None:
+        if 0 <= career_index < len(character.completed_careers):
+            _rec = character.completed_careers[career_index]
+            if _rec.career_id == career_id:
+                career_rec = _rec
+    if career_rec is None:
+        career_rec = next(
+            (c for c in character.completed_careers if c.career_id == career_id), None
+        )
     if career_rec is None:
         raise ValueError(f"You have no completed terms in {career['name']}")
     max_rolls = career_rec.benefit_rolls_earned or career_rec.terms_served

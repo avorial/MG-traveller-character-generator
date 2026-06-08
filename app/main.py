@@ -198,6 +198,10 @@ class MusterOutAction(CharacterAction):
     career_id: str
     column: str  # "cash" | "benefit"
     use_good_fortune: bool = False
+    # Index into completed_careers — disambiguates when the same career_id was
+    # served more than once (e.g. two separate Bounty Hunter stints). Optional
+    # for backward compatibility; falls back to first matching career_id.
+    career_index: Optional[int] = None
 
 
 class MusterBenefitChoiceAction(CharacterAction):
@@ -932,7 +936,8 @@ async def api_muster_out(action: MusterOutAction):
     character = action.character.model_copy(deep=True)
     try:
         return lifepath.muster_out_roll(
-            character, action.career_id, action.column, action.use_good_fortune
+            character, action.career_id, action.column, action.use_good_fortune,
+            career_index=action.career_index,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
