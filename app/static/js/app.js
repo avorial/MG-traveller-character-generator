@@ -6692,9 +6692,13 @@ function wireCareerPhase() {
         // Also suppress when:
         //   • event_effects already contain an auto-applied contact (e.g. event 10)
         //   • a life event pending choice is set (the life event UI owns the picker)
+        // Any structured pending_event_choice (skill_check, pending_choice,
+        // skill_choice, …) owns the event's associates via its on_pass/on_fail
+        // or top-level effects, so the text-parsed associate picker must stand
+        // down — otherwise e.g. bounty_hunter[9] "gain an Enemy" is applied both
+        // by the skill_check's on_fail and by the manual "+ Add Enemy" op.
         suppressAssocOps: !!(
-          (response.pending_event_choice &&
-           response.pending_event_choice.type === 'pending_choice') ||
+          response.pending_event_choice ||
           (response.event_effects || []).some(e => /^gained contact:/i.test(e)) ||
           (response.event_effects || []).some(e => /converted to/i.test(e)) ||
           !!(response.character?.pending_life_event_choice)
@@ -6707,7 +6711,10 @@ function wireCareerPhase() {
       // to determine count.
       const rawAssocOpsForEvent = parseEventAssociateOps(response.event || '');
       const hasQuantityOps = rawAssocOpsForEvent.some(op => op.type === 'quantity');
-      if (!hasQuantityOps) {
+      // Skip auto-add when structured effects own the associates (see
+      // suppressAssocOps above) — otherwise a structured ally grant would be
+      // duplicated by this text-parsed auto-add.
+      if (!hasQuantityOps && !uiState.lastRoll.suppressAssocOps) {
         for (let rawIdx = 0; rawIdx < rawAssocOpsForEvent.length; rawIdx++) {
           const op = rawAssocOpsForEvent[rawIdx];
           if (op.type === 'add' && op.kinds.length === 1 && op.kinds[0] === 'ally') {
@@ -9608,7 +9615,11 @@ function renderEventStep() {
     // Contested-roll picker: "Roll <Skill> 8+" branches (drifter[6], entertainer[8],
     // navy[3], scholar[9], scout[8]/[9]/[10], rogue[8], prisoner[8]).
     // We offer a button per skill option, and a "Skip — apply manually" fallback.
-    const contested = !chosenPath && !lr.eventContestedResolved
+    // Suppressed when the backend supplied a structured pending_event_choice
+    // (e.g. bounty_hunter[9]) — that skill_check is authoritative and applies
+    // its own on_pass/on_fail server-side; rendering this text-parsed picker too
+    // would let the player roll the same check twice with conflicting outcomes.
+    const contested = !chosenPath && !lr.eventContestedResolved && !lr.pendingEventChoice
       ? parseEventContestedRoll(lr.eventText || '')
       : null;
     // Refuse option (noble[3] duel, noble[8] conspiracy) — only surface alongside

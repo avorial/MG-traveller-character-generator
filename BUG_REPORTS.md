@@ -2,6 +2,24 @@
 
 ## Fixed Bugs
 
+### v30.47: Bounty Hunter Event 9 — Skill Check Resolved Twice (real root cause)
+**Status:** FIXED  
+**Symptom:** Bounty Hunter event 9 ("Roll Investigate 8+ or Streetwise 8+...") presented **two** skill pickers and let the player roll the check twice with conflicting outcomes. A user screenshot showed both branches applying at once: a "Failure" block (Streetwise rolled 4 → mishap + Enemy) **and** an "Auto-applied" block (Streetwise rolled 8 → PASS → REP+1, DM+1 Benefit), plus a stray "+ Add Enemy" associate op.
+
+**Root Cause:** The frontend has **two** independent event skill-check systems that both reacted to the same event text:
+1. The backend's authoritative structured `pending_event_choice` skill_check (proper on_pass/on_fail applied server-side).
+2. A frontend text-parser (`parseEventContestedRoll`) that scrapes "Roll <Skill> N+" from the event text and renders its own picker (`eventContestedResolved`), resolving client-side.
+
+Both rendered, so the player rolled the check twice. Separately, a third text-parser (`parseEventAssociateOps`) scraped "gain an Enemy" and offered a manual "+ Add Enemy" op, duplicating the skill_check's on_fail enemy. (The earlier v30.45 dm_grants fix addressed only one symptom — the stray DM+1 button — not the double roll.)
+
+**Fix (`app/static/js/app.js`):**
+- Gate the text-parsed contested roll on `!lr.pendingEventChoice` — when the backend supplies a structured skill_check, it is authoritative and the text-parsed picker stands down. Events that legitimately rely on the text-parser (navy[3], drifter[6], scholar[9], …) have no `pending_event_choice`, so they are unaffected.
+- Extend `suppressAssocOps` to fire for **any** `pending_event_choice` (was only `pending_choice`), and guard the auto-add-ally block with the same flag, so structured effects own all associates and the text-parsed associate picker/auto-add cannot duplicate them.
+
+**Verification:** Live-preview render test confirms event 9 now shows exactly one skill picker, no contested picker, and no stray associate op; a control event with no structured choice still renders its contested picker. All 660 tests pass.
+
+---
+
 ### v30.44: Background Skills Duplicate Specialty + Parent Skill
 **Status:** FIXED  
 **Symptom:** When selecting a background skill with a specialty (e.g., "Science (Xenology)"), the character would end up with both:
