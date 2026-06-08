@@ -11002,7 +11002,7 @@ function renderCascadeCleanup() {
   const invalid = invalidCascadeParents();
   if (!invalid.length) {
     return `
-      <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+      <div class="panel-header"><span class="led"></span><span>SKILL CLEANUP</span></div>
       <div class="stage-content">
         <h2 class="phase-title">Specialties Clean</h2>
         <p class="phase-body">No cascade skills need a specialty — your Traveller is good to go.</p>
@@ -11026,7 +11026,7 @@ function renderCascadeCleanup() {
   }).join('');
   const allChosen = invalid.every(s => choices[s.name]);
   return `
-    <div class="panel-header"><span class="led"></span><span>PHASE 05 — MUSTERING OUT</span></div>
+    <div class="panel-header"><span class="led"></span><span>SKILL CLEANUP</span></div>
     <div class="stage-content">
       <div class="phase-label">Cleanup · Cascade Specialties</div>
       <h2 class="phase-title">Assign Cascade Specialties</h2>
@@ -11397,7 +11397,12 @@ function wireMusterPhase() {
     });
   }
 
-  // Cascade-specialty cleanup flow
+  wireCascadeCleanup();
+}
+
+// Wiring for the cascade-specialty cleanup flow — shared by the muster-out and
+// done screens (both can surface the CLEAN UP SPECIALTIES button + picker).
+function wireCascadeCleanup() {
   const btnCascadeCleanup = document.getElementById('btn-cascade-cleanup');
   if (btnCascadeCleanup) {
     btnCascadeCleanup.addEventListener('click', () => {
@@ -11543,7 +11548,11 @@ function renderDonePhase() {
   }
 
   // ── Normal (biological) done phase ─────────────────────────────────────────
+  // Cascade-specialty cleanup takes over the screen when active.
+  if (uiState.cascadeCleanupMode) return renderCascadeCleanup();
+
   const existingConns = (character.associates || []).filter(a => (a.description || '').startsWith('Connection: '));
+  const _invalidCascade = invalidCascadeParents();
 
   return `
     <div class="panel-header"><span class="led"></span><span>PHASE 06 — READY FOR ADVENTURE</span></div>
@@ -11555,6 +11564,15 @@ function renderDonePhase() {
       <div class="phase-body">
         <p>Your character's full history is in the Mission Log. Export the JSON to save them, or import a different Traveller to continue work.</p>
       </div>
+
+      ${_invalidCascade.length ? `
+        <div class="done-card" style="border-color:var(--amber)">
+          <h3 class="done-card-title" style="color:var(--amber)">🧹 Cascade Skills Need Specialties</h3>
+          <p class="empty" style="margin-bottom:10px">${_invalidCascade.map(s => `${escapeHTML(s.name)} ${s.level}`).join(', ')} ${_invalidCascade.length === 1 ? 'is' : 'are'} held above level 0 without a specialty. In Traveller a cascade skill sits at level 0 as the parent — assign each level to a specialty.</p>
+          <div class="phase-actions">
+            <button class="btn primary" id="btn-cascade-cleanup">CLEAN UP SPECIALTIES (${_invalidCascade.length})</button>
+          </div>
+        </div>` : ''}
 
       <div class="done-card">
         <h3 class="done-card-title">Career Narrative</h3>
@@ -12307,6 +12325,9 @@ function renderPsionicsCard() {
 }
 
 function wireDonePhase() {
+  // Cascade-specialty cleanup (button + picker) is available on the done screen.
+  wireCascadeCleanup();
+
   // ── Robot done phase wiring ──
   const btnRobotFoundry = document.getElementById('btn-export-robot-foundry');
   if (btnRobotFoundry) {

@@ -2,6 +2,16 @@
 
 ## Fixed Bugs
 
+### v30.54: Cascade Cleanup Button on the Final "Your Traveller Is Ready" Screen
+**Status:** FIXED  
+**Symptom:** v30.53 added the CLEAN UP SPECIALTIES button to the muster-out "All Benefits Claimed" screen (PHASE 05), but the actual finalized **done** screen (PHASE 06 — "Your Traveller Is Ready") had no button, so a completed character with over-leveled cascade skills (Gun Combat 1, Pilot 1, Melee 1) couldn't reach the cleanup there.
+
+**Fix (`app/static/js/app.js`):** The done screen now shows a "🧹 Cascade Skills Need Specialties" card with a **CLEAN UP SPECIALTIES (N)** button when `invalidCascadeParents()` finds any, routes into `renderCascadeCleanup()` while `uiState.cascadeCleanupMode` is set, and wires the picker via a shared `wireCascadeCleanup()` (used by both the muster and done screens). The cleanup panel header is now neutral ("SKILL CLEANUP") since it appears in both contexts.
+
+**Verification:** Live UI on the done screen — card shows "CLEAN UP SPECIALTIES (3)"; picker assigns Gun Combat (Slug) / Pilot (Small Craft) / Melee (Blade); apply converts all, preserves a pre-existing Pilot (Capital Ships) specialty, returns to the done screen with the card gone and 0 invalid remaining. All 660 tests pass.
+
+---
+
 ### v30.53: Clean-Up Button for Over-Leveled Cascade Skills (feature)
 **Request:** At character completion ("Your Traveller is ready"), add a button to fix cascade skills held above level 0 with no specialty (e.g. "Gun Combat 2", "Pilot 1") — letting the player choose which specialty each level moves into.
 
