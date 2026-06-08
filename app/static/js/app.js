@@ -12560,6 +12560,22 @@ async function importCharacter(file) {
   try {
     const imported = JSON.parse(text);
     character = imported;
+    // Reset transient navigation/selection state so the imported character
+    // renders cleanly from its OWN phase rather than inheriting the current
+    // view. In particular a finished (phase "done") character lands on the
+    // "Your Traveller Is Ready" screen — where it can be pulled back in and
+    // cleaned up (e.g. cascade-skill specialties) — and a mid-creation save
+    // resumes at the correct step via the career sub-phase inference.
+    uiState.subPhase = null;
+    uiState.lastRoll = null;
+    uiState.lastAdvanceRoll = null;
+    uiState.cascadeCleanupMode = false;
+    uiState.cascadeCleanupChoices = {};
+    uiState.selectedMusterIndex = null;
+    uiState.selectedCareer = null;
+    uiState.selectedAssignment = null;
+    uiState.pendingCareerSpecialty = null;
+    uiState.pendingAdvancementSkill = false;
     saveCharacter();
     renderAll();
   } catch (e) {

@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.55: Re-Import Finished Characters to Clean Them Up at the Finish Stage
+**Request:** Be able to pull a finished character back into the generator and clean it up (cascade specialties, etc.) at the finish stage.
+
+**Implementation (`app/static/js/app.js`):** `importCharacter()` now resets transient navigation/selection state (`subPhase`, `lastRoll`, `lastAdvanceRoll`, `cascadeCleanupMode`/choices, `selectedMusterIndex`, `selectedCareer`/assignment, `pendingCareerSpecialty`, `pendingAdvancementSkill`) before rendering. A re-imported finished character (phase `done`) now reliably lands on the "Your Traveller Is Ready" screen — where the v30.54 **CLEAN UP SPECIALTIES** card appears for any over-leveled cascade skills — instead of inheriting the previous view's state. Mid-creation saves still resume at the correct step via the career sub-phase inference. (The always-visible **IMPORT JSON** header button is how characters are pulled back in.)
+
+**Verification:** With a deliberately dirty UI state (mid-cleanup, stale event sub-phase), importing a finished character resets the state and the done screen renders the cleanup card + "CLEAN UP SPECIALTIES (2)" for its invalid cascade skills (Gun Combat 3, Melee 1). All 660 tests pass.
+
+---
+
 ### v30.54: Cascade Cleanup Button on the Final "Your Traveller Is Ready" Screen
 **Status:** FIXED  
 **Symptom:** v30.53 added the CLEAN UP SPECIALTIES button to the muster-out "All Benefits Claimed" screen (PHASE 05), but the actual finalized **done** screen (PHASE 06 — "Your Traveller Is Ready") had no button, so a completed character with over-leveled cascade skills (Gun Combat 1, Pilot 1, Melee 1) couldn't reach the cleanup there.
