@@ -6610,7 +6610,15 @@ function wireCareerPhase() {
         uiState.pendingCareerSpecialty = null;
         // Update the lastRoll to show the fully resolved skill
         if (uiState.lastRoll) {
-          uiState.lastRoll.applied = `+1 ${pending.skillName} (${spec}) (level 1)`;
+          const resolved = `+1 ${pending.skillName} (${spec}) (level 1)`;
+          uiState.lastRoll.applied = resolved;
+          // Advancement bonus-skill flow stores the gain under a different field
+          // and mirrors it onto lastAdvanceRoll — keep both in sync so the
+          // resolved specialty shows instead of "… speciality choice pending".
+          if (uiState.lastRoll.type === 'advance') {
+            uiState.lastRoll.advancementSkillGained = resolved;
+            if (uiState.lastAdvanceRoll) uiState.lastAdvanceRoll.advancementSkillGained = resolved;
+          }
         }
         renderAll();
       } catch (e) { alert(e.message); }
@@ -7602,6 +7610,15 @@ function wireCareerPhase() {
             advancementSkillGained: response.applied || response.result || '',
           };
         }
+        // A bare cascade skill (e.g. Melee, Gun Combat) needs a specialty pick.
+        // Mirror the training-phase flow: stash pendingCareerSpecialty so the
+        // advancement result view renders the specialty picker (and gates the
+        // term-decision buttons) instead of silently leaving it "pending".
+        const advBareSkill = (response.result || '').trim();
+        uiState.pendingCareerSpecialty = CASCADE_SKILLS[advBareSkill]
+          ? { skillName: advBareSkill, level: 1, tableKey, rollData: response.roll,
+              result: response.result, applied: response.applied }
+          : null;
         // Restore the advance roll view so decide actions are shown
         uiState.lastRoll = uiState.lastAdvanceRoll ? { ...uiState.lastAdvanceRoll } : uiState.lastRoll;
         renderAll();
@@ -10752,8 +10769,17 @@ function renderAdvanceStep() {
             <span class="event-label" style="color:var(--success,#7fd87f)">BONUS SKILL GAINED</span>
             ${escapeHTML(lr.advancementSkillGained)}
           </div>` : ''}
+        ${uiState.pendingCareerSpecialty ? `
+          <div class="event-box" style="border-color:var(--amber);margin-top:10px">
+            <span class="event-label" style="color:var(--amber)">CHOOSE SPECIALTY</span>
+            <p style="font-size:12px;color:var(--text-dim);margin:4px 0 8px">${escapeHTML(uiState.pendingCareerSpecialty.skillName)} requires a specialty. Pick one to finish the term:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${(CASCADE_SKILLS[uiState.pendingCareerSpecialty.skillName] || []).map(s => `<button class="btn ghost specialty-chip" data-career-specialty="${escapeHTML(s)}">${escapeHTML(s)}</button>`).join('')}
+            </div>
+          </div>
+        ` : `
         <p class="phase-body">You've completed Term ${term.overall_term_number}. Continue in this career or muster out?</p>
-        ${advDecideActions}
+        ${advDecideActions}`}
       </div>
     `;
   }

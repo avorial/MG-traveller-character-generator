@@ -858,6 +858,10 @@ async def api_apply_specialty(action: EventSkillGrantAction):
         if character.current_term:
             character.current_term.skills_gained.append(f"Specialty choice: {text} {level}")
         character.log(f"Specialty applied: {msg}")
+        # skill_roll() / _apply_rank_bonus() stash the cascade prompt in
+        # pending_career_event_choice; clear it now that the specialty is chosen
+        # so a resolved cascade can't leak a stale skill picker into a later event.
+        character.pending_career_event_choice = None
         character.notes  # ensure serializable
         return {"applied": msg, "character": character.model_dump()}
     except ValueError as e:

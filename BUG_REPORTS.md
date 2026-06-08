@@ -2,6 +2,20 @@
 
 ## Fixed Bugs
 
+### v30.48: Advancement Bonus Skill — Cascade Specialty Picker Never Appeared
+**Status:** FIXED  
+**Symptom:** On a successful advancement, the promotion's bonus skill roll could land on a cascade skill (e.g. Melee). The result screen showed "BONUS SKILL GAINED — Melee speciality choice pending", but **no specialty picker ever appeared**, so the player couldn't choose Blade/Bludgeon/Natural/Unarmed and the skill was left unresolved.
+
+**Root Cause:** `skill_roll()` correctly stashed the cascade prompt in `pending_career_event_choice` and returned "… speciality choice pending", but the frontend's **advancement** skill-table handler (unlike the normal training handler) never set `uiState.pendingCareerSpecialty`, and the advancement result view had no specialty-picker UI. The pending choice was orphaned. Additionally, `/api/character/apply-specialty` never cleared `pending_career_event_choice`, so a resolved cascade could leak a stale skill picker into a later event.
+
+**Fix:**
+- `app/static/js/app.js`: the advancement bonus-skill handler now detects a bare cascade result and sets `uiState.pendingCareerSpecialty` (mirroring the training-phase flow); the advancement result view renders the existing "CHOOSE SPECIALTY" picker and **gates the Another-Term / Muster-Out buttons** until a specialty is chosen; the specialty-pick handler syncs `advancementSkillGained` so the resolved skill (e.g. "+1 Melee (Blade) (level 1)") displays.
+- `app/main.py`: `/api/character/apply-specialty` now clears `pending_career_event_choice` after applying, preventing the stale-picker leak (also benefits the normal training cascade flow).
+
+**Verification:** Live-preview end-to-end — promotion → bonus skill Melee → picker shows (Blade/Bludgeon/Natural/Unarmed) with term-decision buttons gated → choosing Blade applies "Melee (Blade) 1", reveals the decision buttons, updates the bonus-skill text, and clears the backend pending choice. All 660 tests pass.
+
+---
+
 ### v30.47: Bounty Hunter Event 9 — Skill Check Resolved Twice (real root cause)
 **Status:** FIXED  
 **Symptom:** Bounty Hunter event 9 ("Roll Investigate 8+ or Streetwise 8+...") presented **two** skill pickers and let the player roll the check twice with conflicting outcomes. A user screenshot showed both branches applying at once: a "Failure" block (Streetwise rolled 4 → mishap + Enemy) **and** an "Auto-applied" block (Streetwise rolled 8 → PASS → REP+1, DM+1 Benefit), plus a stray "+ Add Enemy" associate op.
