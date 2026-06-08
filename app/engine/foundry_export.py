@@ -819,13 +819,23 @@ def foundry_to_character(actor: Any) -> dict:
         specs = entry.get("specialities") or entry.get("specialties") or {}
         had_spec = False
         for spid, sp in specs.items():
-            if not isinstance(sp, dict) or not sp.get("trained"):
+            if not isinstance(sp, dict):
                 continue
+            # A specialty is trained unless explicitly flagged untrained. Many
+            # Foundry exports omit "trained":true on trained specialties and only
+            # mark untrained ones with trained:false + value -3, so treat a
+            # non-negative value as trained.
+            if sp.get("trained") is False:
+                continue
+            lv = _intish(sp.get("value"), -99)
+            if lv < 0:
+                continue  # -3 placeholder = untrained
             spec_name = _ID_TO_SPEC.get(spid) or _humanize_id(spid)
-            out_skills.append(Skill(name=name, level=_intish(sp.get("value")), speciality=spec_name))
+            out_skills.append(Skill(name=name, level=lv, speciality=spec_name))
             had_spec = True
-        if entry.get("trained"):
-            out_skills.append(Skill(name=name, level=_intish(entry.get("value")), speciality=None))
+        parent_lv = _intish(entry.get("value"), -99)
+        if entry.get("trained") is not False and parent_lv >= 0:
+            out_skills.append(Skill(name=name, level=parent_lv, speciality=None))
         elif had_spec and not any(s.name == name and s.speciality is None for s in out_skills):
             # Parent sits at 0 when only specialties are trained (cascade rule).
             out_skills.append(Skill(name=name, level=0, speciality=None))

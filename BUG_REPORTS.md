@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.57: Foundry Import — Keep Trained Specialties Whose Entry Omits "trained":true
+**Symptom:** Real third-party Foundry actors (e.g. Emma Colbert) imported via v30.56 but lost trained specialties — Electronics (Computers) 1, Science (Psychology) 1, Pilot (Small Craft), etc. (Separately, an import "failing right away" on the live site is a deploy-lag symptom: pre-v30.56 builds have no Foundry support, so importing a Foundry JSON just breaks — the fix is to deploy the new build.)
+
+**Root Cause:** Many Foundry exports mark only *untrained* specialties (`trained:false`, value `-3`) and omit `trained:true` on the trained ones. `foundry_to_character()` required `sp.get("trained")` truthy, so trained specialties were skipped.
+
+**Fix (`app/engine/foundry_export.py`):** A specialty/skill is now treated as trained unless explicitly `trained:false`; entries with a negative (`-3`) placeholder value are skipped. Parent skills follow the same rule.
+
+**Verification:** Both supplied Emma Colbert actors convert with full skills (Electronics (Computers) 1, Science (Psychology) 1, Pilot (Small Craft) 0, …), 17 associates, equipment, and pension — confirmed directly and via the live `importCharacter` flow (lands on the finish screen). All 660 tests pass.
+
+---
+
 ### v30.56: Import Reads Both Native and FoundryVTT JSON (feature)
 **Request:** Let IMPORT JSON read both normal (native) exports and FoundryVTT actor JSON.
 
