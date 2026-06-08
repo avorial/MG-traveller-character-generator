@@ -1000,10 +1000,19 @@ def foundry_to_character(actor: Any) -> dict:
             desc = str(isys.get("description") or it.get("name") or "").strip()
             char.associates.append(Associate(kind=kind, description=desc or f"Unnamed {kind.title()}"))
         elif it.get("type") == "item":
-            char.equipment.append(Equipment(
-                name=str(it.get("name") or "Item"),
-                notes=str(isys.get("notes") or "") or None,
-            ))
+            name = str(it.get("name") or "Item")
+            # A muster-out benefit that is really an associate (e.g. "a Contact",
+            # "an Ally") is exported as an equipment item — bring it back as an
+            # actual associate, not a piece of gear.
+            m_assoc = re.match(r"^(?:an?\s+)?(ally|contact|rival|enemy)s?$", name.strip(), re.IGNORECASE)
+            if m_assoc:
+                kind = m_assoc.group(1).lower()
+                char.associates.append(Associate(kind=kind, description=f"{kind.title()} [From mustering out]"))
+            else:
+                char.equipment.append(Equipment(
+                    name=name,
+                    notes=str(isys.get("notes") or "") or None,
+                ))
 
     # Career history — best-effort from the Foundry "term" items.
     _reconstruct_careers(actor, char)

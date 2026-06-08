@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.60: Foundry Import — Muster Benefit Associates Come In As Associates
+**Request:** Muster-out benefits should import too. (Most already did — cash, pension, ship shares, medical debt via finance; gear via equipment items; benefit contacts/allies via associate items.) The wart: a muster-benefit associate exported as an equipment item (e.g. **"a Contact"**, "an Ally") imported as a piece of *gear* named "a Contact".
+
+**Fix (`app/engine/foundry_export.py`):** In the item loop, an equipment item whose name is an associate type ("a Contact" / "an Ally" / "Rival" / "Enemy") is now added as an Associate (`[From mustering out]`) instead of equipment.
+
+**Verification:** Emma Colbert (fully-updated) → the "a Contact" muster item now lands in Associates (18 contacts) and the equipment list holds only real gear (SC Courier ×3, Combat Implant choice); pension Cr10,000, etc. still import. All 660 tests pass.
+
+---
+
 ### v30.59: Foundry Import Reconstructs Career History from Term Items
 **Request:** Importing a third-party Foundry actor brought in contacts/equipment but not careers — even though the Foundry `term` items carry the career/assignment/rank (Foundry itself shows them as a Career Terms list).
 
