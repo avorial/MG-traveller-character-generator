@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.58: Foundry Export Writes Untrained Skills as -3 (MGT2e convention)
+**Request:** Our Foundry export wrote untrained skills as value `0`; the current Foundry MGT2e convention (and real-world actors) use `-3`. Re-exporting an older character should produce the full skill tree with untrained skills at `-3`.
+
+**Fix (`app/engine/foundry_export.py`):** In the skills builder, trained skills/specialties keep their level as a string (`"0"/"1"/"2"`), and untrained ones are now written as `-3` (with `trained:false`) so Foundry shows the −3 unskilled DM instead of a misleading 0.
+
+**Verification:** Export of a sample character shows trained skills (`admin "0"`, `guncombat "1"`, `carouse "2"`) and untrained skills (`astrogation/broker/melee/stealth = -3`); untrained specialties are `-3` while a trained `Pilot (Small Craft) 0` is kept. Round-trip import still drops all `-3` entries (no negative-level skills created). All 660 tests pass.
+
+---
+
 ### v30.57: Foundry Import — Keep Trained Specialties Whose Entry Omits "trained":true
 **Symptom:** Real third-party Foundry actors (e.g. Emma Colbert) imported via v30.56 but lost trained specialties — Electronics (Computers) 1, Science (Psychology) 1, Pilot (Small Craft), etc. (Separately, an import "failing right away" on the live site is a deploy-lag symptom: pre-v30.56 builds have no Foundry support, so importing a Foundry JSON just breaks — the fix is to deploy the new build.)
 

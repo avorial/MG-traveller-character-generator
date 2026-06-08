@@ -208,7 +208,8 @@ def _norm(s: str) -> str:
 
 # ---------------------------------------------------------------------------
 # Full MGT2e skill tree — every skill the sheet must show.
-# Untrained skills appear at value 0 / trained=False so Foundry renders -3.
+# Untrained skills are exported at value -3 / trained=False (the MGT2e
+# "unskilled" DM) so Foundry shows the −3 penalty.
 # Format: { parent_id: [spec_id, ...] }  — empty list = non-cascade skill.
 # ---------------------------------------------------------------------------
 
@@ -394,7 +395,10 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
 
         entry: dict[str, Any] = {
             "id": sid,
-            "value": str(base_val) if (is_trained and base_val > 0) else base_val,
+            # Trained skills carry their level as a string ("0", "1", …);
+            # untrained skills are -3 (the MGT2e "unskilled" DM) so Foundry shows
+            # the −3 penalty rather than a misleading 0.
+            "value": str(base_val) if is_trained else -3,
             "trained": is_trained,
         }
         if specs_raw:
@@ -404,7 +408,7 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
                 sp_trained = sp_data["trained"] if isinstance(sp_data, dict) else True
                 entry["specialities"][sp_id] = {
                     "id": sp_id,
-                    "value": str(sp_lv) if (sp_trained and sp_lv > 0) else sp_lv,
+                    "value": str(sp_lv) if sp_trained else -3,
                     "trained": sp_trained,
                 }
         skills[sid] = entry
