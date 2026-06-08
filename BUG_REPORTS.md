@@ -2,6 +2,22 @@
 
 ## Fixed Bugs
 
+### v30.50: Solomani "Racial Incident" Life Event Locked the Character
+**Status:** FIXED  
+**Symptom:** A Solomani character who rolled the **Racial Incident** life event during a career term (pending_life_event_choice = {kind: "racial_incident"}) could not progress. Choosing Rival or Enemy did nothing / errored, and reloading the save dropped the player back at Basic Training with no way to reach the choice.
+
+**Root Causes (two):**
+1. **Backend gap (the actual lock):** `resolve_life_event_choice()` handled `romantic_split` and `betrayal_no_associates` but had **no `racial_incident` branch** — yet `apply_life_event()` produces exactly that kind for Solomani characters. Clicking Rival/Enemy hit `POST /api/character/life-event-choice` and got **400 "Unknown pending life event kind: 'racial_incident'"**, so the choice could never resolve.
+2. **Resume routing:** the career-loop sub-phase is stored only in `uiState`, never in the saved character. On reload/import, `renderActiveTerm` defaulted `subPhase === null` to the **training** step, stranding the pending life event (and, if continued, re-rolling survival/event).
+
+**Fix:**
+- `app/engine/lifepath.py`: added a `racial_incident` branch to `resolve_life_event_choice()` (Rival/Enemy → add the matching associate), mirroring `romantic_split`.
+- `app/static/js/app.js`: `renderActiveTerm` now calls `inferResumeSubPhase(term)` when `subPhase === null`, routing to the correct step (event/mishap/advance/decide) based on term state and pending choices, and reconstructing the minimal event `lastRoll` so the pending picker renders on resume.
+
+**Verification:** Audited all life-event kinds set vs. handled — `racial_incident` was the only genuine gap. Live end-to-end with the user's save: character resumes at the event step with the Rival/Enemy picker (advancement gated), choosing Rival adds "Rival [Racial Incident]", clears the pending choice, and enables ATTEMPT ADVANCEMENT. Backend resolve verified directly; all 660 tests pass.
+
+---
+
 ### v30.48: Advancement Bonus Skill — Cascade Specialty Picker Never Appeared
 **Status:** FIXED  
 **Symptom:** On a successful advancement, the promotion's bonus skill roll could land on a cascade skill (e.g. Melee). The result screen showed "BONUS SKILL GAINED — Melee speciality choice pending", but **no specialty picker ever appeared**, so the player couldn't choose Blade/Bludgeon/Natural/Unarmed and the skill was left unresolved.

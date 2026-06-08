@@ -7953,6 +7953,42 @@ function wireCareerPhase() {
   });
 }
 
+// The career-loop sub-phase lives only in uiState, never in the saved character,
+// so a page reload or imported save resumes with subPhase === null. Defaulting
+// to the training step would drop the player back at Basic Training mid-term —
+// stranding an unresolved Life Event / pending choice, and re-rolling
+// survival+event if they continued. Infer the correct resume step from the term
+// and any pending interactive choices, reconstructing the minimal lastRoll the
+// event view needs so its picker (life event / structured choice) can render.
+function inferResumeSubPhase(term) {
+  const resumeEventRoll = () => {
+    if (uiState.lastRoll && uiState.lastRoll.type === 'event') return;
+    uiState.lastRoll = {
+      type: 'event',
+      data: null,
+      eventText: (term.events && term.events.length) ? term.events[term.events.length - 1] : '',
+      dmGrants: [], statBonuses: [], eventEffects: [], autoPromotion: null,
+      associateOpsDone: [], suppressAssocOps: true,
+      pendingEventChoice: character.pending_career_event_choice || null,
+      disasterMishap: null, eventChoiceResolved: false,
+    };
+  };
+  // 1. Unresolved interactive choices own the screen.
+  if (character.pending_career_mishap_choice) return 'mishap';
+  if (character.pending_life_event_choice || character.pending_career_event_choice) {
+    resumeEventRoll();
+    return 'event';
+  }
+  // 2. Advancement already rolled → term-end decision screen.
+  if (term.advanced !== null && term.advanced !== undefined) return 'decide';
+  // 3. Failed survival, mishap not yet resolved → mishap step.
+  if (term.survived === false) return 'mishap';
+  // 4. Survived: event already rolled → advancement; otherwise go roll the event.
+  if (term.survived === true) return (term.events && term.events.length) ? 'advance' : 'event';
+  // 5. Fresh term, not yet survived — normal training/survival entry.
+  return 'train';
+}
+
 function renderActiveTerm() {
   const term = character.current_term;
   const career = CAREERS.find(c => c.id === term.career_id);
@@ -7965,6 +8001,12 @@ function renderActiveTerm() {
       <span class="term-part">RANK <strong>${term.rank}</strong>${term.rank_title ? ` — ${esc(term.rank_title)}` : ''}</span>
     </div>
   `;
+
+  // Resume support: when the sub-phase was lost (reload / import), infer it from
+  // term state instead of defaulting to Basic Training.
+  if (uiState.subPhase === null) {
+    uiState.subPhase = inferResumeSubPhase(term);
+  }
 
   // Sub-phase dispatcher
   if (uiState.subPhase === 'qualify') {

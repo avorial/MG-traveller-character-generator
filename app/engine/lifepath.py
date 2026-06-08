@@ -4660,6 +4660,19 @@ def resolve_life_event_choice(character: Character, choice: str) -> dict:
         else:
             raise ValueError(f"Unknown choice '{choice}' for betrayal_no_associates")
 
+    elif kind == "racial_incident":
+        # Solomani Life Event — Racial Incident: a relationship suffers; gain a
+        # Rival or an Enemy. (apply_life_event sets this kind for Solomani; the
+        # non-Solomani equivalent is 'romantic_split'.)
+        if choice == "rival":
+            character.associates.append(Associate(kind="rival", description="Rival [Racial Incident]"))
+            character.log("Solomani Life Event — Racial Incident: gained Rival")
+        elif choice == "enemy":
+            character.associates.append(Associate(kind="enemy", description="Enemy [Racial Incident]"))
+            character.log("Solomani Life Event — Racial Incident: gained Enemy")
+        else:
+            raise ValueError(f"Unknown choice '{choice}' for racial_incident")
+
     elif kind == "crime_choice":
         if choice == "lose_benefit":
             if character.pending_benefit_rolls <= 0:
