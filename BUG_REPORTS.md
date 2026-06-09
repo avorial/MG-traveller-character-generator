@@ -2,6 +2,19 @@
 
 ## Fixed Bugs
 
+### v30.62: Cascade Cleanup Rejected Valid Profession/Language Specialties
+**Symptom:** Cleaning up a Profession (or Language) cascade skill at completion errored with e.g. `'Hostile Environment/High-g' is not a valid Profession speciality.`
+
+**Root Cause:** The cleanup picker offers specialties from the frontend `CASCADE_SKILLS` map, but the backend validated the choice against `skills.json` — and the two lists differ (Profession entirely; Language partly: Bilanidin/Trokh). Also, the picker's Profession names were non-canonical/odd.
+
+**Fix:**
+- `app/engine/lifepath.py` `cleanup_cascade_specialties()`: still requires the parent to be a cascade skill, but **trusts the player's chosen specialty** from the curated picker instead of hard-rejecting names not in `skills.json` (fixes Profession and Language).
+- `app/static/js/app.js` `CASCADE_SKILLS.Profession`: replaced the odd names (`Hostile Environment/High-g`, `Colonist/Farming`, …) with the canonical `skills.json` list (Belter, Biologicals, Civil Engineering, Construction, Hydroponics, K'kree Ritual, Miner, Polymers, Religion).
+
+**Verification:** Cleanup with `Profession → Belter` applies (`Profession (Belter) 2`, parent → 0); the legacy name no longer errors; a non-cascade skill is still rejected. All 660 tests pass.
+
+---
+
 ### v30.61: Characteristic DM Extends Above 15 (High & Low Characteristics)
 **Request:** Characteristics above 15 (some species cap at 17–18) should follow the extended Characteristic Modifiers table — 15-17 → +3, 18-20 → +4, 21-23 → +5, +1 per +3 thereafter — instead of capping the DM at +3.
 

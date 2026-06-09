@@ -17776,11 +17776,14 @@ def cleanup_cascade_specialties(character: Character, choices: dict[str, str]) -
     specs_map = rules.skill_specialities()
     applied: list[str] = []
     for name, spec in (choices or {}).items():
-        valid = specs_map.get(name, [])
-        if not valid:
+        if not specs_map.get(name):
             raise ValueError(f"'{name}' is not a cascade skill.")
-        if spec not in valid:
-            raise ValueError(f"'{spec}' is not a valid {name} speciality.")
+        spec = (spec or "").strip()
+        if not spec:
+            raise ValueError(f"Choose a {name} speciality.")
+        # The UI's cascade-specialty lists don't always match the canonical
+        # skills table (e.g. Profession, Language), so trust the player's pick
+        # from the curated picker rather than rejecting it.
         parent = next(
             (s for s in character.skills
              if s.name == name and s.speciality is None and (s.level or 0) > 0),
