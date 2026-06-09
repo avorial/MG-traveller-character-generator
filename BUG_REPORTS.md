@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.61: Characteristic DM Extends Above 15 (High & Low Characteristics)
+**Request:** Characteristics above 15 (some species cap at 17–18) should follow the extended Characteristic Modifiers table — 15-17 → +3, 18-20 → +4, 21-23 → +5, +1 per +3 thereafter — instead of capping the DM at +3.
+
+**Fix:** Replaced the capped DM ladders with the closed form `(score // 3) - 2` (0 stays the special case at -3), which reproduces the whole table including the extension, in all three implementations:
+- `app/engine/dice.py` `characteristic_dm()` (used everywhere via `_char_dm`, incl. REP/PSI/RES/TER/FOL)
+- `app/static/js/app.js` `charDM()` (sheet, rolls, DM displays)
+- `app/engine/pdf_sheet.py` `char_dm()` (PDF export)
+
+**Verification:** New test assertions: 15→+3, 17→+3, 18→+4, 20→+4, 21→+5, 23→+5, 24→+6. All 660 tests pass.
+
+---
+
 ### v30.60: Foundry Import — Muster Benefit Associates Come In As Associates
 **Request:** Muster-out benefits should import too. (Most already did — cash, pension, ship shares, medical debt via finance; gear via equipment items; benefit contacts/allies via associate items.) The wart: a muster-benefit associate exported as an equipment item (e.g. **"a Contact"**, "an Ally") imported as a piece of *gear* named "a Contact".
 

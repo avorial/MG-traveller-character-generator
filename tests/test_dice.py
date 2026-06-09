@@ -49,6 +49,13 @@ def test_characteristic_dm():
     assert dice.characteristic_dm(9) == 1
     assert dice.characteristic_dm(12) == 2
     assert dice.characteristic_dm(15) == 3
+    assert dice.characteristic_dm(17) == 3
+    # Above the human scale — extended Characteristic Modifiers table.
+    assert dice.characteristic_dm(18) == 4
+    assert dice.characteristic_dm(20) == 4
+    assert dice.characteristic_dm(21) == 5
+    assert dice.characteristic_dm(23) == 5
+    assert dice.characteristic_dm(24) == 6
 
 
 def test_forced_roll_consumed_in_sequence():

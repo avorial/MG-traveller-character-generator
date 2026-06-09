@@ -152,28 +152,24 @@ def roll(notation: str, modifier: int = 0, target: Optional[int] = None) -> Roll
 
 def characteristic_dm(score: int) -> int:
     """
-    Traveller's characteristic modifier table.
+    Traveller's characteristic modifier table — extends above 15 for
+    characteristics off the human scale (MgT 2e, High & Low Characteristics).
         0     -> -3
         1-2   -> -2
         3-5   -> -1
         6-8   -> 0
         9-11  -> +1
         12-14 -> +2
-        15+   -> +3
+        15-17 -> +3
+        18-20 -> +4
+        21-23 -> +5
+        ...   -> +1 to the DM for every +3 thereafter
+    The closed form (score // 3) - 2 reproduces the whole table (0 is the
+    single special case at -3).
     """
     if score <= 0:
         return -3
-    if score <= 2:
-        return -2
-    if score <= 5:
-        return -1
-    if score <= 8:
-        return 0
-    if score <= 11:
-        return 1
-    if score <= 14:
-        return 2
-    return 3
+    return (score // 3) - 2
 
 
 def roll_bane_2d(modifier: int = 0, target: Optional[int] = None) -> RollResult:

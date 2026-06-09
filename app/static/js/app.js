@@ -1253,13 +1253,10 @@ async function applyResponse(response) {
 // ------------------------------------------------------------
 
 function charDM(score) {
+  // Characteristic Modifiers table, extended above 15 (18-20 -> +4, 21-23 -> +5,
+  // +1 per +3 thereafter). (score / 3 floored) - 2 reproduces the whole table.
   if (score == null || isNaN(score) || score <= 0) return -3;
-  if (score <= 2) return -2;
-  if (score <= 5) return -1;
-  if (score <= 8) return 0;
-  if (score <= 11) return 1;
-  if (score <= 14) return 2;
-  return 3;
+  return Math.floor(score / 3) - 2;
 }
 
 function formatDM(dm) {
