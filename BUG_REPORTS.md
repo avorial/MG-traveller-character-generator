@@ -2,6 +2,21 @@
 
 ## Fixed Bugs
 
+### v30.63: Full-Page Sheet Colour Buttons Didn't Work
+**Symptom:** On the standalone "⛶ FULL SCREEN" character sheet, the COLOUR buttons (Amber / Green / B&W Print / Dark Print) did nothing.
+
+**Root Cause (two):**
+1. The standalone window freezes the sheet's interactive controls with `button, input { pointer-events: none }` — which also disabled the colour/print **toolbar** buttons, so clicks never registered.
+2. The GREEN button applied `gm-active` (the GM-panel class), not an actual theme.
+
+**Fix (`app/static/js/app.js`, `openTASFullscreen`):**
+- Added `#sheet-toolbar button { pointer-events: auto !important; opacity: 1 !important; cursor: pointer; }` so the toolbar stays clickable while the rest of the sheet stays inert.
+- GREEN now applies `theme-light` (the real green theme, loaded via the page's stylesheets), and the script's theme-reset list was updated to match.
+
+**Verification:** Generated standalone HTML now carries the pointer-events override and the corrected theme classes; JS parses; all 660 tests pass (no engine change).
+
+---
+
 ### v30.62: Cascade Cleanup Rejected Valid Profession/Language Specialties
 **Symptom:** Cleaning up a Profession (or Language) cascade skill at completion errored with e.g. `'Hostile Environment/High-g' is not a valid Profession speciality.`
 

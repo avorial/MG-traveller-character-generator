@@ -12056,6 +12056,8 @@ function openTASFullscreen() {
     .tas-btn-fullscreen { display: none !important; }
     button, input { pointer-events: none; opacity: 0.7; }
     label.tas-portrait { pointer-events: none; }
+    /* …but the colour/print toolbar must stay interactive. */
+    #sheet-toolbar button { pointer-events: auto !important; opacity: 1 !important; cursor: pointer; }
 
     /* ── colour switcher toolbar ── */
     #sheet-toolbar {
@@ -12122,7 +12124,7 @@ function openTASFullscreen() {
   <div id="sheet-toolbar">
     <span>COLOUR:</span>
     <button class="tb-btn tb-amber tb-active" data-theme="">AMBER</button>
-    <button class="tb-btn tb-green"           data-theme="gm-active">GREEN</button>
+    <button class="tb-btn tb-green"           data-theme="theme-light">GREEN</button>
     <button class="tb-btn tb-print"           data-theme="theme-print">B &amp;W PRINT</button>
     <button class="tb-btn tb-print-dark"      data-theme="theme-print-dark">DARK PRINT</button>
     <span class="tb-sep"></span>
@@ -12132,7 +12134,7 @@ function openTASFullscreen() {
   <script>
     document.querySelectorAll('[data-theme]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const themes = ['gm-active','theme-print','theme-print-dark'];
+        const themes = ['theme-light','theme-print','theme-print-dark'];
         themes.forEach(t => document.body.classList.remove(t));
         if (btn.dataset.theme) document.body.classList.add(btn.dataset.theme);
         document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('tb-active'));
