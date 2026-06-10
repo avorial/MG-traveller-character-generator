@@ -768,13 +768,44 @@ function createRobotFoundryExport(cfg) {
     }
   });
 
+  // Same full MGT2e structure as the server-side (biological) export so weapon
+  // skill dropdowns work: combat-skill specialities carry label/combat/default,
+  // all core specialities are present, untrained = value "0" + trained:false.
+  const _RB_COMBAT = new Set(['guncombat','melee','heavyweapons','gunner']);
+  const _RB_DEFAULT = {
+    admin:'EDU',advocate:'EDU',animals:'INT',art:'EDU',astrogation:'EDU',athletics:'DEX',
+    broker:'INT',carouse:'SOC',deception:'INT',diplomat:'EDU',drive:'DEX',electronics:'INT',
+    engineer:'EDU',explosives:'EDU',flyer:'DEX',gambler:'INT',guncombat:'DEX',gunner:'INT',
+    heavyweapons:'DEX',independence:'INT',investigate:'INT',jackofalltrades:'INT',language:'EDU',
+    leadership:'SOC',mechanic:'INT',medic:'EDU',melee:'DEX',navigation:'INT',persuade:'SOC',
+    pilot:'DEX',profession:'EDU',recon:'INT',science:'EDU',seafarer:'DEX',stealth:'DEX',
+    steward:'INT',streetwise:'INT',survival:'END',tactics:'INT',vaccsuit:'DEX',
+  };
+  const _RB_SPEC_LABEL = {
+    energy:'Energy',slug:'Slug',archaic:'Archaic',blade:'Blade',bludgeon:'Bludgeon',
+    natural:'Natural',unarmed:'Unarmed',artillery:'Artillery',portable:'Man Portable',
+    vehicle:'Vehicle',turret:'Turret',capital:'Capital',ortillery:'Ortillery',screen:'Screen',
+  };
+  const _rbSpecLabel = id => _RB_SPEC_LABEL[id]
+    || id.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./, c => c.toUpperCase());
+
   const skills = {};
   Object.entries(_rbSkillWork).forEach(([sid, data]) => {
-    const entry = { id: sid, value: data.base, trained: data.trained };
+    const isCombat = _RB_COMBAT.has(sid);
+    const def = _RB_DEFAULT[sid] || (isCombat ? 'DEX' : null);
+    const anySpecTrained = Object.values(data.specs).some(sp => sp.trained);
+    const parentTrained = data.trained || anySpecTrained;
+    const entry = { id: sid, value: parentTrained ? String(data.base) : '0', trained: parentTrained };
+    if (def) entry.default = def;
     if (Object.keys(data.specs).length) {
       entry.specialities = {};
       Object.entries(data.specs).forEach(([spId, spData]) => {
-        entry.specialities[spId] = { id: spId, value: spData.trained && spData.level > 0 ? String(spData.level) : spData.level, trained: spData.trained };
+        const sp = {
+          id: spId, label: _rbSpecLabel(spId), default: def || 'DEX',
+          trained: spData.trained, value: spData.trained ? String(spData.level) : '0',
+        };
+        if (isCombat) sp.combat = true;
+        entry.specialities[spId] = sp;
       });
     }
     skills[sid] = entry;

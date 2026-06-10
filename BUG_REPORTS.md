@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.65: Foundry Export — Full MGT2E Skill Structure (label/combat/default) for Weapon Dropdowns
+**Request:** Foundry exports (Travellers, NPCs, **and robots**) must use the full MGT2E skill-speciality structure. Combat-skill specialities were missing `label` / `combat` / `default`, which breaks weapon-skill selection in Foundry.
+
+**Implementation:**
+- **`app/engine/foundry_export.py`** (biological + NPC): combat skills (Gun Combat, Melee, Heavy Weapons, Gunner) now always emit all core specialities, each with `id, label, combat:true, default, trained, value`; the parent carries `default`. Untrained = `value "0"` + `trained:false`; trained = level as a string (supersedes the v30.58 `-3` value). A trained speciality marks its parent trained at 0 (RAW). Non-combat specialities get `label`+`default` (no `combat`). Added `_COMBAT_SKILLS` and `_SKILL_DEFAULT_CHAR` (Gun Combat/Melee/Heavy Weapons → DEX, Gunner → INT, etc.).
+- **`app/static/js/app.js`** `createRobotFoundryExport`: rebuilt robot skills with the identical structure (same maps/labels/defaults) so robots are not simplified.
+
+**Verification:** Gun Combat (Energy) 2 exports as `guncombat` parent `trained:true value "0" default DEX` with energy `{label:"Energy", combat:true, default:"DEX", trained:true, value:"2"}` and slug/archaic present untrained; identical output from the robot path; round-trip import still drops untrained entries (no noise). All 660 tests pass.
+
+---
+
 ### v30.64: Solomani Qualification-Failure Draft Used the Imperial Table
 **Symptom:** A Solomani Confederation character who failed a career qualification and accepted the draft was drafted into **Imperial** services (Navy / Army / Marine / Scout / Agent) instead of Confederation ones.
 

@@ -285,6 +285,29 @@ _ASSOCIATE_DEFAULTS: dict[str, dict] = {
 
 
 # ---------------------------------------------------------------------------
+# Skill metadata for the Foundry MGT2E structure. Combat-skill specialities
+# must carry label / combat / default so Foundry can populate weapon-skill
+# dropdowns; specialities inherit their parent skill's `default` characteristic.
+# ---------------------------------------------------------------------------
+
+_COMBAT_SKILLS: frozenset = frozenset({"guncombat", "melee", "heavyweapons", "gunner"})
+
+_SKILL_DEFAULT_CHAR: dict[str, str] = {
+    "admin": "EDU", "advocate": "EDU", "animals": "INT", "art": "EDU", "astrogation": "EDU",
+    "athletics": "DEX", "broker": "INT", "carouse": "SOC", "deception": "INT", "diplomat": "EDU",
+    "drive": "DEX", "electronics": "INT", "engineer": "EDU", "explosives": "EDU", "flyer": "DEX",
+    "gambler": "INT", "guncombat": "DEX", "gunner": "INT", "heavyweapons": "DEX", "independence": "INT",
+    "investigate": "INT", "jackofalltrades": "INT", "language": "EDU", "leadership": "SOC",
+    "mechanic": "INT", "medic": "EDU", "melee": "DEX", "navigation": "INT", "persuade": "SOC",
+    "pilot": "DEX", "profession": "EDU", "recon": "INT", "science": "EDU", "seafarer": "DEX",
+    "stealth": "DEX", "steward": "INT", "streetwise": "INT", "survival": "END", "tactics": "INT",
+    "vaccsuit": "DEX",
+    "telepathy": "PSI", "clairvoyance": "PSI", "telekinesis": "PSI",
+    "awareness": "PSI", "teleportation": "PSI",
+}
+
+
+# ---------------------------------------------------------------------------
 # Public conversion function
 # ---------------------------------------------------------------------------
 
@@ -393,24 +416,40 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         is_trained = data["trained"]
         specs_raw = data["specs"]
 
+        is_combat = sid in _COMBAT_SKILLS
+        default_char = _SKILL_DEFAULT_CHAR.get(sid, "DEX" if is_combat else None)
+        # Holding any trained speciality means the parent cascade skill is itself
+        # trained at (at least) 0 — RAW lets you use other specialities at 0.
+        any_spec_trained = any(
+            (sp.get("trained") if isinstance(sp, dict) else True)
+            for sp in specs_raw.values()
+        )
+        parent_trained = is_trained or any_spec_trained
+
         entry: dict[str, Any] = {
             "id": sid,
-            # Trained skills carry their level as a string ("0", "1", …);
-            # untrained skills are -3 (the MGT2e "unskilled" DM) so Foundry shows
-            # the −3 penalty rather than a misleading 0.
-            "value": str(base_val) if is_trained else -3,
-            "trained": is_trained,
+            # Untrained = value "0" + trained:false (the MGT2e system derives the
+            # -3 unskilled DM from the flag); trained carries the level as a string.
+            "value": str(base_val) if parent_trained else "0",
+            "trained": parent_trained,
         }
+        if default_char:
+            entry["default"] = default_char
         if specs_raw:
             entry["specialities"] = {}
             for sp_id, sp_data in specs_raw.items():
                 sp_lv = sp_data["level"] if isinstance(sp_data, dict) else sp_data
                 sp_trained = sp_data["trained"] if isinstance(sp_data, dict) else True
-                entry["specialities"][sp_id] = {
+                sp_entry: dict[str, Any] = {
                     "id": sp_id,
-                    "value": str(sp_lv) if sp_trained else -3,
+                    "label": _ID_TO_SPEC.get(sp_id) or _humanize_id(sp_id),
+                    "default": default_char or "DEX",
                     "trained": sp_trained,
+                    "value": str(sp_lv) if sp_trained else "0",
                 }
+                if is_combat:
+                    sp_entry["combat"] = True
+                entry["specialities"][sp_id] = sp_entry
         skills[sid] = entry
 
     # ------------------------------------------------------------------
