@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.64: Solomani Qualification-Failure Draft Used the Imperial Table
+**Symptom:** A Solomani Confederation character who failed a career qualification and accepted the draft was drafted into **Imperial** services (Navy / Army / Marine / Scout / Agent) instead of Confederation ones.
+
+**Root Cause:** `draft_into_service()` (the general qualification-failure draft) branched for Vargr Extents and Zhodani Consulate but had **no Solomani branch**, so it fell through to the generic Imperial `_DRAFT_TABLE`. (The pre-career education-event-11 draft already had a Solomani table; the qualification-failure path didn't.)
+
+**Fix (`app/engine/lifepath.py`):** Added `_SOLOMANI_DRAFT_TABLE` and a `solomani_confederation` branch, mirroring the event-11 Solomani draft: 1 Confederation Navy (Line/Crew), 2 Confederation Army (Infantry), 3 Solomani Star Marines (Star Marine), 4 Merchant (Merchant Marine), 5 SolSec (Field Agent), 6 Agent (Law Enforcement).
+
+**Verification:** All six entries resolve to valid careers/assignments; a Solomani accepting the draft now lands in Confederation Navy. All 660 tests pass.
+
+---
+
 ### v30.63: Full-Page Sheet Colour Buttons Didn't Work
 **Symptom:** On the standalone "⛶ FULL SCREEN" character sheet, the COLOUR buttons (Amber / Green / B&W Print / Dark Print) did nothing.
 

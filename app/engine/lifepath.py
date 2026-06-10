@@ -4996,6 +4996,17 @@ _ZHODANI_DRAFT_TABLE: dict[int, tuple[str, str]] = {
     6: ("zhodani_navy", "crew"),
 }
 
+# Solomani Confederation draft — Confederation services, not Imperial ones
+# (mirrors the pre-career education event 11 Solomani draft).
+_SOLOMANI_DRAFT_TABLE: dict[int, tuple[str, str]] = {
+    1: ("confederation_navy", "line_crew"),
+    2: ("confederation_army", "infantry"),
+    3: ("solomani_marine", "star_marine"),
+    4: ("merchant", "merchant_marine"),
+    5: ("solsec", "field_agent"),
+    6: ("agent", "law_enforcement"),
+}
+
 
 def draft_into_service(character: Character) -> dict:
     """Roll 1D on the draft table and auto-start a term in the assigned service.
@@ -5015,6 +5026,8 @@ def draft_into_service(character: Character) -> dict:
         career_id, assignment_id = _VARGR_DRAFT_TABLE[max(1, min(6, r.total))]
     elif character.society_id == "zhodani_consulate":
         career_id, assignment_id = _ZHODANI_DRAFT_TABLE[max(1, min(6, r.total))]
+    elif character.society_id == "solomani_confederation":
+        career_id, assignment_id = _SOLOMANI_DRAFT_TABLE[max(1, min(6, r.total))]
     else:
         career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
     career = rules.careers().get(career_id)
