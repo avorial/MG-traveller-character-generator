@@ -2,6 +2,25 @@
 
 ## Fixed Bugs
 
+### v30.67: Generate Narrative Produces Actual Prose (feature)
+**Request:** The career narrative dumped raw rulebook/log text — dice mechanics ("Roll Investigate 8+… If you succeed, gain REP +1 and DM+1…"), second person, "Gained Contact: Unnamed Contact" repeated six times, and "Basic training: Electronics (Comms) 0, Basic training: Drive 0…" prefixes.
+
+**Implementation (`app/engine/lifepath.py` `generate_capsule` + helpers):**
+- **Mechanics stripped:** sentences containing roll/DM/dice/choice instructions are dropped (`_CAPSULE_MECH_RE`), with a fallback that keeps the narrative lead of an event cut at the first mechanics marker.
+- **Third person:** "You develop a network…" → "They develop a network…" (`you/your/yourself` → `they/their/themselves`; identical verb forms make this safe).
+- **Associates summarised:** per-term "Gained Contact: Unnamed Contact" spam becomes "The term left them with three contacts" — named ones are listed ("an enemy (Corrupt Politician)").
+- **Training reads as a sentence:** prefixes stripped ("Basic training:", "Rank bonus:", "Gained", "Increased X to N"), deduped, with rotating openers; basic-training terms get "Basic training grounded them in …".
+- **Promotions called out:** rank increases vs the previous term in the same career render as ", newly promoted to Captain" instead of "serving as a Captain".
+- **Mishaps narrated:** "The term ended badly: they accept a contract that goes against their moral code…" (mechanics tail removed).
+- **Richer opening/closing:** characteristic-driven adjectives ("sharp-minded, highly educated"), a retirement-rank sentence ("They left the SolSec as a Colonel."), and a closing grudge line ("Not everyone remembers them fondly — an enemy and a rival still hold a grudge, the Corrupt Politician chief among them.") or a well-liked line for ally-heavy characters.
+- Career-package logs cleaned too ("Took the X career package" bookkeeping skipped; "Gained/Already has/Increased … to N" verbs normalised).
+
+The capsule persists to `capsule_description`, so the improved prose flows into the Foundry export's actor bio and the PDF.
+
+**Verification:** Emma-style fixture (SolSec, 3 terms, mishap, contact spam) and two random `generate_npc()` characters (incl. career packages) all render as clean prose; all 660 tests pass.
+
+---
+
 ### v30.66: Finish-Stage Pre-Flight — Benefit Choices, Unnamed Associates, Lean Export (features)
 **Request:** Before export, the finish screen should resolve leftover loose ends: (2) "X or Y" benefit choices stored as a single equipment string, (3) placeholder associates ("Unnamed Contact", "From mustering out"), and (4) an option to skip the embedded source character for a lean VTT-only Foundry file.
 

@@ -598,11 +598,130 @@ def _cap_join(items: list) -> str:
     return f"{', '.join(items[:-1])}, and {items[-1]}"
 
 
+# ---------------------------------------------------------------------------
+# Capsule narrative helpers — turn raw lifepath log strings into readable prose
+# ---------------------------------------------------------------------------
+
+# Sentences containing these are game mechanics, not story — drop them.
+_CAPSULE_MECH_RE = re.compile(
+    r"(\broll\b|\brolls\b|\brolled\b|DM\s*[+\-±]\d|DM[+\-]|\b\dD\d?\b|\bD66\b|\bD3\b"
+    r"|\b\d+\+|\bgain one\b|\bgain a level\b|\bchoose\b|\bpick one\b|\bpick which\b"
+    r"|\bbenefit roll|\badvancement roll|\bqualification|\bskill table"
+    r"|\bif you (succeed|fail|accept|refuse|agree|wish)\b|\byou may\b|\binstead\b"
+    r"|\bautomatically promoted\b|\bnot ejected\b|\bmishaps? table\b"
+    r"|\bgain (a|an|one|two|three|d3)\b|\blose\b|\bsuffer\b|\bforfeit|\breduced?\b)",
+    re.IGNORECASE,
+)
+
+# Log lines that are pure bookkeeping — never narrate these.
+_CAPSULE_SKIP_RE = re.compile(
+    r"^(event choice:|mishap/event:|event dm chosen|specialty (choice|applied)"
+    r"|rank \d+ bonus:|rank bonus:|basic training:|event \[|life event \["
+    r"|took the .+ career package)",
+    re.IGNORECASE,
+)
+
+_CAPSULE_ASSOC_RE = re.compile(r"^Gained (Contact|Ally|Rival|Enemy):\s*(.*)$", re.IGNORECASE)
+
+
+def _capsule_third_person(text: str) -> str:
+    """Convert rulebook second person to third person. 'you' and 'they' share
+    verb forms in English, so a word-level swap reads correctly."""
+    swaps = [
+        (r"\bYou are\b", "They are"), (r"\byou are\b", "they are"),
+        (r"\bYou're\b", "They're"), (r"\byou're\b", "they're"),
+        (r"\bYourself\b", "Themselves"), (r"\byourself\b", "themselves"),
+        (r"\bYours\b", "Theirs"), (r"\byours\b", "theirs"),
+        (r"\bYour\b", "Their"), (r"\byour\b", "their"),
+        (r"\bYou\b", "They"), (r"\byou\b", "they"),
+    ]
+    for pat, rep in swaps:
+        text = re.sub(pat, rep, text)
+    return text
+
+
+def _capsule_narrative(text: str) -> str:
+    """Extract the story from an event/mishap string: keep sentences free of
+    dice mechanics, in third person. Falls back to the first sentence cut at
+    the first mechanics marker so something always survives."""
+    text = re.sub(r"^Life Event\s*[—-]\s*", "", (text or "").strip())
+    text = re.sub(r"^[A-Z][a-z]+ Incident:\s*", lambda m: m.group(0), text)  # keep titles
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    kept = [s for s in sentences if s and not _CAPSULE_MECH_RE.search(s)]
+    if not kept and sentences:
+        # Cut the lead sentence at the first mechanics marker.
+        lead = sentences[0]
+        m = _CAPSULE_MECH_RE.search(lead)
+        if m and m.start() > 20:
+            lead = lead[:m.start()].rstrip(" ,;:—-") + "."
+            kept = [lead]
+    out = " ".join(kept).strip()
+    return _capsule_third_person(out) if out else ""
+
+
+def _capsule_clean_skill(entry: str) -> str:
+    """'Basic training: Carouse 0' / 'Gained Melee (blade) 2' / 'Increased Recon
+    to 1' → 'Carouse 0' / 'Melee (blade) 2' / 'Recon 1'."""
+    e = (entry or "").strip()
+    if ":" in e:
+        prefix, _, rest = e.partition(":")
+        # Keep specialty parentheses intact; only strip the table/source prefix.
+        if rest.strip():
+            e = rest.strip()
+    # Career-package log verbs
+    e = re.sub(r"^(gained|already has|took)\s+", "", e, flags=re.IGNORECASE)
+    e = re.sub(r"^increased\s+(.+?)\s+to\s+(\d+)$", r"\1 \2", e, flags=re.IGNORECASE)
+    return e
+
+
+def _capsule_assoc_label(kind: str, desc: str) -> Optional[str]:
+    """A human label for a gained associate, or None for placeholders."""
+    d = (desc or "").strip()
+    if not d or re.search(r"unnamed|from mustering", d, re.IGNORECASE):
+        return None
+    m = re.search(r"\[(.+?)\]", d)
+    if m:
+        return m.group(1)
+    # Drop a leading kind word ("Contact: Foo", "Ally Foo")
+    d = re.sub(rf"^{kind}\s*[:\-—]?\s*", "", d, flags=re.IGNORECASE).strip()
+    return d or None
+
+
+def _capsule_descriptors(character: Character) -> list[str]:
+    """Up to two characteristic-driven adjectives for the opening line."""
+    g = character.characteristics.get
+    out: list[str] = []
+    if (g("INT") or 0) >= 11:
+        out.append("sharp-minded")
+    if (g("EDU") or 0) >= 11:
+        out.append("highly educated")
+    if (g("SOC") or 0) >= 10:
+        out.append("well-connected")
+    if (g("STR") or 0) >= 9 or (g("END") or 0) >= 9:
+        out.append("physically formidable")
+    if (g("DEX") or 0) >= 9:
+        out.append("quick-handed")
+    if sum(1 for k in ("STR", "DEX", "END") if (g(k) or 0) <= 3) >= 2:
+        out.append("visibly worn by a hard life")
+    return out[:2]
+
+
+# Varied sentence openers so consecutive terms don't all read identically.
+_CAPSULE_TRAINING_OPENERS = [
+    "Training that term brought",
+    "The years sharpened",
+    "They came away with",
+    "The service taught them",
+    "That stretch added",
+]
+
+
 def generate_capsule(character: Character) -> dict:
     """Produce a multi-paragraph narrative description of the character.
 
-    Compiles the full mission log: what they did each term, what happened
-    (events, mishaps), and what they returned with as muster-out effects.
+    Compiles the full mission log into prose: dice mechanics are stripped from
+    event text, second person becomes third person, placeholder associates are
+    summarised rather than dumped, and per-term training reads as a sentence.
     Returned as plain text with double-newline paragraph breaks so the UI
     can split on \\n\\n and render as <p> tags.
     """
@@ -655,10 +774,23 @@ def generate_capsule(character: Character) -> dict:
     else:
         career_summary = "a life adrift among the stars"
 
+    _descr = _capsule_descriptors(character)
+    _descr_clause = (", ".join(_descr) + " ") if _descr else ""
+
+    # Retirement rank — the last career record with a real title.
+    _retire = ""
+    for cc in reversed(character.completed_careers):
+        if cc.final_rank_title:
+            _retire = (
+                f" They left the {_career_display_name(cc.career_id)} as "
+                f"{_cap_article(cc.final_rank_title)} {cc.final_rank_title}."
+            )
+            break
+
     paragraphs.append(
-        f"{name} is a {character.age}-year-old {species_name}{homeworld_clause} "
+        f"{name} is a {character.age}-year-old {_descr_clause}{species_name}{homeworld_clause} "
         f"who spent {terms} term{'s' if terms != 1 else ''} "
-        f"({years} years) building {career_summary}."
+        f"({years} years) building {career_summary}.{_retire}"
     )
 
     # ── Background package note ────────────────────────────────────────────
@@ -686,6 +818,7 @@ def generate_capsule(character: Character) -> dict:
         )
 
     # ── Per-term career narrative ──────────────────────────────────────────
+    _prev_rank_by_career: dict[str, int] = {}
     for term in character.term_history:
         career_def  = rules.careers().get(term.career_id, {})
         career_name = _career_display_name(term.career_id)
@@ -700,13 +833,21 @@ def generate_capsule(character: Character) -> dict:
 
         age_range = _cap_term_ages(term.overall_term_number)
 
+        _prev_rank = _prev_rank_by_career.get(term.career_id)
+        _promoted = _prev_rank is not None and term.rank > _prev_rank
+        _prev_rank_by_career[term.career_id] = term.rank
+
         rank_clause = ""
         if term.rank_title:
             rank_clause = (
-                f" serving as {_cap_article(term.rank_title)} {term.rank_title}"
+                f", newly promoted to {term.rank_title}" if _promoted
+                else f" serving as {_cap_article(term.rank_title)} {term.rank_title}"
             )
         elif term.rank:
-            rank_clause = f" at rank {term.rank}"
+            rank_clause = (
+                f", newly promoted to rank {term.rank}" if _promoted
+                else f" at rank {term.rank}"
+            )
 
         commissioned_clause = ""
         if term.commissioned and term.term_number == 1:
@@ -721,23 +862,69 @@ def generate_capsule(character: Character) -> dict:
 
         body_parts: list[str] = []
 
-        # Events
+        # Events — separate associate gains (summarised) from story (cleaned),
+        # and drop pure-bookkeeping lines entirely.
+        _assoc_gained: dict[str, list[Optional[str]]] = {}
         for evt in (term.events or []):
             evt = evt.strip()
-            if evt:
-                body_parts.append(evt)
+            if not evt:
+                continue
+            m_assoc = _CAPSULE_ASSOC_RE.match(evt)
+            if m_assoc:
+                kind = m_assoc.group(1).lower()
+                _assoc_gained.setdefault(kind, []).append(
+                    _capsule_assoc_label(kind, m_assoc.group(2))
+                )
+                continue
+            if _CAPSULE_SKIP_RE.match(evt):
+                continue
+            story = _capsule_narrative(evt)
+            if story:
+                body_parts.append(story)
 
-        # Skills gained
+        if _assoc_gained:
+            _assoc_bits: list[str] = []
+            for kind in ("ally", "contact", "rival", "enemy"):
+                entries = _assoc_gained.get(kind)
+                if not entries:
+                    continue
+                n = len(entries)
+                names = [x for x in entries if x]
+                plural = {"ally": "allies", "contact": "contacts",
+                          "rival": "rivals", "enemy": "enemies"}[kind]
+                noun = kind if n == 1 else plural
+                count_word = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}.get(n, str(n))
+                bit = (f"{_cap_article(noun)} {noun}" if n == 1 else f"{count_word} {noun}")
+                if names:
+                    bit += f" ({_cap_join(names[:3])})"
+                _assoc_bits.append(bit)
+            body_parts.append(f"The term left them with {_cap_join(_assoc_bits)}.")
+
+        # Skills gained — strip table prefixes, special-case basic training.
         if term.skills_gained:
-            sg = term.skills_gained
-            if len(sg) == 1:
-                body_parts.append(f"Gained {sg[0]}.")
-            else:
-                body_parts.append(f"Gained {_cap_join(sg)}.")
+            cleaned = []
+            _seen_sk: set[str] = set()
+            for sgi in term.skills_gained:
+                cs = _capsule_clean_skill(sgi)
+                if cs and cs.lower() not in _seen_sk:
+                    cleaned.append(cs)
+                    _seen_sk.add(cs.lower())
+            if cleaned:
+                if term.basic_training:
+                    body_parts.append(f"Basic training grounded them in {_cap_join(cleaned)}.")
+                else:
+                    opener = _CAPSULE_TRAINING_OPENERS[
+                        (term.overall_term_number - 1) % len(_CAPSULE_TRAINING_OPENERS)
+                    ]
+                    body_parts.append(f"{opener} {_cap_join(cleaned)}.")
 
-        # Mishap
+        # Mishap — narrate it as the term's turning point.
         if term.mishap:
-            body_parts.append(f"Mishap: {term.mishap.strip()}")
+            m_story = _capsule_narrative(term.mishap)
+            if m_story:
+                body_parts.append(f"The term ended badly: {m_story[:1].lower()}{m_story[1:]}")
+            else:
+                body_parts.append("The term ended badly.")
 
         if body_parts:
             term_text = header + " " + " ".join(body_parts)
@@ -789,6 +976,31 @@ def generate_capsule(character: Character) -> dict:
         assoc_sentence = f" Along the way they accumulated {_cap_join(assoc_parts)}."
 
     paragraphs.append(muster_sentence + assoc_sentence)
+
+    # ── Closing flavour ───────────────────────────────────────────────────
+    _named_enemy = next(
+        (lbl for a in character.associates if a.kind == "enemy"
+         for lbl in [_capsule_assoc_label("enemy", a.description)] if lbl),
+        None,
+    )
+    if enemy_count or rival_count:
+        _small = {1: None, 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+        _grudge_bits = []
+        if enemy_count:
+            _grudge_bits.append("an enemy" if enemy_count == 1
+                                else f"{_small.get(enemy_count, enemy_count)} enemies")
+        if rival_count:
+            _grudge_bits.append("a rival" if rival_count == 1
+                                else f"{_small.get(rival_count, rival_count)} rivals")
+        _closing = f"Not everyone remembers them fondly — {_cap_join(_grudge_bits)} still hold a grudge"
+        if _named_enemy:
+            _closing += f", the {_named_enemy} chief among them"
+        paragraphs.append(_closing + ".")
+    elif ally_count >= 3:
+        paragraphs.append(
+            "Few Travellers leave the service so well liked — wherever they dock, "
+            "someone owes them a drink."
+        )
 
     # ── Skills paragraph ──────────────────────────────────────────────────
     skills_sorted = sorted(
