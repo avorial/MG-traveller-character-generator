@@ -17777,6 +17777,36 @@ def update_associate(character: Character, index: int, description: str) -> dict
     }
 
 
+def resolve_equipment_choice(character: Character, index: int, chosen: str) -> dict:
+    """Resolve an 'X or Y' equipment entry (an unresolved benefit choice).
+
+    Compound mustering-out benefits like "Combat Implant or two Ship Shares" or
+    rank-bonus gear like "Rifle or Carbine" are stored as a single equipment
+    item whose name carries the whole choice. This removes that item and applies
+    the chosen option through _apply_benefit, so ship shares, stats, associates,
+    weapons and plain gear all land in the right place.
+    """
+    if index < 0 or index >= len(character.equipment):
+        raise ValueError(
+            f"Equipment index {index} out of range (have {len(character.equipment)})"
+        )
+    item = character.equipment[index]
+    options = [o.strip() for o in re.split(r"\s+or\s+", item.name or "", flags=re.IGNORECASE) if o.strip()]
+    if len(options) < 2:
+        raise ValueError(f"'{item.name}' is not an unresolved choice.")
+    pick = (chosen or "").strip()
+    if pick not in options:
+        raise ValueError(f"'{pick}' is not one of: {' / '.join(options)}")
+
+    del character.equipment[index]
+    # _apply_benefit handles every option shape — ship shares, implants, stats,
+    # associates, skills — and its catch-all stores anything else as equipment,
+    # so the chosen option is never silently lost.
+    _apply_benefit(character, pick)
+    character.log(f"Benefit choice resolved: '{item.name}' → {pick}")
+    return {"chosen": pick, "character": character.model_dump()}
+
+
 def cleanup_cascade_specialties(character: Character, choices: dict[str, str]) -> dict:
     """Move levels held on a bare cascade parent skill into a chosen specialty.
 

@@ -877,6 +877,22 @@ class CleanupCascadeAction(CharacterAction):
     choices: dict[str, str]
 
 
+class EquipmentChoiceAction(CharacterAction):
+    """Resolve an 'X or Y' equipment entry: pick one option by equipment index."""
+    index: int
+    chosen: str
+
+
+@app.post("/api/character/resolve-equipment-choice")
+async def api_resolve_equipment_choice(action: EquipmentChoiceAction):
+    """Resolve an unresolved 'X or Y' benefit stored as a single equipment item."""
+    character = action.character.model_copy(deep=True)
+    try:
+        return lifepath.resolve_equipment_choice(character, action.index, action.chosen)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/character/cleanup-cascade-specialties")
 async def api_cleanup_cascade(action: CleanupCascadeAction):
     """Move levels held on bare cascade parent skills into chosen specialties."""
@@ -1216,12 +1232,17 @@ async def api_robot_finalize(action: RobotFinalizeAction):
     return {"character": character.model_dump()}
 
 
+class FoundryExportAction(CharacterAction):
+    """include_source=False produces a lean VTT-only export (no embedded native character)."""
+    include_source: bool = True
+
+
 @app.post("/api/character/export-foundry")
-async def api_export_foundry(action: CharacterAction):
+async def api_export_foundry(action: FoundryExportAction):
     """Generate and return a FoundryVTT MGT2e-compatible actor JSON."""
     character = action.character.model_copy(deep=True)
     try:
-        actor = foundry_export.character_to_foundry(character)
+        actor = foundry_export.character_to_foundry(character, include_source=action.include_source)
     except Exception as e:
         raise HTTPException(500, f"Foundry export failed: {e}")
     import json as _json

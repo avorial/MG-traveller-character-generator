@@ -11019,6 +11019,36 @@ function invalidCascadeParents() {
   );
 }
 
+// Equipment entries that are really unresolved "X or Y" benefit choices
+// (e.g. "Combat Implant or two Ship Shares", "Rifle or Carbine").
+function unresolvedBenefitChoices() {
+  return (character.equipment || [])
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e && /\s+or\s+/i.test(e.name || ''));
+}
+
+// Associates that never got a real identity — placeholders from events or
+// mustering out ("Unnamed Contact", "From mustering out", empty).
+function unnamedAssociates() {
+  return (character.associates || [])
+    .map((a, i) => ({ a, i }))
+    .filter(({ a }) => a && a.kind !== 'wife' && (
+      !(a.description || '').trim()
+      || /unnamed/i.test(a.description)
+      || /from mustering out/i.test(a.description)
+    ));
+}
+
+// Shared D66 personage + species-name generator (same one the career events
+// and muster naming use).
+function generateAssociateIdentity() {
+  const d1 = Math.ceil(Math.random() * 6);
+  const d2 = Math.ceil(Math.random() * 6);
+  const personage = _SOL_CONTACTS[d1 * 10 + d2] || 'Unknown Personage';
+  const name = generateSpeciesName(character.species_id || 'imperial_human');
+  return `${personage} — ${name}`;
+}
+
 function renderCascadeCleanup() {
   const invalid = invalidCascadeParents();
   if (!invalid.length) {
@@ -11595,6 +11625,49 @@ function renderDonePhase() {
           </div>
         </div>` : ''}
 
+      ${(() => {
+        const pending = unresolvedBenefitChoices();
+        if (!pending.length) return '';
+        const rows = pending.map(({ e, i }) => {
+          const opts = (e.name || '').split(/\s+or\s+/i).map(o => o.trim()).filter(Boolean);
+          return `
+            <div class="event-skill-picker" style="margin-top:10px">
+              <span class="event-label">${escapeHTML(e.name)}</span>
+              <div class="skill-picker">
+                ${opts.map(o => `<button class="skill-chip" data-benefit-choice-idx="${i}" data-benefit-choice-opt="${escapeAttr(o)}">${escapeHTML(o)}</button>`).join('')}
+              </div>
+            </div>`;
+        }).join('');
+        return `
+        <div class="done-card" style="border-color:var(--amber)">
+          <h3 class="done-card-title" style="color:var(--amber)">⚖ Unresolved Benefit Choices (${pending.length})</h3>
+          <p class="empty" style="margin-bottom:4px">These benefits were stored as "pick one" — choose now so the character (and any VTT export) carries the real thing.</p>
+          ${rows}
+        </div>`;
+      })()}
+
+      ${(() => {
+        const unnamed = unnamedAssociates();
+        if (!unnamed.length) return '';
+        const labelAssoc = (k) => ({ contact: 'Contact', ally: 'Ally', rival: 'Rival', enemy: 'Enemy' }[k] || k);
+        const rows = unnamed.map(({ a, i }) => `
+          <div class="muster-assoc-row">
+            <span class="assoc-label assoc-kind-${escapeAttr(a.kind)}">[${labelAssoc(a.kind)}]</span>
+            <input type="text" class="muster-assoc-input done-assoc-input" data-assoc-index="${i}"
+                   value="${escapeAttr(a.description || '')}" placeholder="Type and name — e.g. Smuggler — Vex Korrin" />
+            <button class="btn ghost muster-assoc-gen done-assoc-gen" data-assoc-index="${i}" title="Generate a random type and name">🎲</button>
+          </div>`).join('');
+        return `
+        <div class="done-card" style="border-color:var(--amber)">
+          <h3 class="done-card-title" style="color:var(--amber)">👥 Unnamed Associates (${unnamed.length})</h3>
+          <p class="empty" style="margin-bottom:8px">These contacts, allies, rivals or enemies never got an identity. Generate or type one — saved automatically.</p>
+          <div class="phase-actions" style="margin-bottom:8px">
+            <button class="btn" id="btn-name-all-assoc">🎲 GENERATE ALL (${unnamed.length})</button>
+          </div>
+          ${rows}
+        </div>`;
+      })()}
+
       <div class="done-card">
         <h3 class="done-card-title">Career Narrative</h3>
         <p class="empty" style="margin-bottom:10px">A full narrative record of your Traveller's career history — what they did each term, what happened, and what they returned with.</p>
@@ -11662,6 +11735,10 @@ function renderDonePhase() {
         <button class="btn ghost" id="btn-export-foundry">⬇ EXPORT TO FOUNDRY</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
       </div>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:6px;cursor:pointer;font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">
+        <input type="checkbox" id="chk-foundry-source" ${uiState.includeFoundrySource === false ? '' : 'checked'} />
+        <span>Foundry export: include editable source (re-importable here losslessly; uncheck for a lean VTT-only file)</span>
+      </label>
 
       <div class="done-card tas-sheet-card">
         <h3 class="done-card-title">Character Sheet</h3>
@@ -12351,6 +12428,65 @@ function wireDonePhase() {
   // Cascade-specialty cleanup (button + picker) is available on the done screen.
   wireCascadeCleanup();
 
+  // Unresolved "X or Y" benefit choices — pick one, applied server-side.
+  document.querySelectorAll('[data-benefit-choice-idx]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.dataset.benefitChoiceIdx, 10);
+      const chosen = btn.dataset.benefitChoiceOpt;
+      try {
+        const response = await apiCall('/api/character/resolve-equipment-choice', { index, chosen });
+        await applyResponse(response);
+        renderAll();
+      } catch (e) { alert(e.message); }
+    });
+  });
+
+  // Unnamed associates — generate or type an identity; saves via op:"update".
+  const saveDoneAssoc = async (index, description) => {
+    const desc = (description || '').trim();
+    if (!desc) return;
+    try {
+      const response = await apiCall('/api/character/associate', { op: 'update', index, description: desc });
+      await applyResponse(response);   // no re-render: keep inputs focused while editing several
+    } catch (e) { console.warn(e); }
+  };
+  document.querySelectorAll('.done-assoc-gen').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.getAttribute('data-assoc-index'), 10);
+      const input = document.querySelector(`.done-assoc-input[data-assoc-index="${index}"]`);
+      if (!input) return;
+      input.value = generateAssociateIdentity();
+      await saveDoneAssoc(index, input.value);
+    });
+  });
+  document.querySelectorAll('.done-assoc-input').forEach(input => {
+    input.addEventListener('change', () => {
+      saveDoneAssoc(parseInt(input.getAttribute('data-assoc-index'), 10), input.value);
+    });
+  });
+  const btnNameAll = document.getElementById('btn-name-all-assoc');
+  if (btnNameAll) {
+    btnNameAll.addEventListener('click', async () => {
+      btnNameAll.disabled = true;
+      try {
+        // Re-detect each round: update ops change descriptions in place, so
+        // indices stay stable, but names must come off the live character.
+        for (const { i } of unnamedAssociates()) {
+          await saveDoneAssoc(i, generateAssociateIdentity());
+        }
+        renderAll();
+      } finally { btnNameAll.disabled = false; }
+    });
+  }
+
+  // Foundry export source toggle (lean vs lossless)
+  const chkSource = document.getElementById('chk-foundry-source');
+  if (chkSource) {
+    chkSource.addEventListener('change', () => {
+      uiState.includeFoundrySource = chkSource.checked;
+    });
+  }
+
   // ── Robot done phase wiring ──
   const btnRobotFoundry = document.getElementById('btn-export-robot-foundry');
   if (btnRobotFoundry) {
@@ -12559,7 +12695,7 @@ async function exportFoundry() {
     const res = await fetch('/api/character/export-foundry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ character }),
+      body: JSON.stringify({ character, include_source: uiState.includeFoundrySource !== false }),
     });
     if (!res.ok) throw new Error(await res.text());
     const blob = await res.blob();

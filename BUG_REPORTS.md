@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.66: Finish-Stage Pre-Flight — Benefit Choices, Unnamed Associates, Lean Export (features)
+**Request:** Before export, the finish screen should resolve leftover loose ends: (2) "X or Y" benefit choices stored as a single equipment string, (3) placeholder associates ("Unnamed Contact", "From mustering out"), and (4) an option to skip the embedded source character for a lean VTT-only Foundry file.
+
+**Implementation:**
+- **Benefit choices** — `lifepath.resolve_equipment_choice(index, chosen)` (+ `POST /api/character/resolve-equipment-choice`): validates the pick against the options split from the item name, removes the item, and applies the pick via `_apply_benefit` (so ship shares, implants, weapons, associates, skills all land correctly). Done screen shows an "⚖ Unresolved Benefit Choices (N)" card with one button per option.
+- **Unnamed associates** — "👥 Unnamed Associates (N)" card with per-row input + 🎲 (reusing the D66 personage + species-name generator and the `op:"update"` associate endpoint) plus a **🎲 GENERATE ALL** button. Detection: empty / "unnamed" / "from mustering out" descriptions.
+- **Lean export** — `character_to_foundry(include_source=False)` omits the `flags.tvgen` embed; `export-foundry` accepts `include_source` (default true); a checkbox under the export buttons controls it.
+
+**Verification (live browser):** "Combat Implant or two Ship Shares" → two Ship Shares (ship_shares 0→2, item removed); "Rifle or Carbine" → Rifle in equipment; cards disappear when cleared. GENERATE ALL named both placeholders, left the real Ally untouched. Full export carries `flags.tvgen` (20.7KB), lean doesn't (15.8KB); checkbox drives the flag. All 660 tests pass.
+
+---
+
 ### v30.65: Foundry Export — Full MGT2E Skill Structure (label/combat/default) for Weapon Dropdowns
 **Request:** Foundry exports (Travellers, NPCs, **and robots**) must use the full MGT2E skill-speciality structure. Combat-skill specialities were missing `label` / `combat` / `default`, which breaks weapon-skill selection in Foundry.
 

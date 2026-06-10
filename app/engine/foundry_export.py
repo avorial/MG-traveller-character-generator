@@ -311,8 +311,13 @@ _SKILL_DEFAULT_CHAR: dict[str, str] = {
 # Public conversion function
 # ---------------------------------------------------------------------------
 
-def character_to_foundry(character: Character) -> dict[str, Any]:
-    """Return a FoundryVTT MGT2e-compatible actor dict for *character*."""
+def character_to_foundry(character: Character, include_source: bool = True) -> dict[str, Any]:
+    """Return a FoundryVTT MGT2e-compatible actor dict for *character*.
+
+    include_source=True embeds the full native character in flags.tvgen so the
+    export can be re-imported losslessly; False produces a lean VTT-only file
+    (roughly half the size) that still imports via the best-effort reverse map.
+    """
 
     char = character
 
@@ -695,9 +700,11 @@ def character_to_foundry(character: Character) -> dict[str, Any]:
         "items":  items,
         "effects": [],
         "folder": None,
-        # Stash the full native character so a round-trip import is lossless.
-        # Foundry ignores unknown flag namespaces, so this is inert there.
-        "flags":  {"mgt2e": {}, "tvgen": {"app": "TravllerCC", "character": _embed_source(char)}},
+        # Stash the full native character so a round-trip import is lossless
+        # (unless a lean export was requested). Foundry ignores unknown flag
+        # namespaces, so this is inert there.
+        "flags":  ({"mgt2e": {}, "tvgen": {"app": "TravllerCC", "character": _embed_source(char)}}
+                   if include_source else {"mgt2e": {}}),
         "prototypeToken": {
             "name":        name,
             "displayName": 0,
