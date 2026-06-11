@@ -11172,13 +11172,14 @@ def advancement_roll(character: Character) -> dict:
     )
     character.log(msg)
 
-    # RAW: if roll result < terms served in this career, must leave career
-    # (Noble auto-advance: exempt from forced-leave since the roll always counts)
-    forced_from_career = (not zhodani_noble_auto) and (r.total < term.term_number)
+    # RAW: if the Advancement roll result is EQUAL TO OR LESS THAN the number of
+    # terms served in this career, the character must leave the career at the end
+    # of this term. (Noble auto-advance is exempt — its roll always counts.)
+    forced_from_career = (not zhodani_noble_auto) and (r.total <= term.term_number)
     if forced_from_career:
         character.log(
-            f"Advancement roll {r.total} is less than terms served ({term.term_number}) "
-            f"— must leave this career at end of term."
+            f"Advancement roll {r.total} is equal to or less than terms served "
+            f"({term.term_number}) — must leave this career at end of term."
         )
 
     # Imperial Guard: advancement required. If not promoted, must leave.

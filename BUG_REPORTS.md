@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.69: Advancement "too long in this career" rule — off-by-one boundary
+**Report:** "If your advancement roll is equal to or less than the number of terms you have spent in this career, then you cannot continue in this career after this term."
+
+**Finding:** The rule *was* implemented (`advancement_roll` in `lifepath.py`), but with a strict `<` comparison (`r.total < term.term_number`) instead of RAW's "equal to or less than" (`<=`). This let a character who rolled *exactly* their terms-served stay in the career when they should have been forced out at end of term. `term.term_number` already correctly counts terms served **in the current career** (resets to 1 on a new career, line 6232), so the baseline was right — only the boundary was wrong.
+
+**Fix:** Changed the comparison to `r.total <= term.term_number` and corrected the log wording to "equal to or less than terms served". Noble auto-advance remains exempt (its roll always counts). `forced_from_career` flows downstream unchanged.
+
+**Verification:** Boundary unit-tested directly — roll total 2 with 2 terms served now forces out (was: stayed); total 3 still continues. All 660 tests pass.
+
+---
+
 ### v30.68: ✨ AI Story — Bring Your Own AI for Narrative Prose (feature)
 **Request:** Let players plug in their own AI to turn the factual career narrative into an actual story.
 
