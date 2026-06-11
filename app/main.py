@@ -1118,6 +1118,32 @@ async def api_capsule(action: CharacterAction):
         raise HTTPException(400, str(e))
 
 
+class AIStoryAction(CharacterAction):
+    """Generate a narrative story via the player's own AI (BYO key — never stored)."""
+    provider: str                    # "anthropic" | "openai_compatible"
+    api_key: str = ""
+    model: str = ""
+    base_url: Optional[str] = None   # required for openai_compatible; optional Claude override
+    tone: str = "neutral"
+
+
+@app.post("/api/character/ai-narrative")
+async def api_ai_narrative(action: AIStoryAction):
+    """Turn the factual capsule into a story using the player's configured AI.
+
+    The key is passed through per-request and never persisted server-side.
+    """
+    from .engine import ai_narrative
+    character = action.character.model_copy(deep=True)
+    try:
+        return ai_narrative.generate_ai_story(
+            character, action.provider, action.api_key,
+            action.model, action.base_url, action.tone,
+        )
+    except ai_narrative.AIStoryError as e:
+        raise HTTPException(e.status_code, e.detail)
+
+
 @app.post("/api/character/cheat-death")
 async def api_cheat_death(action: CharacterAction):
     """Survive death via medical loan (RAW: 1D×Cr10,000, -1 to highest physical stat)."""

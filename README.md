@@ -320,6 +320,7 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 - **Optional characteristics** — Toggle shows checkboxes for PSI / WLT / LCK / MRL / STY / TER.
 - **GM Mode** — Toggle to set any dice roll result manually, with boon re-roll pool.
 - **NPC generator** — One click produces a complete NPC via `GET /api/character/generate-npc`.
+- **✨ AI Story (bring your own AI)** — On the finish screen, have your own AI rewrite the factual career narrative as a real story. Supports the Claude API (official SDK) and any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter, OpenAI). Key and settings live in your browser's localStorage and are passed through your own server per request — never stored. The story persists to the character and flows into the FoundryVTT actor bio and PDF.
 
 ---
 

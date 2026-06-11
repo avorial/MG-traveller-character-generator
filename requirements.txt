@@ -4,6 +4,9 @@ jinja2==3.1.4
 pydantic==2.9.2
 python-multipart==0.0.29
 reportlab>=4.2.0
+# AI story generation (optional BYO-key feature) — official Claude SDK; also
+# brings httpx, which the OpenAI-compatible provider path uses server-side.
+anthropic>=0.69.0
 
 # Dev / testing (not installed in the production Docker image)
 pytest>=8.0

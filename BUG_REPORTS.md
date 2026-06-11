@@ -2,6 +2,21 @@
 
 ## Fixed Bugs
 
+### v30.68: ✨ AI Story — Bring Your Own AI for Narrative Prose (feature)
+**Request:** Let players plug in their own AI to turn the factual career narrative into an actual story.
+
+**Implementation:**
+- **`app/engine/ai_narrative.py`** — builds a strict prompt from the v30.67 template capsule (the fact sheet: "stay faithful to the facts, don't invent events/ranks/names, no game mechanics, 400–600 words, chosen tone") and calls one of two providers:
+  - **Claude** via the official `anthropic` SDK (default `claude-opus-4-8`, adaptive thinking, optional base-URL override for proxies); typed errors map to friendly 401/403/404/429/502 messages.
+  - **OpenAI-compatible** via httpx → `{base_url}/chat/completions` — covers Ollama, LM Studio, OpenRouter, OpenAI, LiteLLM. Key optional (local models), generous 300s timeout, Docker `host.docker.internal` hint on connection failure.
+- **`app/main.py`** — `POST /api/character/ai-narrative` (provider, api_key, model, base_url, tone). The key is passed through per-request and **never stored server-side**.
+- **`app/static/js/app.js`** — Career Narrative card gains **✨ AI STORY** and **⚙ AI SETTINGS** (provider / key / model / base URL / tone, persisted in `localStorage` only). Unconfigured click opens settings. The story replaces the capsule, persists to `capsule_description`, and therefore flows into the Foundry actor bio and PDF; REGENERATE still restores the template rundown.
+- `requirements.txt` — added `anthropic` (brings httpx).
+
+**Verification:** Both provider paths exercised offline against mock servers through the real endpoint (adaptive thinking + default model asserted on the Claude path; markdown-fence stripping; 401/400/502/timeout error mapping). Live browser end-to-end: configure OpenAI-compatible → ✨ AI STORY → 3-paragraph story renders in the capsule box and persists to the character. All 660 tests pass.
+
+---
+
 ### v30.67: Generate Narrative Produces Actual Prose (feature)
 **Request:** The career narrative dumped raw rulebook/log text — dice mechanics ("Roll Investigate 8+… If you succeed, gain REP +1 and DM+1…"), second person, "Gained Contact: Unnamed Contact" repeated six times, and "Basic training: Electronics (Comms) 0, Basic training: Drive 0…" prefixes.
 

@@ -11556,6 +11556,57 @@ function wireSkillPackagePhase() {
 // PHASE 6: Done
 // ============================================================
 
+// ── AI story config (BYO key — lives in this browser's localStorage only) ──
+const AI_CONFIG_KEY = 'traveller-ai-config';
+
+function loadAIConfig() {
+  try { return JSON.parse(localStorage.getItem(AI_CONFIG_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveAIConfig(cfg) {
+  localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(cfg));
+}
+function aiConfigReady(cfg) {
+  if (cfg.provider === 'anthropic') return !!cfg.apiKey;
+  if (cfg.provider === 'openai_compatible') return !!(cfg.baseUrl && cfg.model);
+  return false;
+}
+
+function renderAISettingsPanel() {
+  if (!uiState.aiSettingsOpen) return '';
+  const cfg = loadAIConfig();
+  const provider = cfg.provider || 'anthropic';
+  const isClaude = provider === 'anthropic';
+  const tones = [['neutral','Neutral'],['gritty','Gritty'],['noir','Noir'],['military','Military memoir'],['pulp','Pulp adventure']];
+  return `
+    <div class="event-skill-picker" style="margin-top:10px" id="ai-settings-panel">
+      <span class="event-label">AI Story Settings</span>
+      <p class="picker-status" style="margin:0 0 8px 0;color:var(--amber-dim)"><em>Bring your own AI. The key is stored only in this browser and sent through your own server per request — never saved server-side.</em></p>
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center;max-width:560px">
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">PROVIDER</label>
+        <select id="ai-cfg-provider" class="muster-assoc-input" style="flex:none">
+          <option value="anthropic" ${isClaude ? 'selected' : ''}>Claude (Anthropic API)</option>
+          <option value="openai_compatible" ${!isClaude ? 'selected' : ''}>OpenAI-compatible (Ollama / LM Studio / OpenRouter…)</option>
+        </select>
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">API KEY${isClaude ? '' : ' (optional)'}</label>
+        <input type="password" id="ai-cfg-key" class="muster-assoc-input" style="flex:none" value="${escapeAttr(cfg.apiKey || '')}" placeholder="${isClaude ? 'sk-ant-…' : 'leave blank for local Ollama'}" autocomplete="off" />
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">MODEL</label>
+        <input type="text" id="ai-cfg-model" class="muster-assoc-input" style="flex:none" value="${escapeAttr(cfg.model || '')}" placeholder="${isClaude ? 'claude-opus-4-8 (default)' : 'e.g. llama3.1'}" />
+        ${isClaude ? '' : `
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">BASE URL</label>
+        <input type="text" id="ai-cfg-baseurl" class="muster-assoc-input" style="flex:none" value="${escapeAttr(cfg.baseUrl || '')}" placeholder="http://localhost:11434/v1" />`}
+        <label style="font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">TONE</label>
+        <select id="ai-cfg-tone" class="muster-assoc-input" style="flex:none">
+          ${tones.map(([v, l]) => `<option value="${v}" ${(cfg.tone || 'neutral') === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      ${!isClaude ? `<p class="empty" style="margin-top:8px;font-size:11px">Running this app in Docker with a local model on the host? Use <code>http://host.docker.internal:11434/v1</code> instead of localhost.</p>` : ''}
+      <div class="phase-actions" style="margin-top:10px">
+        <button class="btn ghost" id="btn-ai-settings-close">CLOSE</button>
+      </div>
+    </div>`;
+}
+
 function renderDonePhase() {
   // ── Robot done phase ──────────────────────────────────────────────────────
   if (character.character_type === 'robot') {
@@ -11670,18 +11721,23 @@ function renderDonePhase() {
 
       <div class="done-card">
         <h3 class="done-card-title">Career Narrative</h3>
-        <p class="empty" style="margin-bottom:10px">A full narrative record of your Traveller's career history — what they did each term, what happened, and what they returned with.</p>
+        <p class="empty" style="margin-bottom:10px">A full record of your Traveller's career — GENERATE NARRATIVE builds a factual rundown; ✨ AI STORY has your own AI (Claude, or any local/OpenAI-compatible model) write it as a real story. Your key stays in this browser.</p>
         ${uiState.lastCapsule ? `
           <div class="capsule-box">${uiState.lastCapsule.split('\n\n').map(p => `<p style="margin:0 0 0.75em">${escapeHTML(p)}</p>`).join('')}</div>
-          <div class="phase-actions" style="gap:6px;margin-top:6px">
+          <div class="phase-actions" style="gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn ghost" id="btn-regen-capsule">REGENERATE</button>
+            <button class="btn" id="btn-ai-story">✨ AI STORY</button>
             <button class="btn ghost" id="btn-copy-capsule">COPY TEXT</button>
+            <button class="btn ghost" id="btn-ai-settings">⚙ AI SETTINGS</button>
           </div>
         ` : `
-          <div class="phase-actions">
+          <div class="phase-actions" style="flex-wrap:wrap">
             <button class="btn" id="btn-gen-capsule">GENERATE NARRATIVE</button>
+            <button class="btn" id="btn-ai-story">✨ AI STORY</button>
+            <button class="btn ghost" id="btn-ai-settings">⚙ AI SETTINGS</button>
           </div>
         `}
+        ${renderAISettingsPanel()}
       </div>
 
       <div class="done-card">
@@ -12551,6 +12607,64 @@ function wireDonePhase() {
       btnCopy.textContent = 'COPIED';
       setTimeout(() => { btnCopy.textContent = 'COPY'; }, 1200);
     } catch (e) { alert('Copy failed: ' + e.message); }
+  });
+
+  // ── AI story (BYO key) ────────────────────────────────────────────────
+  const btnAISettings = document.getElementById('btn-ai-settings');
+  if (btnAISettings) btnAISettings.addEventListener('click', () => {
+    uiState.aiSettingsOpen = !uiState.aiSettingsOpen;
+    renderStage();
+  });
+  const btnAISettingsClose = document.getElementById('btn-ai-settings-close');
+  if (btnAISettingsClose) btnAISettingsClose.addEventListener('click', () => {
+    uiState.aiSettingsOpen = false;
+    renderStage();
+  });
+  // Settings fields persist to localStorage on change. Provider re-renders the
+  // panel (shows/hides BASE URL and updates placeholders); the rest save quietly.
+  const _saveAIField = (id, key, rerender) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      const cfg = loadAIConfig();
+      cfg[key] = el.value.trim();
+      saveAIConfig(cfg);
+      if (rerender) renderStage();
+    });
+  };
+  _saveAIField('ai-cfg-provider', 'provider', true);
+  _saveAIField('ai-cfg-key', 'apiKey');
+  _saveAIField('ai-cfg-model', 'model');
+  _saveAIField('ai-cfg-baseurl', 'baseUrl');
+  _saveAIField('ai-cfg-tone', 'tone');
+
+  const btnAIStory = document.getElementById('btn-ai-story');
+  if (btnAIStory) btnAIStory.addEventListener('click', async () => {
+    const cfg = loadAIConfig();
+    if (!aiConfigReady(cfg)) {
+      uiState.aiSettingsOpen = true;
+      renderStage();
+      return;
+    }
+    btnAIStory.disabled = true;
+    btnAIStory.textContent = '✨ WRITING…';
+    try {
+      const response = await apiCall('/api/character/ai-narrative', {
+        provider: cfg.provider,
+        api_key: cfg.apiKey || '',
+        model: cfg.model || '',
+        base_url: cfg.baseUrl || null,
+        tone: cfg.tone || 'neutral',
+      });
+      uiState.lastCapsule = response.story;
+      character.capsule_description = response.story;  // flows into Foundry bio + PDF
+      saveCharacter();
+      uiState.aiSettingsOpen = false;
+    } catch (e) {
+      alert('AI story failed: ' + e.message);
+    } finally {
+      renderAll();
+    }
   });
 
   const btnAddConn = document.getElementById('btn-add-connection');
