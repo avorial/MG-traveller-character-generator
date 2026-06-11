@@ -2,6 +2,7 @@
   "id": "prisoner",
   "name": "Prisoner",
   "description": "You are incarcerated in an Imperial prison facility, labor camp, or reform colony. Not a career one usually chooses — typically entered via failed qualification, mishap, or draft.",
+  "mishap_no_eject": true,
   "qualification": {
     "characteristic": "END",
     "target": 5,

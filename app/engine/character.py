@@ -64,6 +64,9 @@ class CareerTerm(BaseModel):
     # is <= terms served; must continue (strong-armed) on a natural 12.
     forced_from_career: bool = False
     must_continue_career: bool = False
+    # Prisoner career only: True = paroled/released this term, False = parole
+    # denied (must serve another term), None = not a prisoner term.
+    parole_released: Optional[bool] = None
     mishap: Optional[str] = None
     basic_training: bool = False
     benefit_forfeited: bool = False
@@ -183,6 +186,12 @@ class Character(BaseModel):
     # natural 2 → Prisoner, event 11 Drifter / Draft). The career picker will
     # only allow this career until it is consumed.
     forced_next_career_id: Optional[str] = None
+
+    # Prisoner career — Parole Threshold (RAW: starts at 1D+2, capped at 12).
+    # At each term-end in the Prisoner career, the character leaves only if their
+    # advancement roll is GREATER than this threshold; otherwise they must serve
+    # another term. None when not imprisoned; set on entry, cleared on release.
+    parole_threshold: Optional[int] = None
 
     # Ihatei restriction — set when an Aslan joins the ihatei's retinue.
     # When True, the character must enter a Core Rulebook career next term

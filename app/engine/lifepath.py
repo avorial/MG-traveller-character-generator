@@ -6265,6 +6265,16 @@ def start_term(
            if commissioned_start else "")
     )
 
+    # Prisoner career: roll the Parole Threshold (1D+2, never above 12) on entry.
+    # Persists across terms in prison; cleared on release (see end_term).
+    if career_id == "prisoner" and first_term_in_this_career and character.parole_threshold is None:
+        pt = dice.roll("1D").total + 2
+        character.parole_threshold = min(pt, 12)
+        character.log(
+            f"Parole Threshold set to {character.parole_threshold} (1D+2). Each term, an "
+            f"advancement roll greater than this ends the sentence."
+        )
+
     # Initialize career-specific extra characteristics (e.g. Truther's FOL starts at 0)
     if first_term_in_this_career:
         for ec_key, ec_val in career.get("extra_characteristic_start", {}).items():
@@ -11172,26 +11182,44 @@ def advancement_roll(character: Character) -> dict:
     )
     character.log(msg)
 
-    # RAW: if the Advancement roll result is EQUAL TO OR LESS THAN the number of
-    # terms served in this career, the character must leave the career at the end
-    # of this term. (Noble auto-advance is exempt — its roll always counts.)
-    forced_from_career = (not zhodani_noble_auto) and (r.total <= term.term_number)
-    if forced_from_career:
+    parole_info = None
+    if term.career_id == "prisoner":
+        # RAW Prisoner career: the generic forced-leave / natural-12 rules DO NOT
+        # apply. Instead the character leaves only if the advancement roll is
+        # GREATER than their Parole Threshold; otherwise the parole is denied and
+        # they must serve another term. Mishaps cannot eject them either.
+        threshold = character.parole_threshold if character.parole_threshold is not None else 12
+        paroled = r.total > threshold
+        forced_from_career = paroled          # released → leave the career
+        must_continue_career = not paroled     # denied → must continue
+        term.parole_released = paroled
+        parole_info = {"released": paroled, "threshold": threshold, "roll": r.total}
         character.log(
-            f"Advancement roll {r.total} is equal to or less than terms served "
-            f"({term.term_number}) — must leave this career at end of term."
+            f"Parole check: advancement roll {r.total} vs Parole Threshold {threshold} — "
+            + ("GREATER → sentence ends, released from prison."
+               if paroled else "not greater → parole denied, must serve another term.")
         )
+    else:
+        # RAW: if the Advancement roll result is EQUAL TO OR LESS THAN the number
+        # of terms served in this career, the character must leave the career at
+        # the end of this term. (Noble auto-advance is exempt — roll always counts.)
+        forced_from_career = (not zhodani_noble_auto) and (r.total <= term.term_number)
+        if forced_from_career:
+            character.log(
+                f"Advancement roll {r.total} is equal to or less than terms served "
+                f"({term.term_number}) — must leave this career at end of term."
+            )
 
-    # RAW: a natural 12 on the Advancement roll means the character MUST continue
-    # in this career next term — "too valuable to lose". This overrides a
-    # forced-leave (you cannot be both strong-armed into staying and forced out).
-    must_continue_career = (r.raw_total == 12)
-    if must_continue_career:
-        forced_from_career = False
-        character.log(
-            "Advancement roll: natural 12 — too valuable to lose; "
-            "must continue in this career next term."
-        )
+        # RAW: a natural 12 on the Advancement roll means the character MUST
+        # continue in this career next term — "too valuable to lose". This
+        # overrides a forced-leave (can't be strong-armed into staying AND out).
+        must_continue_career = (r.raw_total == 12)
+        if must_continue_career:
+            forced_from_career = False
+            character.log(
+                "Advancement roll: natural 12 — too valuable to lose; "
+                "must continue in this career next term."
+            )
 
     # Persist on the term so every decision surface (advancement view, session
     # restore, the term-complete screen) agrees, not just the transient roll.
@@ -11217,6 +11245,7 @@ def advancement_roll(character: Character) -> dict:
         "monitor_rank": character.solsec_monitor_rank,
         "forced_from_career": forced_from_career,
         "must_continue_career": must_continue_career,
+        "parole": parole_info,
         "advancement_skill_roll": term.advanced,
         "zhodani_noble_auto": zhodani_noble_auto,
         "zhodani_noble_dm": zhodani_noble_dm,
@@ -11434,6 +11463,10 @@ def attempt_anagathics(character: "Character") -> dict:
     """
     if character.phase != "career":
         raise ValueError("Anagathics can only be attempted during the career phase.")
+
+    # RAW: Travellers may not use anagathics while imprisoned.
+    if character.current_term is not None and character.current_term.career_id == "prisoner":
+        raise ValueError("Travellers may not use anagathics in prison.")
 
     # Species-level anagathics block (e.g. Hivers).
     _sp_data = rules.species().get(character.species_id or "", {})
@@ -16042,6 +16075,18 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         raise ValueError(
             f"Cannot muster out: you must serve a term as {forced.capitalize()} first."
         )
+
+    # Guard: a prisoner cannot leave the Prisoner career voluntarily — release
+    # only happens via the Parole Threshold check (term.parole_released).
+    if leaving and term.career_id == "prisoner" and term.parole_released is not True:
+        raise ValueError(
+            "You cannot leave the Prisoner career voluntarily — your advancement roll "
+            "must exceed your Parole Threshold to be released."
+        )
+
+    # Released from prison: clear the Parole Threshold so a future sentence rerolls it.
+    if leaving and term.career_id == "prisoner" and term.parole_released:
+        character.parole_threshold = None
 
     character.age += 4
     character.total_terms += 1

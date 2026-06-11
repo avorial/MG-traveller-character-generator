@@ -1349,6 +1349,8 @@ function luckClass(pct) {
 // Actual access roll happens at the START of the next term via anagathics_prompt.
 function anagathicsBoxHTML() {
   if (character.total_terms + 1 < 4) return '';  // aging doesn't start until term 4+
+  // RAW: no anagathics in prison.
+  if (character.current_term?.career_id === 'prisoner' && !character.anagathics_active) return '';
   const active = character.anagathics_active;
   const terms = character.anagathics_terms_used ?? 0;
   if (active) {
@@ -7612,6 +7614,7 @@ function wireCareerPhase() {
           rankBonus: response.rank_bonus || null,
           forcedFromCareer: response.forced_from_career || false,
           mustContinueCareer: response.must_continue_career || false,
+          parole: response.parole || null,
           knightCommanderByRank: response.knight_commander_by_rank || false,
           knightGrandCross: response.knight_grand_cross || false,
         };
@@ -10711,6 +10714,7 @@ function renderAdvanceStep() {
     </div>` : '';
   const _mustContinue = term.must_continue_career || false;
   const _forcedOutPersisted = term.forced_from_career || false;
+  const _isPrisoner = term.career_id === 'prisoner';
   const decideActions = _forcedNext ? `
     <div class="event-box" style="border-color:var(--danger);margin-top:14px">
       <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${_forcedNextName.toUpperCase()}</span>
@@ -10721,6 +10725,22 @@ function renderAdvanceStep() {
       <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
     </div>
     ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  ` : (_isPrisoner && term.parole_released === true) ? `
+    <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:14px;background:rgba(127,216,127,0.07)">
+      <span class="event-label" style="color:var(--success,#7fd87f)">🔓 PAROLED — SENTENCE ENDS</span>
+      Your advancement roll exceeded your Parole Threshold. Your sentence is over — you are released and may seek a new career.
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn" id="btn-leave-career">LEAVE PRISON →</button>
+    </div>
+  ` : _isPrisoner ? `
+    <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+      <span class="event-label" style="color:var(--danger)">🔒 PAROLE DENIED — STILL INSIDE</span>
+      Your advancement roll did not exceed your Parole Threshold${character.parole_threshold != null ? ` (${character.parole_threshold})` : ''}. You must serve another term in prison and cannot leave voluntarily.
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+    </div>
   ` : _mustContinue ? `
     <div class="event-box" style="border-color:var(--accent);margin-top:14px;background:rgba(100,180,255,0.07)">
       <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE</span>
@@ -10795,11 +10815,21 @@ function renderAdvanceStep() {
     const advanced = lr.outcome === 'pass';
     const forcedOut = lr.forcedFromCareer || false;
     const mustContinue = lr.mustContinueCareer || false;
+    const parole = lr.parole || null;  // prisoner career: {released, threshold, roll}
     // Prominent status banner — shown high in the result view (right after the
     // roll) for EVERY sub-branch (bonus-skill pick, specialty pick, decision),
-    // so the player learns they were strong-armed into staying / forced out
-    // immediately, not only when they reach the buttons.
-    const continuationBanner = mustContinue ? `
+    // so the player learns their outcome immediately, not only at the buttons.
+    const continuationBanner = parole ? (parole.released ? `
+      <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px;background:rgba(127,216,127,0.07)">
+        <span class="event-label" style="color:var(--success,#7fd87f)">🔓 PAROLED — SENTENCE ENDS</span>
+        Your advancement roll (${parole.roll}) exceeded your Parole Threshold (${parole.threshold}). Your sentence is over — you are released from prison and may seek a new career.
+      </div>
+    ` : `
+      <div class="event-box" style="border-color:var(--danger);margin-top:12px">
+        <span class="event-label" style="color:var(--danger)">🔒 PAROLE DENIED — STILL INSIDE</span>
+        Your advancement roll (${parole.roll}) did not exceed your Parole Threshold (${parole.threshold}). Parole is denied — you must serve another term in prison. You cannot leave voluntarily.
+      </div>
+    `) : mustContinue ? `
       <div class="event-box" style="border-color:var(--accent);margin-top:12px;background:rgba(100,180,255,0.07)">
         <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE — NATURAL 12</span>
         You rolled a natural 12 on advancement. You are too valuable to lose and are strong-armed into staying — you must serve another term in this career, and cannot muster out or change careers this term.
@@ -10810,7 +10840,15 @@ function renderAdvanceStep() {
         Your advancement roll (${lr.data?.total ?? '?'}) was equal to or less than your terms served in this career (${term.term_number}) — your services are no longer required. You must leave this career at the end of this term.
       </div>
     ` : '';
-    const advDecideActions = mustContinue ? `
+    const advDecideActions = (parole && parole.released) ? `
+      <div class="phase-actions" style="margin-top:12px">
+        <button class="btn" id="btn-leave-career">LEAVE PRISON →</button>
+      </div>
+    ` : (parole && !parole.released) ? `
+      <div class="phase-actions" style="margin-top:12px">
+        <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+      </div>
+    ` : mustContinue ? `
       <div class="phase-actions" style="margin-top:12px">
         <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
       </div>
@@ -10965,6 +11003,22 @@ function renderDecideStep() {
         </div>
         <div class="phase-actions" style="margin-top:12px">
           <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+        </div>
+      ` : (term.career_id === 'prisoner' && term.parole_released === true) ? `
+        <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:14px;background:rgba(127,216,127,0.07)">
+          <span class="event-label" style="color:var(--success,#7fd87f)">🔓 PAROLED — SENTENCE ENDS</span>
+          Your advancement roll exceeded your Parole Threshold. Your sentence is over — you are released and may seek a new career.
+        </div>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn" id="btn-leave-career">LEAVE PRISON →</button>
+        </div>
+      ` : (term.career_id === 'prisoner') ? `
+        <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+          <span class="event-label" style="color:var(--danger)">🔒 PAROLE DENIED — STILL INSIDE</span>
+          Your advancement roll did not exceed your Parole Threshold${character.parole_threshold != null ? ` (${character.parole_threshold})` : ''}. You must serve another term in prison and cannot leave voluntarily.
+        </div>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${esc(career.name).toUpperCase()}</button>
         </div>
       ` : term.must_continue_career ? `
         <div class="event-box" style="border-color:var(--accent);margin-top:14px;background:rgba(100,180,255,0.07)">

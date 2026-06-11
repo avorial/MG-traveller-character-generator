@@ -2,6 +2,24 @@
 
 ## Fixed Bugs
 
+### v30.72: Prisoner career — Parole Threshold mechanic (was missing; generic rules mis-fired)
+**Report:** The Prisoner career's defining rule — leave only when the advancement roll exceeds a Parole Threshold (1D+2, cap 12); mishaps can't eject; no anagathics in prison.
+
+**Finding:** The Prisoner career existed (assignments, events, mishaps, muster benefits, forced entry) but the Parole Threshold mechanic was **not implemented**. Worse, the generic advancement-continuation rules (v30.69–71) ran on prisoners and were *backwards*: a low roll triggered "FORCED OUT → leave" (RAW: low roll = parole **denied**, stay) and a natural 12 triggered "MUST CONTINUE → stay" (RAW: a high roll should **end** the sentence). Prisoners could also muster out at will, be ejected by mishaps, and use anagathics.
+
+**Implementation:**
+- `character.py`: `parole_threshold` (character) + `parole_released` (CareerTerm).
+- `lifepath.py start_term`: on first entry to `prisoner`, roll Parole Threshold = `min(1D+2, 12)`; persists across terms, cleared on release.
+- `lifepath.py advancement_roll`: prisoner branch **replaces** the generic forced-leave / natural-12 logic — released iff `roll > threshold` (strictly), else parole denied → must continue. Returns a `parole` block.
+- `lifepath.py end_term`: blocks voluntary muster-out from prison unless `parole_released`; clears the threshold on release.
+- `lifepath.py attempt_anagathics` + `app.js anagathicsBoxHTML`: anagathics blocked/hidden while imprisoned.
+- `prisoner.json`: `mishap_no_eject: true` (mishaps keep the prisoner inside).
+- `app.js`: all decision surfaces (advancement result, session-restore `decideActions`, `renderDecideStep`) show 🔓 PAROLED (LEAVE PRISON) or 🔒 PAROLE DENIED (only ANOTHER TERM, threshold shown); a prisoner never sees a free MUSTER OUT.
+
+**Verification:** Backend — threshold generation, strict `>` boundary (roll 8 vs threshold 8 = denied, 9 = released), natural-12-no-longer-forces-stay, voluntary-leave block + threshold clear on release, anagathics block, `mishap_no_eject` flag. Live browser — released/denied banners and button gating on `renderDecideStep`, anagathics box hidden in prison. All 660 tests pass.
+
+---
+
 ### v30.71: Surface "forced out" / "must continue" prominently in the advancement result
 **Request:** Make the UI tell the player what's happening when they're pushed out or forced to stay.
 
