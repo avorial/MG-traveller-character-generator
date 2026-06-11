@@ -10795,20 +10795,27 @@ function renderAdvanceStep() {
     const advanced = lr.outcome === 'pass';
     const forcedOut = lr.forcedFromCareer || false;
     const mustContinue = lr.mustContinueCareer || false;
-    const advDecideActions = mustContinue ? `
+    // Prominent status banner — shown high in the result view (right after the
+    // roll) for EVERY sub-branch (bonus-skill pick, specialty pick, decision),
+    // so the player learns they were strong-armed into staying / forced out
+    // immediately, not only when they reach the buttons.
+    const continuationBanner = mustContinue ? `
       <div class="event-box" style="border-color:var(--accent);margin-top:12px;background:rgba(100,180,255,0.07)">
-        <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE</span>
-        Natural 12 on your advancement roll — you are too valuable to lose and are strong-armed into staying. You must serve another term in this career.
+        <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE — NATURAL 12</span>
+        You rolled a natural 12 on advancement. You are too valuable to lose and are strong-armed into staying — you must serve another term in this career, and cannot muster out or change careers this term.
       </div>
+    ` : forcedOut ? `
+      <div class="event-box" style="border-color:var(--danger);margin-top:12px">
+        <span class="event-label" style="color:var(--danger)">FORCED OUT — TOO LONG IN SERVICE</span>
+        Your advancement roll (${lr.data?.total ?? '?'}) was equal to or less than your terms served in this career (${term.term_number}) — your services are no longer required. You must leave this career at the end of this term.
+      </div>
+    ` : '';
+    const advDecideActions = mustContinue ? `
       <div class="phase-actions" style="margin-top:12px">
         <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
       </div>
       ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
     ` : forcedOut ? `
-      <div class="event-box" style="border-color:var(--danger);margin-top:12px">
-        <span class="event-label" style="color:var(--danger)">FORCED OUT</span>
-        Your advancement roll (${lr.data?.total ?? '?'}) is equal to or less than your terms served (${term.term_number}) — you must leave this career.
-      </div>
       <div class="phase-actions" style="margin-top:12px">
         <button class="btn" id="btn-leave-career">MUSTER OUT →</button>
       </div>
@@ -10838,6 +10845,7 @@ function renderAdvanceStep() {
           <div class="phase-label">Advancement — Promoted · Bonus Skill Roll</div>
           <h2 class="phase-title">Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${esc(lr.newRankTitle)}` : ''}</h2>
           ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
+          ${continuationBanner}
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:12px">
             <span class="event-label" style="color:var(--success,#7fd87f)">ADVANCEMENT BONUS</span>
             Promotion grants an additional skill roll. Pick a table:
@@ -10854,6 +10862,7 @@ function renderAdvanceStep() {
           ? `Promoted to Rank ${lr.newRank}${lr.newRankTitle ? ` — ${esc(lr.newRankTitle)}` : ''}`
           : 'No Advancement This Term'}</h2>
         ${rollReadoutHTML(lr.data, { label: `${a.characteristic} ${a.target}+` })}
+        ${continuationBanner}
         ${(advanced && lr.rankBonus) ? `
           <div class="event-box" style="border-color:var(--success,#7fd87f);margin-top:10px">
             <span class="event-label" style="color:var(--success,#7fd87f)">RANK BONUS APPLIED</span>

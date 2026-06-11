@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.71: Surface "forced out" / "must continue" prominently in the advancement result
+**Request:** Make the UI tell the player what's happening when they're pushed out or forced to stay.
+
+**Change:** In v30.70 the explanation only appeared at the decision buttons, so a natural-12 character who first hit the bonus-skill picker or a cascade-specialty choice didn't learn they were staying until later. Pulled the explanation into a standalone `continuationBanner` rendered high in `renderAdvanceStep` (immediately after the roll readout) for **every** sub-branch — the bonus-skill-roll step, the specialty-choice step, and the final decision. Wording expanded to explain the *why*: "⛓ MUST CONTINUE — NATURAL 12 … too valuable to lose … cannot muster out or change careers this term" and "FORCED OUT — TOO LONG IN SERVICE … your services are no longer required." The decision buttons still gate correctly (must-continue → only ANOTHER TERM; forced-out → only MUSTER OUT), and the banner now shows exactly once rather than being duplicated.
+
+**Verification:** Live browser via the real `renderAdvanceStep` — banner present and ordered before the bonus-skill box; single banner with correct button set on both the must-continue and forced-out decision steps. All 660 tests pass.
+
+---
+
 ### v30.70: Advancement natural-12 "must continue" rule (missing) + persist continuation flags
 **Report (full RAW section):** "If you roll a natural 12, then you must continue in this career. You are too valuable to lose and will be strong-armed into staying." (Alongside the forced-leave rule fixed in v30.69.)
 
