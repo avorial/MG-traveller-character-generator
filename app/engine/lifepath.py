@@ -11182,6 +11182,22 @@ def advancement_roll(character: Character) -> dict:
             f"({term.term_number}) — must leave this career at end of term."
         )
 
+    # RAW: a natural 12 on the Advancement roll means the character MUST continue
+    # in this career next term — "too valuable to lose". This overrides a
+    # forced-leave (you cannot be both strong-armed into staying and forced out).
+    must_continue_career = (r.raw_total == 12)
+    if must_continue_career:
+        forced_from_career = False
+        character.log(
+            "Advancement roll: natural 12 — too valuable to lose; "
+            "must continue in this career next term."
+        )
+
+    # Persist on the term so every decision surface (advancement view, session
+    # restore, the term-complete screen) agrees, not just the transient roll.
+    term.forced_from_career = forced_from_career
+    term.must_continue_career = must_continue_career
+
     # Imperial Guard: advancement required. If not promoted, must leave.
     if term.career_id == "imperial_guard" and not term.advanced:
         character.imperial_guard_must_leave = True
@@ -11200,6 +11216,7 @@ def advancement_roll(character: Character) -> dict:
         "monitor_rank_up": monitor_rank_up,
         "monitor_rank": character.solsec_monitor_rank,
         "forced_from_career": forced_from_career,
+        "must_continue_career": must_continue_career,
         "advancement_skill_roll": term.advanced,
         "zhodani_noble_auto": zhodani_noble_auto,
         "zhodani_noble_dm": zhodani_noble_dm,

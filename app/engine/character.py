@@ -60,6 +60,10 @@ class CareerTerm(BaseModel):
     skills_gained: list[str] = Field(default_factory=list)
     survived: Optional[bool] = None
     advanced: Optional[bool] = None
+    # Advancement-roll career-continuation outcomes (RAW): forced out if the roll
+    # is <= terms served; must continue (strong-armed) on a natural 12.
+    forced_from_career: bool = False
+    must_continue_career: bool = False
     mishap: Optional[str] = None
     basic_training: bool = False
     benefit_forfeited: bool = False

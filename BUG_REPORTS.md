@@ -2,6 +2,21 @@
 
 ## Fixed Bugs
 
+### v30.70: Advancement natural-12 "must continue" rule (missing) + persist continuation flags
+**Report (full RAW section):** "If you roll a natural 12, then you must continue in this career. You are too valuable to lose and will be strong-armed into staying." (Alongside the forced-leave rule fixed in v30.69.)
+
+**Findings:**
+1. The natural-12 "must continue" rule was **not implemented** — a natural 12 was treated as an ordinary success, so the player could still muster out or switch careers.
+2. The continuation outcomes lived only on the transient `uiState.lastRoll`, so the two *other* term-end decision surfaces (the session-restore "Term N Complete" fallback and `renderDecideStep`) couldn't see them — a forced-out or must-continue character regained full options after a reload.
+
+**Fix:**
+- `lifepath.py advancement_roll`: added `must_continue_career = (r.raw_total == 12)`. A natural 12 forces continuation and **overrides** forced-leave (you can't be both forced out and strong-armed into staying). Both `must_continue_career` and `forced_from_career` are now **persisted on the term** (new `CareerTerm` fields in `character.py`), not just returned transiently.
+- `app.js`: the advancement-result view, the `decideActions` block (session-restore fallback), and `renderDecideStep` all now read the persisted flags. **Must continue** → only ANOTHER TERM (blue ⛓ banner, no muster-out); **forced out** → only MUSTER OUT (red banner, no continue). Legal-conviction forced-career still outranks both.
+
+**Verification:** Backend precedence unit-tested (natural 12 always sets must_continue and clears forced_out; persists through `model_dump`). Live browser: all three states (must-continue / forced-out / normal) render the correct banner and button set on `renderDecideStep`. All 660 tests pass.
+
+---
+
 ### v30.69: Advancement "too long in this career" rule — off-by-one boundary
 **Report:** "If your advancement roll is equal to or less than the number of terms you have spent in this career, then you cannot continue in this career after this term."
 

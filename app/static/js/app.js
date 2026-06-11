@@ -7611,6 +7611,7 @@ function wireCareerPhase() {
           newRankTitle: response.new_rank_title,
           rankBonus: response.rank_bonus || null,
           forcedFromCareer: response.forced_from_career || false,
+          mustContinueCareer: response.must_continue_career || false,
           knightCommanderByRank: response.knight_commander_by_rank || false,
           knightGrandCross: response.knight_grand_cross || false,
         };
@@ -10708,6 +10709,8 @@ function renderAdvanceStep() {
       You may return to ${esc(character.ini_source_career_id || 'Navy')} at any time — choose it
       in the career picker and you will be automatically accepted back at your held rank.
     </div>` : '';
+  const _mustContinue = term.must_continue_career || false;
+  const _forcedOutPersisted = term.forced_from_career || false;
   const decideActions = _forcedNext ? `
     <div class="event-box" style="border-color:var(--danger);margin-top:14px">
       <span class="event-label" style="color:var(--danger)">⚠ MANDATORY — ${_forcedNextName.toUpperCase()}</span>
@@ -10716,6 +10719,24 @@ function renderAdvanceStep() {
     </div>
     <div class="phase-actions" style="margin-top:12px">
       <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+    </div>
+    ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  ` : _mustContinue ? `
+    <div class="event-box" style="border-color:var(--accent);margin-top:14px;background:rgba(100,180,255,0.07)">
+      <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE</span>
+      Natural 12 on your advancement roll — you are too valuable to lose and are strong-armed into staying. You must serve another term in this career.
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+    </div>
+    ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+  ` : _forcedOutPersisted ? `
+    <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+      <span class="event-label" style="color:var(--danger)">FORCED OUT</span>
+      Your advancement roll was equal to or less than your terms served — you must leave this career.
+    </div>
+    <div class="phase-actions" style="margin-top:12px">
+      <button class="btn" id="btn-leave-career">MUSTER OUT →</button>
     </div>
     ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
   ` : _igMustLeave ? `
@@ -10773,10 +10794,20 @@ function renderAdvanceStep() {
     const lr = uiState.lastRoll;
     const advanced = lr.outcome === 'pass';
     const forcedOut = lr.forcedFromCareer || false;
-    const advDecideActions = forcedOut ? `
+    const mustContinue = lr.mustContinueCareer || false;
+    const advDecideActions = mustContinue ? `
+      <div class="event-box" style="border-color:var(--accent);margin-top:12px;background:rgba(100,180,255,0.07)">
+        <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE</span>
+        Natural 12 on your advancement roll — you are too valuable to lose and are strong-armed into staying. You must serve another term in this career.
+      </div>
+      <div class="phase-actions" style="margin-top:12px">
+        <button class="btn primary" id="btn-next-term">ANOTHER TERM →</button>
+      </div>
+      ${anagathicsBoxHTML('btn-advance-buy-anagathics')}
+    ` : forcedOut ? `
       <div class="event-box" style="border-color:var(--danger);margin-top:12px">
         <span class="event-label" style="color:var(--danger)">FORCED OUT</span>
-        Your advancement roll (${lr.data?.total ?? '?'}) is less than your terms served (${term.term_number}) — you must leave this career.
+        Your advancement roll (${lr.data?.total ?? '?'}) is equal to or less than your terms served (${term.term_number}) — you must leave this career.
       </div>
       <div class="phase-actions" style="margin-top:12px">
         <button class="btn" id="btn-leave-career">MUSTER OUT →</button>
@@ -10925,6 +10956,22 @@ function renderDecideStep() {
         </div>
         <div class="phase-actions" style="margin-top:12px">
           <button class="btn danger" id="btn-enter-forced-career">SERVE YOUR SENTENCE →</button>
+        </div>
+      ` : term.must_continue_career ? `
+        <div class="event-box" style="border-color:var(--accent);margin-top:14px;background:rgba(100,180,255,0.07)">
+          <span class="event-label" style="color:var(--accent)">⛓ MUST CONTINUE</span>
+          Natural 12 on your advancement roll — you are too valuable to lose and are strong-armed into staying. You must serve another term in this career.
+        </div>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn primary" id="btn-next-term">ANOTHER TERM IN ${esc(career.name).toUpperCase()}</button>
+        </div>
+      ` : term.forced_from_career ? `
+        <div class="event-box" style="border-color:var(--danger);margin-top:14px">
+          <span class="event-label" style="color:var(--danger)">FORCED OUT</span>
+          Your advancement roll was equal to or less than your terms served — you must leave this career.
+        </div>
+        <div class="phase-actions" style="margin-top:12px">
+          <button class="btn" id="btn-leave-career">MUSTER OUT OF ${esc(career.name).toUpperCase()}</button>
         </div>
       ` : `
         <div class="phase-actions">
