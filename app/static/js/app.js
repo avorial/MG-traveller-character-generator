@@ -6433,6 +6433,22 @@ function wireCareerPhase() {
     });
   }
 
+  // "Try Another Career" / "Back to Careers" on the qualify-fail / not-eligible
+  // screen — clears the qualify-result state so the career picker shows again.
+  // (Previously this handler only existed in wireDonePhase, so the button was
+  // dead during career creation — clicking it did nothing.)
+  const btnBackCareers = document.getElementById('btn-back-careers');
+  if (btnBackCareers) {
+    btnBackCareers.addEventListener('click', () => {
+      uiState.subPhase = null;
+      uiState.lastRoll = null;
+      uiState.selectedCareer = null;
+      uiState.selectedAssignment = null;
+      saveCharacter();
+      renderAll();
+    });
+  }
+
   const btnBeginDrafted = document.getElementById('btn-begin-drafted-term');
   if (btnBeginDrafted) {
     btnBeginDrafted.addEventListener('click', () => {
@@ -8193,6 +8209,25 @@ function renderQualifyResult() {
   }
 
   const r = roll.roll;
+  const isSemiCareer = !!career.requires_source_career;  // INI, Imperial Guard — posting, not a fresh career
+
+  // Blocked before any roll (eligibility gate failed) — roll is null. Show the
+  // reason instead of crashing on r.dice. Covers INI "must be serving in the
+  // Navy", species restrictions, vacc-suit gates, etc.
+  if (!r) {
+    return `
+      <div class="panel-header"><span class="led"></span><span>QUALIFICATION — NOT ELIGIBLE</span></div>
+      <div class="stage-content">
+        <div class="phase-label">${esc(career.name)}</div>
+        <h2 class="phase-title">Not Eligible</h2>
+        <p class="phase-body">${esc(roll.reason || 'You cannot enter this career right now.')}</p>
+        <div class="phase-actions">
+          <button class="btn primary" id="btn-back-careers">← BACK TO CAREERS</button>
+        </div>
+      </div>
+    `;
+  }
+
   if (roll.succeeded) {
     return `
       <div class="panel-header"><span class="led"></span><span>QUALIFICATION — PASS</span></div>
@@ -8210,12 +8245,17 @@ function renderQualifyResult() {
         ${renderAssignmentPicker(career)}
       </div>
     `;
-  } else {
+  }
+
+  // Failed roll on a semi-career posting (INI / Imperial Guard): NOT a draft /
+  // drifter situation. RAW: the posting is simply denied this term — the
+  // character returns to the career-select to continue their service.
+  if (isSemiCareer) {
     return `
-      <div class="panel-header"><span class="led"></span><span>QUALIFICATION — FAIL</span></div>
+      <div class="panel-header"><span class="led"></span><span>${esc(career.name).toUpperCase()} — POSTING DENIED</span></div>
       <div class="stage-content">
         <div class="phase-label">${esc(career.name)}</div>
-        <h2 class="phase-title">Rejected</h2>
+        <h2 class="phase-title">Posting Denied</h2>
         <div class="roll-readout">
           <span class="dice">[${r.dice.join(', ')}]</span>
           ${r.modifier !== 0 ? `<span class="eq">${r.modifier > 0 ? '+' : ''}${r.modifier}</span>` : ''}
@@ -8224,20 +8264,40 @@ function renderQualifyResult() {
           <span class="eq">vs ${r.target}+</span>
           <span class="outcome fail">FAIL</span>
         </div>
-        <p class="phase-body">You didn't qualify. The rules offer three options:</p>
-        <ul class="phase-body" style="padding-left:20px;line-height:1.7">
-          <li><strong>Accept the Draft</strong> — 1D determines which service takes you (Navy, Army, Marines, Merchant Marine, Scouts, or Agent). No choice in assignment, but you start a term immediately.</li>
-          <li><strong>Become a Drifter</strong> — auto-qualifies, rough life, cheap mustering benefits.</li>
-          <li><strong>Try Another Career</strong> — attempt a different qualification. Each previously failed career attempt applies DM−1 to this roll.</li>
-        </ul>
+        <p class="phase-body">Your application for the ${esc(career.name)} posting was turned down this term — but this is not a permanent rejection. Pick your previous service again to continue serving, or choose another path.</p>
         <div class="phase-actions">
-          <button class="btn primary" id="btn-accept-draft">ACCEPT THE DRAFT</button>
-          <button class="btn" id="btn-drifter-auto">BECOME A DRIFTER</button>
-          <button class="btn" id="btn-back-careers">← TRY ANOTHER CAREER</button>
+          <button class="btn primary" id="btn-back-careers">← BACK TO CAREERS</button>
         </div>
       </div>
     `;
   }
+
+  return `
+    <div class="panel-header"><span class="led"></span><span>QUALIFICATION — FAIL</span></div>
+    <div class="stage-content">
+      <div class="phase-label">${esc(career.name)}</div>
+      <h2 class="phase-title">Rejected</h2>
+      <div class="roll-readout">
+        <span class="dice">[${r.dice.join(', ')}]</span>
+        ${r.modifier !== 0 ? `<span class="eq">${r.modifier > 0 ? '+' : ''}${r.modifier}</span>` : ''}
+        <span class="eq">=</span>
+        <span class="total">${r.total}</span>
+        <span class="eq">vs ${r.target}+</span>
+        <span class="outcome fail">FAIL</span>
+      </div>
+      <p class="phase-body">You didn't qualify. The rules offer three options:</p>
+      <ul class="phase-body" style="padding-left:20px;line-height:1.7">
+        <li><strong>Accept the Draft</strong> — 1D determines which service takes you (Navy, Army, Marines, Merchant Marine, Scouts, or Agent). No choice in assignment, but you start a term immediately.</li>
+        <li><strong>Become a Drifter</strong> — auto-qualifies, rough life, cheap mustering benefits.</li>
+        <li><strong>Try Another Career</strong> — attempt a different qualification. Each previously failed career attempt applies DM−1 to this roll.</li>
+      </ul>
+      <div class="phase-actions">
+        <button class="btn primary" id="btn-accept-draft">ACCEPT THE DRAFT</button>
+        <button class="btn" id="btn-drifter-auto">BECOME A DRIFTER</button>
+        <button class="btn" id="btn-back-careers">← TRY ANOTHER CAREER</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderDraftResult() {
@@ -12691,6 +12751,12 @@ function wireDonePhase() {
   const btnBack = document.getElementById('btn-back-careers');
   if (btnBack) btnBack.addEventListener('click', () => {
     character.phase = 'career';
+    // Clear the qualify-result state so the career picker shows again instead
+    // of re-rendering the same fail/not-eligible screen.
+    uiState.subPhase = null;
+    uiState.lastRoll = null;
+    uiState.selectedCareer = null;
+    uiState.selectedAssignment = null;
     saveCharacter();
     renderAll();
   });

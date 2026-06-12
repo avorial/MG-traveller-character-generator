@@ -2,6 +2,22 @@
 
 ## Fixed Bugs
 
+### v30.73: Naval Intelligence (INI) — no failure feedback + dead "back" button
+**Report:** Trying out for Naval Intelligence "does not seem to trigger or tell you in the UI you failed."
+
+**Findings (three bugs in `renderQualifyResult` / qualify flow):**
+1. **Crash on a blocked attempt.** The INI eligibility gate (and every `_qual_block`: species restrictions, vacc-suit gates, "must be serving in the Navy") returns `roll: None`. The fail branch rendered `roll.roll.dice.join(...)` — a TypeError on `null` — so **nothing rendered**. That's the "doesn't tell you you failed."
+2. **Misleading failure screen.** A *failed roll* on a semi-career posting (INI, Imperial Guard) showed the generic "Accept the Draft / Become a Drifter" options — wrong. RAW: a denied posting is not permanent; you remain in your source service.
+3. **Dead back button.** `btn-back-careers` ("Try Another Career") was only wired in `wireDonePhase()`, never in `wireCareerPhase()`, so during career creation it had no handler — clicking did nothing. It also never cleared `subPhase`/`lastRoll`, so it would have re-shown the same screen anyway.
+
+**Fixes (`app.js`):**
+- `renderQualifyResult`: `roll === null` → a clean "Not Eligible" screen showing the block reason (no crash); a failed semi-career roll → a "Posting Denied" screen (no draft/drifter) explaining it isn't permanent; normal career failures keep the draft/drifter options.
+- Wired `btn-back-careers` in `wireCareerPhase`, clearing `subPhase`/`lastRoll`/`selectedCareer` so the career picker reappears (lets the player re-pick their Navy service to continue, or choose another path).
+
+**Verification:** Live browser — blocked INI renders the reason without throwing; failed INI roll shows "Posting Denied" with no draft/drifter; normal career failure still offers draft/drifter; back button returns to the 16-card picker (subPhase cleared). All 660 tests pass.
+
+---
+
 ### v30.72: Prisoner career — Parole Threshold mechanic (was missing; generic rules mis-fired)
 **Report:** The Prisoner career's defining rule — leave only when the advancement roll exceeds a Parole Threshold (1D+2, cap 12); mishaps can't eject; no anagathics in prison.
 
