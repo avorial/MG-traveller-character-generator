@@ -12978,6 +12978,202 @@ async function exportPDF() {
   }
 }
 
+// ── NPC generator modal ────────────────────────────────────────────────────
+let _npcOptions = null;       // {species, roles, experience} fetched once
+let _npcRoster = [];          // last batch of generated NPCs
+
+function _npcLoadPrefs() {
+  try { return JSON.parse(localStorage.getItem('traveller-npc-prefs')) || {}; }
+  catch (e) { return {}; }
+}
+function _npcSavePrefs(p) { localStorage.setItem('traveller-npc-prefs', JSON.stringify(p)); }
+
+async function openNpcModal() {
+  const modal = document.getElementById('npc-modal');
+  if (!modal) return;
+  modal.hidden = false;
+  if (!_npcOptions) {
+    try {
+      const res = await fetch('/api/character/npc-options');
+      _npcOptions = await res.json();
+    } catch (e) {
+      _npcOptions = { species: [], roles: [], experience: [
+        { id: 'rookie', label: 'Rookie' }, { id: 'regular', label: 'Regular' },
+        { id: 'veteran', label: 'Veteran' }, { id: 'elite', label: 'Elite' }] };
+    }
+  }
+  renderNpcModal();
+  wireNpcModal();
+}
+
+function closeNpcModal() {
+  const modal = document.getElementById('npc-modal');
+  if (modal) modal.hidden = true;
+}
+
+function renderNpcModal() {
+  const body = document.getElementById('npc-modal-body');
+  if (!body) return;
+  const prefs = _npcLoadPrefs();
+  const opt = _npcOptions || { species: [], roles: [], experience: [] };
+  const sel = (id, label, options, current) => `
+    <label style="display:flex;flex-direction:column;gap:4px;font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">
+      ${label}
+      <select id="${id}" class="muster-assoc-input" style="flex:none">${options.map(o =>
+        `<option value="${o.value}" ${o.value === current ? 'selected' : ''}>${escapeHTML(o.label)}</option>`).join('')}</select>
+    </label>`;
+  const speciesOpts = [{ value: 'random', label: 'Random' }, ...opt.species.map(s => ({ value: s.id, label: s.name }))];
+  const roleOpts = [{ value: 'random', label: 'Random' }, ...opt.roles.map(r => ({ value: r.id, label: r.label }))];
+  const expOpts = opt.experience.map(e => ({ value: e.id, label: e.label }));
+
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${sel('npc-species', 'SPECIES', speciesOpts, prefs.species_id || 'random')}
+      ${sel('npc-role', 'ROLE / ARCHETYPE', roleOpts, prefs.role || 'random')}
+      ${sel('npc-experience', 'EXPERIENCE', expOpts, prefs.experience || 'regular')}
+      <label style="display:flex;flex-direction:column;gap:4px;font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">
+        HOW MANY (1–12)
+        <input type="number" id="npc-count" class="muster-assoc-input" style="flex:none" min="1" max="12" value="${prefs.count || 1}" />
+      </label>
+    </div>
+    <div class="phase-actions" style="margin-top:14px">
+      <button class="btn primary" id="btn-npc-generate">✦ GENERATE</button>
+    </div>
+    <div id="npc-roster" style="margin-top:14px">${renderNpcRoster()}</div>
+  `;
+}
+
+function _npcSummary(npc) {
+  const top = [...(npc.skills || [])]
+    .filter(s => s.level >= 1)
+    .sort((a, b) => b.level - a.level)
+    .slice(0, 4)
+    .map(s => `${s.name}${s.speciality ? ` (${s.speciality})` : ''} ${s.level}`)
+    .join(', ');
+  const ch = npc.characteristics || {};
+  const upp = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
+    .map(k => (ch[k] ?? 0).toString(16).toUpperCase()).join('');
+  return { top: top || 'no trained skills', upp };
+}
+
+function renderNpcRoster() {
+  if (!_npcRoster.length) return '';
+  const multi = _npcRoster.length > 1;
+  const rows = _npcRoster.map((npc, i) => {
+    const s = _npcSummary(npc);
+    const spLabel = (SPECIES.find(x => x.id === npc.species_id) || {}).name || npc.species_id || '';
+    return `
+      <div class="event-box" style="margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+          <strong>${escapeHTML(npc.name || `NPC ${i + 1}`)}</strong>
+          <span class="empty" style="font-size:11px">${escapeHTML(spLabel)} · age ${npc.age ?? '?'} · UPP ${s.upp}</span>
+        </div>
+        <div class="empty" style="font-size:11px;margin-top:4px">${escapeHTML(s.top)}</div>
+        <div class="phase-actions" style="gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" data-npc-load="${i}">LOAD</button>
+          <button class="btn ghost" data-npc-json="${i}">JSON</button>
+          <button class="btn ghost" data-npc-foundry="${i}">⬇ FOUNDRY</button>
+        </div>
+      </div>`;
+  }).join('');
+  const allBtns = multi ? `
+    <div class="phase-actions" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn ghost" id="btn-npc-all-json">⬇ EXPORT ALL (JSON)</button>
+      <button class="btn ghost" id="btn-npc-all-foundry">⬇ EXPORT ALL (FOUNDRY)</button>
+    </div>` : '';
+  return `<div class="picker-status" style="margin:6px 0">Generated ${_npcRoster.length} NPC${multi ? 's' : ''}:</div>${rows}${allBtns}`;
+}
+
+function _downloadBlob(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function _npcFoundryActor(npc) {
+  const res = await fetch('/api/character/export-foundry', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ character: npc, include_source: uiState.includeFoundrySource !== false }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function wireNpcModal() {
+  document.getElementById('btn-close-npc')?.addEventListener('click', closeNpcModal);
+
+  document.getElementById('btn-npc-generate')?.addEventListener('click', async () => {
+    const species_id = document.getElementById('npc-species')?.value || 'random';
+    const role = document.getElementById('npc-role')?.value || 'random';
+    const experience = document.getElementById('npc-experience')?.value || 'regular';
+    let count = parseInt(document.getElementById('npc-count')?.value, 10) || 1;
+    count = Math.max(1, Math.min(count, 12));
+    _npcSavePrefs({ species_id, role, experience, count });
+    const btn = document.getElementById('btn-npc-generate');
+    btn.textContent = 'GENERATING…'; btn.disabled = true;
+    try {
+      const res = await fetch('/api/character/generate-npc', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ species_id, role, experience, count }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      _npcRoster = (data.npcs || []).map(npc => {
+        if (!npc.name) npc.name = generateSpeciesName(npc.species_id);
+        return npc;
+      });
+      renderNpcModal();
+      wireNpcModal();
+    } catch (e) {
+      alert('NPC generation failed: ' + e.message);
+      btn.textContent = '✦ GENERATE'; btn.disabled = false;
+    }
+  });
+
+  // Per-NPC actions
+  document.querySelectorAll('[data-npc-load]').forEach(b => b.addEventListener('click', () => {
+    const npc = _npcRoster[+b.dataset.npcLoad];
+    if (!npc) return;
+    if (!confirm(`Load ${npc.name} as the current character? This replaces the character on screen.`)) return;
+    character = JSON.parse(JSON.stringify(npc));
+    saveCharacter();
+    closeNpcModal();
+    renderAll();
+  }));
+  document.querySelectorAll('[data-npc-json]').forEach(b => b.addEventListener('click', () => {
+    const npc = _npcRoster[+b.dataset.npcJson];
+    if (npc) _downloadBlob(npc, `${(npc.name || 'npc').replace(/\s+/g, '_')}.json`);
+  }));
+  document.querySelectorAll('[data-npc-foundry]').forEach(b => b.addEventListener('click', async () => {
+    const npc = _npcRoster[+b.dataset.npcFoundry];
+    if (!npc) return;
+    b.textContent = '…'; b.disabled = true;
+    try {
+      const actor = await _npcFoundryActor(npc);
+      _downloadBlob(actor, `${(npc.name || 'npc').replace(/\s+/g, '_')}_foundry.json`);
+    } catch (e) { alert('Foundry export failed: ' + e.message); }
+    finally { b.textContent = '⬇ FOUNDRY'; b.disabled = false; }
+  }));
+
+  // Export-all
+  document.getElementById('btn-npc-all-json')?.addEventListener('click', () => {
+    _downloadBlob(_npcRoster, `npc_group_${_npcRoster.length}.json`);
+  });
+  document.getElementById('btn-npc-all-foundry')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-npc-all-foundry');
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const actors = [];
+      for (const npc of _npcRoster) actors.push(await _npcFoundryActor(npc));
+      _downloadBlob(actors, `npc_group_${_npcRoster.length}_foundry.json`);
+    } catch (e) { alert('Foundry export failed: ' + e.message); }
+    finally { btn.textContent = '⬇ EXPORT ALL (FOUNDRY)'; btn.disabled = false; }
+  });
+}
+
 async function exportFoundry() {
   const btn = document.getElementById('btn-export-foundry');
   if (btn) { btn.textContent = 'GENERATING…'; btn.disabled = true; }
@@ -13178,25 +13374,7 @@ async function bootstrap() {
     }
   });
 
-  document.getElementById('btn-make-npc').addEventListener('click', async () => {
-    if (!confirm('Generate a complete NPC? This will replace the current character.')) return;
-    const btn = document.getElementById('btn-make-npc');
-    btn.textContent = 'GENERATING…';
-    btn.disabled = true;
-    try {
-      const res = await fetch('/api/character/generate-npc');
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      character = data.character;
-      saveCharacter();
-      renderAll();
-    } catch (e) {
-      alert('NPC generation failed: ' + e.message);
-    } finally {
-      btn.textContent = 'MAKE NPC';
-      btn.disabled = false;
-    }
-  });
+  document.getElementById('btn-make-npc').addEventListener('click', openNpcModal);
 
   // Description toggle (¶ button) — hides .card-desc on all picker cards
   const btnDesc = document.getElementById('btn-desc-toggle');

@@ -2,6 +2,22 @@
 
 ## Fixed Bugs
 
+### v30.74: Expanded NPC generator — species / role / experience / batch (feature)
+**Request:** Expand the MAKE NPC button — generation controls, role archetypes, experience tiers, and batch/group generation.
+
+**Implementation:**
+- **`lifepath.py`** — `generate_npc(species_id, role, experience)` parameterized; new `generate_npc_batch(count, …)`.
+  - **Species:** curated, clean-applying list (Imperial Human, Solomani, Vargr, Aslan, Bwap) via `apply_species`, or random; falls back to Imperial Human if a species needs interaction.
+  - **Role/archetype:** `NPC_ROLE_PACKAGES` maps 12 roles (soldier, officer, pilot, scout, agent, criminal, scholar, medic, noble, trader, entertainer, drifter) onto career packages; biases the random pick.
+  - **Experience:** rookie/regular/veteran/elite scale skill depth (+0/+2/+4/+6 bumps), age (+0/+4/+12/+20 yrs), and an Elite stat bump (respecting species caps). Bumps target trained skills, never bare cascade parents.
+  - **Cascade cleanup:** `_npc_resolve_cascade_parents` converts generic package parents (e.g. "Gunner 1") into real specialities so NPCs export cleanly to VTT.
+- **`main.py`** — `GET /api/character/npc-options` (UI lists); `POST /api/character/generate-npc` (options + count → `{npcs:[…]}`); legacy `GET` retained.
+- **`app.js` + `index.html`** — MAKE NPC now opens an **NPC Generator modal**: species/role/experience/count, GENERATE, and a roster. Each NPC shows name (species-appropriate, auto-generated), UPP, age, top skills, with **LOAD / JSON / ⬇ FOUNDRY**; batches add **EXPORT ALL (JSON / FOUNDRY)**. Last-used options persist in localStorage.
+
+**Verification:** Backend — species variants resolve, soldier role yields military skills 40/40, experience scales skills+age monotonically, batch varied, 0 cascade-parent violations / no duplicate specialities. Live browser — modal renders, 3 Vargr veteran soldiers generated with names + role-appropriate skills, per-NPC Foundry export returns a valid `traveller` actor, LOAD replaces the character. All 660 tests pass.
+
+---
+
 ### v30.73: Naval Intelligence (INI) — no failure feedback + dead "back" button
 **Report:** Trying out for Naval Intelligence "does not seem to trigger or tell you in the UI you failed."
 

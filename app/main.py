@@ -1298,9 +1298,42 @@ async def api_import_foundry(action: FoundryImportAction):
 
 @app.get("/api/character/generate-npc")
 async def api_generate_npc():
-    """Generate a fully fleshed-out NPC character server-side."""
+    """Generate a single random NPC (legacy/no-options entry point)."""
     try:
         return lifepath.generate_npc()
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+class NPCGenOptions(BaseModel):
+    count: int = 1
+    species_id: Optional[str] = None   # None/"random" → random from curated list
+    role: Optional[str] = None         # None/"random" → no career bias
+    experience: str = "regular"        # rookie | regular | veteran | elite
+
+
+@app.get("/api/character/npc-options")
+async def api_npc_options():
+    """Return the option lists for the NPC generator UI (species, roles, tiers)."""
+    species = [
+        {"id": sid, "name": rules.species().get(sid, {}).get("name", sid)}
+        for sid in lifepath.NPC_SPECIES_CHOICES
+    ]
+    roles = [{"id": rid, "label": lifepath.NPC_ROLE_LABELS.get(rid, rid)}
+             for rid in lifepath.NPC_ROLE_PACKAGES]
+    experience = [{"id": eid, "label": cfg["label"]}
+                  for eid, cfg in lifepath.NPC_EXPERIENCE.items()]
+    return {"species": species, "roles": roles, "experience": experience}
+
+
+@app.post("/api/character/generate-npc")
+async def api_generate_npc_batch(opts: NPCGenOptions):
+    """Generate one or more NPCs with the given options."""
+    try:
+        return lifepath.generate_npc_batch(
+            count=opts.count, species_id=opts.species_id,
+            role=opts.role, experience=opts.experience,
+        )
     except Exception as e:
         raise HTTPException(500, str(e))
 

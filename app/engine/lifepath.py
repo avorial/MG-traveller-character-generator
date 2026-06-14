@@ -18209,13 +18209,111 @@ def _npc_best_assignment(career: dict, character: "Character") -> str:
     return best_id
 
 
-def generate_npc() -> dict:
+# NPC generation options ─────────────────────────────────────────────────────
+# Species offered in the NPC generator. Curated to the common Imperial-setting
+# species that apply cleanly via apply_species (no pending choices required).
+NPC_SPECIES_CHOICES: list[str] = [
+    "imperial_human", "solomani_human", "vargr", "aslan", "bwap",
+]
+
+# Role/archetype → career-package candidates. Generation biases the random
+# career-package pick toward these; falls back to any eligible package.
+NPC_ROLE_PACKAGES: dict[str, list[str]] = {
+    "soldier":     ["military_enlisted", "marine", "barbarian"],
+    "officer":     ["military_officer", "spacer_command"],
+    "pilot":       ["spacer_crew", "scout"],
+    "scout":       ["scout"],
+    "agent":       ["agent", "rogue"],
+    "criminal":    ["rogue", "corsair", "barbarian"],
+    "scholar":     ["scholar"],
+    "medic":       ["medic"],
+    "noble":       ["noble"],
+    "trader":      ["administrator", "citizen"],
+    "entertainer": ["performer"],
+    "drifter":     ["wanderer"],
+}
+
+NPC_ROLE_LABELS: dict[str, str] = {
+    "soldier": "Soldier", "officer": "Officer", "pilot": "Pilot/Spacer",
+    "scout": "Scout", "agent": "Agent/Spy", "criminal": "Criminal",
+    "scholar": "Scholar/Scientist", "medic": "Medic", "noble": "Noble",
+    "trader": "Trader/Official", "entertainer": "Entertainer", "drifter": "Drifter",
+}
+
+# Experience tier → extra skill bumps, extra age (years), and an elite stat boost.
+NPC_EXPERIENCE: dict[str, dict] = {
+    "rookie":  {"label": "Rookie",  "skill_bumps": 0, "extra_years": 0,  "stat_bump": 0},
+    "regular": {"label": "Regular", "skill_bumps": 2, "extra_years": 4,  "stat_bump": 0},
+    "veteran": {"label": "Veteran", "skill_bumps": 4, "extra_years": 12, "stat_bump": 0},
+    "elite":   {"label": "Elite",   "skill_bumps": 6, "extra_years": 20, "stat_bump": 1},
+}
+
+# Cascade parents must never hold a level above 0 (levels live on specialities).
+_NPC_CASCADE_PARENTS = frozenset(_NPC_CASCADE_SPECS.keys())
+
+
+def _npc_apply_experience(char: Character, experience: str) -> None:
+    """Layer an experience tier onto a freshly package-built NPC: bump existing
+    skills, age the character, and (for Elite) nudge a characteristic."""
+    cfg = NPC_EXPERIENCE.get(experience, NPC_EXPERIENCE["regular"])
+
+    # Bump existing trained skills by +1 (cap 4). Bare cascade parents only ever
+    # hold level 0, so the level>=1 filter already excludes them — speciality
+    # skills (e.g. "Melee (blade)") remain bumpable.
+    bumpable = [sk for sk in char.skills if 1 <= sk.level < 4]
+    random.shuffle(bumpable)
+    for sk in bumpable[: cfg["skill_bumps"]]:
+        sk.level += 1
+
+    if cfg["extra_years"]:
+        char.age += cfg["extra_years"]
+
+    if cfg["stat_bump"]:
+        # Nudge a random characteristic up by 1, respecting the species cap.
+        sp_data = rules.species().get(char.species_id or "", {})
+        stats = ["STR", "DEX", "END", "INT", "EDU", "SOC"]
+        random.shuffle(stats)
+        for st in stats:
+            cur = char.characteristics.get(st) or 0
+            cap = _stat_cap(sp_data, st)
+            if cur < cap:
+                char.characteristics.set(st, cur + cfg["stat_bump"])
+                break
+
+
+def _npc_resolve_cascade_parents(char: Character) -> None:
+    """Package builds can leave a cascade parent (e.g. "Gunner") trained at
+    level>0 with no speciality. Cascade parents may only hold level 0, so give
+    each such skill a random speciality (merging if that speciality exists)."""
+    from .character import Skill
+    for sk in list(char.skills):
+        if sk.name in _NPC_CASCADE_PARENTS and sk.speciality is None and sk.level > 0:
+            used = [s.speciality for s in char.skills
+                    if s.name == sk.name and s.speciality]
+            spec = _npc_random_spec(sk.name, exclude=[u for u in used if u])
+            existing = next((s for s in char.skills
+                             if s.name == sk.name and s.speciality
+                             and s.speciality.lower() == spec.lower()), None)
+            if existing:
+                existing.level = max(existing.level, sk.level)
+                char.skills.remove(sk)
+            else:
+                sk.speciality = spec
+            # Ensure a bare parent-at-0 entry exists for the cascade structure.
+            if not any(s.name == sk.name and s.speciality is None for s in char.skills):
+                char.skills.append(Skill(name=sk.name, level=0, speciality=None))
+
+
+def generate_npc(species_id: Optional[str] = None,
+                 role: Optional[str] = None,
+                 experience: str = "regular") -> dict:
     """Generate a complete NPC character automatically using background + career packages.
 
-    1. Rolls characteristics.
-    2. Applies a random background package (filters Noble for low SOC).
-    3. Applies a random career package with random finalising choices.
-    4. Sets phase = 'done'.
+    1. Rolls characteristics and applies the chosen (or random) species.
+    2. Applies a random background package (filters by min SOC).
+    3. Applies a career package biased toward the chosen role (or random).
+    4. Layers the experience tier (skill depth, age, elite stat bump).
+    5. Sets phase = 'done'.
     """
     char = Character()
 
@@ -18223,11 +18321,21 @@ def generate_npc() -> dict:
     for stat, val in dice.roll_characteristics().items():
         setattr(char.characteristics, stat, val)
 
-    # ── Species: Imperial Human ───────────────────────────────────────────
-    sp = rules.species().get("imperial_human", {})
-    char.species_id = "imperial_human"
-    char.traits     = sp.get("traits", [])
-    char.phase      = "background"
+    # ── Species (chosen or random from the curated list) ──────────────────
+    if not species_id or species_id == "random":
+        species_id = random.choice(NPC_SPECIES_CHOICES)
+    char.phase = "setup"
+    try:
+        apply_species(char, species_id)
+    except Exception:
+        # Fall back to Imperial Human if the chosen species needs interaction.
+        char = Character()
+        for stat, val in dice.roll_characteristics().items():
+            setattr(char.characteristics, stat, val)
+        species_id = "imperial_human"
+        char.phase = "setup"
+        apply_species(char, species_id)
+    char.phase = "background"
 
     # ── Background package (random) ───────────────────────────────────────
     bg_packages = rules.background_packages()
@@ -18251,6 +18359,12 @@ def generate_npc() -> dict:
         pkg for pkg in cp_pkgs.values()
         if not (pkg.get("min_soc") and char.characteristics.SOC < pkg["min_soc"])
     ]
+    # Bias toward the chosen role's career packages (if any are eligible).
+    if role and role != "random":
+        role_ids = NPC_ROLE_PACKAGES.get(role, [])
+        role_eligible = [pkg for pkg in eligible_cp if pkg["id"] in role_ids]
+        if role_eligible:
+            eligible_cp = role_eligible
     cp_pkg = random.choice(eligible_cp)
     cp_skill_choices = _npc_random_skill_choices(cp_pkg)
 
@@ -18318,12 +18432,37 @@ def generate_npc() -> dict:
     )
     # phase is now "skill_package" — skip it for NPC
 
+    # ── Experience tier (skill depth, age, elite stat bump) ───────────────
+    _npc_apply_experience(char, experience)
+
+    # ── Resolve any generic cascade parents to real specialities ──────────
+    _npc_resolve_cascade_parents(char)
+
     char.phase = "done"
+    _sp_name = rules.species().get(char.species_id or "", {}).get("name", char.species_id)
+    _exp_label = NPC_EXPERIENCE.get(experience, NPC_EXPERIENCE["regular"])["label"]
     char.log(
-        f"NPC generation complete — background: {bg_pkg['name']}, "
-        f"career: {cp_pkg['name']}, age {char.age}."
+        f"NPC generation complete — {_sp_name}, {_exp_label}, background: "
+        f"{bg_pkg['name']}, career: {cp_pkg['name']}, age {char.age}."
     )
     return {"character": char.model_dump()}
+
+
+def generate_npc_batch(count: int = 1,
+                       species_id: Optional[str] = None,
+                       role: Optional[str] = None,
+                       experience: str = "regular") -> dict:
+    """Generate a batch of NPCs. Returns {"npcs": [character_dict, ...]}.
+
+    Each NPC re-rolls characteristics, species (if 'random'), role bias (if
+    'random'), and finalising choices independently, so a group is varied.
+    """
+    count = max(1, min(int(count or 1), 12))
+    npcs = []
+    for _ in range(count):
+        npcs.append(generate_npc(species_id=species_id, role=role,
+                                 experience=experience)["character"])
+    return {"npcs": npcs}
 
 
 # ============================================================
