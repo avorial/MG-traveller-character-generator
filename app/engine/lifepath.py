@@ -18291,22 +18291,65 @@ NPC_ROLE_LABELS: dict[str, str] = {
     "trader": "Trader/Official", "entertainer": "Entertainer", "drifter": "Drifter",
 }
 
-# Experience tier → extra skill bumps, extra age (years), and an elite stat boost.
+# Experience tier → extra skill bumps, extra age (years), and a stat boost.
+# "stat_bump" = how many distinct characteristics get +1.
+# "terms" (optional) = (min, max) career terms; sets age directly instead of
+# extra_years. "second_career" grafts a second career package's skills.
 NPC_EXPERIENCE: dict[str, dict] = {
-    "rookie":  {"label": "Rookie",  "skill_bumps": 0, "extra_years": 0,  "stat_bump": 0},
-    "regular": {"label": "Regular", "skill_bumps": 2, "extra_years": 4,  "stat_bump": 0},
-    "veteran": {"label": "Veteran", "skill_bumps": 4, "extra_years": 12, "stat_bump": 0},
-    "elite":   {"label": "Elite",   "skill_bumps": 6, "extra_years": 20, "stat_bump": 1},
+    "rookie":  {"label": "Rookie",  "skill_bumps": 0,  "extra_years": 0,  "stat_bump": 0},
+    "regular": {"label": "Regular", "skill_bumps": 2,  "extra_years": 4,  "stat_bump": 0},
+    "veteran": {"label": "Veteran", "skill_bumps": 4,  "extra_years": 12, "stat_bump": 0},
+    "elite":   {"label": "Elite",   "skill_bumps": 6,  "extra_years": 20, "stat_bump": 1},
+    "patron":  {"label": "Patron (7–10 terms)", "skill_bumps": 12, "extra_years": 0,
+                "stat_bump": 2, "terms": (7, 10), "second_career": True},
 }
 
 # Cascade parents must never hold a level above 0 (levels live on specialities).
 _NPC_CASCADE_PARENTS = frozenset(_NPC_CASCADE_SPECS.keys())
 
 
-def _npc_apply_experience(char: Character, experience: str) -> None:
+def _npc_graft_second_career(char: Character, primary_pkg_id: str) -> None:
+    """Merge a second (different) career package's skills onto the NPC to
+    represent a long, multi-career history. Skills merge by max level (cap 4);
+    'any' skills resolve to a random speciality."""
+    from .character import Skill
+    cp_pkgs = rules.career_packages().get("packages", {})
+    candidates = [
+        pid for pid, pkg in cp_pkgs.items()
+        if pid != primary_pkg_id
+        and not (pkg.get("min_soc") and (char.characteristics.SOC or 0) < pkg["min_soc"])
+    ]
+    if not candidates:
+        return
+    pkg = cp_pkgs[random.choice(candidates)]
+    for sk in pkg.get("skills", []):
+        if sk["level"] < 1:
+            continue
+        name = sk["name"]
+        spec = sk.get("speciality")
+        if sk.get("any"):
+            used = [s.speciality for s in char.skills if s.name == name and s.speciality]
+            spec = _npc_random_spec(name, exclude=[u for u in used if u])
+        lvl = min(int(sk["level"]), 4)
+        existing = next(
+            (s for s in char.skills if s.name == name
+             and (s.speciality or None) == (spec or None)), None)
+        if existing:
+            existing.level = max(existing.level, lvl)
+        else:
+            char.skills.append(Skill(name=name, level=lvl, speciality=spec))
+
+
+def _npc_apply_experience(char: Character, experience: str,
+                          primary_pkg_id: Optional[str] = None) -> None:
     """Layer an experience tier onto a freshly package-built NPC: bump existing
-    skills, age the character, and (for Elite) nudge a characteristic."""
+    skills, age the character, and nudge characteristics. The Patron tier also
+    grafts a second career and sets age to a 7–10 term lifetime."""
     cfg = NPC_EXPERIENCE.get(experience, NPC_EXPERIENCE["regular"])
+
+    # Patron: a second career's worth of skills before bumping.
+    if cfg.get("second_career") and primary_pkg_id:
+        _npc_graft_second_career(char, primary_pkg_id)
 
     # Bump existing trained skills by +1 (cap 4). Bare cascade parents only ever
     # hold level 0, so the level>=1 filter already excludes them — speciality
@@ -18316,20 +18359,26 @@ def _npc_apply_experience(char: Character, experience: str) -> None:
     for sk in bumpable[: cfg["skill_bumps"]]:
         sk.level += 1
 
-    if cfg["extra_years"]:
+    # Age: a "terms" tier sets a full career lifetime; otherwise add extra_years.
+    if cfg.get("terms"):
+        lo, hi = cfg["terms"]
+        char.age = 18 + random.randint(lo, hi) * 4
+    elif cfg["extra_years"]:
         char.age += cfg["extra_years"]
 
+    # Nudge N distinct characteristics up by 1, respecting species caps.
     if cfg["stat_bump"]:
-        # Nudge a random characteristic up by 1, respecting the species cap.
         sp_data = rules.species().get(char.species_id or "", {})
         stats = ["STR", "DEX", "END", "INT", "EDU", "SOC"]
         random.shuffle(stats)
+        bumped = 0
         for st in stats:
-            cur = char.characteristics.get(st) or 0
-            cap = _stat_cap(sp_data, st)
-            if cur < cap:
-                char.characteristics.set(st, cur + cfg["stat_bump"])
+            if bumped >= cfg["stat_bump"]:
                 break
+            cur = char.characteristics.get(st) or 0
+            if cur < _stat_cap(sp_data, st):
+                char.characteristics.set(st, cur + 1)
+                bumped += 1
 
 
 def _npc_resolve_cascade_parents(char: Character) -> None:
@@ -18483,8 +18532,8 @@ def generate_npc(species_id: Optional[str] = None,
     )
     # phase is now "skill_package" — skip it for NPC
 
-    # ── Experience tier (skill depth, age, elite stat bump) ───────────────
-    _npc_apply_experience(char, experience)
+    # ── Experience tier (skill depth, age, stat bumps, patron 2nd career) ─
+    _npc_apply_experience(char, experience, primary_pkg_id=cp_pkg["id"])
 
     # ── Resolve any generic cascade parents to real specialities ──────────
     _npc_resolve_cascade_parents(char)

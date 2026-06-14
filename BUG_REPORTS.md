@@ -2,6 +2,20 @@
 
 ## Fixed Bugs
 
+### v30.76: NPC generator — "Patron" experience tier (7–10 terms)
+**Request:** Add a patron-level NPC that gets 7 to 10 terms.
+
+**Implementation (`lifepath.py`):** New `patron` experience tier above Elite.
+- **Age:** set directly to a full career lifetime — `18 + randint(7,10)×4` (= 46–58).
+- **Depth:** 12 skill bumps (cap 4), so several skills reach level 3–4 — a recognised expert.
+- **Breadth:** `_npc_graft_second_career` merges a second (different) career package's skills onto the NPC, representing a long multi-career history; merges by max level, resolves 'any' to a random speciality, no duplicate specialities.
+- **Characteristics:** 2 distinct stat bumps (species-cap aware). `stat_bump` now means "how many characteristics get +1" for all tiers.
+- The experience dropdown and `/npc-options` pick the new tier up automatically (they iterate `NPC_EXPERIENCE`).
+
+**Verification:** Patron NPCs land age 46–58, ~34 total skill levels (vs ~21 Elite) across ~15–17 trained skills with peaks at 3–4; zero cascade-parent violations, no duplicate specialities; tier progression veteran→elite→patron is monotonic. Live dropdown shows "Patron (7–10 terms)"; a generated patron came out age 46 with Astrogation 4 / Pilot 3. All 660 tests pass.
+
+---
+
 ### v30.75: NPC generator species list revised (uplifts, Zhodani, Random Alien)
 **Request:** NPC species options should be Imperial Human / Solomani Human / Uplifted (Ape/Dolphin) / Aslan / Vargr / Zhodani / Random Alien.
 
