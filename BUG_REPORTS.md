@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.75: NPC generator species list revised (uplifts, Zhodani, Random Alien)
+**Request:** NPC species options should be Imperial Human / Solomani Human / Uplifted (Ape/Dolphin) / Aslan / Vargr / Zhodani / Random Alien.
+
+**Change (`lifepath.py` + `main.py` + `app.js`):**
+- Replaced the curated id list with `NPC_SPECIES_OPTIONS` (ordered id/label) matching the request. "uplifted" and "random_alien" are **meta-options** resolved to a concrete species at generation time by `_npc_resolve_species`: uplifted → {chimp, gorilla, dolphin}; random_alien → {aslan, vargr, zhodani, ape×2, dolphin, orca}.
+- `_npc_resolve_species_pendings` auto-resolves any pending choice `apply_species` leaves — notably the **Zhodani PSI ruleset** (NPCs use the Sourcebook rule, so Zhodani NPCs get PSI) — so no NPC is generated in a stuck/pending state.
+- `/npc-options` now returns the new labelled list; the UI dropdown shows exactly the seven options (no extra generic "Random"; default Imperial Human).
+
+**Verification:** Each option generates 12/12 with the expected concrete species and zero leftover pending choices; Zhodani NPCs roll PSI (e.g. 8–12); live dropdown shows the seven options; uplifted/random_alien resolve to varied species. All 660 tests pass.
+
+---
+
 ### v30.74: Expanded NPC generator — species / role / experience / batch (feature)
 **Request:** Expand the MAKE NPC button — generation controls, role archetypes, experience tiers, and batch/group generation.
 

@@ -1316,8 +1316,8 @@ class NPCGenOptions(BaseModel):
 async def api_npc_options():
     """Return the option lists for the NPC generator UI (species, roles, tiers)."""
     species = [
-        {"id": sid, "name": rules.species().get(sid, {}).get("name", sid)}
-        for sid in lifepath.NPC_SPECIES_CHOICES
+        {"id": o["id"], "name": o["label"]}
+        for o in lifepath.NPC_SPECIES_OPTIONS
     ]
     roles = [{"id": rid, "label": lifepath.NPC_ROLE_LABELS.get(rid, rid)}
              for rid in lifepath.NPC_ROLE_PACKAGES]

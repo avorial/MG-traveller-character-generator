@@ -13022,13 +13022,13 @@ function renderNpcModal() {
       <select id="${id}" class="muster-assoc-input" style="flex:none">${options.map(o =>
         `<option value="${o.value}" ${o.value === current ? 'selected' : ''}>${escapeHTML(o.label)}</option>`).join('')}</select>
     </label>`;
-  const speciesOpts = [{ value: 'random', label: 'Random' }, ...opt.species.map(s => ({ value: s.id, label: s.name }))];
+  const speciesOpts = opt.species.map(s => ({ value: s.id, label: s.name }));
   const roleOpts = [{ value: 'random', label: 'Random' }, ...opt.roles.map(r => ({ value: r.id, label: r.label }))];
   const expOpts = opt.experience.map(e => ({ value: e.id, label: e.label }));
 
   body.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      ${sel('npc-species', 'SPECIES', speciesOpts, prefs.species_id || 'random')}
+      ${sel('npc-species', 'SPECIES', speciesOpts, prefs.species_id || 'imperial_human')}
       ${sel('npc-role', 'ROLE / ARCHETYPE', roleOpts, prefs.role || 'random')}
       ${sel('npc-experience', 'EXPERIENCE', expOpts, prefs.experience || 'regular')}
       <label style="display:flex;flex-direction:column;gap:4px;font-family:var(--font-mono);font-size:11px;color:var(--amber-dim)">

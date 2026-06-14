@@ -18210,11 +18210,62 @@ def _npc_best_assignment(career: dict, character: "Character") -> str:
 
 
 # NPC generation options ─────────────────────────────────────────────────────
-# Species offered in the NPC generator. Curated to the common Imperial-setting
-# species that apply cleanly via apply_species (no pending choices required).
-NPC_SPECIES_CHOICES: list[str] = [
-    "imperial_human", "solomani_human", "vargr", "aslan", "bwap",
+# Species offered in the NPC generator UI (ordered). "uplifted" and
+# "random_alien" are meta-options resolved to a concrete species at generation
+# time by _npc_resolve_species.
+NPC_SPECIES_OPTIONS: list[dict] = [
+    {"id": "imperial_human", "label": "Imperial Human"},
+    {"id": "solomani_human", "label": "Solomani Human"},
+    {"id": "uplifted",       "label": "Uplifted (Ape / Dolphin)"},
+    {"id": "aslan",          "label": "Aslan"},
+    {"id": "vargr",          "label": "Vargr"},
+    {"id": "zhodani",        "label": "Zhodani"},
+    {"id": "random_alien",   "label": "Random Alien"},
 ]
+
+# Concrete species pools backing the meta-options.
+_NPC_HUMAN_SPECIES    = ["imperial_human", "solomani_human"]
+_NPC_UPLIFTED_SPECIES = ["uplifted_ape_chimp", "uplifted_ape_gorilla", "dolphin"]
+_NPC_ALIEN_SPECIES    = ["aslan", "vargr", "zhodani",
+                         "uplifted_ape_chimp", "uplifted_ape_gorilla",
+                         "dolphin", "uplifted_orca"]
+# Legacy alias retained for any external callers.
+NPC_SPECIES_CHOICES = _NPC_HUMAN_SPECIES + ["vargr", "aslan", "bwap"]
+
+
+def _npc_resolve_species(species_id: Optional[str]) -> str:
+    """Resolve a UI species selection (incl. meta-options) to a concrete id."""
+    if species_id in (None, "", "random"):
+        return random.choice(_NPC_HUMAN_SPECIES + _NPC_ALIEN_SPECIES)
+    if species_id == "uplifted":
+        return random.choice(_NPC_UPLIFTED_SPECIES)
+    if species_id == "random_alien":
+        return random.choice(_NPC_ALIEN_SPECIES)
+    return species_id
+
+
+def _npc_resolve_species_pendings(char: Character) -> None:
+    """Auto-resolve any pending choice apply_species left on an NPC (e.g. the
+    Zhodani PSI ruleset, or a species skill-grant choice)."""
+    pend = char.pending_life_event_choice
+    if not pend:
+        return
+    kind = pend.get("kind")
+    if kind == "zhodani_psi_ruleset":
+        # NPCs use the standard Sourcebook rule (all Zhodani have PSI).
+        resolve_zhodani_psi_choice(char, "sourcebook")
+    elif pend.get("options"):
+        # Generic species skill-grant choice — pick one at random and clear it.
+        choice = random.choice(pend["options"])
+        skill = choice.get("name") or choice.get("id") or choice.get("label")
+        if skill:
+            try:
+                char.add_skill(str(skill), 0)
+            except Exception:
+                pass
+        char.pending_life_event_choice = None
+    else:
+        char.pending_life_event_choice = None
 
 # Role/archetype → career-package candidates. Generation biases the random
 # career-package pick toward these; falls back to any eligible package.
@@ -18321,12 +18372,12 @@ def generate_npc(species_id: Optional[str] = None,
     for stat, val in dice.roll_characteristics().items():
         setattr(char.characteristics, stat, val)
 
-    # ── Species (chosen or random from the curated list) ──────────────────
-    if not species_id or species_id == "random":
-        species_id = random.choice(NPC_SPECIES_CHOICES)
+    # ── Species (resolve meta-options to a concrete species) ──────────────
+    species_id = _npc_resolve_species(species_id)
     char.phase = "setup"
     try:
         apply_species(char, species_id)
+        _npc_resolve_species_pendings(char)
     except Exception:
         # Fall back to Imperial Human if the chosen species needs interaction.
         char = Character()
