@@ -18307,6 +18307,45 @@ NPC_EXPERIENCE: dict[str, dict] = {
 # Cascade parents must never hold a level above 0 (levels live on specialities).
 _NPC_CASCADE_PARENTS = frozenset(_NPC_CASCADE_SPECS.keys())
 
+# D66 Character Quirks (MgT2e) — every NPC gets one.
+NPC_QUIRKS: dict[str, str] = {
+    "11": "Loyal", "12": "Distracted by other worries", "13": "In debt to criminals",
+    "14": "Makes very bad jokes", "15": "Will betray characters", "16": "Aggressive",
+    "21": "Has secret allies", "22": "Secret anagathic user", "23": "Looking for something",
+    "24": "Helpful", "25": "Forgetful", "26": "Wants to hire the Travellers",
+    "31": "Has useful contacts", "32": "Artistic", "33": "Easily confused",
+    "34": "Unusually ugly", "35": "Worried about current situation",
+    "36": "Shows pictures of their children",
+    "41": "Rumour-monger", "42": "Unusually provincial", "43": "Drunkard or drug addict",
+    "44": "Government informant", "45": "Mistakes a Traveller for someone else",
+    "46": "Possesses unusually advanced technology",
+    "51": "Unusually handsome or beautiful", "52": "Spying on the Travellers",
+    "53": "Possesses TAS membership", "54": "Is secretly hostile towards the Travellers",
+    "55": "Wants to borrow money", "56": "Is convinced the Travellers are dangerous",
+    "61": "Involved in political intrigue", "62": "Has a dangerous secret",
+    "63": "Wants to get off planet as soon as possible", "64": "Attracted to a Traveller",
+    "65": "From offworld", "66": "Possesses telepathy or other unusual quality",
+}
+
+# D66 Random Patrons (MgT2e) — the patron tier rolls its type here.
+NPC_PATRON_TYPES: dict[str, str] = {
+    "11": "Assassin", "12": "Smuggler", "13": "Terrorist", "14": "Embezzler",
+    "15": "Thief", "16": "Revolutionary", "21": "Clerk", "22": "Administrator",
+    "23": "Mayor", "24": "Minor Noble", "25": "Physician", "26": "Tribal Leader",
+    "31": "Diplomat", "32": "Courier", "33": "Spy", "34": "Ambassador",
+    "35": "Noble", "36": "Police Officer", "41": "Merchant", "42": "Free Trader",
+    "43": "Broker", "44": "Corporate Executive", "45": "Corporate Agent",
+    "46": "Financier", "51": "Belter", "52": "Researcher", "53": "Naval Officer",
+    "54": "Pilot", "55": "Starport Administrator", "56": "Scout", "61": "Alien",
+    "62": "Playboy", "63": "Stowaway", "64": "Family Relative",
+    "65": "Agent of a Foreign Power", "66": "Imperial Agent",
+}
+
+
+def _d66_key() -> str:
+    """Roll D66 (two dice read as tens+units): '11'..'66'."""
+    return f"{random.randint(1, 6)}{random.randint(1, 6)}"
+
 
 def _npc_graft_second_career(char: Character, primary_pkg_id: str) -> None:
     """Merge a second (different) career package's skills onto the NPC to
@@ -18538,12 +18577,22 @@ def generate_npc(species_id: Optional[str] = None,
     # ── Resolve any generic cascade parents to real specialities ──────────
     _npc_resolve_cascade_parents(char)
 
+    # ── Character Quirk (every NPC) + Patron type (patron tier) ───────────
+    char.npc_quirk = NPC_QUIRKS[_d66_key()]
+    _note_lines = [f"Quirk: {char.npc_quirk}"]
+    if experience == "patron":
+        char.npc_patron_type = NPC_PATRON_TYPES[_d66_key()]
+        _note_lines.insert(0, f"Patron: {char.npc_patron_type}")
+    char.user_notes = ("\n".join(_note_lines) + ("\n\n" + char.user_notes if char.user_notes else "")).strip()
+
     char.phase = "done"
     _sp_name = rules.species().get(char.species_id or "", {}).get("name", char.species_id)
     _exp_label = NPC_EXPERIENCE.get(experience, NPC_EXPERIENCE["regular"])["label"]
+    _patron_note = f", patron: {char.npc_patron_type}" if char.npc_patron_type else ""
     char.log(
         f"NPC generation complete — {_sp_name}, {_exp_label}, background: "
-        f"{bg_pkg['name']}, career: {cp_pkg['name']}, age {char.age}."
+        f"{bg_pkg['name']}, career: {cp_pkg['name']}, age {char.age}, "
+        f"quirk: {char.npc_quirk}{_patron_note}."
     )
     return {"character": char.model_dump()}
 

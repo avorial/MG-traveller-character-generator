@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.77: NPC Character Quirks (all NPCs) + Random Patrons table (patron tier)
+**Request:** Every NPC should get a quirk from the D66 Character Quirks table; patron-tier NPCs roll their type from the D66 Random Patrons table.
+
+**Implementation:**
+- **`lifepath.py`** — added both full D66 tables (`NPC_QUIRKS`, `NPC_PATRON_TYPES`, 36 entries each) and a `_d66_key()` roller. In `generate_npc`: every NPC rolls a Character Quirk; patron-tier NPCs also roll a Patron type. Both are written to dedicated fields **and** mirrored into `user_notes` (the sheet's notes field) as `Patron: …` / `Quirk: …`, and into the generation log.
+- **`character.py`** — `npc_quirk` and `npc_patron_type` fields.
+- **`app.js`** — roster cards now show **★ Patron: <type>** (accent) and **Quirk: <quirk>** for each generated NPC.
+
+**Verification:** 40/40 regular NPCs carry a valid quirk and no patron type; 30/30 patrons carry both, with `user_notes` showing `Patron:`/`Quirk:`; good D66 spread (24 distinct quirks, 21 distinct patron types in samples). Live roster shows both lines (e.g. "★ Patron: Starport Administrator / Quirk: Wants to borrow money"). All 660 tests pass.
+
+---
+
 ### v30.76: NPC generator — "Patron" experience tier (7–10 terms)
 **Request:** Add a patron-level NPC that gets 7 to 10 terms.
 

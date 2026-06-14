@@ -346,6 +346,11 @@ class Character(BaseModel):
     # Free-form player notes (rendered on the sheet)
     user_notes: str = ""
 
+    # NPC flavour (D66 tables): a Character Quirk for every NPC, and a Patron
+    # type for patron-tier NPCs. Also mirrored into user_notes for the sheet.
+    npc_quirk: Optional[str] = None
+    npc_patron_type: Optional[str] = None
+
     # Boon / re-roll pool (GM-configurable; zero = unlimited or unused)
     boon_rolls_total: int = 0
     boon_rolls_remaining: int = 0

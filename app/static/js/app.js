@@ -13068,6 +13068,8 @@ function renderNpcRoster() {
           <strong>${escapeHTML(npc.name || `NPC ${i + 1}`)}</strong>
           <span class="empty" style="font-size:11px">${escapeHTML(spLabel)} · age ${npc.age ?? '?'} · UPP ${s.upp}</span>
         </div>
+        ${npc.npc_patron_type ? `<div style="font-size:11px;margin-top:3px;color:var(--accent)">★ Patron: ${escapeHTML(npc.npc_patron_type)}</div>` : ''}
+        ${npc.npc_quirk ? `<div style="font-size:11px;margin-top:3px;color:var(--amber-dim)">Quirk: ${escapeHTML(npc.npc_quirk)}</div>` : ''}
         <div class="empty" style="font-size:11px;margin-top:4px">${escapeHTML(s.top)}</div>
         <div class="phase-actions" style="gap:6px;margin-top:8px;flex-wrap:wrap">
           <button class="btn" data-npc-load="${i}">LOAD</button>
