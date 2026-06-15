@@ -2,6 +2,23 @@
 
 ## Fixed Bugs
 
+### v30.86: Aliens of Charted Space Vol. 4 — Suerrat & Tezcat species (stage 1)
+**Request:** Add the Vol. 4 aliens (not previously in the generator).
+
+**Finding:** Vol. 4 has four species — **Suerrat, Za'tachk, Gurvin, Tezcat** — none present. Two fit the existing species schema cleanly; two need new engine support.
+
+**Added now (schema-clean):**
+- **Tezcat** (`tezcat.json`) — DEX+1, END−1; traits Chameleon (Stealth DM+2 / Deception DM−2 vs Tezcat), Fast Metabolism (Init DM+1), Heightened Senses, Manual Dexterity (DM+2), Natural Weapons (venom). Starting age 18.
+- **Suerrat** (`suerrat.json`) — STR+1, DEX+2, SOC−1; traits Cold Resistance, Poor Senses, Radiation Resistance, plus an Accelerated-Ageing note (ageing rolls DM+1). Mandatory Athletics 0 background skill via `extra_background_skills`. Starting age 18.
+
+Both carry `source: "Aliens of Charted Space Vol. 4, Mongoose Publishing"` (no `societies` → appear under **Other / Far Domains**, grouped by book) and use Core Rulebook careers.
+
+**Deferred to stage 2 (need engine work):** **Gurvin** (gendered modifiers; males roll 1D+1 for INT/EDU) and **Za'tachk** (custom **Boldness (BOL)** characteristic + Matriarch/Scout caste variants + BOL checks). Plus the four species' **species-specific careers** (e.g. Suerrat's Regional Criminal Police Organisation and Regional Security Force).
+
+**Verification:** Both load and apply (Tezcat DEX+1/END−1; Suerrat grants Athletics 0); appear in `/api/species` under the Vol. 4 book group; schema tests pass. All 666 tests pass.
+
+---
+
 ### v30.85: First-load welcome popup (dismiss once)
 **Request:** A one-time welcome popup on first load with an "ignore" button.
 

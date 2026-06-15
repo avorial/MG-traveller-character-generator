@@ -1,0 +1,33 @@
+{
+  "id": "suerrat",
+  "name": "Suerrat",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": 2,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": -1
+  },
+  "traits": [
+    {
+      "name": "Cold Resistance",
+      "description": "A thick coat of hair makes Suerrat resistant to cold — damage from cold is reduced by 1D — but less tolerant of heat: damage from heat is increased by 1D."
+    },
+    {
+      "name": "Poor Senses",
+      "description": "Suerrat eyes are sensitive to bright light but superior in the dark. They suffer DM-1 to vision checks in light equal to or greater than normal daylight (unless wearing protective lenses such as sunglasses), and gain DM+1 to vision checks in the dark provided there is some light source, however dim."
+    },
+    {
+      "name": "Radiation Resistance",
+      "description": "An abundance of cell and DNA repair proteins lets Suerrat ignore the first 50 rads received in any radiation exposure event."
+    },
+    {
+      "name": "Accelerated Ageing",
+      "description": "Suerrat begin ageing rolls at 34 (end of the fourth term) like humans, but ageing rolls gain DM+1 in addition to any other modifiers."
+    }
+  ],
+  "starting_age": 18,
+  "extra_background_skills": ["Athletics"],
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}

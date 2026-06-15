@@ -1,0 +1,36 @@
+{
+  "id": "tezcat",
+  "name": "Tezcat",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 1,
+    "END": -1,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "traits": [
+    {
+      "name": "Chameleon",
+      "description": "Tezcat skin mimics the colours of their surroundings, a natural camouflage that operates automatically while conscious. They gain DM+2 to all Stealth checks. Because they also shift colour as unconscious body language, they find lying to each other hard: DM-2 to Deception checks made against another Tezcat."
+    },
+    {
+      "name": "Fast Metabolism",
+      "description": "Tezcat have a heightened metabolism and very fast reactions, gaining DM+1 to all Initiative rolls."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Tezcat eyes are adapted to low light: DM+1 to checks requiring sight in low-light (not total darkness), but DM-1 in light equivalent to a sunny Terran day unless wearing eye protection. Their more sensitive smell, hearing and taste grant DM+1 to Recon or Survival checks using one of those senses."
+    },
+    {
+      "name": "Manual Dexterity",
+      "description": "Tezcat have very fine motor control, gaining DM+2 to any check requiring fine manipulation."
+    },
+    {
+      "name": "Natural Weapons",
+      "description": "Sharp teeth and claws make nasty close-combat weapons: claws do 1D+1 damage, bite does 1D+2. A bite that penetrates armour also delivers venom — the victim must make an Average (8+) END check or take an additional D3 damage at 1D-minute intervals. Tezcat are immune to their own venom when ingested, but not when bitten."
+    }
+  ],
+  "starting_age": 18,
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}
