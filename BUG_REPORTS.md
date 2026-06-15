@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.82: NPC generator — Primary / Secondary Skill fields (guaranteed ≥2)
+**Request:** Add Primary Skill and Secondary Skill dropdowns (full skill list); the NPC will have each chosen skill at +2 or higher. If not picked, generate as normal.
+
+**Implementation:**
+- **`lifepath.py`** — `npc_skill_options()` returns all 39 pickable skills (22 core + 17 cascade parents). `generate_npc`/`generate_npc_batch` take `primary_skill`/`secondary_skill`; `_npc_ensure_skill` guarantees each at level 2+ **after** the package/experience build. Cascade parents (e.g. Gun Combat, Pilot) get a random speciality at the floor with the bare parent kept at 0; an already-higher level is never lowered.
+- **`main.py`** — `NPCGenOptions` gains `primary_skill`/`secondary_skill`; `/npc-options` returns the `skills` list.
+- **`app.js`** — two selects, **PRIMARY SKILL (≥2)** and **SECONDARY SKILL (≥2)**, default **(any)**; persisted in prefs and sent with generation. Empty = generate normally.
+
+**Verification:** Backend — core skill (Medic) and cascade speciality (Gun Combat/Pilot) guaranteed ≥2; parent stays 0; already-high kept; no-pick generates normally. Live — both fields render (40 options incl. "(any)"); two scholars came out with Medic 2 + Pilot(spec) 2; "(any)" still generates a normal NPC. All 660 tests pass.
+
+---
+
 ### v30.81: NPC roster — "roll a new name" button
 **Request:** A button to keep scrolling through NPC names.
 

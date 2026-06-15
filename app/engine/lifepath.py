@@ -18347,6 +18347,41 @@ def _d66_key() -> str:
     return f"{random.randint(1, 6)}{random.randint(1, 6)}"
 
 
+def npc_skill_options() -> list[str]:
+    """All pickable skill names for the NPC generator (core + cascade parents)."""
+    sk = rules.skills()
+    names = list(sk.get("core", [])) + list((sk.get("speciality") or {}).keys())
+    return sorted(names)
+
+
+def _npc_ensure_skill(char: Character, skill_name: Optional[str], min_level: int = 2) -> None:
+    """Guarantee the NPC has `skill_name` at >= min_level. Cascade parents get a
+    speciality (parents can't hold levels); existing higher levels are kept."""
+    from .character import Skill
+    if not skill_name:
+        return
+    spec_map = rules.skills().get("speciality") or {}
+    if skill_name in spec_map:
+        specs = [s for s in char.skills if s.name == skill_name and s.speciality]
+        if specs:
+            top = max(specs, key=lambda s: s.level)
+            if top.level < min_level:
+                top.level = min_level
+        else:
+            char.skills.append(Skill(name=skill_name, level=min_level,
+                                     speciality=_npc_random_spec(skill_name)))
+        if not any(s.name == skill_name and s.speciality is None for s in char.skills):
+            char.skills.append(Skill(name=skill_name, level=0, speciality=None))
+    else:
+        existing = next((s for s in char.skills
+                         if s.name == skill_name and s.speciality is None), None)
+        if existing:
+            if existing.level < min_level:
+                existing.level = min_level
+        else:
+            char.skills.append(Skill(name=skill_name, level=min_level, speciality=None))
+
+
 def _npc_graft_second_career(char: Character, primary_pkg_id: str) -> None:
     """Merge a second (different) career package's skills onto the NPC to
     represent a long, multi-career history. Skills merge by max level (cap 4);
@@ -18445,14 +18480,17 @@ def _npc_resolve_cascade_parents(char: Character) -> None:
 
 def generate_npc(species_id: Optional[str] = None,
                  role: Optional[str] = None,
-                 experience: str = "regular") -> dict:
+                 experience: str = "regular",
+                 primary_skill: Optional[str] = None,
+                 secondary_skill: Optional[str] = None) -> dict:
     """Generate a complete NPC character automatically using background + career packages.
 
     1. Rolls characteristics and applies the chosen (or random) species.
     2. Applies a random background package (filters by min SOC).
     3. Applies a career package biased toward the chosen role (or random).
     4. Layers the experience tier (skill depth, age, elite stat bump).
-    5. Sets phase = 'done'.
+    5. Guarantees any chosen primary/secondary skill at level 2+.
+    6. Sets phase = 'done'.
     """
     char = Character()
 
@@ -18593,6 +18631,10 @@ def generate_npc(species_id: Optional[str] = None,
     # ── Resolve any generic cascade parents to real specialities ──────────
     _npc_resolve_cascade_parents(char)
 
+    # ── Guarantee chosen primary / secondary skills at level 2+ ───────────
+    _npc_ensure_skill(char, primary_skill, min_level=2)
+    _npc_ensure_skill(char, secondary_skill, min_level=2)
+
     # ── Character Quirk (every NPC) + Patron type (patron tier) ───────────
     char.npc_quirk = NPC_QUIRKS[_d66_key()]
     _note_lines = [f"Quirk: {char.npc_quirk}"]
@@ -18616,17 +18658,22 @@ def generate_npc(species_id: Optional[str] = None,
 def generate_npc_batch(count: int = 1,
                        species_id: Optional[str] = None,
                        role: Optional[str] = None,
-                       experience: str = "regular") -> dict:
+                       experience: str = "regular",
+                       primary_skill: Optional[str] = None,
+                       secondary_skill: Optional[str] = None) -> dict:
     """Generate a batch of NPCs. Returns {"npcs": [character_dict, ...]}.
 
     Each NPC re-rolls characteristics, species (if 'random'), role bias (if
     'random'), and finalising choices independently, so a group is varied.
+    Any chosen primary/secondary skill is guaranteed at level 2+ on every NPC.
     """
     count = max(1, min(int(count or 1), 12))
     npcs = []
     for _ in range(count):
         npcs.append(generate_npc(species_id=species_id, role=role,
-                                 experience=experience)["character"])
+                                 experience=experience,
+                                 primary_skill=primary_skill,
+                                 secondary_skill=secondary_skill)["character"])
     return {"npcs": npcs}
 
 

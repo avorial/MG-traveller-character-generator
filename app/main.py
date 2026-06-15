@@ -1327,9 +1327,11 @@ async def api_generate_npc():
 
 class NPCGenOptions(BaseModel):
     count: int = 1
-    species_id: Optional[str] = None   # None/"random" → random from curated list
-    role: Optional[str] = None         # None/"random" → no career bias
-    experience: str = "regular"        # rookie | regular | veteran | elite
+    species_id: Optional[str] = None     # None/"random" → random from curated list
+    role: Optional[str] = None           # None/"random" → no career bias
+    experience: str = "regular"          # rookie | regular | veteran | elite | patron
+    primary_skill: Optional[str] = None  # guaranteed at level 2+ if set
+    secondary_skill: Optional[str] = None
 
 
 @app.get("/api/character/npc-options")
@@ -1343,7 +1345,8 @@ async def api_npc_options():
              for rid in lifepath.NPC_ROLE_PACKAGES]
     experience = [{"id": eid, "label": cfg["label"]}
                   for eid, cfg in lifepath.NPC_EXPERIENCE.items()]
-    return {"species": species, "roles": roles, "experience": experience}
+    skills = lifepath.npc_skill_options()
+    return {"species": species, "roles": roles, "experience": experience, "skills": skills}
 
 
 @app.post("/api/character/generate-npc")
@@ -1353,6 +1356,7 @@ async def api_generate_npc_batch(opts: NPCGenOptions):
         return lifepath.generate_npc_batch(
             count=opts.count, species_id=opts.species_id,
             role=opts.role, experience=opts.experience,
+            primary_skill=opts.primary_skill, secondary_skill=opts.secondary_skill,
         )
     except Exception as e:
         raise HTTPException(500, str(e))

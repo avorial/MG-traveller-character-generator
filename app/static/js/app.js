@@ -13028,6 +13028,7 @@ function renderNpcModal() {
   const speciesOpts = opt.species.map(s => ({ value: s.id, label: s.name }));
   const roleOpts = [{ value: 'random', label: 'Random' }, ...opt.roles.map(r => ({ value: r.id, label: r.label }))];
   const expOpts = opt.experience.map(e => ({ value: e.id, label: e.label }));
+  const skillOpts = [{ value: '', label: '(any)' }, ...(opt.skills || []).map(s => ({ value: s, label: s }))];
 
   body.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -13038,6 +13039,8 @@ function renderNpcModal() {
         HOW MANY (1–12)
         <input type="number" id="npc-count" class="muster-assoc-input" style="flex:none" min="1" max="12" value="${prefs.count || 1}" />
       </label>
+      ${sel('npc-primary-skill', 'PRIMARY SKILL (≥2)', skillOpts, prefs.primary_skill || '')}
+      ${sel('npc-secondary-skill', 'SECONDARY SKILL (≥2)', skillOpts, prefs.secondary_skill || '')}
     </div>
     <div class="phase-actions" style="margin-top:14px">
       <button class="btn primary" id="btn-npc-generate">✦ GENERATE</button>
@@ -13138,15 +13141,17 @@ function wireNpcModal() {
     const species_id = document.getElementById('npc-species')?.value || 'random';
     const role = document.getElementById('npc-role')?.value || 'random';
     const experience = document.getElementById('npc-experience')?.value || 'regular';
+    const primary_skill = document.getElementById('npc-primary-skill')?.value || '';
+    const secondary_skill = document.getElementById('npc-secondary-skill')?.value || '';
     let count = parseInt(document.getElementById('npc-count')?.value, 10) || 1;
     count = Math.max(1, Math.min(count, 12));
-    _npcSavePrefs({ species_id, role, experience, count });
+    _npcSavePrefs({ species_id, role, experience, count, primary_skill, secondary_skill });
     const btn = document.getElementById('btn-npc-generate');
     btn.textContent = 'GENERATING…'; btn.disabled = true;
     try {
       const res = await fetch('/api/character/generate-npc', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ species_id, role, experience, count }),
+        body: JSON.stringify({ species_id, role, experience, count, primary_skill, secondary_skill }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
