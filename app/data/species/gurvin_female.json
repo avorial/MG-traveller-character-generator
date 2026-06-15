@@ -1,6 +1,6 @@
 {
-  "id": "gurvin",
-  "name": "Gurvin",
+  "id": "gurvin_female",
+  "name": "Gurvin — Female",
   "characteristic_modifiers": {
     "STR": 0,
     "DEX": 0,
@@ -17,10 +17,6 @@
     {
       "name": "Extra Limbs",
       "description": "Gurvin have a pair of intermediary limbs usable equally as arms or legs. Used as legs, their movement increases to 8 metres."
-    },
-    {
-      "name": "Sexual Dimorphism",
-      "description": "This profile uses the female Gurvin line (INT+1, EDU+1; all female Gurvin also gain the Broker skill). Male Gurvin instead take STR-1, DEX+1 and roll only 1D+1 for both INT and EDU. Males grow seasonal Arm-Antlers — sharp close-combat weapons using Melee (natural) for 1D+2 damage (trimmed flat by males who mingle outside Gurvin society)."
     }
   ],
   "starting_age": 16,

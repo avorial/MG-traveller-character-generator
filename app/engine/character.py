@@ -364,6 +364,11 @@ class Character(BaseModel):
     # for REP-keyed advancement rolls.
     reputation: int = 0
 
+    # Boldness (BOL) — the Za'tachk seventh characteristic (AoCS Vol. 4).
+    # Rolled 1D+1 on species application (with caste modifiers). 0 = not a
+    # Za'tachk; shown in the characteristics bar like REP when present.
+    boldness: int = 0
+
     # Psionics (MgT 2e Core p.176). Set when the optional test is performed.
     psi: int = 0
     psi_tested: bool = False

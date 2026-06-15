@@ -1,0 +1,34 @@
+{
+  "id": "zatachk_matriarch",
+  "name": "Za'tachk — Matriarch",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": 0,
+    "END": 0,
+    "INT": 1,
+    "EDU": 1,
+    "SOC": 0
+  },
+  "boldness_roll": "1D+1",
+  "boldness_modifier": -1,
+  "traits": [
+    {
+      "name": "Matriarch Caste",
+      "description": "Matriarchs serve in ruling councils and nest leadership — more intelligent and educated, but with a stronger sense of self-preservation (lower Boldness)."
+    },
+    {
+      "name": "Boldness (BOL)",
+      "description": "Za'tachk have a seventh characteristic, Boldness (BOL), rolled 1D+1 (this caste applies -1 to it). BOL 7+ is seen as recklessly courageous; 10+ is considered insane by other Za'tachk. In any physically dangerous situation a Za'tachk must pass an Average (8+) BOL check to keep acting normally or retreat; failing by Effect -6 or worse causes a brief catatonic state."
+    },
+    {
+      "name": "Brachiator",
+      "description": "Exemplary climbers who use all limbs as locomotors or manipulators: DM+2 when climbing or swinging, and DM+2 to stabilise on precarious flooring with handholds."
+    },
+    {
+      "name": "Coward",
+      "description": "Frightened of violence. If threatened within 50 metres a Za'tachk must pass a BOL check or take a defensive measure; even on success they suffer DM-2 to all actions while under the threat."
+    }
+  ],
+  "starting_age": 18,
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}

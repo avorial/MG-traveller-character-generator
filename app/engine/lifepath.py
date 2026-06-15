@@ -340,6 +340,8 @@ def _char_dm(character: "Character", char_key: str) -> int:
     k = char_key.upper()
     if k == "REP":
         return dice.characteristic_dm(character.reputation)
+    if k == "BOL":
+        return dice.characteristic_dm(character.boldness)
     if k == "PSI":
         return dice.characteristic_dm(character.psi)
     if k == "RES":
@@ -1243,6 +1245,19 @@ def apply_species(character: Character, species_id: str) -> dict:
                 f"{species_data['name']} custom characteristic rolls: "
                 + ", ".join(custom_parts)
             )
+
+    # Boldness (BOL) — the Za'tachk seventh characteristic (AoCS Vol. 4).
+    # Roll the formula (1D+1), then apply the caste modifier; min 1.
+    bol_formula = species_data.get("boldness_roll")
+    if bol_formula:
+        bol_r = dice.roll(str(bol_formula))
+        bol_mod = int(species_data.get("boldness_modifier", 0))
+        character.boldness = max(1, bol_r.total + bol_mod)
+        _mod_str = f" {bol_mod:+d} (caste)" if bol_mod else ""
+        character.log(
+            f"{species_data['name']} Boldness (BOL): {bol_formula}={bol_r.total}{_mod_str} "
+            f"= {character.boldness}"
+        )
 
     # Species with custom characteristic dice (e.g. Ladybug, Selenite): re-roll those
     # stats using the species-defined formulas immediately after species is applied.

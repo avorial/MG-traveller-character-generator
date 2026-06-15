@@ -1472,6 +1472,13 @@ function renderSheet() {
           <span class="stat-value">${character.reputation}</span>
           <span class="stat-dm">DM ${formatDM(charDM(character.reputation))}</span>
         </div>
+      ` : '')
+    + (character.boldness > 0 ? `
+        <div class="stat-cell stat-cell-bol" title="Boldness — the Za'tachk seventh characteristic">
+          <span class="stat-label">BOL</span>
+          <span class="stat-value">${character.boldness}</span>
+          <span class="stat-dm">DM ${formatDM(charDM(character.boldness))}</span>
+        </div>
       ` : '');
 
   const skillsList = character.skills.length
@@ -9234,6 +9241,7 @@ function getSkillLevelFor(skillName, speciality) {
   if (upper === 'RES') return charDM(character?.characteristics?.SOC ?? 7);
   if (upper === 'PSI') return charDM(character?.psi ?? 0);
   if (upper === 'REP') return charDM(character?.reputation ?? 0);
+  if (upper === 'BOL') return charDM(character?.boldness ?? 0);
   return -3; // untrained
 }
 

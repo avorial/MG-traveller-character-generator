@@ -1,0 +1,32 @@
+{
+  "id": "gurvin_male",
+  "name": "Gurvin — Male",
+  "characteristic_modifiers": {
+    "STR": -1,
+    "DEX": 1,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "INT": "1D+1",
+    "EDU": "1D+1"
+  },
+  "traits": [
+    {
+      "name": "Heightened Senses",
+      "description": "Gurvin have a keener sense of smell than humans: DM+1 to Recon and Survival checks based on scent. Their eyes are suited to brighter light but worse in the dark — DM-1 to checks requiring sight in dark conditions."
+    },
+    {
+      "name": "Extra Limbs",
+      "description": "Gurvin have a pair of intermediary limbs usable equally as arms or legs. Used as legs, their movement increases to 8 metres."
+    },
+    {
+      "name": "Arm-Antlers",
+      "description": "Male Gurvin grow seasonal sharp antler-like growths on their arms and intermediary limbs — nasty close-combat weapons using Melee (natural) for 1D+2 damage. Males who regularly mingle outside Gurvin society trim them so they cannot be used as weapons."
+    }
+  ],
+  "starting_age": 16,
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}

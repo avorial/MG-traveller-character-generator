@@ -2,6 +2,21 @@
 
 ## Fixed Bugs
 
+### v30.88: Vol. 4 — Gurvin gendered entries + Za'tachk Boldness as a real characteristic
+**Requests:** Gurvin should use the existing gendered-creation pattern (other Other-culture races split by sex); BOL should work like REP (a real characteristic shown up top), not a documented trait.
+
+**Gurvin → split entries (Capry pattern):** replaced `gurvin.json` with **Gurvin — Female** (INT+1, EDU+1, free Broker 0) and **Gurvin — Male** (STR−1, DEX+1, INT/EDU rolled **1D+1** via `custom_characteristic_rolls`, Arm-Antlers). Both age 16; verified INT ranges (male 2–7, female 2D+1).
+
+**BOL like REP:**
+- `character.boldness` field (mirrors `reputation`).
+- `apply_species` rolls `boldness_roll` (e.g. "1D+1") and applies a `boldness_modifier` (caste), min 1.
+- `_char_dm` and JS `charDM` alias **BOL → boldness**; BOL renders in the characteristics bar (and DM) whenever > 0, exactly like REP.
+- **Za'tachk** split into caste entries with their own modifiers: base (STR+1, BOL 1D+1), **Matriarch** (+INT/+EDU, BOL−1 → 1–6), **Scout** (−INT/−EDU, BOL+1 → 3–8).
+
+**Verification:** Gurvin male/female roll correctly; Za'tachk BOL ranges per caste; live UI shows "BOL 6 DM 0" for a Za'tachk Scout in the top characteristics bar. Seven Vol. 4 entries total. All 681 tests pass.
+
+---
+
 ### v30.87: Aliens of Charted Space Vol. 4 — Gurvin & Za'tachk (stage 2; all four now in)
 **Request:** Add the rest of the Vol. 4 species; all are "Other" culture.
 
