@@ -1,0 +1,33 @@
+name: Rules/data correction
+description: Report a likely rules, table, career, species, or data issue.
+title: "[Rules/Data]: "
+labels:
+  - rules-data
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: What looks wrong?
+      description: Describe the data or behavior that should be corrected.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source reference
+      description: Book and section/page reference only. Do not paste copyrighted rule text.
+      placeholder: "Core Rulebook, career chapter, p. XX"
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior or data
+      description: Paraphrase the correction without copying rules text.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, generated character JSON, or notes that help verify the correction.
