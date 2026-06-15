@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.81: NPC roster — "roll a new name" button
+**Request:** A button to keep scrolling through NPC names.
+
+**Change (`app.js`):** Each NPC roster card now has a 🎲 button next to the name; clicking it rolls a fresh species-appropriate name (`generateSpeciesName`) for that NPC only, in place, so you can keep clicking until you like one. Affects just that NPC; the new name carries into LOAD / JSON / Foundry export.
+
+**Verification:** Live — clicking cycles through distinct names for the target NPC (4 different Vargr names) while leaving other NPCs untouched. JS-only; all 660 tests pass.
+
+---
+
 ### v30.80: Terminal-ID badge shows distinct-visitor count (replaces "9042")
 **Request:** Replace the static `TAS-GEN-9042` number with the count of different IPs that have visited the site.
 

@@ -13070,7 +13070,10 @@ function renderNpcRoster() {
     return `
       <div class="event-box" style="margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-          <strong>${escapeHTML(npc.name || `NPC ${i + 1}`)}</strong>
+          <span style="display:flex;align-items:baseline;gap:6px">
+            <strong>${escapeHTML(npc.name || `NPC ${i + 1}`)}</strong>
+            <button class="btn ghost" data-npc-rename="${i}" title="Roll a new name" style="padding:1px 7px;font-size:12px;line-height:1.3">🎲</button>
+          </span>
           <span class="empty" style="font-size:11px">${escapeHTML(spLabel)} · age ${npc.age ?? '?'} · UPP ${s.upp}</span>
         </div>
         ${npc.npc_patron_type ? `<div style="font-size:11px;margin-top:3px;color:var(--accent)">★ Patron: ${escapeHTML(npc.npc_patron_type)}</div>` : ''}
@@ -13158,6 +13161,14 @@ function wireNpcModal() {
       btn.textContent = '✦ GENERATE'; btn.disabled = false;
     }
   });
+
+  // Roll a new name for one NPC (keep clicking to scroll through names)
+  document.querySelectorAll('[data-npc-rename]').forEach(b => b.addEventListener('click', () => {
+    const npc = _npcRoster[+b.dataset.npcRename];
+    if (!npc) return;
+    npc.name = generateSpeciesName(npc.species_id);
+    renderNpcModal(); wireNpcModal();
+  }));
 
   // Per-NPC actions
   document.querySelectorAll('[data-npc-load]').forEach(b => b.addEventListener('click', () => {
