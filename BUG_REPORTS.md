@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.85: First-load welcome popup (dismiss once)
+**Request:** A one-time welcome popup on first load with an "ignore" button.
+
+**Implementation:**
+- **`index.html`** — `#welcome-modal` with the full welcome text (purpose, testing-site/bug-report note, self-hosting intent, possible future auth, Mongoose thanks, GitHub link) and an **IGNORE — DON'T SHOW AGAIN** button + close ×.
+- **`app.js`** — on bootstrap, shows the modal once when `localStorage['traveller-welcome-seen']` is unset; dismiss (button, ×, or backdrop click) hides it and sets the flag so it never reappears.
+
+**Verification:** Live — shows on first load, Ignore dismisses and sets the flag, stays hidden across reloads; renders on-theme with the GitHub link. All 660 tests pass.
+
+---
+
 ### v30.84: NPC generator settings persist on change + README rebuild
 **Request:** Hold the NPC generator settings in local cache so reopening keeps the last species (a Solomani run stays Solomani); rebuild the README.
 

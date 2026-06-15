@@ -13442,6 +13442,21 @@ async function bootstrap() {
 
   renderAll();
 
+  // First-load welcome popup (shown once; dismissed via the Ignore button)
+  const welcomeModal = document.getElementById('welcome-modal');
+  if (welcomeModal) {
+    let seen = false;
+    try { seen = localStorage.getItem('traveller-welcome-seen') === '1'; } catch (e) { /* ignore */ }
+    const dismissWelcome = () => {
+      welcomeModal.hidden = true;
+      try { localStorage.setItem('traveller-welcome-seen', '1'); } catch (e) { /* ignore */ }
+    };
+    if (!seen) welcomeModal.hidden = false;
+    document.getElementById('btn-welcome-ignore')?.addEventListener('click', dismissWelcome);
+    document.getElementById('btn-close-welcome')?.addEventListener('click', dismissWelcome);
+    welcomeModal.addEventListener('click', (e) => { if (e.target === welcomeModal) dismissWelcome(); });
+  }
+
   document.getElementById('btn-export').addEventListener('click', exportCharacter);
   document.getElementById('import-file').addEventListener('change', (e) => {
     if (e.target.files[0]) importCharacter(e.target.files[0]);
