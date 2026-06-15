@@ -1,0 +1,29 @@
+{
+  "id": "gurvin",
+  "name": "Gurvin",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 1,
+    "EDU": 1,
+    "SOC": 0
+  },
+  "traits": [
+    {
+      "name": "Heightened Senses",
+      "description": "Gurvin have a keener sense of smell than humans: DM+1 to Recon and Survival checks based on scent. Their eyes are suited to brighter light but worse in the dark — DM-1 to checks requiring sight in dark conditions."
+    },
+    {
+      "name": "Extra Limbs",
+      "description": "Gurvin have a pair of intermediary limbs usable equally as arms or legs. Used as legs, their movement increases to 8 metres."
+    },
+    {
+      "name": "Sexual Dimorphism",
+      "description": "This profile uses the female Gurvin line (INT+1, EDU+1; all female Gurvin also gain the Broker skill). Male Gurvin instead take STR-1, DEX+1 and roll only 1D+1 for both INT and EDU. Males grow seasonal Arm-Antlers — sharp close-combat weapons using Melee (natural) for 1D+2 damage (trimmed flat by males who mingle outside Gurvin society)."
+    }
+  ],
+  "starting_age": 16,
+  "extra_background_skills": ["Broker"],
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}

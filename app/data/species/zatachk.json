@@ -1,0 +1,28 @@
+{
+  "id": "zatachk",
+  "name": "Za'tachk",
+  "characteristic_modifiers": {
+    "STR": 1,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "traits": [
+    {
+      "name": "Boldness (BOL)",
+      "description": "Za'tachk have a seventh characteristic, Boldness (BOL), measuring will and courage versus self-preservation. Roll BOL as 1D+1. Low BOL = strong self-preservation; BOL 7+ is seen as recklessly courageous (and somewhat unstable); 10+ is considered insane by other Za'tachk. In any physically dangerous situation a Za'tachk must pass an Average (8+) BOL check to keep acting normally, or retreat to safety; failing by Effect -6+ drops them into a brief catatonic state. Caste variants: Matriarchs take INT+1, EDU+1, BOL-1; Scouts take INT-1, EDU-1, BOL+1."
+    },
+    {
+      "name": "Brachiator",
+      "description": "Exemplary climbers who use all limbs as locomotors or manipulators: DM+2 when climbing or swinging, and DM+2 to checks made to stabilise or keep their footing on unstable or precarious flooring where handholds are available."
+    },
+    {
+      "name": "Coward",
+      "description": "Psychologically timid and frightened of violence. If threatened or attacked within 50 metres, a Za'tachk must immediately pass a BOL check (usually Average 8+) or abandon their action and take a defensive measure (flee, seek high ground, hide). Failing by Effect -6+ drops them into a catatonic state for rounds equal to the Effect. Even on a success they suffer DM-2 to all actions while under the threat."
+    }
+  ],
+  "starting_age": 18,
+  "source": "Aliens of Charted Space Vol. 4, Mongoose Publishing"
+}

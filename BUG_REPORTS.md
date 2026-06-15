@@ -2,6 +2,23 @@
 
 ## Fixed Bugs
 
+### v30.87: Aliens of Charted Space Vol. 4 — Gurvin & Za'tachk (stage 2; all four now in)
+**Request:** Add the rest of the Vol. 4 species; all are "Other" culture.
+
+**Added (both `societies`-less → Other / Far Domains, source Vol. 4):**
+- **Gurvin** (`gurvin.json`) — INT+1, EDU+1 (female line) + free Broker 0; traits Heightened Senses, Extra Limbs, and a **Sexual Dimorphism** trait documenting the male variant (STR−1, DEX+1, roll 1D+1 for INT/EDU, Arm-Antlers). Starting age 16.
+- **Za'tachk** (`zatachk.json`) — STR+1; traits **Boldness (BOL)** (documents the 1D+1 seventh characteristic, BOL-check rule, and Matriarch/Scout caste modifiers), Brachiator, Coward. Starting age 18.
+
+Pragmatic fidelity notes: Gurvin defaults to the female stat line (the typical adventuring sex) with the male variant captured in a trait rather than a separate gender-prompt; Za'tachk's BOL is documented in a trait (rolled/checked at the table) rather than added to the global optional-characteristics set. This keeps both data-only, consistent with Suerrat/Tezcat (v30.86).
+
+With Suerrat and Tezcat (v30.86), **all four Vol. 4 species are now selectable.**
+
+**Still open:** the species-specific careers (e.g. Suerrat's Regional Criminal Police Organisation / Regional Security Force) — Vol. 4 characters currently use Core Rulebook careers.
+
+**Verification:** Both load/apply (Gurvin age 16 + Broker 0; Za'tachk age 18 + STR+1); all four appear under the Vol. 4 book group in `/api/species`; schema + full suite pass (672 tests).
+
+---
+
 ### v30.86: Aliens of Charted Space Vol. 4 — Suerrat & Tezcat species (stage 1)
 **Request:** Add the Vol. 4 aliens (not previously in the generator).
 
