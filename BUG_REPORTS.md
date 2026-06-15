@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.84: NPC generator settings persist on change + README rebuild
+**Request:** Hold the NPC generator settings in local cache so reopening keeps the last species (a Solomani run stays Solomani); rebuild the README.
+
+**Changes:**
+- **`app.js`** — `wireNpcModal` now persists every field (species/role/experience/count/primary/secondary) to `localStorage` on `change`, not only when GENERATE is clicked. Reopening the modal restores the last selections.
+- **`README.md`** — rebuilt to current state: version badge → 30.84; full NPC generator section (species incl. uplifts/Zhodani/Random Alien, ship-crew roles, experience tiers incl. Patron, batch, primary/secondary skills, quirks, names, AI backgrounds, export); distinct-visitor badge; updated API table (`/npc-options`, batch `generate-npc`, `ai-narrative`); project structure (`visitors.py`, `ai_narrative.py`).
+
+**Verification:** Live — changing species/role/experience without generating saves immediately and restores on reopen (Solomani→engineer→veteran round-tripped). All 660 tests pass.
+
+---
+
 ### v30.83: NPC generator — full ship-crew roles
 **Request:** The role list should include every ship position — engineers, gunners, astrogators, sensor teams (not just pilot).
 

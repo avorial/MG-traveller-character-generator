@@ -1,10 +1,10 @@
 # Traveller Character Creator
 
-A web app for generating Mongoose Traveller 2e characters through the complete lifepath system — characteristics, species, pre-career education, careers (qualify, survive, events, mishaps, advancement, aging), mustering out, psionics, and a final character sheet with capsule description. Supports background packages and career packages as streamlined one-step alternatives to the traditional lifepath phases. Also includes a full **robot construction system** that bypasses the lifepath entirely.
+A web app for generating Mongoose Traveller 2e characters through the complete lifepath system — characteristics, species, pre-career education, careers (qualify, survive, events, mishaps, advancement, aging), mustering out, psionics, and a final character sheet with capsule description. Supports background packages and career packages as streamlined one-step alternatives to the traditional lifepath phases. Also includes a full **robot construction system** that bypasses the lifepath entirely, and a **batch NPC generator** with optional bring-your-own-AI written backgrounds.
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-30.45-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-30.84-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 ---
 
@@ -319,8 +319,22 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 - **Heroic rolls** — ⚔ HEROIC toggle on the characteristics screen.
 - **Optional characteristics** — Toggle shows checkboxes for PSI / WLT / LCK / MRL / STY / TER.
 - **GM Mode** — Toggle to set any dice roll result manually, with boon re-roll pool.
-- **NPC generator** — One click produces a complete NPC via `GET /api/character/generate-npc`.
 - **✨ AI Story (bring your own AI)** — On the finish screen, have your own AI rewrite the factual career narrative as a real story. Supports the Claude API (official SDK) and any OpenAI-compatible endpoint (Ollama, LM Studio, OpenRouter, OpenAI). Key and settings live in your browser's localStorage and are passed through your own server per request — never stored. The story persists to the character and flows into the FoundryVTT actor bio and PDF.
+- **Distinct-visitor badge** — The `TAS-GEN-NNNN` terminal id in the header is the count of unique visitor IPs the site has served. IPs are salted+SHA-256 hashed (never stored raw); the count persists on a Docker volume (`traveller-data`).
+
+### NPC generator
+
+Reachable from **MAKE NPC** (footer) or **DO YOU NEED TO MAKE AN NPC?** (characteristics screen). Opens a modal that builds complete NPCs from the background + career package system (fast, no lifepath loop), with these controls (all remembered in `localStorage` between sessions):
+
+| Control | Options |
+|---|---|
+| **Species** | Imperial Human · Solomani Human · Uplifted (Ape/Dolphin) · Aslan · Vargr · Zhodani · Random Alien (Zhodani PSI is auto-resolved) |
+| **Role / Archetype** | Random, or a profession that biases the career and guarantees a signature skill — Soldier, Officer, Agent, Scholar, Medic, Noble, Trader, Criminal, Entertainer, Drifter, Scout, plus full **ship-crew roles**: Pilot, Ship's Captain, Astrogator, Engineer, Gunner, Sensor Operator, Comms Operator, Steward |
+| **Experience** | Rookie → Regular → Veteran → Elite → **Patron (7–10 terms)** — scales skill depth, age, and stat bumps; Patron also grafts a second career and rolls a Random-Patron type |
+| **How many** | 1–12 NPCs in one batch |
+| **Primary / Secondary Skill** | Optional — guarantee the NPC has the chosen skill at level 2+ |
+
+Every NPC gets a rolled **Character Quirk** (D66) and an auto-generated species-appropriate name (🎲 re-rolls just that name). Each roster entry has **LOAD / JSON / ⬇ FOUNDRY**, with **EXPORT ALL (JSON / FOUNDRY)** for the whole group. If an AI link is configured (see ✨ AI Story above), **✨ AI BACKGROUND** / **AI BACKGROUNDS (ALL)** write prose backstories — incorporating the quirk and patron type — that export into the FoundryVTT actor bio.
 
 ---
 
@@ -356,12 +370,14 @@ All species carry their characteristic modifiers, traits, and society restrictio
 ```
 traveller-creator/
 ├── app/
-│   ├── main.py                     # FastAPI routes (incl. /api/robot/new, /api/robot/finalize)
+│   ├── main.py                     # FastAPI routes (incl. /api/robot/*, NPC generator, AI narrative)
+│   ├── visitors.py                 # Distinct-visitor counter (salted IP hashes)
 │   ├── engine/
 │   │   ├── dice.py                 # 2D/1D/D3 rolling, characteristic DMs, GM forced-roll queue
 │   │   ├── character.py            # Pydantic Character model (character_type, robot_config fields)
 │   │   ├── rules.py                # JSON loader with lru_cache, society helpers
-│   │   ├── lifepath.py             # Rules engine (all phases)
+│   │   ├── lifepath.py             # Rules engine (all phases) + NPC generator
+│   │   ├── ai_narrative.py         # BYO-AI prose backgrounds (Claude SDK / OpenAI-compatible)
 │   │   └── foundry_export.py       # FoundryVTT MGT2e actor JSON export for biological characters
 │   ├── data/
 │   │   ├── species/                # 94 species JSON files
@@ -452,7 +468,8 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/tables/skills` | Canonical skill list |
 | `/api/tables/background-packages` | Background package definitions |
 | `/api/tables/career-packages` | Career package definitions + finalising tables |
-| `/api/character/generate-npc` | Quick NPC stat block — background + career package, all random |
+| `/api/character/generate-npc` | Single random NPC (legacy/no-options entry point) |
+| `/api/character/npc-options` | Option lists for the NPC generator UI (species, roles, experience tiers, skills) |
 
 ### Character creation (POST)
 
@@ -468,6 +485,8 @@ All `POST` endpoints accept `{"character": {...}, ...action_params}` and return 
 | `/api/character/background-package` | Apply a background package |
 | `/api/character/apply-skill-package` | Apply a skill package at finalization |
 | `/api/character/export-foundry` | Export biological character as FoundryVTT MGT2e actor JSON |
+| `/api/character/generate-npc` | Batch NPC generation — `{count, species_id, role, experience, primary_skill, secondary_skill}` → `{npcs: [...]}` |
+| `/api/character/ai-narrative` | Generate an AI prose background (BYO provider/key) for a character; returns `{story}` |
 
 ### Robot construction (POST)
 

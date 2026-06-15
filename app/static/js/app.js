@@ -13137,6 +13137,20 @@ async function _npcFoundryActor(npc) {
 function wireNpcModal() {
   document.getElementById('btn-close-npc')?.addEventListener('click', closeNpcModal);
 
+  // Persist every setting on change (not just on Generate) so reopening the
+  // modal keeps the last species/role/experience/skills (e.g. a Solomani run
+  // stays Solomani).
+  const _persistNpcPrefs = () => _npcSavePrefs({
+    species_id: document.getElementById('npc-species')?.value || 'random',
+    role: document.getElementById('npc-role')?.value || 'random',
+    experience: document.getElementById('npc-experience')?.value || 'regular',
+    count: Math.max(1, Math.min(parseInt(document.getElementById('npc-count')?.value, 10) || 1, 12)),
+    primary_skill: document.getElementById('npc-primary-skill')?.value || '',
+    secondary_skill: document.getElementById('npc-secondary-skill')?.value || '',
+  });
+  ['npc-species', 'npc-role', 'npc-experience', 'npc-count', 'npc-primary-skill', 'npc-secondary-skill']
+    .forEach(id => document.getElementById(id)?.addEventListener('change', _persistNpcPrefs));
+
   document.getElementById('btn-npc-generate')?.addEventListener('click', async () => {
     const species_id = document.getElementById('npc-species')?.value || 'random';
     const role = document.getElementById('npc-role')?.value || 'random';
