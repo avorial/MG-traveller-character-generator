@@ -18282,13 +18282,40 @@ NPC_ROLE_PACKAGES: dict[str, list[str]] = {
     "trader":      ["administrator", "citizen"],
     "entertainer": ["performer"],
     "drifter":     ["wanderer"],
+    # Ship crew positions — biased toward spacer packages, each guarantees its
+    # signature skill via NPC_ROLE_SKILLS.
+    "captain":     ["spacer_command", "military_officer"],
+    "astrogator":  ["spacer_crew", "scout"],
+    "engineer":    ["spacer_crew", "scout"],
+    "gunner":      ["spacer_crew", "marine"],
+    "sensors":     ["spacer_crew", "scout"],
+    "comms":       ["spacer_crew", "scout"],
+    "steward":     ["spacer_crew", "citizen"],
 }
 
 NPC_ROLE_LABELS: dict[str, str] = {
-    "soldier": "Soldier", "officer": "Officer", "pilot": "Pilot/Spacer",
+    "soldier": "Soldier", "officer": "Officer", "pilot": "Pilot (ship)",
     "scout": "Scout", "agent": "Agent/Spy", "criminal": "Criminal",
     "scholar": "Scholar/Scientist", "medic": "Medic", "noble": "Noble",
     "trader": "Trader/Official", "entertainer": "Entertainer", "drifter": "Drifter",
+    "captain": "Ship's Captain", "astrogator": "Astrogator (ship)",
+    "engineer": "Engineer (ship)", "gunner": "Gunner (ship)",
+    "sensors": "Sensor Operator (ship)", "comms": "Comms Operator (ship)",
+    "steward": "Steward (ship)",
+}
+
+# A role's signature skill, guaranteed trained on every NPC of that role
+# (name, optional speciality). Use the Primary Skill field to make them expert.
+NPC_ROLE_SKILLS: dict[str, tuple[str, Optional[str]]] = {
+    "pilot":      ("Pilot", None),
+    "captain":    ("Leadership", None),
+    "astrogator": ("Astrogation", None),
+    "engineer":   ("Engineer", None),
+    "gunner":     ("Gunner", None),
+    "sensors":    ("Electronics", "sensors"),
+    "comms":      ("Electronics", "comms"),
+    "steward":    ("Steward", None),
+    "medic":      ("Medic", None),
 }
 
 # Experience tier → extra skill bumps, extra age (years), and a stat boost.
@@ -18354,22 +18381,32 @@ def npc_skill_options() -> list[str]:
     return sorted(names)
 
 
-def _npc_ensure_skill(char: Character, skill_name: Optional[str], min_level: int = 2) -> None:
+def _npc_ensure_skill(char: Character, skill_name: Optional[str], min_level: int = 2,
+                      speciality: Optional[str] = None) -> None:
     """Guarantee the NPC has `skill_name` at >= min_level. Cascade parents get a
-    speciality (parents can't hold levels); existing higher levels are kept."""
+    speciality — the one given, else an existing/random one (parents can't hold
+    levels); existing higher levels are kept."""
     from .character import Skill
     if not skill_name:
         return
     spec_map = rules.skills().get("speciality") or {}
     if skill_name in spec_map:
-        specs = [s for s in char.skills if s.name == skill_name and s.speciality]
-        if specs:
-            top = max(specs, key=lambda s: s.level)
-            if top.level < min_level:
-                top.level = min_level
+        if speciality:
+            target = next((s for s in char.skills if s.name == skill_name and s.speciality
+                           and s.speciality.lower() == speciality.lower()), None)
+            if target:
+                target.level = max(target.level, min_level)
+            else:
+                char.skills.append(Skill(name=skill_name, level=min_level, speciality=speciality))
         else:
-            char.skills.append(Skill(name=skill_name, level=min_level,
-                                     speciality=_npc_random_spec(skill_name)))
+            specs = [s for s in char.skills if s.name == skill_name and s.speciality]
+            if specs:
+                top = max(specs, key=lambda s: s.level)
+                if top.level < min_level:
+                    top.level = min_level
+            else:
+                char.skills.append(Skill(name=skill_name, level=min_level,
+                                         speciality=_npc_random_spec(skill_name)))
         if not any(s.name == skill_name and s.speciality is None for s in char.skills):
             char.skills.append(Skill(name=skill_name, level=0, speciality=None))
     else:
@@ -18631,7 +18668,10 @@ def generate_npc(species_id: Optional[str] = None,
     # ── Resolve any generic cascade parents to real specialities ──────────
     _npc_resolve_cascade_parents(char)
 
-    # ── Guarantee chosen primary / secondary skills at level 2+ ───────────
+    # ── Role signature skill (trained), then chosen primary/secondary (2+) ─
+    _role_skill = NPC_ROLE_SKILLS.get(role or "")
+    if _role_skill:
+        _npc_ensure_skill(char, _role_skill[0], min_level=1, speciality=_role_skill[1])
     _npc_ensure_skill(char, primary_skill, min_level=2)
     _npc_ensure_skill(char, secondary_skill, min_level=2)
 

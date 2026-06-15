@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.83: NPC generator — full ship-crew roles
+**Request:** The role list should include every ship position — engineers, gunners, astrogators, sensor teams (not just pilot).
+
+**Implementation (`lifepath.py`):**
+- Added ship-crew roles to `NPC_ROLE_PACKAGES` / `NPC_ROLE_LABELS`: **Ship's Captain, Astrogator, Engineer, Gunner, Sensor Operator, Comms Operator, Steward** (Pilot relabelled "Pilot (ship)"). All biased toward the spacer packages.
+- New `NPC_ROLE_SKILLS` map gives each role a **guaranteed signature skill** (trained, level 1+): Pilot→Pilot, Captain→Leadership, Astrogator→Astrogation, Engineer→Engineer, Gunner→Gunner, Sensor Operator→Electronics (sensors), Comms→Electronics (comms), Steward→Steward, Medic→Medic. `_npc_ensure_skill` extended to accept a specific speciality (so sensor/comms operators get the right Electronics speciality). Use the Primary Skill field to make the signature skill expert (2+).
+- `/npc-options` and the UI dropdown pick the new roles up automatically (they iterate `NPC_ROLE_PACKAGES`).
+
+**Verification:** Every ship role guarantees its signature skill 8/8 (incl. Electronics sensors/comms specialities); 19 roles total. Live — dropdown lists all ship positions; an Engineer NPC came out with Engineer (Life Support). All 660 tests pass.
+
+---
+
 ### v30.82: NPC generator — Primary / Secondary Skill fields (guaranteed ≥2)
 **Request:** Add Primary Skill and Secondary Skill dropdowns (full skill list); the NPC will have each chosen skill at +2 or higher. If not picked, generate as normal.
 
