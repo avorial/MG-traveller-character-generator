@@ -54,6 +54,19 @@ def build_story_prompt(character: Character, tone: str) -> tuple[str, str]:
 
     facts = lifepath.generate_capsule(character)["capsule"]
     tone_line = TONES.get(tone, TONES["neutral"])
+
+    # NPC flavour: weave in the Character Quirk and (for patrons) the Patron role.
+    flavour = ""
+    extra_rules = ""
+    if getattr(character, "npc_patron_type", None):
+        flavour += f"\n- This character is a Patron of type: {character.npc_patron_type}."
+        extra_rules += ("\n- This is a patron NPC the player characters might work for; "
+                        "reflect their patron role naturally in the story.")
+    if getattr(character, "npc_quirk", None):
+        flavour += f"\n- Defining character quirk: {character.npc_quirk}."
+        extra_rules += ("\n- Work the character quirk into the story so it comes through "
+                        "in their personality or situation.")
+
     user = (
         "Write a 400-600 word backstory for the Traveller character described "
         "by the fact sheet below.\n\n"
@@ -65,8 +78,9 @@ def build_story_prompt(character: Character, tone: str) -> tuple[str, str]:
         f"- Tone: {tone_line}\n"
         "- Plain prose only: no headings, no bullet points, no markdown. "
         "Separate paragraphs with a blank line.\n"
-        "- Do not mention game mechanics, dice, terms, or rules.\n\n"
-        f"FACT SHEET\n----------\n{facts}"
+        "- Do not mention game mechanics, dice, terms, or rules."
+        f"{extra_rules}\n\n"
+        f"FACT SHEET\n----------\n{facts}{flavour}"
     )
     return _SYSTEM_PROMPT, user
 

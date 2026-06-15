@@ -18557,18 +18557,34 @@ def generate_npc(species_id: Optional[str] = None,
     benefit_id = random.choice(benefits)["id"] if benefits else 1
 
     # ── Apply career package ──────────────────────────────────────────────
-    apply_career_package(
-        char,
-        package_id=cp_pkg["id"],
-        skill_choices=cp_skill_choices,
-        career_choice=career_choice,
-        career_skill=career_skill,
-        career_skill_speciality=career_skill_speciality,
-        career_3skills=career_3skills,
-        traveller_pair_id=traveller_pair_id,
-        traveller_specialties=traveller_specialties,
-        benefit_id=benefit_id,
-    )
+    # A random finalising pick (e.g. boost a skill that resolved to a speciality)
+    # can be unapplicable. Snapshot the clean pre-package character so we can
+    # restore and fall back to the no-input choice without double-applying.
+    _pre_pkg = char.model_copy(deep=True)
+    try:
+        apply_career_package(
+            char,
+            package_id=cp_pkg["id"],
+            skill_choices=cp_skill_choices,
+            career_choice=career_choice,
+            career_skill=career_skill,
+            career_skill_speciality=career_skill_speciality,
+            career_3skills=career_3skills,
+            traveller_pair_id=traveller_pair_id,
+            traveller_specialties=traveller_specialties,
+            benefit_id=benefit_id,
+        )
+    except ValueError:
+        char = _pre_pkg
+        apply_career_package(
+            char,
+            package_id=cp_pkg["id"],
+            skill_choices=cp_skill_choices,
+            career_choice="rank_4_only",
+            traveller_pair_id=traveller_pair_id,
+            traveller_specialties=traveller_specialties,
+            benefit_id=benefit_id,
+        )
     # phase is now "skill_package" — skip it for NPC
 
     # ── Experience tier (skill depth, age, stat bumps, patron 2nd career) ─

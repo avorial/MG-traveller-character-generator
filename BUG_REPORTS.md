@@ -2,6 +2,18 @@
 
 ## Fixed Bugs
 
+### v30.78: AI backgrounds for NPCs (from the NPC generator) → Foundry bio
+**Request:** If someone has an AI link configured, let them generate NPC backgrounds from the NPC generator, and have those go into the Foundry export.
+
+**Implementation:**
+- **`app.js`** — when an AI link is configured (the same `traveller-ai-config` used by the Career Narrative ✨ AI feature), each roster NPC gains **✨ AI BACKGROUND** (→ **✨ REGEN BACKGROUND** once written) plus a batch **✨ AI BACKGROUNDS (ALL)** (sequential, to respect rate limits). The story is stored on `npc.capsule_description`; a **✓ AI background ready** badge appears. When no link is configured the buttons are hidden and a tip points to ⚙ AI SETTINGS. Per-NPC and "all" exports (JSON + Foundry) carry the story since they serialise the NPC dict.
+- **`ai_narrative.py`** — `build_story_prompt` now weaves in the NPC's Character Quirk and (for patrons) the Patron type, with guidance to reflect them in the prose.
+- **`lifepath.py`** — made NPC generation resilient: a random package-finalising pick that can't be applied (e.g. a boost skill that resolved to a speciality) no longer aborts generation/batches — it snapshots the clean pre-package character and retries with the no-input career choice (no double-application).
+
+**Verification:** Live with a mock AI endpoint — AI buttons appear only when configured; generating a background stores it on the NPC and shows the badge; the Foundry export for that NPC contains the story in `system.description` (the actor bio). Gating verified (buttons hidden + tip when no link). Resilience: 0 errors over 200 patron generations. `capsule_description → desc_html → actor description` confirmed in `foundry_export.py`. All 660 tests pass.
+
+---
+
 ### v30.77: NPC Character Quirks (all NPCs) + Random Patrons table (patron tier)
 **Request:** Every NPC should get a quirk from the D66 Character Quirks table; patron-tier NPCs roll their type from the D66 Random Patrons table.
 

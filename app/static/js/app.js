@@ -13059,9 +13059,11 @@ function _npcSummary(npc) {
 function renderNpcRoster() {
   if (!_npcRoster.length) return '';
   const multi = _npcRoster.length > 1;
+  const aiReady = aiConfigReady(loadAIConfig());  // AI background link configured?
   const rows = _npcRoster.map((npc, i) => {
     const s = _npcSummary(npc);
     const spLabel = (SPECIES.find(x => x.id === npc.species_id) || {}).name || npc.species_id || '';
+    const hasStory = !!npc.capsule_description;
     return `
       <div class="event-box" style="margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
@@ -13071,8 +13073,10 @@ function renderNpcRoster() {
         ${npc.npc_patron_type ? `<div style="font-size:11px;margin-top:3px;color:var(--accent)">★ Patron: ${escapeHTML(npc.npc_patron_type)}</div>` : ''}
         ${npc.npc_quirk ? `<div style="font-size:11px;margin-top:3px;color:var(--amber-dim)">Quirk: ${escapeHTML(npc.npc_quirk)}</div>` : ''}
         <div class="empty" style="font-size:11px;margin-top:4px">${escapeHTML(s.top)}</div>
+        ${hasStory ? `<div style="font-size:11px;margin-top:4px;color:var(--success,#7fd87f)">✓ AI background ready — included in export</div>` : ''}
         <div class="phase-actions" style="gap:6px;margin-top:8px;flex-wrap:wrap">
           <button class="btn" data-npc-load="${i}">LOAD</button>
+          ${aiReady ? `<button class="btn ghost" data-npc-ai="${i}">${hasStory ? '✨ REGEN BACKGROUND' : '✨ AI BACKGROUND'}</button>` : ''}
           <button class="btn ghost" data-npc-json="${i}">JSON</button>
           <button class="btn ghost" data-npc-foundry="${i}">⬇ FOUNDRY</button>
         </div>
@@ -13080,10 +13084,27 @@ function renderNpcRoster() {
   }).join('');
   const allBtns = multi ? `
     <div class="phase-actions" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+      ${aiReady ? `<button class="btn ghost" id="btn-npc-all-ai">✨ AI BACKGROUNDS (ALL)</button>` : ''}
       <button class="btn ghost" id="btn-npc-all-json">⬇ EXPORT ALL (JSON)</button>
       <button class="btn ghost" id="btn-npc-all-foundry">⬇ EXPORT ALL (FOUNDRY)</button>
     </div>` : '';
-  return `<div class="picker-status" style="margin:6px 0">Generated ${_npcRoster.length} NPC${multi ? 's' : ''}:</div>${rows}${allBtns}`;
+  const aiHint = aiReady ? '' :
+    `<div class="empty" style="font-size:11px;margin:6px 0">Tip: configure an AI link in the Career Narrative ⚙ AI SETTINGS to add written backgrounds to NPCs (they export into the Foundry bio).</div>`;
+  return `<div class="picker-status" style="margin:6px 0">Generated ${_npcRoster.length} NPC${multi ? 's' : ''}:</div>${aiHint}${rows}${allBtns}`;
+}
+
+async function _npcGenerateBackground(npc) {
+  const cfg = loadAIConfig();
+  const response = await apiCall('/api/character/ai-narrative', {
+    character: npc,
+    provider: cfg.provider,
+    api_key: cfg.apiKey || '',
+    model: cfg.model || '',
+    base_url: cfg.baseUrl || null,
+    tone: cfg.tone || 'neutral',
+  });
+  npc.capsule_description = response.story;  // flows into Foundry bio + JSON
+  return npc;
 }
 
 function _downloadBlob(obj, filename) {
@@ -13159,6 +13180,34 @@ function wireNpcModal() {
     } catch (e) { alert('Foundry export failed: ' + e.message); }
     finally { b.textContent = '⬇ FOUNDRY'; b.disabled = false; }
   }));
+
+  // AI background — per NPC (uses the configured AI link; result exports into Foundry bio)
+  document.querySelectorAll('[data-npc-ai]').forEach(b => b.addEventListener('click', async () => {
+    const npc = _npcRoster[+b.dataset.npcAi];
+    if (!npc) return;
+    b.textContent = '✨ WRITING…'; b.disabled = true;
+    try {
+      await _npcGenerateBackground(npc);
+      renderNpcModal(); wireNpcModal();
+    } catch (e) {
+      alert('AI background failed: ' + e.message);
+      b.textContent = '✨ AI BACKGROUND'; b.disabled = false;
+    }
+  }));
+
+  // AI backgrounds — all NPCs in the roster (sequential to respect rate limits)
+  document.getElementById('btn-npc-all-ai')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-npc-all-ai');
+    let done = 0, failed = 0;
+    btn.disabled = true;
+    for (const npc of _npcRoster) {
+      btn.textContent = `✨ WRITING ${done + failed + 1}/${_npcRoster.length}…`;
+      try { await _npcGenerateBackground(npc); done++; }
+      catch (e) { failed++; }
+    }
+    renderNpcModal(); wireNpcModal();
+    if (failed) alert(`AI backgrounds: ${done} done, ${failed} failed.`);
+  });
 
   // Export-all
   document.getElementById('btn-npc-all-json')?.addEventListener('click', () => {
