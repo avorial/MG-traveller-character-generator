@@ -76,3 +76,6 @@ docker-compose.override.yml
 # Project scratch
 scratch/
 tmp/
+
+# Visitor counter (salted IP hashes) — runtime data, not for version control
+/data/

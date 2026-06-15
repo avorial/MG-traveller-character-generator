@@ -2,6 +2,21 @@
 
 ## Fixed Bugs
 
+### v30.80: Terminal-ID badge shows distinct-visitor count (replaces "9042")
+**Request:** Replace the static `TAS-GEN-9042` number with the count of different IPs that have visited the site.
+
+**Implementation:**
+- **`app/visitors.py`** (new) — `VisitorCounter`: records distinct client IPs and returns the count. IPs are **salted + SHA-256 hashed** before storage (the JSON file holds only opaque hashes + a random salt, never raw IPs). Thread-locked, atomic temp-file write, best-effort (never breaks a page load).
+- **`main.py`** — index route records the client IP (first `X-Forwarded-For` hop behind a proxy, else the direct peer) and passes `visitor_count` to the template. Store path is `VISITORS_FILE` (default `/code/data/visitors.json`).
+- **`index.html`** — badge is now `TAS-GEN-{{ '%04d' % visitor_count }}-{{ app_version }}` (zero-padded to keep the terminal look) with a "Distinct visitors" tooltip.
+- **`docker-compose.yml`** — added a `traveller-data` named volume mounted at `/code/data` + `VISITORS_FILE` env so the count survives container rebuilds. `.gitignore` excludes `/data/`.
+
+**Verification:** Unit — dedup (same IP once), persistence across reloads, no raw IP in the file. Route — distinct `X-Forwarded-For` IPs increment, repeats don't; badge renders `TAS-GEN-0003-…`. Live — badge shows `TAS-GEN-0001-30.79` with tooltip. All 660 tests pass.
+
+**Deploy notes:** The count starts at 0 (no historical data) and only persists across rebuilds if the new `traveller-data` volume is present — `docker compose up -d` will create it. If the app sits behind a reverse proxy, ensure it forwards `X-Forwarded-For` so real client IPs are counted rather than the proxy's.
+
+---
+
 ### v30.79: "Do you need to make an NPC?" button on the first page
 **Request:** Add an NPC button under the "I want to play a robot" button on the first page.
 

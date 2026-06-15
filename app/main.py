@@ -6,6 +6,7 @@ The backend is deliberately stateless — the character lives in the browser
 and returns the updated character plus a structured log of what happened.
 """
 
+import os
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +18,7 @@ from pydantic import BaseModel
 from .engine import lifepath, rules, dice as _dice
 from .engine.character import Character, new_character
 from .engine import pdf_export, pdf_sheet, foundry_export
+from .visitors import VisitorCounter
 
 
 BASE_DIR = Path(__file__).parent
@@ -31,6 +33,22 @@ except FileNotFoundError:
     APP_VERSION = "dev"
 
 app = FastAPI(title="Traveller Character Creator", version=APP_VERSION)
+
+# Distinct-visitor counter shown in the terminal-id badge. Stored as salted IP
+# hashes (no raw IPs). Put VISITORS_FILE on a persistent volume so the count
+# survives container rebuilds (see docker-compose.yml: traveller-data volume).
+_VISITORS = VisitorCounter(
+    Path(os.environ.get("VISITORS_FILE", str(BASE_DIR.parent / "data" / "visitors.json")))
+)
+
+
+def _client_ip(request: Request) -> str:
+    """Best-effort client IP — first X-Forwarded-For hop (behind a proxy) or
+    the direct peer."""
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -282,6 +300,7 @@ class AslanGenderAction(CharacterAction):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    visitor_count = _VISITORS.record(_client_ip(request))
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -289,7 +308,8 @@ async def index(request: Request):
          "careers_list": rules.list_careers(),
          "skills_data": rules.skills(),
          "societies_list": rules.list_societies(),
-         "app_version": APP_VERSION},
+         "app_version": APP_VERSION,
+         "visitor_count": visitor_count},
     )
 
 

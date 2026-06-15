@@ -9,8 +9,15 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      - VISITORS_FILE=/code/data/visitors.json
     restart: unless-stopped
+    # Persists the distinct-visitor count (salted IP hashes) across rebuilds.
+    volumes:
+      - traveller-data:/code/data
     # This is the prod-safe command: uses the baked-in /code/app from
     # the image, no reload. For local dev, docker-compose.override.yml
     # (gitignored) bind-mounts ./app and enables --reload.
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  traveller-data:

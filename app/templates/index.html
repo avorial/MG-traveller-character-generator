@@ -22,7 +22,7 @@
     <div class="header-content">
       <div class="header-left">
         <span class="imperial-crest">⚝</span>
-        <span class="terminal-id">TAS-GEN-9042-{{ app_version }}</span>
+        <span class="terminal-id" title="Distinct visitors to this terminal">TAS-GEN-{{ '%04d' % (visitor_count | default(0)) }}-{{ app_version }}</span>
       </div>
       <h1 class="title">
         <span class="title-main">TRAVELLER</span>
