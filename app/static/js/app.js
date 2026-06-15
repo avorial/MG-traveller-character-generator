@@ -2770,6 +2770,7 @@ function renderCharacteristicsPhase() {
         <button class="btn" id="btn-to-species" ${hasRolled ? '' : 'disabled'}>CHOOSE ORIGIN →</button>
         <div class="robot-divider">— or —</div>
         <button class="btn" id="btn-build-robot">I WANT TO PLAY A ROBOT</button>
+        <button class="btn" id="btn-need-npc">DO YOU NEED TO MAKE AN NPC?</button>
       </div>
 
       <!-- Optional extra characteristics -->
@@ -2836,6 +2837,8 @@ function wireCharacteristicsPhase() {
       renderAll();
     } catch(e) { alert('Failed to start robot build: ' + e.message); }
   });
+
+  document.getElementById('btn-need-npc')?.addEventListener('click', openNpcModal);
 
   // Extra stats toggle — direct DOM show/hide, no full re-render (avoids scroll reset)
   document.getElementById('btn-toggle-extra-stats')?.addEventListener('click', () => {

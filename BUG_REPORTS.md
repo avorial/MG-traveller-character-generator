@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.79: "Do you need to make an NPC?" button on the first page
+**Request:** Add an NPC button under the "I want to play a robot" button on the first page.
+
+**Change (`app.js`):** Added a `DO YOU NEED TO MAKE AN NPC?` button directly under `I WANT TO PLAY A ROBOT` on the characteristics (first) page; it opens the same NPC Generator modal as the footer MAKE NPC button (`openNpcModal`).
+
+**Verification:** Live — button present, ordered after the robot button, labelled correctly, opens the NPC modal with its controls. JS-only; all 660 tests pass.
+
+---
+
 ### v30.78: AI backgrounds for NPCs (from the NPC generator) → Foundry bio
 **Request:** If someone has an AI link configured, let them generate NPC backgrounds from the NPC generator, and have those go into the Foundry export.
 
