@@ -17514,6 +17514,14 @@ def _apply_rank_bonus(character: "Character", bonus_str: str) -> str:
         character.reputation += n
         return f"REP {old_rep}→{character.reputation} (rank bonus)"
 
+    # "BOL +N" — Za'tachk Boldness characteristic
+    m_bol = re.match(r"^BOL\s*\+(\d+)$", text, re.IGNORECASE)
+    if m_bol:
+        n = int(m_bol.group(1))
+        old_bol = character.boldness
+        character.boldness += n
+        return f"BOL {old_bol}→{character.boldness} (rank bonus)"
+
     # "STAT +N" or "STAT+N" (positive increment, includes TER and FOL)
     m_stat = re.match(r"^(STR|DEX|END|INT|EDU|SOC|PSI|RES|TER|FOL)\s*\+(\d+)$", text, re.IGNORECASE)
     if m_stat:
@@ -17767,6 +17775,14 @@ def _apply_skill_result(character: Character, result: str) -> str:
         old = character.extra_characteristics.get("FOL", 0)
         character.extra_characteristics["FOL"] = old + n
         return f"FOL {old}→{old + n}"
+
+    # BOL +N (Za'tachk Boldness characteristic)
+    m_bol_sr = re.match(r"^BOL\s*\+(\d+)$", stripped, re.IGNORECASE)
+    if m_bol_sr:
+        n = int(m_bol_sr.group(1))
+        old = character.boldness
+        character.boldness = old + n
+        return f"BOL {old}→{old + n}"
 
     # Characteristic bonuses ("STR +1", "DEX +1", "PSI +1", "RES +1", etc.)
     for stat in ("STR", "DEX", "END", "INT", "EDU", "SOC", "PSI", "RES"):

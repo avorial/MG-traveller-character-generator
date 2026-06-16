@@ -1,0 +1,85 @@
+{
+  "id": "suerrat_rsf",
+  "name": "Regional Security Force",
+  "description": "Protects the borders of the Suerrat Republic from pirates, smugglers and undocumented immigration. A Suerrat career (Aliens of Charted Space Vol. 4).",
+  "societies": ["other"],
+  "allowed_species": ["suerrat"],
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [
+      {"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1},
+      {"description": "DM-2 if you are aged over 30", "type": "age_over", "age": 30, "dm": -2}
+    ]
+  },
+  "assignments": {
+    "investigator": {
+      "name": "Investigator",
+      "description": "You investigate interstellar criminal activities.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 5}
+    },
+    "field": {
+      "name": "Field",
+      "description": "You are a field agent on a starship.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    },
+    "special_operations": {
+      "name": "Special Operations",
+      "description": "You are a member of the RSF combat forces.",
+      "survival": {"characteristic": "STR", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "Gun Combat", "2": "DEX +1", "3": "END +1", "4": "Melee", "5": "INT +1", "6": "Athletics"},
+    "service_skills": {"name": "Service Skills", "1": "Advocate", "2": "Vacc Suit", "3": "Admin", "4": "Gun Combat", "5": "Athletics", "6": "Pilot"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Advocate", "2": "Language", "3": "Explosives", "4": "Medic", "5": "Vacc Suit", "6": "Electronics"},
+    "investigator": {"name": "Investigator", "assignment_only": "investigator", "1": "Admin", "2": "Investigate", "3": "Streetwise", "4": "Persuade", "5": "Electronics (computers)", "6": "Advocate"},
+    "field": {"name": "Field", "assignment_only": "field", "1": "Pilot", "2": "Engineer", "3": "Mechanic", "4": "Gunner", "5": "Electronics", "6": "Gun Combat"},
+    "special_operations": {"name": "Special Operations", "assignment_only": "special_operations", "1": "Gun Combat", "2": "Tactics (military)", "3": "Recon", "4": "Heavy Weapons", "5": "Vacc Suit", "6": "Melee"}
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": "Assistant Officer", "bonus": "Gun Combat 1"},
+      "1": {"title": "Officer", "bonus": "Recon 1"},
+      "2": {"title": "Force Officer", "bonus": null},
+      "3": {"title": "Senior Officer", "bonus": "Leadership 1"},
+      "4": {"title": "Force Inspector", "bonus": null},
+      "5": {"title": "Force Commander", "bonus": null},
+      "6": {"title": "Commissioner", "bonus": "SOC 10 or SOC +1, whichever is higher"}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "A dangerous escaped criminal stalks you and your family. Now and each term until caught or you leave, roll Investigate 10+: succeed and the criminal is caught (DM+2 to your next Advancement roll); fail by Effect -6+ and lose one Contact, Ally or family member.",
+    "4": "You establish a good network of connections. Gain two Contacts.",
+    "5": "You are sent to research an elusive criminal syndicate. Roll Investigate 10+ to automatically advance this term.",
+    "6": "You can manufacture an injury to ensure a criminal gets what they deserve. If you do, roll Athletics (dexterity) 8+: succeed and you are automatically promoted; fail and roll on the Injury table.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "A powerful criminal syndicate offers you a bribe. Accept and gain one extra Benefit roll each term you remain in this career; refuse and gain an Enemy.",
+    "9": "You learn something that could destroy your supervisor's career. Withhold it and gain them as an Ally; exploit it for DM+2 on your next Advancement roll but gain them as an Enemy.",
+    "10": "Advanced training is offered. Roll EDU 8+ to gain one of Leadership +1, Investigate +1, Advocate +1 or Athletics (any) +1.",
+    "11": "A new member of the force is in legal trouble. Help them and gain Advocate +1; use their troubles and gain Deception +1.",
+    "12": "You are decorated for heroism beyond the call of duty. You are automatically promoted."
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury table). Alternatively, roll twice on the Injury table and take the lower result.",
+    "2": "A gunfight goes poorly and you now have a bullet lodged in an organ. Lose END -1.",
+    "3": "Your face is plastered all over criminal message centres. Gain SOC +1 but gain an Enemy.",
+    "4": "The ship you worked on is attacked by pirates. Roll Gun Combat (any) or Gunner (any) 8+ to avoid rolling on the Injury table.",
+    "5": "You make friends with a criminal you are pursuing. You are fired but gain them as a Contact.",
+    "6": "You are decorated for solving the impossible case. You are automatically promoted."
+  },
+  "mustering_out": {
+    "1": {"cash": 3000, "benefit": "INT +1"},
+    "2": {"cash": 5000, "benefit": "D3 Contacts"},
+    "3": {"cash": 12000, "benefit": "Weapon"},
+    "4": {"cash": 18000, "benefit": "Law Enforcement Gear"},
+    "5": {"cash": 24000, "benefit": "2 Ship Shares"},
+    "6": {"cash": 55000, "benefit": "TAS Membership"},
+    "7": {"cash": 85000, "benefit": "D3 Allies"}
+  },
+  "complete": true
+}

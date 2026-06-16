@@ -1,0 +1,92 @@
+{
+  "id": "zatachk_ground_force",
+  "name": "Za'tachk Interstellar Ground Force",
+  "description": "The Za'tachk army — planetary surface actions, battles and campaigns, largely fought through remotely operated drones. A Za'tachk career (Aliens of Charted Space Vol. 4). Commission also requires BOL 6 or lower.",
+  "societies": ["other"],
+  "allowed_species": ["zatachk", "zatachk_matriarch", "zatachk_scout"],
+  "qualification": {
+    "characteristic": "END",
+    "target": 5,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "commission": {"characteristic": "SOC", "target": 5},
+  "assignments": {
+    "support": {
+      "name": "Support",
+      "description": "You are an engineer, cook or in some other role behind the front lines.",
+      "survival": {"characteristic": "END", "target": 3},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "light_jockey": {
+      "name": "Light Drone Jockey",
+      "description": "You are trained in controlling the light drones of the ground force.",
+      "survival": {"characteristic": "DEX", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "heavy_jockey": {
+      "name": "Heavy Drone Jockey",
+      "description": "You are trained in controlling the heavy drones of the ground force.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 5}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "DEX +1", "2": "DEX +1", "3": "EDU +1", "4": "Carouse", "5": "Electronics", "6": "BOL +1"},
+    "service_skills": {"name": "Service Skills", "1": "Drive", "2": "Electronics", "3": "Mechanic", "4": "Recon", "5": "Gun Combat", "6": "Flyer"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Electronics (comms)", "2": "Electronics (comms)", "3": "Electronics (sensors)", "4": "Navigation", "5": "Leadership", "6": "Tactics"},
+    "officer": {"name": "Officer (commissioned only)", "requires_commission": true, "1": "Tactics (military)", "2": "Leadership", "3": "Admin", "4": "Advocate", "5": "Pilot (small craft)", "6": "Tactics (military)"},
+    "support": {"name": "Support", "assignment_only": "support", "1": "Drive", "2": "Flyer", "3": "Electronics", "4": "Mechanic", "5": "Medic", "6": "Steward"},
+    "light_jockey": {"name": "Light Drone Jockey", "assignment_only": "light_jockey", "1": "Drive", "2": "Flyer", "3": "Electronics (remote ops)", "4": "Electronics (remote ops)", "5": "Recon", "6": "Recon"},
+    "heavy_jockey": {"name": "Heavy Drone Jockey", "assignment_only": "heavy_jockey", "1": "Drive", "2": "Flyer", "3": "Electronics (remote ops)", "4": "Electronics (remote ops)", "5": "Pilot (small craft)", "6": "Recon"}
+  },
+  "ranks": {
+    "enlisted": {
+      "0": {"title": "Yruck", "bonus": "Mechanic"},
+      "1": {"title": "Yruckan", "bonus": null},
+      "2": {"title": "Wena", "bonus": null},
+      "3": {"title": "Danwen", "bonus": "Gun Combat 1"},
+      "4": {"title": "Wenxoo", "bonus": "Leadership 1"},
+      "5": {"title": "Xoo", "bonus": null},
+      "6": {"title": "Garxoo", "bonus": "Tactics (military) 1"}
+    },
+    "officer": {
+      "1": {"title": "Sper", "bonus": "Leadership 1"},
+      "2": {"title": "Goc", "bonus": null},
+      "3": {"title": "Van Goc", "bonus": "Tactics (military) 1"},
+      "4": {"title": "Disa", "bonus": null},
+      "5": {"title": "Tarn", "bonus": "BOL +1"},
+      "6": {"title": "Xok", "bonus": "SOC 10 or SOC +1, whichever is higher"}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "You garrison on a major military base with recreational facilities. Gain one of Carouse, Gambler, Streetwise or Survival.",
+    "4": "Stationed at a boring billet, you take up gambling. Roll BOL 8+: succeed for D3 additional Benefit rolls this term; fail and lose your Benefit this term. Either way, gain one level in Gambler.",
+    "5": "Your drone is caught between two fighting units. Stand and fight your way out with Electronics (remote ops) 8+: succeed and gain one of Drive (any), Electronics (any) or Flyer (any); fail and lose your Benefit this term.",
+    "6": "Your CO selects you for advanced training. Roll BOL 8+ to gain one of Admin 1, Advocate 1, Electronics 1, Engineer 1 or Mechanic 1.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You lead a commended surgical strike. Gain one of Leadership, Tactics (military), or DM+4 on your next Advancement roll.",
+    "9": "You discover your superior is involved in crime. Cover for them and gain them as an Ally; or turn them in with BOL 8+ — succeed and you are commended (auto-advance or gain a commission), fail and you cannot roll for advancement or commission this term. Either way, gain the officer as an Enemy.",
+    "10": "You serve as your CO's executive assistant. Roll EDU 6+ to gain Admin 1.",
+    "11": "A rival challenges you to a test of skill. Refuse and lose SOC -1. Accept and roll your highest skill 8+: fail and lose all benefits this term; succeed for DM+2 to your next Advancement roll.",
+    "12": "Your innovative tactic proves exceptionally effective in an exercise. You are either promoted or automatically commissioned to officer rank."
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury table). Alternatively, roll twice on the Injury table and take the lower result.",
+    "2": "Your unit's drones are demolished in a disastrous battle, which you blame on your CO. Gain them as an Enemy as they have you removed from the service.",
+    "3": "Ordered onto a black-ops mission against your conscience, you refused and were ejected from the service.",
+    "4": "You quarrel with a superior officer. Gain the officer as a Rival as they drive you out of the service.",
+    "5": "You destroy a fellow soldier's drone in friendly fire. Roll Advocate 8+: succeed and you are not charged but forced out; fail and you are charged and forced out. On a natural 2 you must take the Prisoner career next term. Either way, gain the fellow as an Enemy.",
+    "6": "You are wounded in the line of duty. Roll on the Injury table."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "INT +1"},
+    "2": {"cash": 5000, "benefit": "EDU +1"},
+    "3": {"cash": 10000, "benefit": "DEX +1"},
+    "4": {"cash": 10000, "benefit": "STR +1"},
+    "5": {"cash": 15000, "benefit": "BOL +1"},
+    "6": {"cash": 20000, "benefit": "BOL +1"},
+    "7": {"cash": 25000, "benefit": "SOC +1"}
+  },
+  "complete": true
+}

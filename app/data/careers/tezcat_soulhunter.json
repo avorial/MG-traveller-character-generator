@@ -1,0 +1,96 @@
+{
+  "id": "tezcat_soulhunter",
+  "name": "Soulhunter",
+  "description": "An elite combined naval and marine force of the Solar Hegemony, charged with invasions and strike missions into enemy territory. A Tezcat career (Aliens of Charted Space Vol. 4).",
+  "societies": ["other"],
+  "allowed_species": ["tezcat"],
+  "qualification": {
+    "characteristic": "END",
+    "target": 6,
+    "modifiers": [
+      {"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1},
+      {"description": "DM-2 if you are aged 30 or more", "type": "age_over", "age": 30, "dm": -2}
+    ]
+  },
+  "commission": {"characteristic": "INT", "target": 8},
+  "assignments": {
+    "commando": {
+      "name": "Commando",
+      "description": "You are trained to fight both boarding and ground actions.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "flight": {
+      "name": "Flight",
+      "description": "You pilot one of the many vessels of the Solar Hegemony fleet.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "support": {
+      "name": "Support",
+      "description": "You are a specialist technician, engineer or battlefield support in the Solar Hegemony fleet.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "STR +1", "2": "DEX +1", "3": "END +1", "4": "INT +1", "5": "EDU +1", "6": "SOC +1"},
+    "service_skills": {"name": "Service Skills", "1": "Pilot", "2": "Vacc Suit", "3": "Athletics", "4": "Gunner", "5": "Mechanic", "6": "Gun Combat"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Medic", "2": "Survival", "3": "Explosives", "4": "Navigation", "5": "Admin", "6": "Engineer"},
+    "officer": {"name": "Officer (commissioned only)", "requires_commission": true, "1": "Leadership", "2": "Electronics", "3": "Pilot", "4": "Melee (natural)", "5": "Admin", "6": "Tactics"},
+    "commando": {"name": "Commando", "assignment_only": "commando", "1": "Vacc Suit", "2": "Stealth", "3": "Gunner", "4": "Melee", "5": "Electronics", "6": "Gun Combat"},
+    "flight": {"name": "Flight", "assignment_only": "flight", "1": "Pilot", "2": "Astrogation", "3": "Gunner", "4": "Electronics", "5": "Flyer", "6": "Vacc Suit"},
+    "support": {"name": "Support", "assignment_only": "support", "1": "Electronics", "2": "Mechanic", "3": "Engineer", "4": "Medic", "5": "Vacc Suit", "6": "Explosives"}
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": "Least Claw", "bonus": null},
+      "1": {"title": "Third Claw", "bonus": "Mechanic 1 or Gun Combat 1"},
+      "2": {"title": "Second Claw", "bonus": null},
+      "3": {"title": "First Claw", "bonus": "Leadership 1"},
+      "4": {"title": "Third Fang", "bonus": null},
+      "5": {"title": "Second Fang", "bonus": "END +1"},
+      "6": {"title": "First Fang", "bonus": null}
+    },
+    "support": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Kaltrhar", "bonus": "Melee (natural) 1"},
+      "2": {"title": "Shin Kaltrhar", "bonus": "Leadership 1"},
+      "3": {"title": "Shilahn", "bonus": null},
+      "4": {"title": "Shiltrhar", "bonus": "Tactics 1"},
+      "5": {"title": "Shil Shintrah", "bonus": "Admin 1"},
+      "6": {"title": "Shinalrhar", "bonus": "SOC +1"}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "Trapped behind enemy lines, you survive on your own. Gain one of Survival 1, Stealth 1, Deception 1 or Streetwise 1.",
+    "4": "A special assignment or duty on board your ship. Gain DM+1 to any one Benefit roll.",
+    "5": "Advanced training in a specialist field. Roll EDU 8+ to gain one skill of your choice at level 1.",
+    "6": "Your vessel takes part in a notable engagement. Gain one of Electronics 1, Engineer 1, Gunner 1 or Pilot 1.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You are on the front line of an assault and occupation. Gain one of Recon 1, Gun Combat 1, Leadership 1 or Electronics (comms) 1.",
+    "9": "You foil a crime aboard your ship — mutiny, sabotage, smuggling or conspiracy. Gain an Enemy but DM+2 to your next Advancement roll.",
+    "10": "You are assigned a black-ops mission. Gain DM+2 to your next Advancement roll.",
+    "11": "Your CO takes an interest in your career. Gain Tactics 1 or DM+4 to your next Advancement roll.",
+    "12": "You display heroism in battle. You may gain a promotion or commission automatically."
+  },
+  "mishaps": {
+    "1": "Severely injured in action (treat as a result of 2 on the Injury table). Alternatively, roll twice on the Injury table and take the lower result.",
+    "2": "A mission goes horribly wrong; you and others are captured and mistreated, and you are discharged early due to injuries. Gain your gaoler as an Enemy and reduce STR and DEX by one.",
+    "3": "In battle, victory depends on your actions — roll 8+ with a branch skill (flight: Electronics (sensors)/Pilot; support: Mechanic/Vacc Suit; commando: Gun Combat/Stealth). Fail and you are court-martialled and discharged; succeed and you are honourably discharged keeping this term's Benefit roll. Either way you leave the career.",
+    "4": "You are blamed for an accident that kills several crew. If responsible, lose SOC -1 before being ejected as guilt drives you to exile; if not, gain the accuser as an Enemy but keep this term's Benefit roll.",
+    "5": "You quarrel with or are tormented by an officer or fellow commando. Gain them as a Rival as they drive you out of the service.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Personal Vehicle or Ship Share"},
+    "2": {"cash": 5000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "EDU +1 or Two Ship Shares"},
+    "4": {"cash": 10000, "benefit": "Weapon"},
+    "5": {"cash": 20000, "benefit": "Armour"},
+    "6": {"cash": 50000, "benefit": "Ship's Boat or Two Ship Shares"},
+    "7": {"cash": 50000, "benefit": "SOC +2"}
+  },
+  "complete": true
+}

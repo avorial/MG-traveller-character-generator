@@ -1,0 +1,91 @@
+{
+  "id": "tezcat_shaper_priest",
+  "name": "Shaper Priest",
+  "description": "Clergy of the Shaper Church who guide Tezcat in spiritual and worldly matters, proselytise the faith and punish the sinful. A Tezcat career (Aliens of Charted Space Vol. 4).",
+  "societies": ["other"],
+  "allowed_species": ["tezcat"],
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "academic": {
+      "name": "Academic",
+      "description": "You pursue your faith through study and further understanding of the world around you.",
+      "survival": {"characteristic": "EDU", "target": 4},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    },
+    "ecclesiastic": {
+      "name": "Ecclesiastic",
+      "description": "You bring the teachings of the church to your followers.",
+      "survival": {"characteristic": "INT", "target": 4},
+      "advancement": {"characteristic": "SOC", "target": 7}
+    },
+    "partisan": {
+      "name": "Partisan",
+      "description": "You are the military arm of the church — enforcing its laws and defending the faith.",
+      "survival": {"characteristic": "END", "target": 6},
+      "advancement": {"characteristic": "INT", "target": 6}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "INT +1", "2": "EDU +1", "3": "SOC +1", "4": "Science (shaper church)", "5": "Profession (religion)", "6": "Persuade"},
+    "service_skills": {"name": "Service Skills", "1": "Profession (religion)", "2": "Science (shaper church)", "3": "Admin", "4": "Diplomat", "5": "Persuade", "6": "Electronics (computers)"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Profession (religion)", "2": "Science", "3": "Medic", "4": "Investigate", "5": "Advocate", "6": "Electronics (computers)"},
+    "academic": {"name": "Academic", "assignment_only": "academic", "1": "Admin", "2": "Advocate", "3": "Science", "4": "Science", "5": "Electronics (computers)", "6": "Science"},
+    "ecclesiastic": {"name": "Ecclesiastic", "assignment_only": "ecclesiastic", "1": "Profession (religion)", "2": "Science (shaper church)", "3": "Persuade", "4": "Admin", "5": "Leadership", "6": "Deception"},
+    "partisan": {"name": "Partisan", "assignment_only": "partisan", "1": "Advocate", "2": "Gun Combat", "3": "Melee", "4": "Tactics (military)", "5": "Recon", "6": "Stealth"}
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": "Novice", "bonus": null},
+      "1": {"title": "Initiate", "bonus": "Science (shaper church)"},
+      "2": {"title": "Acolyte", "bonus": "Persuade"},
+      "3": {"title": "Priest", "bonus": null},
+      "4": {"title": "High Priest", "bonus": "SOC +1"},
+      "5": {"title": "Prelate", "bonus": null},
+      "6": {"title": "Primate", "bonus": "SOC +1"}
+    },
+    "partisan": {
+      "0": {"title": "Least Claw", "bonus": null},
+      "1": {"title": "Third Claw", "bonus": "Gun Combat 1"},
+      "2": {"title": "Second Claw", "bonus": "Leadership 1"},
+      "3": {"title": "First Claw", "bonus": null},
+      "4": {"title": "Kaltrhar", "bonus": "Tactics (military) 1"},
+      "5": {"title": "Shilahn", "bonus": null},
+      "6": {"title": "Shil Shintrah", "bonus": "SOC +1"}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "Good works in the community earn you wide respect. Gain SOC +1 and an Ally.",
+    "4": "A notable academic consults you for a publication or documentary. Gain a Contact in academia.",
+    "5": "You are sent to preach Shaper doctrine among the poor of a new parish. Gain either Streetwise or Persuade.",
+    "6": "You retreat from the mundane world seeking revelation, neglecting your work and relationships. Lose SOC -D3 but gain D3 Benefit rolls and DM+1 on these and all future Benefit rolls.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "You represent the Shaper Church in a highly public forum. Gain either Carouse or Persuade.",
+    "9": "You are offered inducements to betray the Shaper Church. Accept and you must leave this career and lose all Benefit rolls, but gain Cr10000×2D per Benefit roll lost. Refuse and gain 1D Enemies.",
+    "10": "An important personage confides damaging indiscretions to you. Keep their confidence and gain them as an Ally; exploit it and gain them as an Enemy plus D3 additional Benefit rolls.",
+    "11": "Someone more charismatic but less devout becomes your superior. All future Advancement rolls suffer DM-1.",
+    "12": "Your faith enjoys an explosion of popularity thanks to you. You are immediately promoted one grade and gain DM+1 on all future Advancement checks."
+  },
+  "mishaps": {
+    "1": "Opponents of your belief system ambush you. Roll on the Injury table and leave this career.",
+    "2": "You guide a follower back to the True Path, angering a friend or relative. Gain an Enemy.",
+    "3": "You are caught in a scandal. Lose 1 rank and a Benefit roll, but you are not ejected from this career.",
+    "4": "You have been following false teachings! Lose 1 skill level from either Profession (religion) or Science (shaper church) and leave this career.",
+    "5": "Your faith is shaken. Lose all Benefit rolls gained so far in this career, but you do not have to leave it.",
+    "6": "You clash with a splinter group of the Shaper Church that calls your version heresy. Gain D3 Rivals."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "EDU +1"},
+    "2": {"cash": 2500, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "SOC +1"},
+    "4": {"cash": 10000, "benefit": "A prominent statue and SOC +1"},
+    "5": {"cash": 25000, "benefit": "3 Ship Shares"},
+    "6": {"cash": 50000, "benefit": "SOC +2"},
+    "7": {"cash": 75000, "benefit": "SOC +2 and 3 Ship Shares"}
+  },
+  "complete": true
+}

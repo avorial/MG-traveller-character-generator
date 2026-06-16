@@ -157,7 +157,7 @@ The character goes directly to finalization (skill package phase) — no further
 | **Technician** | — | Mechanic 2, Electronics 2, Engineer; EDU+1 |
 | **Wanderer** | — | Survival, Recon, Stealth, Streetwise |
 
-### Careers (83 fully encoded)
+### Careers (89 fully encoded)
 
 Every career has qualification, all assignments, full skill tables, events (2–12), mishaps (1–6), rank tracks with bonuses, and mustering-out tables.
 
@@ -397,7 +397,7 @@ traveller-creator/
 │   │   └── foundry_export.py       # FoundryVTT MGT2e actor JSON export for biological characters
 │   ├── data/
 │   │   ├── species/                # 94 species JSON files
-│   │   ├── careers/                # 83 career JSON files
+│   │   ├── careers/                # 89 career JSON files
 │   │   └── tables/
 │   │       ├── aging.json
 │   │       ├── background_packages.json
@@ -422,7 +422,7 @@ traveller-creator/
 │   ├── test_dice.py
 │   ├── test_api_smoke.py
 │   ├── test_data_schemas.py
-│   └── smoke_all_careers.py        # Full engine smoke test — 478 paths, 0 failures across all 83 careers
+│   └── smoke_all_careers.py        # Full engine smoke test — 514 paths, 0 failures across all careers
 ├── Dockerfile
 ├── docker-compose.yml
 ├── pytest.ini
@@ -575,7 +575,7 @@ python tests/smoke_all_careers.py
 | `tests/test_dice.py` | Dice helpers, DM table, forced-roll queue |
 | `tests/test_api_smoke.py` | FastAPI route smoke (new character, roll characteristics, apply species) |
 | `tests/test_data_schemas.py` | All career and species JSON schema validation |
-| `tests/smoke_all_careers.py` | Full rules-engine smoke: all 83 careers, all assignments, skill tables 1–6, events 2–12, mishaps 1–6, pass and fail survival paths |
+| `tests/smoke_all_careers.py` | Full rules-engine smoke: all careers, all assignments, skill tables 1–6, events 2–12, mishaps 1–6, pass and fail survival paths |
 
 ---
 

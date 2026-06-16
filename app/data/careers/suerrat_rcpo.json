@@ -1,0 +1,82 @@
+{
+  "id": "suerrat_rcpo",
+  "name": "Regional Criminal Police Organisation",
+  "description": "Works with the police of other worlds to bring interstellar criminals to justice. A Suerrat career (Aliens of Charted Space Vol. 4).",
+  "societies": ["other"],
+  "allowed_species": ["suerrat"],
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "assignments": {
+    "support": {
+      "name": "Support",
+      "description": "You supply the backroom support for the RCPO.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    },
+    "analysis": {
+      "name": "Analyst",
+      "description": "You are an investigator searching for interstellar criminals.",
+      "survival": {"characteristic": "INT", "target": 7},
+      "advancement": {"characteristic": "INT", "target": 7}
+    },
+    "communications": {
+      "name": "Communications",
+      "description": "You deliver and collect data updates.",
+      "survival": {"characteristic": "END", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "INT +1", "2": "EDU +1", "3": "END +1", "4": "Streetwise", "5": "Gambler", "6": "Drive"},
+    "service_skills": {"name": "Service Skills", "1": "Admin", "2": "Deception", "3": "Diplomat", "4": "Persuade", "5": "Electronics", "6": "Steward"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Advocate", "2": "Electronics (comms)", "3": "Electronics (computers)", "4": "Electronics (sensors)", "5": "Investigate", "6": "Science"},
+    "support": {"name": "Support", "assignment_only": "support", "1": "Astrogation", "2": "Electronics (computers)", "3": "Engineer", "4": "Mechanic", "5": "Electronics (remote ops)", "6": "Electronics (sensors)"},
+    "analysis": {"name": "Analyst", "assignment_only": "analysis", "1": "Admin", "2": "Investigate", "3": "Electronics (sensors)", "4": "Electronics (comms)", "5": "Electronics (computers)", "6": "Advocate"},
+    "communications": {"name": "Communications", "assignment_only": "communications", "1": "Electronics", "2": "Pilot", "3": "Engineer", "4": "Athletics", "5": "Astrogation", "6": "Mechanic"}
+  },
+  "ranks": {
+    "default": {
+      "0": {"title": null, "bonus": null},
+      "1": {"title": "Agent", "bonus": "Deception 1"},
+      "2": {"title": "Field Agent", "bonus": "Investigate 1"},
+      "3": {"title": null, "bonus": null},
+      "4": {"title": "Speciality Agent", "bonus": "Leadership"},
+      "5": {"title": "Assistant Director", "bonus": null},
+      "6": {"title": "Director", "bonus": null}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "You are transferred to another planet to learn their policing methods. Roll EDU 10+ to gain any one skill.",
+    "4": "You have the opportunity to play department politics, or ignore it and focus on the case. If you play, roll Deception 8+: succeed and gain a Contact; fail and gain a Rival.",
+    "5": "You are given advanced training in investigation techniques. Gain any one of Investigate 1, Electronics (sensors) 1, Science (any) 1 or Electronics (computers) 1.",
+    "6": "You establish a network of contacts. Gain two Contacts.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "Your supervisor questions your judgement and orders you to back off. Comply and nothing happens. Continue and roll Investigate 8+: succeed for DM+2 to your next Advancement roll; fail and an innocent is hurt, DM-2 to your next Advancement roll.",
+    "9": "You become good friends with a fellow agent. Gain them as an Ally.",
+    "10": "You are part of a high-profile investigative unit. Gain Investigate 1, SOC +1, or Carouse +1.",
+    "11": "The commissioner has their eye on you. Either gain Leadership or +4 to your next Advancement roll.",
+    "12": "You are decorated for solving the impossible case. You are automatically promoted."
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury table). Alternatively, roll twice on the Injury table and take the lower result.",
+    "2": "You blunder during an investigation, letting a dangerous criminal walk free. Gain the criminal as an Enemy.",
+    "3": "A routine investigation leads into the upper echelons of power. Drop it immediately and you are not ejected from this career. Continue and you learn a senior official or noble is corrupt; they have you fired before you can act — gain them as an Enemy.",
+    "4": "A criminal walks free, causing you to lose faith in the system.",
+    "5": "Someone tries to kill you and your family. Roll on the Injury table and lose one family member, Ally or Contact. Gain an Enemy.",
+    "6": "Injured. Roll on the Injury table."
+  },
+  "mustering_out": {
+    "1": {"cash": 2000, "benefit": "Contact"},
+    "2": {"cash": 4000, "benefit": "INT +1"},
+    "3": {"cash": 10000, "benefit": "Ally"},
+    "4": {"cash": 15000, "benefit": "Ship Share"},
+    "5": {"cash": 20000, "benefit": "Cybernetic Implant"},
+    "6": {"cash": 50000, "benefit": "SOC +1 or Cybernetic Implant"},
+    "7": {"cash": 100000, "benefit": "TAS Membership"}
+  },
+  "complete": true
+}

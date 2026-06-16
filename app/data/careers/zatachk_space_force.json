@@ -1,0 +1,92 @@
+{
+  "id": "zatachk_space_force",
+  "name": "Za'tachk Interstellar Space Force",
+  "description": "The Za'tachk interstellar navy — defending the polity's borders and reassuring the population. A Za'tachk career (Aliens of Charted Space Vol. 4). Commission also requires BOL 5 or lower.",
+  "societies": ["other"],
+  "allowed_species": ["zatachk", "zatachk_matriarch", "zatachk_scout"],
+  "qualification": {
+    "characteristic": "INT",
+    "target": 6,
+    "modifiers": [{"description": "DM-1 for every previous career", "type": "per_previous_career", "dm": -1}]
+  },
+  "commission": {"characteristic": "EDU", "target": 8},
+  "assignments": {
+    "crew_gunner": {
+      "name": "Crew/Gunner",
+      "description": "You are one of the crew with the basic duties required for the smooth operation of a vessel.",
+      "survival": {"characteristic": "INT", "target": 6},
+      "advancement": {"characteristic": "EDU", "target": 8}
+    },
+    "engineer_flight": {
+      "name": "Engineer/Flight",
+      "description": "You operate the engines or control the flight of a vessel.",
+      "survival": {"characteristic": "INT", "target": 5},
+      "advancement": {"characteristic": "EDU", "target": 6}
+    },
+    "stog": {
+      "name": "STOG",
+      "description": "Special Tactical Operations Group — you remotely operate drones from the safety of your vessel.",
+      "survival": {"characteristic": "DEX", "target": 7},
+      "advancement": {"characteristic": "EDU", "target": 7}
+    }
+  },
+  "skill_tables": {
+    "personal_development": {"name": "Personal Development", "1": "INT +1", "2": "EDU +1", "3": "SOC +1", "4": "Carouse", "5": "Electronics", "6": "BOL +1"},
+    "service_skills": {"name": "Service Skills", "1": "Pilot", "2": "Mechanic", "3": "Electronics", "4": "Gunner", "5": "Vacc Suit", "6": "Gun Combat"},
+    "advanced_education": {"name": "Advanced Education", "requires_edu": 8, "1": "Electronics", "2": "Astrogation", "3": "Engineer", "4": "Mechanic", "5": "Admin", "6": "Advocate"},
+    "officer": {"name": "Officer (commissioned only)", "requires_commission": true, "1": "Leadership", "2": "Electronics", "3": "Pilot", "4": "Admin", "5": "Tactics", "6": "Engineer"},
+    "crew_gunner": {"name": "Crew/Gunner", "assignment_only": "crew_gunner", "1": "Electronics", "2": "Mechanic", "3": "Gunner", "4": "Flyer", "5": "Vacc Suit", "6": "Steward"},
+    "engineer_flight": {"name": "Engineer/Flight", "assignment_only": "engineer_flight", "1": "Engineer", "2": "Mechanic", "3": "Electronics", "4": "Astrogation", "5": "Pilot", "6": "Flyer"},
+    "stog": {"name": "STOG", "assignment_only": "stog", "1": "Drive", "2": "Flyer", "3": "Electronics (remote ops)", "4": "Electronics (remote ops)", "5": "Recon", "6": "Recon"}
+  },
+  "ranks": {
+    "enlisted": {
+      "0": {"title": "Qiar", "bonus": "Vacc Suit 1"},
+      "1": {"title": "Ark", "bonus": null},
+      "2": {"title": "Arkao", "bonus": "Mechanic 1"},
+      "3": {"title": "Xluxon", "bonus": null},
+      "4": {"title": "Xluxonas", "bonus": "Tactics (naval) 1"},
+      "5": {"title": "Zaq", "bonus": "BOL +1"},
+      "6": {"title": "Zaqaoq", "bonus": "SOC +1"}
+    },
+    "officer": {
+      "1": {"title": "Rey", "bonus": "Leadership 1"},
+      "2": {"title": "Xlux", "bonus": null},
+      "3": {"title": "Avain", "bonus": "Gun Combat (any) 1"},
+      "4": {"title": "Avainup", "bonus": null},
+      "5": {"title": "Hal", "bonus": "Leadership 1"},
+      "6": {"title": "Haknux", "bonus": "SOC 10 or SOC +1, whichever is higher"}
+    }
+  },
+  "events": {
+    "2": "Disaster! Roll on the Mishaps table, but you are not ejected from this career.",
+    "3": "You embarrass your CO at an important social event. Roll Diplomat 8+: succeed and you smooth it over but gain the officer as a Rival; fail and you cannot roll for promotion or commission this term and gain the officer as an Enemy.",
+    "4": "You are given advanced training in a specialist field. Roll BOL 8+ to gain one level in any skill you already have.",
+    "5": "A special assignment or duty on board ship. Gain DM+1 to any one Benefit roll.",
+    "6": "You help a superior officer in an area where their skills are lacking. Gain them as an Ally.",
+    "7": "Life Event. Roll on the Life Events table.",
+    "8": "A rival has left themselves open to a career-crippling move. Do it and ruin their life for DM+4 on your next Advancement roll; gain them as an Enemy.",
+    "9": "You stumble across a crime on board ship. Cover it up with Deception 8+ — succeed for an extra Benefit roll, fail and you are suspected and lose your Benefit roll. Or come clean with BOL 8+ — succeed and gain the perpetrator as an Enemy plus DM+4 to your next Advancement roll, fail and the criminal escapes and you gain an Enemy. On a natural 2 on either check, take the Prisoner career next term.",
+    "10": "Your CO takes an interest in your career. Gain Tactics (naval) 1 or DM+4 to your next Advancement roll.",
+    "11": "Your inaction causes a collision between two spacecraft. Your next advancement or commission roll suffers DM-4.",
+    "12": "You display great self-preservation in battle, saving the whole ship. You automatically pass your next promotion or commission roll and gain BOL +1."
+  },
+  "mishaps": {
+    "1": "Severely injured (treat as a result of 2 on the Injury table). Alternatively, roll twice on the Injury table and take the lower result.",
+    "2": "Placed in frozen watch and revived improperly. Reduce STR, DEX or END by -1 due to muscle wastage. You are not ejected from this career.",
+    "3": "In battle, victory depends on your actions — roll 8+ with a branch skill (bridge: Electronics (sensors)/Gunner; engineering: Mechanic/Vacc Suit; STOG: Electronics (remote ops)). Fail and you are court-martialled and discharged; succeed and you are honourably discharged keeping this term's Benefit roll. On a natural 2, take the Prisoner career next term.",
+    "4": "You are blamed for an accident that kills several crew. If responsible, take one free Skills-and-Training roll before being ejected as guilt drives you to excel; if not, gain the accuser as an Enemy but keep this term's Benefit roll.",
+    "5": "A failing on your part causes a catastrophic loss aboard your ship or base. Lose BOL -1, and the only other survivor becomes your Enemy.",
+    "6": "You are wounded in the line of duty. Roll on the Injury table."
+  },
+  "mustering_out": {
+    "1": {"cash": 1000, "benefit": "Personal Vehicle or Ship Share"},
+    "2": {"cash": 3000, "benefit": "INT +1"},
+    "3": {"cash": 5000, "benefit": "EDU +1"},
+    "4": {"cash": 10000, "benefit": "Ship Share"},
+    "5": {"cash": 20000, "benefit": "Drone or Weapon"},
+    "6": {"cash": 25000, "benefit": "Two Ship Shares"},
+    "7": {"cash": 50000, "benefit": "SOC +1 and BOL +1"}
+  },
+  "complete": true
+}

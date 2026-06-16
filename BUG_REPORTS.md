@@ -2,6 +2,22 @@
 
 ## Fixed Bugs
 
+### v30.89: Vol. 4 species-specific careers (6 careers, species-locked)
+**Request:** Add the special careers only the Vol. 4 species can have.
+
+**Added 6 careers** (each `societies: ["other"]` + `allowed_species` so only that species can enter; they otherwise still use Core careers):
+- **Suerrat** — Regional Criminal Police Organisation, Regional Security Force.
+- **Za'tachk** (all three caste entries) — Interstellar Ground Force and Interstellar Space Force (both with a Commission/officer track; BOL gates noted in the description).
+- **Tezcat** — Shaper Priest (per-assignment rank tracks: Academic/Ecclesiastic vs Partisan), Soulhunter (Commission + assignment rank tracks).
+
+Each has full qualification (incl. per-previous-career and age-over DMs), assignments with survival/advancement, personal-development/service/advanced-education/officer/assignment skill tables, enlisted+officer or per-assignment rank tracks, events (2–12) and mishaps (1–6) as text, and mustering-out cash/benefits. Gurvin has no species career (Core careers with female business-career DM bonuses, per the book).
+
+**Engine:** `BOL +N` now applies in both `_apply_skill_result` (skill tables) and `_apply_rank_bonus` (rank bonuses), mirroring REP, so Za'tachk Boldness gains from tables/ranks land on `character.boldness`.
+
+**Verification:** All 6 load with correct assignments/restrictions; each qualifies, starts a term, and rolls every accessible skill table cleanly (incl. BOL gains). `/api/careers/full` shows correct `allowed_species`/`societies`. Engine smoke test 514 paths / 0 fail; full suite 705 passing.
+
+---
+
 ### v30.88: Vol. 4 — Gurvin gendered entries + Za'tachk Boldness as a real characteristic
 **Requests:** Gurvin should use the existing gendered-creation pattern (other Other-culture races split by sex); BOL should work like REP (a real characteristic shown up top), not a documented trait.
 
