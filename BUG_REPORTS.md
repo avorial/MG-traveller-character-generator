@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.90: Career picker — sort race-restricted careers to the bottom
+**Request:** Careers locked by race fill up the list; push them to the bottom.
+
+**Change (`app.js`):** In the career picker, careers the character can't enter due to species (`allowed_species` excludes them, or `blocked_species` lists them) are now sorted to the **bottom** of the list (stable sort, so order within each group is preserved). Available careers stay at the top; the locked cards still render with their reason, just out of the way. Especially helps "Other / Far Domains" characters, where all the species-specific Vol. 4 / Dolphin / etc. careers previously interleaved with the available ones.
+
+**Verification:** Live — an Imperial Human in Other/Far Domains shows 17 available careers first (Agent, Army, Believer…) then all 19 race-locked ones grouped at the bottom (Soulhunter, Za'tachk…); no locked card appears above an available one. JS-only; all 705 tests pass.
+
+---
+
 ### v30.89: Vol. 4 species-specific careers (6 careers, species-locked)
 **Request:** Add the special careers only the Vol. 4 species can have.
 

@@ -5708,7 +5708,16 @@ function renderChooseCareer() {
     ? ((character.aslan_setup_status || {}).rite_score || 0)
     : null;
 
-  const cards = careerList.map(c => {
+  // Push careers restricted by race/species to the bottom so the available ones
+  // stay at the top instead of being buried among locked cards.
+  const _isSpeciesLockedCard = (c) =>
+    (c.blocked_species && c.blocked_species.includes(speciesId)) ||
+    (c.allowed_species && c.allowed_species.length > 0 && (!speciesId || !c.allowed_species.includes(speciesId)));
+  const careerListSorted = [...careerList].sort(
+    (a, b) => (_isSpeciesLockedCard(a) ? 1 : 0) - (_isSpeciesLockedCard(b) ? 1 : 0)
+  );
+
+  const cards = careerListSorted.map(c => {
     const isComplete = c.complete;
     const qual = c.qualification || {};
     let qualText;
