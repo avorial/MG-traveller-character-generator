@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.91: Career picker — comprehensive unavailable-card sort (all societies)
+**Request:** Apply the bottom-sort for Solomani and Other as well.
+
+**Finding/Change:** v30.90's species-locked sort was already society-agnostic (it works for Solomani and Other — they just need the deploy). Broadened it into a tiered sort so **every** unavailable card type sinks, in any society: available → ejected (already served) → rite-locked (Aslan) → race/species-locked. Stable sort preserves order within each tier.
+
+**Verification:** Live — Solomani (cetacean careers) and Other / Far Domains (19 species-specific careers) both render available careers first and locked ones grouped at the bottom; tier order is monotonic in both. JS-only; all 705 tests pass.
+
+---
+
 ### v30.90: Career picker — sort race-restricted careers to the bottom
 **Request:** Careers locked by race fill up the list; push them to the bottom.
 

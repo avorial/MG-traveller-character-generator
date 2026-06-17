@@ -5708,13 +5708,21 @@ function renderChooseCareer() {
     ? ((character.aslan_setup_status || {}).rite_score || 0)
     : null;
 
-  // Push careers restricted by race/species to the bottom so the available ones
-  // stay at the top instead of being buried among locked cards.
+  // Push unavailable careers to the bottom so the ones you can actually take
+  // stay at the top instead of being buried. Applies in every society. Order:
+  // available → ejected (already served) → rite-locked → race/species-locked.
   const _isSpeciesLockedCard = (c) =>
     (c.blocked_species && c.blocked_species.includes(speciesId)) ||
     (c.allowed_species && c.allowed_species.length > 0 && (!speciesId || !c.allowed_species.includes(speciesId)));
+  const _careerSortRank = (c) => {
+    if (_isSpeciesLockedCard(c)) return 3;
+    const q = c.qualification || {};
+    if (riteScore !== null && q.characteristic === 'RITE_OF_PASSAGE' && riteScore < q.target) return 2;
+    if (ejectedCareerIds.has(c.id)) return 1;
+    return 0;
+  };
   const careerListSorted = [...careerList].sort(
-    (a, b) => (_isSpeciesLockedCard(a) ? 1 : 0) - (_isSpeciesLockedCard(b) ? 1 : 0)
+    (a, b) => _careerSortRank(a) - _careerSortRank(b)
   );
 
   const cards = careerListSorted.map(c => {
