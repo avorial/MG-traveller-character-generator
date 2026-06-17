@@ -13107,7 +13107,10 @@ function renderNpcRoster() {
         ${npc.npc_patron_type ? `<div style="font-size:11px;margin-top:3px;color:var(--accent)">★ Patron: ${escapeHTML(npc.npc_patron_type)}</div>` : ''}
         ${npc.npc_quirk ? `<div style="font-size:11px;margin-top:3px;color:var(--amber-dim)">Quirk: ${escapeHTML(npc.npc_quirk)}</div>` : ''}
         <div class="empty" style="font-size:11px;margin-top:4px">${escapeHTML(s.top)}</div>
-        ${hasStory ? `<div style="font-size:11px;margin-top:4px;color:var(--success,#7fd87f)">✓ AI background ready — included in export</div>` : ''}
+        ${hasStory ? `
+          <div style="font-size:11px;margin-top:5px;color:var(--success,#7fd87f)">✓ AI background — included in export</div>
+          <div class="capsule-box" style="margin-top:4px;max-height:160px;overflow:auto;font-size:12px">${npc.capsule_description.split('\n\n').map(p => `<p style="margin:0 0 0.6em">${escapeHTML(p)}</p>`).join('')}</div>
+        ` : ''}
         <div class="phase-actions" style="gap:6px;margin-top:8px;flex-wrap:wrap">
           <button class="btn" data-npc-load="${i}">LOAD</button>
           ${aiReady ? `<button class="btn ghost" data-npc-ai="${i}">${hasStory ? '✨ REGEN BACKGROUND' : '✨ AI BACKGROUND'}</button>` : ''}

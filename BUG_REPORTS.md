@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.92: Show AI background in the NPC card; remove duplicate footer GM button
+**Requests:** The generated AI background should show next to the NPC; the footer GM MODE button is redundant with the top one.
+
+**Changes:**
+- **`app.js`** — NPC roster cards now render the generated AI background **inline** (a scrollable `capsule-box` with the story text), in addition to the "✓ AI background — included in export" note, so you can read it next to the character instead of only knowing it exists.
+- **`index.html`** — removed the footer `GM MODE` button. It was a **duplicate `id="btn-gm-mode"`** of the top GM toggle (so its handler never bound anyway); the top `GM` toggle is unaffected.
+
+**Verification:** Live — generating an AI background renders the story in the NPC card (text shown); exactly one `#btn-gm-mode` remains (the top toggle), footer has none. All 705 tests pass.
+
+---
+
 ### v30.91: Career picker — comprehensive unavailable-card sort (all societies)
 **Request:** Apply the bottom-sort for Solomani and Other as well.
 
