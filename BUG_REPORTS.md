@@ -2,6 +2,20 @@
 
 ## Fixed Bugs
 
+### v30.93: Benefit choice parsing — split comma lists and drop the "(choose one)" instruction; B&W heritage block
+**Requests:** The resolved benefit name was wrong — `Benefit choice resolved: 'Blade, Club or Dagger (choose one)' → Dagger (choose one)`; it should offer Blade and Club too. (Also bundles the prior, uncommitted Solomani-heritage B&W fix.)
+
+**Root cause:** Unresolved benefit choices (e.g. the Barbarian background package's `"Blade, Club or Dagger (choose one)"`) were split on `" or "` only, so the options came out as `"Blade, Club"` and `"Dagger (choose one)"` — the comma list wasn't separated and the trailing `(choose one)` instruction leaked into the option name.
+
+**Changes:**
+- **`app.js`** — new `splitBenefitOptions()` helper strips a trailing `(choose one)` / `(pick one)` / `(select …)` instruction and splits on commas **and** `or`, so the picker shows three clean chips: `Blade` / `Club` / `Dagger`. `unresolvedBenefitChoices()` now also detects comma-list choices that carry a `(choose …)` instruction.
+- **`lifepath.py`** — `resolve_equipment_choice()` parses options the same way, so the chosen option (`Blade`) is validated and applied without the stray suffix and the log reads `… → Blade`.
+- **`style.css`** (carried from prior session) — `.roll-result-block` referenced a typo'd CSS var `--panel-bg`; corrected to `--bg-panel` so the Solomani heritage roll block renders on the panel background instead of a solid black box on the light/mono themes.
+
+**Verification:** Live — `splitBenefitOptions('Blade, Club or Dagger (choose one)')` → `["Blade","Club","Dagger"]`; existing `or`-only benefits (`Combat Implant or two Ship Shares`, `Rifle or Carbine`) unchanged. `.roll-result-block` background is `rgb(255,255,255)` under the mono theme. No console errors; all 705 tests pass.
+
+---
+
 ### v30.92: Show AI background in the NPC card; remove duplicate footer GM button
 **Requests:** The generated AI background should show next to the NPC; the footer GM MODE button is redundant with the top one.
 

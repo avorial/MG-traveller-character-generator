@@ -18097,7 +18097,11 @@ def resolve_equipment_choice(character: Character, index: int, chosen: str) -> d
             f"Equipment index {index} out of range (have {len(character.equipment)})"
         )
     item = character.equipment[index]
-    options = [o.strip() for o in re.split(r"\s+or\s+", item.name or "", flags=re.IGNORECASE) if o.strip()]
+    # Strip a trailing instruction like "(choose one)" / "(pick one)" so it is
+    # never mistaken for an option, then split on commas AND "or" so a list such
+    # as "Blade, Club or Dagger (choose one)" yields Blade / Club / Dagger.
+    _name = re.sub(r"\s*\(\s*(?:choose|pick|select)[^)]*\)\s*$", "", item.name or "", flags=re.IGNORECASE)
+    options = [o.strip() for o in re.split(r"\s*,\s*|\s+or\s+", _name, flags=re.IGNORECASE) if o.strip()]
     if len(options) < 2:
         raise ValueError(f"'{item.name}' is not an unresolved choice.")
     pick = (chosen or "").strip()

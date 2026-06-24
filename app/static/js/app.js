@@ -11217,12 +11217,21 @@ function invalidCascadeParents() {
   );
 }
 
+// Parse a benefit name like "Blade, Club or Dagger (choose one)" into its
+// distinct options ["Blade","Club","Dagger"]. Strips a trailing instruction
+// ("(choose one)" / "(pick one)") and splits on commas as well as "or".
+function splitBenefitOptions(name) {
+  const cleaned = (name || '').replace(/\s*\(\s*(?:choose|pick|select)[^)]*\)\s*$/i, '').trim();
+  return cleaned.split(/\s*,\s*|\s+or\s+/i).map(o => o.trim()).filter(Boolean);
+}
+
 // Equipment entries that are really unresolved "X or Y" benefit choices
-// (e.g. "Combat Implant or two Ship Shares", "Rifle or Carbine").
+// (e.g. "Combat Implant or two Ship Shares", "Rifle or Carbine", or a comma
+// list with a "(choose one)" instruction).
 function unresolvedBenefitChoices() {
   return (character.equipment || [])
     .map((e, i) => ({ e, i }))
-    .filter(({ e }) => e && /\s+or\s+/i.test(e.name || ''));
+    .filter(({ e }) => e && (/\s+or\s+/i.test(e.name || '') || /\(\s*(?:choose|pick|select)\b/i.test(e.name || '')));
 }
 
 // Associates that never got a real identity — placeholders from events or
@@ -11878,7 +11887,7 @@ function renderDonePhase() {
         const pending = unresolvedBenefitChoices();
         if (!pending.length) return '';
         const rows = pending.map(({ e, i }) => {
-          const opts = (e.name || '').split(/\s+or\s+/i).map(o => o.trim()).filter(Boolean);
+          const opts = splitBenefitOptions(e.name);
           return `
             <div class="event-skill-picker" style="margin-top:10px">
               <span class="event-label">${escapeHTML(e.name)}</span>

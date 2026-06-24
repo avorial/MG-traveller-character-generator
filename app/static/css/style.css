@@ -1159,7 +1159,7 @@ body.hide-card-desc .card-desc { display: none !important; }
 
 /* Aslan setup phase: roll result display */
 .roll-result-block {
-  background: var(--panel-bg, #111);
+  background: var(--bg-panel, #111);
   border: 1px solid var(--amber-dim);
   border-radius: 4px;
   padding: 16px 20px;
