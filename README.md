@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-30.85-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-30.94-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 > **Not official:** This is an unofficial fan tool. It is not produced, endorsed, licensed, or authorized by Far Future Enterprises or Mongoose Publishing. Please use it with legally purchased Traveller rulebooks.
 
@@ -40,6 +40,36 @@ Without Docker:
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+---
+
+## Exporting to Foundry VTT
+
+> **If your goal is to play in Foundry, click "Export to Foundry" — not "Export JSON".** This is the single most common point of confusion: "Export JSON" is for *saving and re-loading your character in this creator*, not for Foundry.
+
+Create your character and continue all the way until you reach the **"Your Traveller is Ready"** screen. About halfway down the page you'll see three buttons and a checkbox:
+
+| Button | What it does |
+|---|---|
+| **Export JSON** | Saves the full character state as a `.json` file so you can **re-import it back into this character creator** later (e.g. to keep building, or to back it up). **This is not a Foundry file.** |
+| **Export to Foundry** | Produces a **FoundryVTT MGT2e actor** file for importing into Foundry. This is the one you want for play. |
+| **Back to Careers** | Returns to the lifepath to keep editing. |
+
+There is also a checkbox:
+
+> *"Foundry export: include editable source (re-importable here losslessly; uncheck for a lean VTT-only file)."*
+
+**The checkbox only affects whether the exported Foundry file can later be imported back into *this* character creator without losing detail. It does *not* change anything about importing into Foundry** — leave it checked if you might want to round-trip the character back here; uncheck it for a smaller, VTT-only file.
+
+### Step by step
+
+1. On the **"Your Traveller is Ready"** screen, click **Export to Foundry**.
+2. The downloaded file will be named something like **`CharacterName_foundry.json`**. **If the filename does *not* end with `_foundry.json`, you clicked *Export JSON* by mistake** — go back and click *Export to Foundry* instead.
+3. In Foundry, create a new **Actor / Character**.
+4. **Right-click** the new actor and choose **Import**.
+5. Select the `_foundry.json` file you downloaded.
+
+Your characteristics, skills (with specialties), career history, finance, sophont data, equipment, and any AI-written background all come across into the Foundry actor.
 
 ---
 
@@ -320,9 +350,9 @@ All event (2–12) and mishap (1–6) outcomes are mechanically resolved:
 
 | Format | How |
 |---|---|
-| **JSON** | Full character state; can be re-imported at any time |
+| **JSON** ("Export JSON") | Full character state; for **re-importing back into this creator**, not for Foundry. Can be re-imported at any time. |
 | **PDF** | Formatted character sheet via the export button on the done screen |
-| **FoundryVTT MGT2e** | Actor JSON importable directly into FoundryVTT with the MGT2e system. Biological characters export via `/api/character/export-foundry`; robot characters export client-side. Both produce correct item types (`term`, `item`), timestamps, ownership blocks, characteristics, skills with specialties, finance, sophont, and equipment. |
+| **FoundryVTT MGT2e** ("Export to Foundry") | Actor JSON importable directly into FoundryVTT with the MGT2e system — **this is the file to use for play** (see [Exporting to Foundry VTT](#exporting-to-foundry-vtt)). Biological characters export via `/api/character/export-foundry`; robot characters export client-side. Both produce correct item types (`term`, `item`), timestamps, ownership blocks, characteristics, skills with specialties, finance, sophont, and equipment. |
 
 ### UI features
 
