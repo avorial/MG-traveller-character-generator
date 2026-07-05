@@ -2,6 +2,23 @@
 
 ## Fixed Bugs
 
+### v30.96: New species — Hhkar (Imperium / Other / Vargr)
+**Request:** Add the Hhkar (Julian Protectorate dinosaur-like humanoids); available in the Third Imperium, Other / Far Domains, and Vargr Extents societies. Travellers assumed to be first-iteration males.
+
+**Added:** `app/data/species/hhkar.json` with:
+- **Characteristic modifiers** STR +3, END +3; **raised maxima** STR 18, END 18 (via `characteristic_maximum_overrides`).
+- **Starting age 22** and aging starting **after the 5th term** (`aging_starts_term: 5`).
+- **`no_psionics: true`** — Hhkar refuse psionic testing/training, so the psi test is blocked engine-side.
+- **Childhood default skill** — an additional **Melee 0** granted automatically (`extra_background_skills`), reflecting that their childhood replaces pre-career education.
+- **Natural armour** — Thick Hide `starting_equipment` granting **Protection +1**.
+- Traits: Armour, Perception (magnetic sense; DM+2 Mechanic repairs of magnetic gear), Suspended Animation (ghraa!ks hibernation), Weapons (claws 1D+2, tail strike), Lucid Dreaming (DM+2 to prepared checks), plus referee notes for the Tolerance skill mechanic, ineligibility for pre-career education, the gender-transformation reset, and career restrictions (raaabr locked out of Noble until SOC 7+ / ssaaahk membership; no Julian scout service).
+
+**Referee-adjudicated (documented as traits, not auto-applied):** the Tolerance-for-Carouse substitution and EDU+1→Tolerance option, the ssaaahk SOC bands, the gender-transformation stat/skill reset, and the raaabr Noble-career gate.
+
+**Verification:** Live — `/api/species` serves the Hhkar in all three societies with STR/END +3, STR/END 18 caps, and `no_psionics`. Applying the species yields STR/END 10 (from a 7 base), grants Melee 0 and Thick Hide (Protection +1), sets age 22, loads nine traits, and the psi test raises "Hhkar cannot develop psionic ability." All 711 tests pass (3 new schema tests for the file).
+
+---
+
 ### v30.95: New species — Aezorgh (Vargr / Imperial / Other)
 **Request:** Add the Aezorgh (AoCS Vol. 1, Vargr section); available in the Vargr Extents, Third Imperium, and Other / Far Domains societies.
 

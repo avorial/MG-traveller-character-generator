@@ -1,0 +1,72 @@
+{
+  "id": "hhkar",
+  "name": "Hhkar",
+  "description": "Large dinosaur-like humanoids of the Hhkar Sphere in the Julian Protectorate, once thought extinct. Aggressive and disdainful of other species, with magnetic senses and four special mental states. Travellers are assumed to be first-iteration males; SOC reflects ssaaahk standing (11+ major ssaaahk, 7–10 lesser, 6- raaabr).",
+  "characteristic_modifiers": {
+    "STR": 3,
+    "DEX": 0,
+    "END": 3,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "characteristic_maximum": 15,
+  "characteristic_maximum_overrides": {
+    "STR": 18,
+    "END": 18
+  },
+  "starting_age": 22,
+  "aging_starts_term": 5,
+  "no_psionics": true,
+  "extra_background_skills": [
+    "Melee"
+  ],
+  "starting_equipment": [
+    {
+      "name": "Thick Hide (natural armour)",
+      "notes": "The thick skin and musculature of a Hhkar provides Protection +1.",
+      "protection": 1
+    }
+  ],
+  "traits": [
+    {
+      "name": "Armour",
+      "description": "The thick skin and musculature of a Hhkar provides Protection +1."
+    },
+    {
+      "name": "Perception",
+      "description": "Hhkar perceive magnetic fields — most useful for detecting nearby Hhkar and reading their emotional state. A Hhkar with Mechanic skill gains DM+2 to repairs of equipment using magnetic components (gauss weapons, mag-lev transport, and the like)."
+    },
+    {
+      "name": "Suspended Animation",
+      "description": "A Hhkar may voluntarily enter ghraa!ks, an extended hibernation during which they do not age, though they may enter one or more dream states."
+    },
+    {
+      "name": "Weapons",
+      "description": "A Hhkar may attack with clawed hands for 1D+2 damage plus any STR modifier. A tail strike against opponents to the rear and side is made at DM-2 to hit for 1D damage (1D+2 for a spiked tail)."
+    },
+    {
+      "name": "Mental State — Lucid Dreaming",
+      "description": "By planning future actions through directed dreams, a Hhkar consciously preparing for a specific operation gains DM+2 to checks related to that event. States need a full minute of meditation and a chemical/visual/magnetic trigger; a Hhkar may exit at will."
+    },
+    {
+      "name": "Tolerance (skill)",
+      "description": "Hhkar relate poorly to other sophonts: any interaction with non-Hhkar suffers DM-2 to reaction checks, offset by the Tolerance skill (unskilled use is the usual DM-3). Referee note: in careers that interact with non-Hhkar, Hhkar earn Tolerance rather than Carouse, and whenever EDU+1 is rolled as a skill they may take Tolerance instead. Any Hhkar who completes one term in a career dealing with non-Hhkar receives Tolerance 0."
+    },
+    {
+      "name": "Childhood Education",
+      "description": "Referee note: Hhkar are not eligible for pre-career education (skip that phase). Their childhood grants the standard default (background) skills plus an additional Melee 0, which is applied automatically."
+    },
+    {
+      "name": "Gender Transformation",
+      "description": "Referee note: record initial characteristic values. On a gender transformation a Hhkar is effectively age 22 again with the physical scores it had then — STR/DEX/END increases from experience (and losses from aging/injury) are reset and do not transfer, and skills learned as the opposite gender drop to level 0 (skills from an earlier period as this gender are retained). INT, EDU and SOC are always retained regardless of gender."
+    },
+    {
+      "name": "Careers",
+      "description": "Referee note: all Core Rulebook careers suit Hhkar within their own society and the wider Julian Protectorate. Raaabr (SOC 6-) may not enter the Noble career until they raise SOC to 7 and gain ssaaahk membership. There is no Julian scout service, but Hhkar occasionally join the Imperial Interstellar Scout Service."
+    }
+  ],
+  "societies": ["third_imperium", "other", "vargr_extents"],
+  "sort_order": 61,
+  "source": "Aliens of Charted Space (Julian Protectorate), Mongoose Publishing"
+}
