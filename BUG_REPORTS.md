@@ -2,6 +2,24 @@
 
 ## Fixed Bugs
 
+### v30.95: New species — Aezorgh (Vargr / Imperial / Other)
+**Request:** Add the Aezorgh (AoCS Vol. 1, Vargr section); available in the Vargr Extents, Third Imperium, and Other / Far Domains societies.
+
+**Added:** `app/data/species/aezorgh.json` — small four-armed gecko-like sophonts with:
+- **Custom characteristic rolls** for every stat: STR 1D, DEX 2D+3, END 1D+1, INT 2D+2, EDU 1D, SOC 1D (via `custom_characteristic_rolls`, which fully override the standard 2D rolls).
+- **Raised per-stat maxima**: DEX 18, INT 16 (via `characteristic_maximum_overrides`); all others 15.
+- **Fixed background skills** Athletics 0 / Mechanic 0 / Recon 0 / Stealth 0 (via `extra_background_skills`); the "one additional skill of choice" is taken in the normal background phase.
+- **Starting age 18** and an **age-limited aging bonus** — DM+4 to aging checks until age 82 / 16 terms, then it stops.
+- Traits: Gecko Travel, Heightened Senses (DM+1 Recon/Survival; IR negates darkness), Multi-limbed (two action-sets/round, universal tool use), plus referee notes for the Vargr CHA=½SOC rule and the DM-2 pre-career education penalty.
+
+**Engine:** `_apply_aging` now honours an optional `aging_bonus_dm_until_term` cap on `aging_bonus_dm` (backward compatible — uncapped species bonuses still apply every term).
+
+**Referee-adjudicated (documented as traits, not auto-applied):** Vargr-society CHA = ½ SOC, and the DM-2 to qualify/graduate pre-career education.
+
+**Verification:** Live — `/api/species` serves the Aezorgh in all three societies with custom rolls and DEX 18 / INT 16 caps; applying the species rolls stats in the correct ranges, grants the four background skills, sets age 18, and loads six traits. Aging DM+4 confirmed to apply through term 16 and stop at 17. All 708 tests pass (3 new schema tests for the file).
+
+---
+
 ### v30.93: Benefit choice parsing — split comma lists and drop the "(choose one)" instruction; B&W heritage block
 **Requests:** The resolved benefit name was wrong — `Benefit choice resolved: 'Blade, Club or Dagger (choose one)' → Dagger (choose one)`; it should offer Blade and Club too. (Also bundles the prior, uncommitted Solomani-heritage B&W fix.)
 

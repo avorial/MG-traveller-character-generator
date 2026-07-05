@@ -16371,8 +16371,14 @@ def _apply_aging(character: Character) -> dict:
     _aging_mult = int(_sp_data.get("aging_dm_multiplier", 1))
     dm = -(_aging_mult * character.total_terms)  # "the older you are, the heavier the effects"
     dm += max(0, character.anagathics_terms_used)
-    # Species aging bonus (e.g. Irklan Age Resistance: DM+1)
-    dm += int(_sp_data.get("aging_bonus_dm", 0))
+    # Species aging bonus (e.g. Irklan Age Resistance: DM+1). An optional
+    # "aging_bonus_dm_until_term" caps how long the bonus applies — the Aezorgh
+    # get DM+4 only until age 82 / 16 terms (AoCS Vol.1 Vargr section), after
+    # which it no longer helps.
+    _aging_bonus = int(_sp_data.get("aging_bonus_dm", 0))
+    _aging_bonus_until = _sp_data.get("aging_bonus_dm_until_term")
+    if _aging_bonus and (_aging_bonus_until is None or character.total_terms <= int(_aging_bonus_until)):
+        dm += _aging_bonus
     r = dice.roll("2D", modifier=dm)
     aging_data = rules.aging_table()["entries"]
 

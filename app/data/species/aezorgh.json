@@ -1,0 +1,64 @@
+{
+  "id": "aezorgh",
+  "name": "Aezorgh",
+  "description": "Small, four-armed gecko-like sophonts of the Vargr worlds. Agile wall-climbers with wide infrared vision and restless curiosity — youths often leave their band to travel. In Vargr society an Aezorgh's CHA is computed as half SOC (rounded down).",
+  "characteristic_modifiers": {
+    "STR": 0,
+    "DEX": 0,
+    "END": 0,
+    "INT": 0,
+    "EDU": 0,
+    "SOC": 0
+  },
+  "custom_characteristic_rolls": {
+    "STR": "1D",
+    "DEX": "2D+3",
+    "END": "1D+1",
+    "INT": "2D+2",
+    "EDU": "1D",
+    "SOC": "1D"
+  },
+  "characteristic_maximum": 15,
+  "characteristic_maximum_overrides": {
+    "DEX": 18,
+    "INT": 16
+  },
+  "starting_age": 18,
+  "aging_bonus_dm": 4,
+  "aging_bonus_dm_until_term": 16,
+  "extra_background_skills": [
+    "Athletics",
+    "Mechanic",
+    "Recon",
+    "Stealth"
+  ],
+  "traits": [
+    {
+      "name": "Gecko Travel",
+      "description": "Ridges on an Aezorgh's feet and wrists let it climb walls at full movement speed and cross ceilings at half movement speed in gravity up to 1.5 standard."
+    },
+    {
+      "name": "Heightened Senses",
+      "description": "Wide infrared vision and innate situational awareness grant DM+1 to Recon or Survival checks. If a heat source is present, the Aezorgh's infrared vision negates any penalty for darkness."
+    },
+    {
+      "name": "Multi-limbed",
+      "description": "Four dexterous arms let an Aezorgh perform two sets of non-movement actions in any round without penalty. Their tentacle fingers are flexible enough to use tools and equipment designed for other species without penalty."
+    },
+    {
+      "name": "Background Skills (Aezorgh)",
+      "description": "Instead of standard background skill determination, all Aezorgh gain Athletics 0, Mechanic 0, Recon 0 and Stealth 0 (granted automatically) plus one additional skill of their choice — pick it in the background phase."
+    },
+    {
+      "name": "Vargr Society (CHA)",
+      "description": "Referee note: in Vargr society an Aezorgh's CHA is computed as half SOC, rounded down. Noble and Emissary careers are extremely unlikely, and few Aezorgh have the discipline or size for military careers (support and pilot assignments are more likely)."
+    },
+    {
+      "name": "Ill-suited to Schooling",
+      "description": "Referee note: an Aezorgh receives DM-2 to qualify for and graduate from pre-career education options (University, Academies, and similar)."
+    }
+  ],
+  "societies": ["vargr_extents", "third_imperium", "other"],
+  "sort_order": 60,
+  "source": "Aliens of Charted Space Vol. 1, Mongoose Publishing"
+}
