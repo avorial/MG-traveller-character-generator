@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.98: Aezorgh & Hhkar not appearing in the species picker
+**Report:** Neither the Aezorgh (v30.95) nor the Hhkar (v30.96) showed up in the Third Imperium species picker.
+
+**Root cause:** The species picker builds its list from each society's `species_ids` array in `app/data/tables/societies.json` (`filteredSpecies = SPECIES.filter(sp => society.species_ids.has(sp.id))`), **not** from the `societies` field on the species JSON. The new species set their own `societies` field (which drives career/API logic) but were never added to the societies' `species_ids` lists, so the picker never rendered them.
+
+**Fix:** Added `"aezorgh"` and `"hhkar"` to the `species_ids` of `third_imperium`, `other`, and `vargr_extents` in `societies.json`.
+
+**Verification:** Live — after a rules reload the Third Imperium picker renders both cards under the "Other alien races" expander (Aezorgh under *Aliens of Charted Space, Vol. 1*; Hhkar under *Aliens of Charted Space*); species_ids counts are now 44 / 52 / 3. Screenshot confirmed the Hhkar card (STR +3 · END +3). All 711 tests pass.
+
+---
+
 ### v30.97: Hhkar — add the four mental states to Species Traits
 **Request:** The Hhkar mental states need to appear in the Species Traits list.
 
