@@ -2,6 +2,17 @@
 
 ## Fixed Bugs
 
+### v30.99: Aezorgh & Hhkar mis-grouped as "Aliens of Charted Space"
+**Report:** In the Imperium picker the two species listed under an "Aliens of Charted Space" book group — but they aren't from that book.
+
+**Root cause:** Their `source` strings ("Aliens of Charted Space Vol. 1…" / "…(Julian Protectorate)…") matched the `speciesBookLabel()` patterns for the AoCS book groups. Both are actually Julian Protectorate material (Geir Lanesskog).
+
+**Fix:** Set both species' `source` to "Julian Protectorate, Mongoose Publishing". That matches no known book pattern, so they fall into the catch-all **Other Supplements** group inside the "Other alien races" expander.
+
+**Verification:** Live — after a rules reload both Aezorgh and Hhkar render under "Other Supplements" (not Aliens of Charted Space) in the Third Imperium picker. All 711 tests pass.
+
+---
+
 ### v30.98: Aezorgh & Hhkar not appearing in the species picker
 **Report:** Neither the Aezorgh (v30.95) nor the Hhkar (v30.96) showed up in the Third Imperium species picker.
 
