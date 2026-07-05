@@ -46,8 +46,28 @@
       "description": "A Hhkar may attack with clawed hands for 1D+2 damage plus any STR modifier. A tail strike against opponents to the rear and side is made at DM-2 to hit for 1D damage (1D+2 for a spiked tail)."
     },
     {
+      "name": "Mental States",
+      "description": "Hhkar mental states grant special abilities. Each needs a full minute of meditation and a chemical, visual or magnetic trigger to initiate; a Hhkar may exit a state immediately at will or by external trigger."
+    },
+    {
+      "name": "Mental State — Learning",
+      "description": "Hhkar in this state have an eidetic memory. The state cannot be sustained long enough to learn a skill, but stories, documents, complex cyphers and other information can be learned and retained."
+    },
+    {
+      "name": "Mental State — Combat",
+      "description": "Used only in fights to the death: DM+2 to Initiative and DM+6 to all Morale checks, but the Hhkar is even more aggressive than normal, giving DM-2 to reaction checks."
+    },
+    {
+      "name": "Mental State — Labourer",
+      "description": "Faced with repetitive tasks or poor working conditions, the Hhkar does not experience fatigue or lose efficiency. It makes for poor company, however, and suffers DM-2 to any Recon checks."
+    },
+    {
+      "name": "Mental State — Oration",
+      "description": "The Hhkar gains great oratory skill: DM+2 to Carouse checks among other Hhkar. Amongst other species this grants DM+1 to reactions toward the Hhkar, but does nothing to alleviate the Hhkar's own reaction to them."
+    },
+    {
       "name": "Mental State — Lucid Dreaming",
-      "description": "By planning future actions through directed dreams, a Hhkar consciously preparing for a specific operation gains DM+2 to checks related to that event. States need a full minute of meditation and a chemical/visual/magnetic trigger; a Hhkar may exit at will."
+      "description": "By planning future actions through directed dreams, a Hhkar consciously preparing for a specific operation gains DM+2 to checks related to that event."
     },
     {
       "name": "Tolerance (skill)",

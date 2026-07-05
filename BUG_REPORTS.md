@@ -2,6 +2,15 @@
 
 ## Fixed Bugs
 
+### v30.97: Hhkar — add the four mental states to Species Traits
+**Request:** The Hhkar mental states need to appear in the Species Traits list.
+
+**Change:** `app/data/species/hhkar.json` previously listed only Lucid Dreaming. Added the four mental states from the racial entry — **Learning** (eidetic memory), **Combat** (DM+2 Initiative, DM+6 Morale, DM-2 reactions), **Labourer** (no fatigue on repetitive work, DM-2 Recon), and **Oration** (DM+2 Carouse among Hhkar; DM+1 to others' reactions) — plus a short **Mental States** header trait describing the meditation/trigger requirement they share.
+
+**Verification:** Live — the Hhkar now carries 14 Species Traits including all five "Mental State —" entries (Learning, Combat, Labourer, Oration, Lucid Dreaming); `/api/species` serves them. All 711 tests pass.
+
+---
+
 ### v30.96: New species — Hhkar (Imperium / Other / Vargr)
 **Request:** Add the Hhkar (Julian Protectorate dinosaur-like humanoids); available in the Third Imperium, Other / Far Domains, and Vargr Extents societies. Travellers assumed to be first-iteration males.
 
