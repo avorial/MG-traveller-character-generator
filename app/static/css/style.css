@@ -2355,6 +2355,159 @@ body.gm-mode #btn-gm-mode {
   border-radius: 2px;
 }
 
+.gm-stat-array {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(44px, 1fr)) auto;
+  align-items: end;
+  gap: 8px;
+  width: 100%;
+}
+
+.gm-stat-field {
+  display: grid;
+  gap: 3px;
+  color: var(--amber-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.gm-stat-input {
+  width: 100%;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  padding: 4px;
+  border-radius: 2px;
+}
+
+.gm-stat-input:focus {
+  outline: none;
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(255, 82, 51, 0.2);
+}
+
+.sheet-gm-stat-editor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(44px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--danger);
+}
+
+.sheet-gm-stat-field {
+  display: grid;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--amber-dim);
+  letter-spacing: 0.1em;
+}
+
+.sheet-gm-stat-field input {
+  width: 100%;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  padding: 3px;
+  border-radius: 2px;
+}
+
+.sheet-gm-stat-field input:focus {
+  outline: none;
+  border-color: var(--danger);
+}
+
+.sheet-gm-stat-editor .btn {
+  grid-column: 1 / -1;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.sheet-gm-skill-editor {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--danger);
+}
+
+.sheet-gm-skill-head,
+.sheet-gm-skill-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px 30px;
+  align-items: center;
+  gap: 5px;
+}
+
+.sheet-gm-skill-head {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--amber-dim);
+  letter-spacing: 0.1em;
+}
+
+.sheet-gm-skill-row input[type="text"],
+.sheet-gm-skill-row input[type="number"] {
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px;
+  border-radius: 2px;
+}
+
+.sheet-gm-skill-row input[type="number"] {
+  text-align: center;
+}
+
+.sheet-gm-skill-row input:focus {
+  outline: none;
+  border-color: var(--danger);
+}
+
+.sheet-gm-skill-row input[type="checkbox"] {
+  justify-self: center;
+  accent-color: var(--danger);
+}
+
+.sheet-gm-skill-add {
+  margin-top: 3px;
+}
+
+.sheet-gm-skill-editor .btn {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+body.gm-mode .stat-cell-rolled .stat-value {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  .gm-stat-array {
+    grid-template-columns: repeat(3, minmax(48px, 1fr));
+  }
+
+  .gm-stat-array .btn {
+    grid-column: 1 / -1;
+  }
+}
+
 .gm-hint {
   color: var(--muted);
   font-style: italic;

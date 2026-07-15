@@ -281,6 +281,18 @@ def add_text_field(c, name, x, y_top_d, w, h, value="",
     )
 
 
+def add_table_field(c, name, x0, x1, y_top_d, h, value="",
+                    font_size=6.5):
+    """Compact AcroForm field sized to a table cell."""
+    pad = 1.0
+    add_text_field(
+        c, name,
+        x0 + pad, y_top_d + 1.0,
+        max(1.0, x1 - x0 - (pad * 2)), max(1.0, h - 2.0),
+        value=value or "", font_size=font_size,
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Characteristics strip  (shared geometry)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -471,40 +483,41 @@ def draw_p1_personal_data(c, char):
     mid = (LM_X0 + LM_X1) / 2
     fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
     draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "SPECIES", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, LM_X0 + 45.0, y + rh * 0.52, species_name(char.species_id),
-              F_REG, 6.5, BODY_COL, max_w=mid - LM_X0 - 48.0)
+    add_table_field(c, "Species", LM_X0 + 45.0, mid, y, rh,
+                    species_name(char.species_id))
     vline(c, mid, y, y + rh)
     draw_text(c, mid + 3.0, y + rh * 0.52, "AGE", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, mid + 28.0, y + rh * 0.52, str(char.age), F_BOLD, 7.5, BODY_COL)
+    add_table_field(c, "Age", mid + 28.0, LM_X1, y, rh, str(char.age))
     hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
     # Terms
     draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "TERMS SERVED", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, LM_X0 + 70.0, y + rh * 0.52, str(char.total_terms),
-              F_BOLD, 7.5, BODY_COL)
+    add_table_field(c, "Terms Served", LM_X0 + 70.0, mid, y, rh,
+                    str(char.total_terms))
     vline(c, mid, y, y + rh)
     nt = noble_title(char)
-    if nt:
-        draw_text(c, mid + 3.0, y + rh * 0.52, "TITLE", F_BOLD, 5.0, LABEL_COL)
-        draw_text(c, mid + 30.0, y + rh * 0.52, nt, F_REG, 6.5, BODY_COL)
+    draw_text(c, mid + 3.0, y + rh * 0.52, "TITLE", F_BOLD, 5.0, LABEL_COL)
+    add_table_field(c, "Title", mid + 30.0, LM_X1, y, rh, nt or "")
     hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
     # Credits
     fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
     draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "CREDITS", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, LM_X0 + 45.0, y + rh * 0.52, f"Cr {char.credits:,}",
-              F_BOLD, 7.0, BODY_COL)
+    add_table_field(c, "Credits", LM_X0 + 45.0, mid, y, rh,
+                    f"Cr {char.credits:,}")
     clan_shares = getattr(char, "clan_shares", 0)
+    vline(c, mid, y, y + rh)
     if char.ship_shares > 0:
-        vline(c, mid, y, y + rh)
         draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
-        draw_text(c, mid + 60.0, y + rh * 0.52, str(char.ship_shares),
-                  F_BOLD, 7.0, BODY_COL)
+        add_table_field(c, "Ship Shares", mid + 60.0, LM_X1, y, rh,
+                        str(char.ship_shares))
     elif clan_shares > 0:
-        vline(c, mid, y, y + rh)
         draw_text(c, mid + 3.0, y + rh * 0.52, "CLAN SHARES", F_BOLD, 5.0, LABEL_COL)
-        draw_text(c, mid + 60.0, y + rh * 0.52, str(clan_shares),
-                  F_BOLD, 7.0, BODY_COL)
+        add_table_field(c, "Clan Shares", mid + 60.0, LM_X1, y, rh,
+                        str(clan_shares))
+    else:
+        draw_text(c, mid + 3.0, y + rh * 0.52, "SHIP SHARES", F_BOLD, 5.0, LABEL_COL)
+        add_table_field(c, "Ship Shares", mid + 60.0, LM_X1, y, rh, "")
     hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
     # Pension (if any)
@@ -516,8 +529,8 @@ def draw_p1_personal_data(c, char):
 
     # Society
     draw_text(c, LM_X0 + 3.0, y + rh * 0.52, "SOCIETY", F_BOLD, 5.0, LABEL_COL)
-    draw_text(c, LM_X0 + 45.0, y + rh * 0.52,
-              char.society_id.replace("_", " ").title(), F_REG, 6.5, BODY_COL)
+    add_table_field(c, "Society", LM_X0 + 45.0, LM_X1, y, rh,
+                    char.society_id.replace("_", " ").title())
     hline(c, LM_X0, LM_X1, y + rh)
 
 
@@ -550,13 +563,10 @@ def draw_p1_careers(c, char):
         alt    = (i % 2 == 1)
         if alt:
             fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
-        draw_text(c, LM_X0 + 3.0,      y + rh * 0.52, label,
-                  F_REG, 6.5, BODY_COL, max_w=col_terms_x - LM_X0 - 6.0)
-        draw_text(c, col_terms_x + 2.0, y + rh * 0.52, str(cr.terms_served),
-                  F_BOLD, 6.5, BODY_COL)
-        if rank_s:
-            draw_text(c, col_rank_x + 2.0, y + rh * 0.52, rank_s,
-                      F_REG, 6.0, BODY_COL, max_w=LM_X1 - col_rank_x - 4.0)
+        add_table_field(c, f"Career {i + 1}", LM_X0 + 2.0, col_terms_x, y, rh, label)
+        add_table_field(c, f"Career {i + 1} Terms", col_terms_x, col_rank_x, y, rh,
+                        str(cr.terms_served))
+        add_table_field(c, f"Career {i + 1} Rank", col_rank_x, LM_X1, y, rh, rank_s)
         hline(c, LM_X0, LM_X1, y + rh);  y += rh
 
 
@@ -594,8 +604,7 @@ def draw_p1_skills(c, char):
         label  = f"{sk.name}{spec}-{sk.level}"
         if i % 2 == 1:
             fill_rect(c, LM_X0, y, LM_W, rh, ROW_ALT)
-        draw_text(c, LM_X0 + 3.0, y + rh * 0.52, label,
-                  F_REG, 6.5, BODY_COL, max_w=LM_W - 8.0)
+        add_table_field(c, f"Skill {i + 1}", LM_X0 + 2.0, LM_X1, y, rh, label)
         hline(c, LM_X0, LM_X1, y + rh)
         y += rh
         if y + rh > sec_bot:
@@ -618,31 +627,28 @@ def draw_p1_finances(c, char):
     # Row 1: MONTHLY SHIP PAYMENTS (full width)
     draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "MONTHLY SHIP PAYMENTS:",
               F_OBL, 5.5, LABEL_COL)
-    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, "Cr.",
-              F_BOLD, 6.5, BODY_COL, align="right")
+    add_table_field(c, "Monthly Ship Payments", RM_X0 + 140.0, RM_X1, y, rh, "Cr.")
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
     # Row 2: PENSION left | CASH ON HAND right
     fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
     draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "PENSION:", F_OBL, 5.5, LABEL_COL)
     pension_s = f"Cr. {char.pension_per_year:,}" if char.pension_per_year else "Cr. 0"
-    draw_text(c, RM_X0 + 52.0, y + rh * 0.52, pension_s, F_BOLD, 6.5, BODY_COL)
+    add_table_field(c, "Pension", RM_X0 + 52.0, mid, y, rh, pension_s)
     vline(c, mid, y, y + rh)
     draw_text(c, mid + 3.0, y + rh * 0.52, "CASH ON HAND:", F_OBL, 5.5, LABEL_COL)
-    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, f"Cr. {char.credits:,}",
-              F_BOLD, 6.5, BODY_COL, align="right")
+    add_table_field(c, "Cash On Hand", mid + 80.0, RM_X1, y, rh,
+                    f"Cr. {char.credits:,}")
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
     # Row 3: DEBT left | LIVING COST right
     draw_text(c, RM_X0 + 3.0, y + rh * 0.52, "DEBT:", F_OBL, 5.5, LABEL_COL)
     debt_col  = Color(0.8, 0.1, 0.1) if char.medical_debt > 0 else BODY_COL
-    draw_text(c, RM_X0 + 52.0, y + rh * 0.52,
-              f"Cr. {char.medical_debt:,}" if char.medical_debt else "Cr. 0",
-              F_BOLD, 6.5, debt_col)
+    add_table_field(c, "Debt", RM_X0 + 52.0, mid, y, rh,
+                    f"Cr. {char.medical_debt:,}" if char.medical_debt else "Cr. 0")
     vline(c, mid, y, y + rh)
     draw_text(c, mid + 3.0, y + rh * 0.52, "LIVING COST:", F_OBL, 5.5, LABEL_COL)
-    draw_text(c, RM_X1 - 3.0, y + rh * 0.52, "Cr. 0",
-              F_BOLD, 6.5, BODY_COL, align="right")
+    add_table_field(c, "Living Cost", mid + 70.0, RM_X1, y, rh, "Cr. 0")
     hline(c, RM_X0, RM_X1, y + rh)
 
 
@@ -665,13 +671,29 @@ def draw_p1_armour(c, char):
         draw_text(c, cx_ + 3.0, y + rh * 0.52, h, F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
-    # Blank rows for recording armour (5 columns)
+    col_x = [RM_X0] + [RM_X0 + RM_W * frac for frac in col_fracs[1:]] + [RM_X1]
+    armour_items = [
+        eq for eq in (char.equipment or [])
+        if getattr(eq, "protection", None) is not None
+    ]
+
+    # Rows for recording armour (prefilled when generated equipment has protection)
     for i in range(8):
         alt = (i % 2 == 1)
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
+        item = armour_items[i] if i < len(armour_items) else None
+        vals = [
+            (item.name if item else ""),
+            "",
+            (str(item.protection) if item and item.protection is not None else ""),
+            "",
+            ((item.notes or "") if item else ""),
+        ]
         for frac in col_fracs[1:]:
             vline(c, RM_X0 + RM_W * frac, y, y + rh)
+        for j, val in enumerate(vals):
+            add_table_field(c, f"Armour {i + 1} {hdrs[j]}", col_x[j], col_x[j + 1], y, rh, val)
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
 
@@ -693,6 +715,8 @@ def draw_p1_weapons(c, char):
         draw_text(c, cx_ + 3.0, y + rh * 0.52, lbl, F_OBL, 5.0, COL_HDR_FG)
     hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
+    col_x = [RM_X0] + [RM_X0 + RM_W * frac for _, frac in wcols[1:]] + [RM_X1]
+
     # Blank weapon rows
     for i in range(10):
         alt = (i % 2 == 1)
@@ -700,6 +724,8 @@ def draw_p1_weapons(c, char):
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
         for _, frac in wcols[1:]:
             vline(c, RM_X0 + RM_W * frac, y, y + rh)
+        for j, (lbl, _) in enumerate(wcols):
+            add_table_field(c, f"Weapon {i + 1} {lbl}", col_x[j], col_x[j + 1], y, rh, "")
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
 
@@ -727,6 +753,9 @@ def draw_p1_augments(c, char):
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
         vline(c, tl_x,  y, y + rh)
         vline(c, imp_x, y, y + rh)
+        add_table_field(c, f"Augment {i + 1} Type", RM_X0, tl_x, y, rh, "")
+        add_table_field(c, f"Augment {i + 1} TL", tl_x, imp_x, y, rh, "")
+        add_table_field(c, f"Augment {i + 1} Improvement", imp_x, RM_X1, y, rh, "")
         hline(c, RM_X0, RM_X1, y + rh);  y += rh
 
 
@@ -756,9 +785,9 @@ def draw_p1_equipment(c, char):
         name_s = eq.name
         if eq.quantity > 1:
             name_s += f" x{eq.quantity}"
-        draw_text(c, RM_X0 + 3.0, y + rh * 0.52, name_s,
-                  F_REG, 6.5, BODY_COL, max_w=mass_x - RM_X0 - 6.0)
         vline(c, mass_x, y, y + rh)
+        add_table_field(c, f"Equipment {shown + 1} Type", RM_X0, mass_x, y, rh, name_s)
+        add_table_field(c, f"Equipment {shown + 1} Mass", mass_x, RM_X1, y, rh, "")
         hline(c, RM_X0, RM_X1, y + rh)
         y += rh;  shown += 1
 
@@ -769,6 +798,8 @@ def draw_p1_equipment(c, char):
         if alt:
             fill_rect(c, RM_X0, y, RM_W, rh, ROW_ALT)
         vline(c, mass_x, y, y + rh)
+        add_table_field(c, f"Equipment {i + 1} Type", RM_X0, mass_x, y, rh, "")
+        add_table_field(c, f"Equipment {i + 1} Mass", mass_x, RM_X1, y, rh, "")
         hline(c, RM_X0, RM_X1, y + rh)
         y += rh;  i += 1
 

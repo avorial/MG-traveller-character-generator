@@ -1288,6 +1288,66 @@ function formatDM(dm) {
   return `${dm}`;
 }
 
+function applyGmStatValues(updates) {
+  const changes = [];
+  for (const [stat, next] of Object.entries(updates)) {
+    const current = character.characteristics[stat] || 0;
+    if (next === current) continue;
+    character.characteristics[stat] = next;
+    changes.push(`${stat} ${current}→${next}`);
+  }
+  if (!changes.length) return false;
+  character.notes = character.notes || [];
+  character.notes.push(`GM: set characteristics (${changes.join(', ')}).`);
+  saveCharacter();
+  return true;
+}
+
+function splitSkillLabelForGm(label) {
+  const text = (label || '').trim();
+  const match = text.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (!match) return { name: text, speciality: null };
+  return { name: match[1].trim(), speciality: match[2].trim() || null };
+}
+
+function skillLabelForGm(skill) {
+  return skill?.speciality ? `${skill.name} (${skill.speciality})` : (skill?.name || '');
+}
+
+function applyGmSkillValues(rows, addRow) {
+  const nextSkills = [];
+  const changes = [];
+  for (const row of rows) {
+    if (row.remove) {
+      changes.push(`removed ${row.beforeLabel}`);
+      continue;
+    }
+    const parsed = splitSkillLabelForGm(row.label);
+    if (!parsed.name) continue;
+    nextSkills.push({ name: parsed.name, level: row.level, speciality: parsed.speciality });
+    const afterLabel = parsed.speciality ? `${parsed.name} (${parsed.speciality})` : parsed.name;
+    if (afterLabel !== row.beforeLabel || row.level !== row.beforeLevel) {
+      changes.push(`${row.beforeLabel} ${row.beforeLevel}→${afterLabel} ${row.level}`);
+    }
+  }
+
+  if (addRow && addRow.label) {
+    const parsed = splitSkillLabelForGm(addRow.label);
+    if (parsed.name) {
+      nextSkills.push({ name: parsed.name, level: addRow.level, speciality: parsed.speciality });
+      changes.push(`added ${parsed.speciality ? `${parsed.name} (${parsed.speciality})` : parsed.name} ${addRow.level}`);
+    }
+  }
+
+  character.skills = nextSkills;
+  if (changes.length) {
+    character.notes = character.notes || [];
+    character.notes.push(`GM: edited skills (${changes.join(', ')}).`);
+  }
+  saveCharacter();
+  return true;
+}
+
 // Return the display label for the SOC characteristic for a given character.
 // Returns 'RES' (Hiver), 'CHA' (Vargr), null (Droyne — no SOC), or 'SOC'.
 // Checks species_id first (set after apply_species); falls back to society_id
@@ -1445,8 +1505,9 @@ function renderSheet() {
     : { name: 'Unknown' };
 
   const _socLabel = socLabelForChar(character);
-  const statCells = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
-    .filter(stat => stat !== 'SOC' || _socLabel !== null)
+  const visibleCoreStats = ['STR', 'DEX', 'END', 'INT', 'EDU', 'SOC']
+    .filter(stat => stat !== 'SOC' || _socLabel !== null);
+  const statCells = visibleCoreStats
     .map((stat) => {
       const val = stats[stat];
       const dm = charDM(val);
@@ -1480,6 +1541,20 @@ function renderSheet() {
           <span class="stat-dm">DM ${formatDM(charDM(character.boldness))}</span>
         </div>
       ` : '');
+  const gmSheetStatEditor = uiState.gmMode ? `
+    <div class="sheet-gm-stat-editor" role="group" aria-label="GM characteristic editor">
+      ${visibleCoreStats.map(stat => {
+        const label = stat === 'SOC' ? _socLabel : stat;
+        return `
+          <label class="sheet-gm-stat-field">
+            <span>${label}</span>
+            <input type="number" data-sheet-gm-stat="${stat}" min="0" max="20" value="${stats[stat] || 0}" />
+          </label>
+        `;
+      }).join('')}
+      <button class="btn ghost" id="btn-sheet-apply-gm-stats">APPLY</button>
+    </div>
+  ` : '';
 
   const skillsList = character.skills.length
     ? character.skills.map((s) => {
@@ -1487,6 +1562,31 @@ function renderSheet() {
         return `<li><span>${label}</span><span class="skill-level">${s.level}</span></li>`;
       }).join('')
     : '<li class="empty">No skills yet</li>';
+  const gmSkillsEditor = uiState.gmMode ? `
+    <div class="sheet-gm-skill-editor" role="group" aria-label="GM skill editor">
+      <div class="sheet-gm-skill-head">
+        <span>SKILL</span>
+        <span>LVL</span>
+        <span>DEL</span>
+      </div>
+      ${(character.skills || []).map((s, i) => `
+        <div class="sheet-gm-skill-row">
+          <input type="text" data-gm-skill-label="${i}" value="${escapeAttr(skillLabelForGm(s))}" list="gm-skill-options" />
+          <input type="number" data-gm-skill-level="${i}" min="0" max="6" value="${s.level ?? 0}" />
+          <input type="checkbox" data-gm-skill-remove="${i}" title="Remove this skill" />
+        </div>
+      `).join('')}
+      <div class="sheet-gm-skill-row sheet-gm-skill-add">
+        <input type="text" id="gm-add-skill-label" placeholder="Add skill, e.g. Gun Combat (Energy)" list="gm-skill-options" />
+        <input type="number" id="gm-add-skill-level" min="0" max="6" value="0" />
+        <span></span>
+      </div>
+      <button class="btn ghost" id="btn-sheet-apply-gm-skills">APPLY SKILLS</button>
+      <datalist id="gm-skill-options">
+        ${ALL_SKILLS.map(s => `<option value="${escapeAttr(s)}"></option>`).join('')}
+      </datalist>
+    </div>
+  ` : '';
 
   const equipList = character.equipment.length
     ? character.equipment.map((e) => {
@@ -1576,6 +1676,7 @@ function renderSheet() {
       <div class="sheet-section">
         <h3>Characteristics</h3>
         <div class="stat-grid">${statCells}</div>
+        ${gmSheetStatEditor}
       </div>
 
       ${Object.keys(character.extra_characteristics || {}).length ? `
@@ -1598,6 +1699,7 @@ function renderSheet() {
       <div class="sheet-section">
         <h3>Skills</h3>
         <ul class="skill-list">${skillsList}</ul>
+        ${gmSkillsEditor}
       </div>
 
       <div class="sheet-section">
@@ -1793,6 +1895,61 @@ function renderSheet() {
     e.target.value = stripped;
     saveCharacter();
   });
+  const sheetGmApply = document.getElementById('btn-sheet-apply-gm-stats');
+  if (sheetGmApply) {
+    sheetGmApply.addEventListener('click', () => {
+      const updates = {};
+      for (const input of document.querySelectorAll('[data-sheet-gm-stat]')) {
+        const stat = input.dataset.sheetGmStat;
+        const next = parseInt(input.value, 10);
+        if (Number.isNaN(next) || next < 0 || next > 20) {
+          alert('Enter characteristic values between 0 and 20.');
+          return;
+        }
+        updates[stat] = next;
+      }
+      applyGmStatValues(updates);
+      renderAll();
+    });
+  }
+  const sheetGmSkillApply = document.getElementById('btn-sheet-apply-gm-skills');
+  if (sheetGmSkillApply) {
+    sheetGmSkillApply.addEventListener('click', () => {
+      const rows = [];
+      for (let i = 0; i < (character.skills || []).length; i++) {
+        const labelEl = document.querySelector(`[data-gm-skill-label="${i}"]`);
+        const levelEl = document.querySelector(`[data-gm-skill-level="${i}"]`);
+        const removeEl = document.querySelector(`[data-gm-skill-remove="${i}"]`);
+        if (!labelEl || !levelEl) continue;
+        const level = parseInt(levelEl.value, 10);
+        if (Number.isNaN(level) || level < 0 || level > 6) {
+          alert('Enter skill levels between 0 and 6.');
+          return;
+        }
+        rows.push({
+          label: labelEl.value,
+          level,
+          remove: !!removeEl?.checked,
+          beforeLabel: skillLabelForGm(character.skills[i]),
+          beforeLevel: character.skills[i]?.level ?? 0,
+        });
+      }
+
+      const addLabel = (document.getElementById('gm-add-skill-label')?.value || '').trim();
+      const addLevelRaw = document.getElementById('gm-add-skill-level')?.value ?? '0';
+      let addRow = null;
+      if (addLabel) {
+        const addLevel = parseInt(addLevelRaw, 10);
+        if (Number.isNaN(addLevel) || addLevel < 0 || addLevel > 6) {
+          alert('Enter skill levels between 0 and 6.');
+          return;
+        }
+        addRow = { label: addLabel, level: addLevel };
+      }
+      applyGmSkillValues(rows, addRow);
+      renderAll();
+    });
+  }
   const notesEl = document.getElementById('char-notes');
   if (notesEl) notesEl.addEventListener('input', (e) => {
     character.user_notes = e.target.value;
@@ -2647,6 +2804,17 @@ function renderCharacteristicsPhase() {
   const _socLbl = socLabelForChar(character);
   const STATS = ['STR', 'DEX', 'END', 'INT', 'EDU', ...(_socLbl ? ['SOC'] : [])];
   const STAT_LABELS = { STR:'STR', DEX:'DEX', END:'END', INT:'INT', EDU:'EDU', SOC: _socLbl || 'SOC' };
+  const gmStatsEditor = uiState.gmMode ? `
+    <div class="gm-stat-array" role="group" aria-label="GM stat array editor">
+      ${STATS.map(stat => `
+        <label class="gm-stat-field">
+          <span>${STAT_LABELS[stat]}</span>
+          <input type="number" class="gm-stat-input" data-gm-stat="${stat}" min="0" max="20" value="${character.characteristics[stat] || 0}" />
+        </label>
+      `).join('')}
+      <button class="btn ghost" id="btn-apply-gm-stats">APPLY STATS</button>
+    </div>
+  ` : '';
 
   // Compute best / worst stat so they can be highlighted in the grid and called out.
   let bestStat = null, worstStat = null, total = 0, totalDM = 0;
@@ -2754,12 +2922,13 @@ function renderCharacteristicsPhase() {
       ${uiState.gmMode ? `
         <div class="gm-panel">
           <span class="gm-badge">GM MODE</span>
+          ${gmStatsEditor}
           <label class="gm-field">
             BOON POOL
             <input type="number" id="gm-boon-pool" min="0" max="20" value="${character.boon_rolls_total}" />
             <button class="btn ghost" id="btn-set-boon-pool">SET</button>
           </label>
-          <span class="gm-hint">Click any stat value to edit directly. BOON re-rolls keep the higher value.</span>
+          <span class="gm-hint">Enter a full array, or click any stat value to edit it directly. BOON re-rolls keep the higher value.</span>
         </div>
       ` : ''}
       ${(!uiState.gmMode && character.boon_rolls_remaining > 0) ? `
@@ -2975,10 +3144,30 @@ function wireCharacteristicsPhase() {
     });
   }
 
-  // GM: direct-edit a stat by double-clicking its value
+  const btnApplyGmStats = document.getElementById('btn-apply-gm-stats');
+  if (btnApplyGmStats) {
+    btnApplyGmStats.addEventListener('click', () => {
+      const updates = {};
+      for (const input of document.querySelectorAll('[data-gm-stat]')) {
+        const stat = input.dataset.gmStat;
+        const next = parseInt(input.value, 10);
+        if (Number.isNaN(next) || next < 0 || next > 20) {
+          alert('Enter stat values between 0 and 20.');
+          return;
+        }
+        updates[stat] = next;
+      }
+      applyGmStatValues(updates);
+      renderAll();
+    });
+  }
+
+  // GM: direct-edit a stat by clicking its value
   if (uiState.gmMode) {
     document.querySelectorAll('.stat-cell-rolled .stat-value').forEach(el => {
-      el.addEventListener('dblclick', (ev) => {
+      el.title = 'GM Mode: click to edit';
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
         const cell = ev.target.closest('[data-stat]');
         const stat = cell?.dataset?.stat;
         if (!stat) return;
@@ -2990,9 +3179,7 @@ function wireCharacteristicsPhase() {
           alert('Enter a number between 0 and 20.');
           return;
         }
-        character.characteristics[stat] = next;
-        character.notes.push(`GM: set ${stat} to ${next} (was ${current}).`);
-        saveCharacter();
+        applyGmStatValues({ [stat]: next });
         renderAll();
       });
     });
@@ -11994,6 +12181,7 @@ function renderDonePhase() {
       ${renderPsionicsCard()}
 
       <div class="phase-actions">
+        <button class="btn primary" data-export-pdf>⬇ EXPORT PDF</button>
         <button class="btn ghost" id="btn-export-prominent">EXPORT JSON</button>
         <button class="btn ghost" id="btn-export-foundry">⬇ EXPORT TO FOUNDRY</button>
         <button class="btn" id="btn-back-careers">← BACK TO CAREERS</button>
@@ -12005,7 +12193,11 @@ function renderDonePhase() {
 
       <div class="done-card tas-sheet-card">
         <h3 class="done-card-title">Character Sheet</h3>
-        <p class="empty" style="margin-bottom:10px">Interactive Mongoose Traveller 2e sheet — click a stat or skill to roll, track wounds, conditions, weapons and gear. Use your browser's Print command to print it.</p>
+        <p class="empty" style="margin-bottom:10px">Interactive Mongoose Traveller 2e sheet — click a stat or skill to roll, track wounds, conditions, weapons and gear.</p>
+        <div class="phase-actions" style="margin-bottom:10px">
+          <button class="btn ghost" data-open-print-sheet>OPEN PRINT SHEET</button>
+          <button class="btn ghost" data-export-pdf>⬇ EXPORT PDF</button>
+        </div>
         <div id="tas-sheet-mount">${renderTASSheet()}</div>
       </div>
     </div>
@@ -12090,6 +12282,30 @@ function tasRollSkill(skillName, level, statForSkill) {
   );
 }
 
+function tasAdjustSkill(skillLabel, delta) {
+  const parsed = splitSkillLabelForGm(skillLabel);
+  if (!parsed.name) return;
+  character.skills = character.skills || [];
+  const match = character.skills.find(s =>
+    (s.name || '').toLowerCase() === parsed.name.toLowerCase()
+    && ((s.speciality || '')).toLowerCase() === ((parsed.speciality || '')).toLowerCase()
+  );
+  if (match) {
+    const old = match.level || 0;
+    const next = Math.max(0, Math.min(6, old + delta));
+    if (next === 0 && delta < 0) {
+      character.skills = character.skills.filter(s => s !== match);
+    } else {
+      match.level = next;
+    }
+  } else if (delta > 0) {
+    character.skills.push({ name: parsed.name, level: Math.min(6, delta), speciality: parsed.speciality });
+  }
+  character.notes = character.notes || [];
+  character.notes.push(`GM: adjusted ${skillLabel} ${delta > 0 ? '+' : ''}${delta}.`);
+  refreshTASSheet();
+}
+
 // Re-render just the sheet mount and re-wire it (keeps the rest of the page stable).
 function refreshTASSheet() {
   saveCharacter();
@@ -12136,13 +12352,22 @@ const TAS_SKILL_STAT = {
 function tasSkillCell(displayName, rollName, level, statForSkill, isSpec) {
   const trained = level != null;
   const lvlBadge = trained ? `<span class="tas-skill-lvl">${level}</span>` : `<span class="tas-skill-lvl untrained">−</span>`;
-  return `<button class="tas-skill ${trained ? 'trained' : 'untrained'}${isSpec ? ' spec' : ''}"
+  const gmControls = uiState.gmMode ? `
+    <span class="tas-skill-gm-controls" aria-label="GM skill controls">
+      <button type="button" class="tas-skill-gm-btn" data-skill-adjust="${escapeAttr(rollName)}" data-delta="-1" title="GM: lower ${escapeAttr(displayName)}">−</button>
+      <button type="button" class="tas-skill-gm-btn" data-skill-adjust="${escapeAttr(rollName)}" data-delta="1" title="GM: raise ${escapeAttr(displayName)}">+</button>
+    </span>
+  ` : '';
+  return `<div class="tas-skill ${trained ? 'trained' : 'untrained'}${isSpec ? ' spec' : ''}">
+    <button type="button" class="tas-skill-roll-btn"
       data-skill-roll="${escapeAttr(rollName)}"
       data-skill-level="${trained ? level : ''}"
       data-skill-stat="${statForSkill || ''}"
       title="Click to roll 2D6 + ${statForSkill || '—'} DM ${trained ? '+ skill ' + level : '(unskilled −3)'}">
       <span class="tas-skill-name">${escapeHTML(displayName)}</span>${lvlBadge}
-    </button>`;
+    </button>
+    ${gmControls}
+  </div>`;
 }
 
 // Build the full MGT2e skill tree, overlaying the character's trained levels.
@@ -12422,8 +12647,24 @@ function openTASFullscreen() {
   ${cssLinks}
   <style>
     /* ── base layout ── */
+    :root { --print-scale: 1; }
     body { margin: 0; padding: 0 16px 24px; background: var(--bg-deep, #0a0806); }
-    .tas-sheet { max-width: 860px; margin: 0 auto; }
+    #print-page {
+      width: 8in;
+      min-height: 10.5in;
+      margin: 0 auto 24px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: visible;
+    }
+    .tas-sheet {
+      width: 860px;
+      max-width: 860px;
+      margin: 0 auto;
+      transform: scale(var(--print-scale));
+      transform-origin: top center;
+    }
     .tas-btn-fullscreen { display: none !important; }
     button, input { pointer-events: none; opacity: 0.7; }
     label.tas-portrait { pointer-events: none; }
@@ -12483,11 +12724,36 @@ function openTASFullscreen() {
     body.theme-print-dark .tas-form-top { background: #222222; }
     body.theme-print-dark .tas-stat-val { text-shadow: none; }
 
-    /* ── suppress toolbar when printing ── */
+    @page {
+      size: letter portrait;
+      margin: 0.25in;
+    }
+
+    /* ── force one letter page when printing ── */
     @media print {
       #sheet-toolbar { display: none !important; }
-      body { padding: 0; }
-      .tas-sheet { box-shadow: none !important; border: none !important; }
+      html, body {
+        width: 8in !important;
+        height: 10.5in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+      }
+      #print-page {
+        width: 8in !important;
+        height: 10.5in !important;
+        min-height: 10.5in !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      .tas-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 auto !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
     }
   </style>
 </head>
@@ -12501,8 +12767,22 @@ function openTASFullscreen() {
     <span class="tb-sep"></span>
     <button class="tb-print-btn" onclick="window.print()">⎙ PRINT</button>
   </div>
-  ${sheetHTML}
+  <div id="print-page">${sheetHTML}</div>
   <script>
+    function fitSheetToLetter() {
+      const page = document.getElementById('print-page');
+      const sheet = document.querySelector('.tas-sheet');
+      if (!page || !sheet) return;
+      document.documentElement.style.setProperty('--print-scale', '1');
+      page.style.height = '';
+      const pageW = page.clientWidth || 768;
+      const pageH = page.clientHeight || 1008;
+      const sheetW = sheet.scrollWidth || sheet.offsetWidth || 860;
+      const sheetH = sheet.scrollHeight || sheet.offsetHeight || 1008;
+      const scale = Math.min(pageW / sheetW, pageH / sheetH, 1);
+      document.documentElement.style.setProperty('--print-scale', String(Math.max(0.1, scale)));
+      page.style.height = Math.ceil(sheetH * scale) + 'px';
+    }
     document.querySelectorAll('[data-theme]').forEach(btn => {
       btn.addEventListener('click', () => {
         const themes = ['theme-light','theme-print','theme-print-dark'];
@@ -12510,8 +12790,12 @@ function openTASFullscreen() {
         if (btn.dataset.theme) document.body.classList.add(btn.dataset.theme);
         document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('tb-active'));
         btn.classList.add('tb-active');
+        requestAnimationFrame(fitSheetToLetter);
       });
     });
+    window.addEventListener('load', () => requestAnimationFrame(fitSheetToLetter));
+    window.addEventListener('resize', () => requestAnimationFrame(fitSheetToLetter));
+    window.addEventListener('beforeprint', fitSheetToLetter);
   <\/script>
 </body>
 </html>`);
@@ -12562,6 +12846,12 @@ function wireTASSheet() {
       const lvlStr = b.dataset.skillLevel;
       const lvl = lvlStr === '' ? null : parseInt(lvlStr, 10);
       tasRollSkill(b.dataset.skillRoll, lvl, b.dataset.skillStat || null);
+    }));
+  document.querySelectorAll('[data-skill-adjust]').forEach(b =>
+    b.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      tasAdjustSkill(b.dataset.skillAdjust, parseInt(b.dataset.delta, 10) || 0);
     }));
 
   // Take damage
@@ -12782,6 +13072,12 @@ function wireDonePhase() {
 
   // Interactive character sheet (replaces the old PDF export).
   if (document.getElementById('tas-sheet-mount')) wireTASSheet();
+  document.querySelectorAll('[data-open-print-sheet]').forEach(btn => {
+    btn.addEventListener('click', openTASFullscreen);
+  });
+  document.querySelectorAll('[data-export-pdf]').forEach(btn => {
+    btn.addEventListener('click', exportPDF);
+  });
 
   const btnFoundry = document.getElementById('btn-export-foundry');
   if (btnFoundry) btnFoundry.addEventListener('click', exportFoundry);
@@ -12990,8 +13286,8 @@ function exportCharacter() {
 }
 
 async function exportPDF() {
-  const btn = document.getElementById('btn-export-pdf');
-  if (btn) { btn.textContent = 'GENERATING…'; btn.disabled = true; }
+  const buttons = Array.from(document.querySelectorAll('[data-export-pdf]'));
+  buttons.forEach(btn => { btn.dataset.originalText = btn.textContent; btn.textContent = 'GENERATING…'; btn.disabled = true; });
   try {
     const res = await fetch('/api/character/export-pdf', {
       method: 'POST',
@@ -13011,7 +13307,11 @@ async function exportPDF() {
   } catch (e) {
     alert('PDF export failed: ' + e.message);
   } finally {
-    if (btn) { btn.textContent = '⬇ EXPORT PDF'; btn.disabled = false; }
+    buttons.forEach(btn => {
+      btn.textContent = btn.dataset.originalText || '⬇ EXPORT PDF';
+      btn.disabled = false;
+      delete btn.dataset.originalText;
+    });
   }
 }
 
@@ -13591,6 +13891,7 @@ async function bootstrap() {
       uiState.gmLastRolls = [];
       try { localStorage.setItem('traveller_gm_mode', uiState.gmMode ? '1' : '0'); } catch (e) { /* ignore */ }
       paintGm();
+      renderAll();
     });
   }
 

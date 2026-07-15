@@ -123,10 +123,19 @@
   display: block; margin-bottom: 7px;
 }
 .tas-skill {
-  display: flex; justify-content: space-between; align-items: center; gap: 4px; width: 100%;
+  display: flex; width: 100%;
   background: transparent; border: 1px solid transparent; border-radius: 3px;
-  padding: 3px 6px; cursor: pointer; font-family: var(--font-mono); font-size: 10.5px; text-align: left;
+  padding: 0; font-family: var(--font-mono); font-size: 10.5px; text-align: left;
   color: var(--muted); transition: border-color 0.1s, color 0.1s;
+}
+.tas-skill-roll-btn {
+  display: flex; justify-content: space-between; align-items: center; gap: 4px; width: 100%;
+  background: transparent; border: 0; color: inherit; cursor: pointer;
+  font: inherit; text-align: left; padding: 3px 6px;
+}
+button.tas-skill {
+  justify-content: space-between; align-items: center; gap: 4px;
+  padding: 3px 6px; cursor: pointer;
 }
 /* Specialty lines sit indented under their parent skill, with a tree guide. */
 .tas-skill.spec { margin-left: 10px; border-left: 1px solid var(--border-glow); border-radius: 0 3px 3px 0; padding-left: 8px; }
@@ -139,6 +148,29 @@
 .tas-skill-lvl { color: var(--amber-bright); font-weight: 700; min-width: 14px; text-align: right; font-size: 11px; }
 .tas-skill-lvl.untrained { color: var(--border-glow); }
 .tas-skill.inline { display: inline-flex; width: auto; margin: 2px 4px 2px 0; border-color: var(--border); background: var(--bg-deep); }
+.tas-skill-gm-controls {
+  display: inline-flex;
+  align-self: center;
+  gap: 2px;
+  margin: 0 3px 0 0;
+}
+.tas-skill-gm-btn {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg-panel-alt);
+  color: var(--amber-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 12px;
+  cursor: pointer;
+}
+.tas-skill-gm-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
 
 /* ---- Tabs ------------------------------------------------- */
 .tas-tabs { display: flex; gap: 1px; margin-top: 6px; border-bottom: 1px solid var(--border-glow); flex-wrap: wrap; }
@@ -208,9 +240,69 @@
 .tas-toast-total { color: var(--amber-bright, #ffcc66); font-weight: 700; font-size: 16px; }
 
 /* ---- Print ----------------------------------------------- */
+@page {
+  size: letter;
+  margin: 0.35in;
+}
+
 @media print {
+  html,
+  body {
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
   body * { visibility: hidden; }
   .tas-sheet, .tas-sheet * { visibility: visible; }
-  .tas-sheet { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border-color: #999; }
+  .tas-sheet {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-color: #999 !important;
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .terminal-header,
+  .terminal-footer,
+  .mobile-tabs,
+  .scanlines,
+  .vignette,
+  .sheet,
+  .log-panel,
+  .panel-header,
+  .phase-actions,
+  .done-card-title,
+  .stage-content > :not(.tas-sheet-card),
+  .tas-sheet-card > p {
+    display: none !important;
+  }
+
+  .layout,
+  .stage,
+  .stage-content,
+  .done-card,
+  .tas-sheet-card,
+  #tas-sheet-mount {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
   .tas-stat-adj, .tas-btn-dmg, .tas-btn-heal, .tas-btn-cond, .tas-add-row, .tas-x, .tas-wield-btn { display: none !important; }
 }
