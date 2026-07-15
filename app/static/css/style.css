@@ -27,6 +27,9 @@
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
   --font-crt: 'VT323', 'JetBrains Mono', monospace;
   --font-serif: 'Cormorant Garamond', Georgia, serif;
+
+  --footer-height: 46px;
+  --mobile-tab-height: 52px;
 }
 
 /* GM Mode — swap the amber phosphor palette for a green-screen CRT look.
@@ -141,6 +144,7 @@ body {
     linear-gradient(0deg, rgba(var(--tint-rgb), 0.02) 0%, transparent 100%);
   background-attachment: fixed;
   position: relative;
+  padding-bottom: var(--footer-height);
 }
 
 /* ============ CRT effects ============ */
@@ -361,10 +365,18 @@ body {
   .skill-chip { padding: 8px 10px; font-size: 11px; }
   .skill-table-btn { padding: 10px 10px; }
 
-  /* Footer: wrap tightly */
-  .terminal-footer { padding: 6px 10px; flex-wrap: wrap; gap: 4px; }
-  .footer-left { flex-wrap: wrap; gap: 2px; }
+  /* Footer: keep global actions reachable above the tab bar */
+  .terminal-footer {
+    bottom: var(--mobile-tab-height);
+    height: var(--footer-height);
+    padding: 6px 10px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .footer-left { flex-wrap: nowrap; gap: 2px; }
   .footer-right { display: none; }
+  .footer-left,
+  .text-btn { flex: 0 0 auto; }
   .text-btn { font-size: 9px; padding: 6px 6px; letter-spacing: 0.12em; }
 
   /* Mobile tab bar */
@@ -374,7 +386,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 52px;
+    height: var(--mobile-tab-height);
     background: var(--bg-panel-alt);
     border-top: 1px solid var(--border);
     z-index: 200;
@@ -411,9 +423,8 @@ body {
     text-shadow: 0 0 8px var(--amber-glow);
   }
 
-  /* Push page content above fixed tab bar */
-  body { padding-bottom: 52px; }
-  .terminal-footer { margin-bottom: 0; }
+  /* Push page content above the fixed footer and tab bar */
+  body { padding-bottom: calc(var(--footer-height) + var(--mobile-tab-height)); }
 
   /* Stable preview 6-column grid — shrink text further */
   .stable-preview-v { font-size: 8px; }
@@ -1852,11 +1863,17 @@ body.hide-card-desc .card-desc { display: none !important; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: var(--footer-height);
   padding: 10px 24px;
   border-top: 1px solid var(--border);
   background: var(--bg-panel-alt);
   font-family: var(--font-mono);
   font-size: 10px;
+  z-index: 190;
 }
 
 .footer-left {
@@ -1870,6 +1887,26 @@ body.hide-card-desc .card-desc { display: none !important; }
   letter-spacing: 0.2em;
   text-transform: uppercase;
   font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .terminal-footer {
+    bottom: var(--mobile-tab-height);
+    height: var(--footer-height);
+    padding: 6px 10px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .footer-left {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .footer-left,
+  .text-btn {
+    flex: 0 0 auto;
+  }
 }
 
 /* ============ Scrollbars ============ */
