@@ -4,7 +4,7 @@ A web app for generating Mongoose Traveller 2e characters through the complete l
 
 Built as a Docker-packaged FastAPI + Jinja2 + vanilla JS stack. All rules data lives in editable JSON files — no code changes required to add a new career, species, or tweak a table.
 
-![Version](https://img.shields.io/badge/version-40.00-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
+![Version](https://img.shields.io/badge/version-40.01-blue) ![Stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Jinja-green) ![Docker](https://img.shields.io/badge/docker-compose%20up-blue)
 
 > **Not official:** This is an unofficial fan tool. It is not produced, endorsed, licensed, or authorized by Far Future Enterprises or Mongoose Publishing. Please use it with legally purchased Traveller rulebooks.
 
@@ -122,7 +122,7 @@ On finalize, the robot goes directly to a done screen with a **⬇ EXPORT TO FOU
 
 | Track | Requirement | Duration | Notes |
 |---|---|---|---|
-| **University** | INT 6+ | 4 years (+2 age) | +1 EDU on enrol; graduate for +2 EDU and 2 skills at level 1; Honours adds SOC+1 and DM+1 to first qualification |
+| **University** | EDU 6+ | 4 years (+2 age) | +1 EDU on enrol; choose one skill at level 0 and one at level 1; graduate on INT 6+ for +1 EDU, improve both skills, gain DM+1 to supported listed career qualifications, and allow a Commission roll before a first military career (DM+2 to both with Honours). Assignment-scoped Citizen (Corporate) and Entertainer (Journalist) bonuses are noted in the rules text but not applied to career-wide qualification rolls. |
 | **Military Academy** | Varies by service | 3 years (+1 age) | Service-specific qualification; graduate with Honours for automatic commission rank; full education event table |
 | **Merchant Academy** | INT 9+ | 4 years (+2 age) | Business or Shipboard curriculum; graduate for +1 EDU, start Merchant/Citizen at officer rank, permanent advancement DM |
 | **Colonial Upbringing** | Homeworld TL ≤ 8 (automatic) | — | Survival 1 + 10 skills at 0; graduate for END+1 and Jack-of-all-Trades 1, but EDU−D3 and permanent qualification penalties |

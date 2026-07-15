@@ -293,7 +293,8 @@ class Character(BaseModel):
     # Keys: qualification_dm, commission_dm, first_career_commission_dm,
     #       advancement_dm, advancement_dm_careers, auto_rank, auto_rank_careers,
     #       bonus_qualify_careers, bonus_qualify_dm, psion_career_auto_entry,
-    #       spacer_career_dm, spacer_career_id, spacer_assignment_id.
+    #       spacer_career_dm, spacer_career_id, spacer_assignment_id,
+    #       university_commission_careers, university_commission_dm.
     pre_career_permanent_dms: dict = Field(default_factory=dict)
     starts_commissioned_career_id: Optional[str] = None
     # Normal Military Academy grad: roll Commission 8+ with this DM before first term.

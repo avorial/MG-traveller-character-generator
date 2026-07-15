@@ -2786,6 +2786,11 @@ def pre_career_qualify(
             dm += mod["dm"] * character.total_terms
         elif mod.get("type") == "per_previous_career":
             dm += mod["dm"] * len(character.completed_careers)
+        elif mod.get("type") == "characteristic_threshold":
+            stat = mod["characteristic"]
+            check_val = character.psi if stat == "PSI" else character.characteristics.get(stat)
+            if check_val >= int(mod["threshold"]):
+                dm += int(mod["dm"])
 
     # Apply species-specific pre-career DMs (e.g. Dolphins DM-1 university, Orca DM-2 university)
     _sp_data = rules.species().get(character.species_id or "", {})
@@ -2829,19 +2834,27 @@ def pre_career_qualify(
 
         enrollment_picks = 0
         enrollment_skill_pool: list[str] = []
+        pending_pick_rounds: list[dict] = []
         if track == "university":
-            enrollment_picks = 2
+            enrollment_picks = 1
             enrollment_skill_pool = list(track_data.get("skill_list", []))
+            pending_pick_rounds = [
+                {"count": 1, "level": 1, "pool": enrollment_skill_pool, "fixed_level": True}
+            ]
 
         character.pre_career_status = {
             "track": track,
             "service": service,
+            "enrolled_skills": [],
+            "enrollment_skill_pool": enrollment_skill_pool,
             "stage": "enrolled",
             "outcome": None,
             "skill_picks_remaining": enrollment_picks,
             "skill_pick_level": 0,
+            "skill_pick_fixed_level": False,
             "skill_pick_stage": "enrollment",
             "skill_pool": enrollment_skill_pool,
+            "pending_pick_rounds": pending_pick_rounds,
         }
         character.log(
             f"Qualified for {display_name} ({char_key} {target}+): "
@@ -2955,6 +2968,7 @@ def pre_career_graduate(
         outcome = "honours" if is_honours else "pass"
         # Enrollment pool for this character (used by "from_enrollment" pick types)
         enroll_pool = list(status.get("enrollment_skill_pool", []))
+        enrolled_skills = list(status.get("enrolled_skills", []))
         # Psionic talent upgrade pick rounds (built in the psionic block, queued below)
         psi_upgrade_round: Optional[dict] = None
         psi_to2_round: Optional[dict] = None
@@ -3156,9 +3170,18 @@ def pre_career_graduate(
         # Upgrade from enrollment pool: pick N enrolled skills to raise to level 1
         upgrade_count = int(block.get("skills_upgrade_from_enrollment", 0))
         if upgrade_count > 0:
-            up_pool = list(enroll_pool) if enroll_pool else list(skill_pool)
+            up_pool = list(enrolled_skills) if enrolled_skills else (list(enroll_pool) if enroll_pool else list(skill_pool))
             all_rounds.append({"count": upgrade_count, "level": 1, "pool": up_pool,
-                                "label": "Upgrade enrollment skill to level 1"})
+                                "label": "Upgrade enrollment skill to level 1",
+                                "fixed_level": True})
+
+        # Increase enrolled skills by one level (University graduation)
+        increase_count = int(block.get("skills_increase_from_enrollment", 0))
+        if increase_count > 0:
+            inc_pool = list(enrolled_skills) if enrolled_skills else (list(enroll_pool) if enroll_pool else list(skill_pool))
+            all_rounds.append({"count": increase_count, "level": 1, "pool": inc_pool,
+                                "label": "Increase university skill by one level",
+                                "fixed_level": False})
 
         # Pick N from enrollment pool at level 1
         from_enroll_1 = int(block.get("skills_from_enrollment_1", 0))
@@ -3189,7 +3212,12 @@ def pre_career_graduate(
             picks_remaining = first["count"]
             # skill_pick_level will be set from first["level"] when building status
             pending_pick_rounds = [
-                {"count": rnd["count"], "level": rnd["level"], "pool": rnd["pool"]}
+                {
+                    "count": rnd["count"],
+                    "level": rnd["level"],
+                    "pool": rnd["pool"],
+                    "fixed_level": rnd.get("fixed_level", rnd["level"] > 0),
+                }
                 for rnd in all_rounds[1:]
             ]
 
@@ -3436,6 +3464,7 @@ def pre_career_graduate(
         "outcome": outcome,
         "skill_picks_remaining": picks_remaining,
         "skill_pick_level": first_round_level,
+        "skill_pick_fixed_level": all_rounds[0].get("fixed_level", first_round_level > 0) if (outcome != "fail" and all_rounds) else True,
         "skill_pick_stage": "graduation",  # when done, advance to career
         "skill_pool": skill_pool,
         "pending_pick_rounds": pending_pick_rounds,
@@ -3499,6 +3528,7 @@ def pre_career_choose_skills(
     remaining = int(status.get("skill_picks_remaining", 0))
     pool = list(status.get("skill_pool", []))
     skill_level = int(status.get("skill_pick_level", 1))
+    fixed_level = bool(status.get("skill_pick_fixed_level", skill_level > 0))
     skill_pick_stage = status.get("skill_pick_stage", "graduation")
 
     if remaining <= 0:
@@ -3513,9 +3543,15 @@ def pre_career_choose_skills(
         if s not in pool and base not in pool:
             raise ValueError(f"'{s}' not in this track's skill pool.")
         sn, spec = _split_skill_speciality(s)
-        character.add_skill(sn, level=skill_level, speciality=spec, fixed_level=(skill_level > 0))
+        character.add_skill(sn, level=skill_level, speciality=spec, fixed_level=fixed_level)
 
     remaining -= len(chosen_skills)
+    enrolled_skills = list(status.get("enrolled_skills", []))
+    if skill_pick_stage == "enrollment":
+        for s in chosen_skills:
+            if s not in enrolled_skills:
+                enrolled_skills.append(s)
+
     stage_label = "enrollment" if skill_pick_stage == "enrollment" else "graduation"
     character.log(
         f"Picked {len(chosen_skills)} pre-career {stage_label} skill(s) at level {skill_level}: "
@@ -3524,13 +3560,15 @@ def pre_career_choose_skills(
 
     if remaining == 0:
         pending_rounds = list(status.get("pending_pick_rounds", []))
-        if pending_rounds and skill_pick_stage == "graduation":
-            # Advance to the next round of graduation picks
+        if pending_rounds:
+            # Advance to the next queued pick round.
             next_round = pending_rounds.pop(0)
             character.pre_career_status = {
                 **status,
+                "enrolled_skills": enrolled_skills,
                 "skill_picks_remaining": next_round["count"],
                 "skill_pick_level": next_round["level"],
+                "skill_pick_fixed_level": next_round.get("fixed_level", next_round["level"] > 0),
                 "skill_pool": next_round["pool"],
                 "pending_pick_rounds": pending_rounds,
             }
@@ -3540,6 +3578,7 @@ def pre_career_choose_skills(
             character.phase = "career"
             character.pre_career_status = {
                 **status,
+                "enrolled_skills": enrolled_skills,
                 "skill_picks_remaining": 0,
                 "skill_pool": [],
                 "pending_pick_rounds": [],
@@ -3548,12 +3587,15 @@ def pre_career_choose_skills(
             # enrollment stage: clear picks, stay in pre_career for events/graduation
             character.pre_career_status = {
                 **status,
+                "enrolled_skills": enrolled_skills,
                 "skill_picks_remaining": 0,
                 "skill_pool": [],
+                "pending_pick_rounds": [],
             }
     else:
         character.pre_career_status = {
             **status,
+            "enrolled_skills": enrolled_skills,
             "skill_picks_remaining": remaining,
         }
 
@@ -6164,6 +6206,8 @@ def start_term(
     first_term_in_this_career = is_new_career and not any(
         c.career_id == career_id for c in character.completed_careers
     )
+    pdms = character.pre_career_permanent_dms or {}
+    is_first_career = len(character.completed_careers) == 0 and character.total_terms == 0
 
     # Pre-career military academy honored: first term in matching career
     # starts commissioned at Rank 1.
@@ -6186,6 +6230,7 @@ def start_term(
         r_comm = dice.roll("2D", modifier=comm_dm, target=comm_target)
         commissioned_start = bool(r_comm.succeeded)
         academy_commission_roll = r_comm.to_dict()
+        academy_commission_roll["label"] = "Academy Commission Roll"
         character.academy_commission_career_id = None
         character.academy_commission_dm = 0
         character.log(
@@ -6193,11 +6238,29 @@ def start_term(
             f"= {r_comm.total} ({'commissioned' if commissioned_start else 'not commissioned'})"
         )
 
+    # University graduate: may attempt a Commission roll before the first term
+    # of a military career; honours grants DM+2.
+    if (
+        first_term_in_this_career
+        and not commissioned_start
+        and is_first_career
+        and career_id in list(pdms.get("university_commission_careers", []))
+    ):
+        comm_data = career.get("commission", {})
+        comm_target = comm_data.get("target", 8)
+        comm_dm = int(pdms.get("university_commission_dm", 0))
+        r_comm = dice.roll("2D", modifier=comm_dm, target=comm_target)
+        commissioned_start = bool(r_comm.succeeded)
+        academy_commission_roll = r_comm.to_dict()
+        academy_commission_roll["label"] = "University Commission Roll"
+        character.log(
+            f"University commission roll: 2D{comm_dm:+d} vs {comm_target}+ "
+            f"= {r_comm.total} ({'commissioned' if commissioned_start else 'not commissioned'})"
+        )
+
     # Merchant Academy auto_rank: first career in a matching career starts at rank N.
-    pdms = character.pre_career_permanent_dms or {}
     auto_rank = int(pdms.get("auto_rank", 0))
     auto_rank_careers = list(pdms.get("auto_rank_careers", []))
-    is_first_career = len(character.completed_careers) == 0 and character.total_terms == 0
     merchant_auto_rank = (
         auto_rank > 0
         and first_term_in_this_career

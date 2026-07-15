@@ -4133,9 +4133,12 @@ function renderPreCareerPhase() {
     const remaining = status.skill_picks_remaining || 0;
     const pool = status.skill_pool || [];
     const pickLevel = status.skill_pick_level ?? 1;
+    const fixedLevel = status.skill_pick_fixed_level ?? (pickLevel > 0);
     const pickStage = status.skill_pick_stage ?? 'graduation';
     const stageLabel = pickStage === 'enrollment' ? 'Enrollment Skills' : 'Graduation Skills';
-    const levelLabel = pickLevel === 0 ? 'level 0 (your majors — you can raise them later)' : `level ${pickLevel}`;
+    const levelLabel = !fixedLevel && pickLevel > 0
+      ? `+${pickLevel} level`
+      : pickLevel === 0 ? 'level 0 (your majors - you can raise them later)' : `level ${pickLevel}`;
     const picked = Array.from(uiState.selectedPreCareerSkills || new Set());
     const awaitingSpec = uiState.pcSkillSpecialtyPick; // skill name pending specialty
     const picker = pool.map(s => {
@@ -4634,7 +4637,7 @@ function renderPreCareerPhase() {
       <div class="card-grid">
         <button class="card" id="btn-pc-university">
           <div class="card-title">University</div>
-          <div class="card-desc">INT 6+ to qualify, 4 years, +1 EDU on enrollment. Graduate for +2 EDU and 2 skills at level 1. Honours at 10+ adds SOC +1 and DM+1 to your first career qualification.</div>
+          <div class="card-desc">EDU 6+ to qualify, 4 years, +1 EDU on enrollment. Choose one skill at level 0 and one at level 1. Graduate on INT 6+ to improve both skills, gain career qualification bonuses, and allow a Commission roll before a first military career.</div>
         </button>
         <button class="card" id="btn-pc-academy">
           <div class="card-title">Military Academy</div>
@@ -4693,7 +4696,7 @@ function trackDisplayName(track, service, status) {
 function trackGradHint(track) {
   const HINTS = {
     aslan_university: 'Roll INT 6+ to graduate (10+ for Honours). Then one Aslan education event.',
-    university: 'Roll EDU 7+ to graduate (10+ for Honours). Then one education event.',
+    university: 'Roll INT 6+ to graduate (10+ for Honours). Then one education event.',
     military_academy: 'Roll INT 8+ to graduate (11+ for Honours). Then one education event.',
     merchant_academy: 'Roll INT 7+ to graduate (11+ for Honours). Then one education event.',
     colonial_upbringing: 'Roll INT 8+ to graduate (12+ for Honours, END 8+ gives DM+1). No age cost.',
@@ -4740,7 +4743,7 @@ function wirePreCareerPhase() {
 
   const uni = document.getElementById('btn-pc-university');
   if (uni) uni.addEventListener('click', () =>
-    fireQualify('university', {}, 'University', 'INT', 6, 4)
+    fireQualify('university', {}, 'University', 'EDU', 6, 4)
   );
 
   const academy = document.getElementById('btn-pc-academy');
@@ -4888,8 +4891,8 @@ function wirePreCareerPhase() {
       const service = st.service;
       const trackName = trackDisplayName(track, service, st);
       // Prefer server-supplied char_key/target (works for all tracks including PSI)
-      const charLabel = response.char_key || (track === 'university' ? 'EDU' : 'INT');
-      const target = response.target || (track === 'university' ? 7 : 8);
+      const charLabel = response.char_key || 'INT';
+      const target = response.target || (track === 'university' ? 6 : 8);
       uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
       uiState.lastRoll = {
         type: 'precareer_graduate',
@@ -5255,16 +5258,15 @@ function wirePreCareerPhase() {
         { chosen_skills: chosen });
       await applyResponse(response);
       uiState.selectedPreCareerSkills = new Set(); uiState.pcSkillSpecialtyPick = null;
-      if (response.skill_pick_stage === 'enrollment' && response.skill_picks_remaining === 0) {
+      if (response.has_more_rounds || response.new_picks_remaining > 0) {
+        // Next round queued - stay in skill pick screen with updated pool/level
+        uiState.lastRoll = { ...(uiState.lastRoll || {}), type: 'precareer_skill_pick' };
+        renderStage();
+      } else if (response.skill_pick_stage === 'enrollment' && response.skill_picks_remaining === 0) {
         // Enrollment picks done: stay in pre_career for events/graduation
         uiState.lastRoll = null;
         renderStage();
-      } else if (response.has_more_rounds || response.new_picks_remaining > 0) {
-        // Next round queued — stay in skill pick screen with updated pool/level
-        uiState.lastRoll = { ...(uiState.lastRoll || {}), type: 'precareer_skill_pick' };
-        renderStage();
       } else {
-        // All done — phase is 'career'
         uiState.lastRoll = null;
         renderAll();
       }
@@ -8825,10 +8827,11 @@ function renderSkillChoice() {
   const acr = uiState.academyCommissionRoll;
   const commRollHTML = acr ? (() => {
     const outcome = acr.succeeded ? 'Commissioned at Rank 1' : 'Not commissioned — starting as enlisted';
+    const label = acr.label || 'Academy Commission Roll';
     uiState.academyCommissionRoll = null; // show once
     return `
       <div class="dm-applied-box" style="margin-bottom:12px">
-        <span class="event-label">Academy Commission Roll</span>
+        <span class="event-label">${escapeHTML(label)}</span>
         <div class="dm-chip applied">2D [${(acr.dice || []).join(' · ')}] +${acr.modifier ?? acr.dm ?? 0} = ${acr.total} vs ${acr.target}+ — ${escapeHTML(outcome)}</div>
       </div>
     `;
@@ -10198,10 +10201,12 @@ function renderEventStep() {
     // clause does NOT apply.
     const rawForcesMishap = /Roll on the Mishap Table/i.test(lr.eventText || '');
     const contestedSucceededForMishap = lr.eventContestedResolved && lr.eventContestedResolved.success === true;
+    const structuredEventChoiceResolved = !!lr.eventChoiceResolved;
     // Suppress the text-parsed mishap path when the structured trigger_disaster_mishap
     // effect already rolled the table — lr.disasterMishap holds that result and the
     // career-continues flag is already set on the character by the Python backend.
-    const forcesMishap = rawForcesMishap && !contestedSucceededForMishap && !lr.disasterMishap;
+    const forcesMishap = rawForcesMishap && !contestedSucceededForMishap
+      && !structuredEventChoiceResolved && !lr.disasterMishap;
     const pendingMishapRoll = forcesMishap && !lr.mishapFromEvent;
     const mishapRolledHTML = (forcesMishap && lr.mishapFromEvent) ? `
       <div class="mishap-box">

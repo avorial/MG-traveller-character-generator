@@ -43,42 +43,53 @@
     "university": {
       "id": "university",
       "name": "University",
-      "blurb": "Four years of academic study. Higher EDU, a few free skills, and a chance at Honours for real bragging rights.",
+      "blurb": "Four years of academic study. Higher EDU, one introductory skill, one advanced skill, and a chance at Honours for better career entry.",
       "age_cost": 4,
       "max_age": 20,
       "enrollment_bonus": {"EDU": 1},
       "qualification": {
-        "characteristic": "INT",
+        "characteristic": "EDU",
         "target": 6,
         "modifiers": [
-          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1}
+          {"description": "DM-1 per previous term", "type": "per_previous_term", "dm": -1},
+          {"description": "DM+1 if SOC 9+", "type": "characteristic_threshold", "characteristic": "SOC", "threshold": 9, "dm": 1}
         ]
       },
       "graduation": {
-        "characteristic": "EDU",
-        "target": 7,
+        "characteristic": "INT",
+        "target": 6,
         "honours_target": 10,
         "on_graduation": {
-          "EDU": 2,
-          "skills_at_level_1": 2,
-          "note": "Choose 2 skills at level 1 from the University skill list."
+          "EDU": 1,
+          "skills_increase_from_enrollment": 2,
+          "permanent": {
+            "bonus_qualify_careers": ["agent", "army", "marine", "navy", "scholar", "scout"],
+            "bonus_qualify_dm": 1,
+            "university_commission_careers": ["army", "marine", "navy"],
+            "university_commission_dm": 0,
+            "university_commission_requires_first_career": true
+          },
+          "note": "Graduated. EDU+1. Increase both university skills by one level. DM+1 to qualify for Agent, Army, Marines, Navy, Scholar, or Scouts. Rule text also lists Citizen (Corporate) and Entertainer (Journalist), but those assignment-scoped bonuses are not applied to the career-wide qualification roll. May attempt a Commission roll before the first term of a military career."
         },
         "on_honours": {
-          "EDU": 2,
-          "SOC": 1,
-          "skills_at_level_1": 2,
-          "dm_next_qualification": 1,
-          "note": "Graduated with Honours. DM+1 on first career qualification roll."
+          "EDU": 1,
+          "skills_increase_from_enrollment": 2,
+          "permanent": {
+            "bonus_qualify_careers": ["agent", "army", "marine", "navy", "scholar", "scout"],
+            "bonus_qualify_dm": 2,
+            "university_commission_careers": ["army", "marine", "navy"],
+            "university_commission_dm": 2,
+            "university_commission_requires_first_career": true
+          },
+          "note": "Graduated with Honours. EDU+1. Increase both university skills by one level. DM+2 to qualify for Agent, Army, Marines, Navy, Scholar, or Scouts. Rule text also lists Citizen (Corporate) and Entertainer (Journalist), but those assignment-scoped bonuses are not applied to the career-wide qualification roll. May attempt a Commission roll with DM+2 before the first term of a military career."
         },
         "on_failure": {
-          "note": "Failed graduation. Keeps the +1 EDU from enrollment, no other bonuses."
+          "note": "Failed graduation. Keeps the +1 EDU from enrollment and university skills already chosen, no graduation benefits."
         }
       },
       "skill_list": [
-        "Admin", "Advocate", "Animals", "Art", "Astrogation", "Diplomat",
-        "Drive", "Electronics", "Engineer", "Language", "Life Sciences",
-        "Medic", "Navigation", "Physical Sciences", "Pilot", "Science",
-        "Social Sciences", "Space Sciences"
+        "Admin", "Advocate", "Animals", "Art", "Astrogation", "Electronics",
+        "Engineer", "Language", "Medic", "Navigation", "Profession", "Science"
       ]
     },
     "military_academy": {
