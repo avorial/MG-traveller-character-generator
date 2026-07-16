@@ -2274,6 +2274,73 @@ def _apply_enrollment_auto_skills(character: Character, skill_list: list[str]) -
     return applied
 
 
+def _skill_names_from_level_entries(skill_list: list[str]) -> list[str]:
+    """Return skill names from entries like 'Streetwise 1' or 'Science (Psionicology) 1'."""
+    out: list[str] = []
+    for skill_str in skill_list or []:
+        parts = str(skill_str).rsplit(" ", 1)
+        skill_part = parts[0].strip()
+        if skill_part and skill_part not in out:
+            out.append(skill_part)
+    return out
+
+
+def _education_service_skill_pool(service: Optional[str]) -> list[str]:
+    """Service-skill pool for a military academy branch."""
+    if not service:
+        return []
+    svc = _academy_service(service)
+    career_data = rules.careers().get(svc["career_id"], {})
+    ss = career_data.get("skill_tables", {}).get("service_skills", {})
+    pool: list[str] = []
+    _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
+    for k, v in ss.items():
+        if k in _skip:
+            continue
+        for part in str(v).split(" or "):
+            part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
+            if part and part not in pool:
+                pool.append(part)
+    return pool
+
+
+def _event10_skill_pool_for_track(character: Character, track: str, service: Optional[str], status: dict) -> list[str]:
+    """Build the tutor-challenge skill pool for any pre-career track.
+
+    Event 10 asks for a skill learned during the education term. Existing saves
+    may not have enrolled_skills populated, so fall back to the track curriculum
+    instead of leaving the UI with an empty picker.
+    """
+    pool: list[str] = []
+
+    def add_many(items: list[str]) -> None:
+        for item in items or []:
+            text = str(item).strip()
+            if text and text not in pool:
+                pool.append(text)
+
+    add_many(list(status.get("enrolled_skills", [])))
+    add_many(_skill_names_from_level_entries(list(status.get("enrollment_auto_skills", []))))
+    add_many(list(status.get("enrollment_skill_pool", [])))
+
+    td = _edu_track(track)
+    add_many(_skill_names_from_level_entries(list(td.get("enrollment_auto_skills", []))))
+    add_many(list(td.get("enrollment_skill_pool", [])))
+
+    if track == "aslan_university":
+        gender = character.gender or "male"
+        pool_key = "skill_list_male" if gender == "male" else "skill_list_female"
+        add_many(list(td.get(pool_key, [])))
+    elif track == "university":
+        add_many(list(td.get("skill_list", [])))
+    elif track == "military_academy":
+        add_many(_education_service_skill_pool(service))
+        if not pool:
+            add_many(["Gun Combat", "Melee", "Drive", "Electronics", "Tactics"])
+
+    return pool
+
+
 def _homeworld_tl(uwp: str) -> int:
     """Parse TL from a UWP string (e.g. 'B86899D-A' → 10). Returns 99 if unparseable."""
     if not uwp:
@@ -2420,6 +2487,7 @@ def pre_career_qualify(
                 "skill_pick_stage": "graduation",
                 "skill_pool": [],
                 "enrollment_skill_pool": enrolled_skills,
+                "enrollment_auto_skills": [],
             }
             character.log(
                 f"Merchant Academy ({curr_data.get('name', curriculum)}) enrolled "
@@ -2475,6 +2543,7 @@ def pre_career_qualify(
             "skill_picks_remaining": 0,
             "skill_pool": [],
             "enrollment_skill_pool": enrollment_pool,
+            "enrollment_auto_skills": list(track_data.get("enrollment_auto_skills", [])),
         }
         character.log(
             f"Colonial Upbringing: homeworld TL {tl} (≤{tl_max}). "
@@ -2529,6 +2598,7 @@ def pre_career_qualify(
                 "skill_picks_remaining": 0,
                 "skill_pool": [],
                 "enrollment_skill_pool": [],
+                "enrollment_auto_skills": list(track_data.get("enrollment_auto_skills", [])),
                 "pending_psionic_training": True,
             }
             character.log(
@@ -2587,6 +2657,7 @@ def pre_career_qualify(
             "skill_pick_stage": "enrollment",
             "skill_pool": enrollment_pool,
             "enrollment_skill_pool": enrollment_pool,
+            "enrollment_auto_skills": list(track_data.get("enrollment_auto_skills", [])),
         }
         character.log(
             f"School of Hard Knocks: SOC {soc} (≤{soc_max}) qualifies. "
@@ -2649,6 +2720,7 @@ def pre_career_qualify(
                 "skill_pick_stage": "enrollment",
                 "skill_pool": enrollment_pool,
                 "enrollment_skill_pool": enrollment_pool,
+                "enrollment_auto_skills": list(track_data.get("enrollment_auto_skills", [])),
             }
             character.log(
                 f"Spacer Community enrolled ({char_key} {target}+): "
@@ -3416,32 +3488,13 @@ def pre_career_graduate(
         + (f" — {', '.join(event_auto_applied)}" if event_auto_applied else "")
     )
 
-    # Build the event 10 skill pool: same as graduation skill_pool if non-empty,
-    # else fall back to the full track skill list (covers the failed-grad case).
+    # Build the event 10 skill pool: same as pending graduation picks if non-empty,
+    # else fall back to the track's curriculum/enrollment skills. This matters for
+    # tracks such as School of Hard Knocks, where a failed graduation used to leave
+    # event 10 with an empty picker.
     event10_pool: list[str] = list(skill_pool) if skill_pool else []
     if not event10_pool:
-        if track == "aslan_university":
-            td = _edu_track(track)
-            gender = character.gender or "male"
-            pool_key = "skill_list_male" if gender == "male" else "skill_list_female"
-            event10_pool = list(td.get(pool_key, []))
-        elif track == "university":
-            td = _edu_track(track)
-            event10_pool = list(td.get("skill_list", []))
-        elif track == "military_academy" and service:
-            svc = _academy_service(service)
-            career_data = rules.careers().get(svc["career_id"], {})
-            ss = career_data.get("skill_tables", {}).get("service_skills", {})
-            _skip = {"name", "requires_commission", "requires_edu", "assignment_only"}
-            for k, v in ss.items():
-                if k in _skip:
-                    continue
-                for part in v.split(" or "):
-                    part = re.sub(r"\s*\(any\)", "", part.strip(), flags=re.I).strip()
-                    if part:
-                        event10_pool.append(part)
-            if not event10_pool:
-                event10_pool = ["Gun Combat", "Melee", "Drive", "Electronics", "Tactics"]
+        event10_pool = _event10_skill_pool_for_track(character, track, service, status)
 
     pending_event10 = ev.total == 10 and not forced_fail
     pending_event11 = ev.total == 11 and not forced_fail
@@ -3633,8 +3686,23 @@ def pre_career_event10_skill(character: Character, skill_text: str) -> dict:
     if not status.get("pending_event10"):
         raise ValueError("No pending event 10 tutor challenge.")
 
-    pool = status.get("event10_skill_pool", [])
+    track = status.get("track")
+    service = status.get("service")
+    pool = list(status.get("event10_skill_pool", []))
+    if not pool and track:
+        pool = _event10_skill_pool_for_track(character, track, service, status)
     text = (skill_text or "").strip()
+    if text == "__skip_no_event10_skill__" and not pool:
+        character.log("Education event 10: no eligible education skill available; tutor challenge skipped.")
+        character.pre_career_status = {**status, "pending_event10": False, "event10_skill_pool": []}
+        if not character.pre_career_status.get("skill_picks_remaining"):
+            character.pre_career_terms += 1
+            character.phase = "career"
+        return {
+            "roll": None,
+            "skipped": True,
+            "character": character.model_dump(),
+        }
     if not text:
         raise ValueError("No skill specified.")
     base_text = text.split(" (")[0].strip()

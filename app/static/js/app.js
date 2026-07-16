@@ -4124,6 +4124,35 @@ const PRE_CAREER_SERVICES = [
     desc: 'The prestige track. INT-based qualification, ship-bound officer career.' },
 ];
 
+function skillNamesFromLevelEntries(entries) {
+  return (entries || [])
+    .map(s => String(s).trim().replace(/\s+\d+$/, ''))
+    .filter(Boolean);
+}
+
+function event10FallbackPool(status) {
+  const pool = [];
+  const add = (items) => {
+    (items || []).forEach(s => {
+      const text = String(s).trim();
+      if (text && !pool.includes(text)) pool.push(text);
+    });
+  };
+  add(status.event10_skill_pool);
+  add(status.enrolled_skills);
+  add(skillNamesFromLevelEntries(status.enrollment_auto_skills));
+  add(status.enrollment_skill_pool);
+
+  if (!pool.length && status.track === 'school_of_hard_knocks') {
+    add(['Streetwise', 'Athletics', 'Deception', 'Drive', 'Gambler', 'Melee', 'Persuade', 'Stealth']);
+  } else if (!pool.length && status.track === 'spacer_community') {
+    add(['Vacc Suit', 'Astrogation', 'Electronics', 'Engineer', 'Profession']);
+  } else if (!pool.length && status.track === 'psionic_community') {
+    add(['Profession', 'Science', 'Streetwise']);
+  }
+  return pool;
+}
+
 function renderPreCareerPhase() {
   const status = character.pre_career_status || {};
   const stage = status.stage || 'none';
@@ -4343,12 +4372,15 @@ function renderPreCareerPhase() {
   // Event 10 — tutor challenge skill picker
   if (uiState.lastRoll?.type === 'precareer_event10') {
     const lr = uiState.lastRoll;
-    const pool = status.event10_skill_pool || [];
+    const pool = event10FallbackPool(status);
     const filter = uiState.event10Filter || '';
     const filtered = pool.filter(s => s.toLowerCase().includes(filter.toLowerCase()));
     const chips = filtered.map(s =>
       `<button class="skill-chip" data-event10-skill="${escapeHTML(s)}">${escapeHTML(s)}</button>`
     ).join('');
+    const emptyHTML = pool.length
+      ? '<p class="phase-body">No skills match that filter.</p>'
+      : '<p class="phase-body">No eligible education skills were recorded for this event.</p><div class="phase-actions"><button class="btn primary" id="btn-event10-no-skill">CONTINUE →</button></div>';
     return `
       <div class="panel-header"><span class="led"></span><span>PHASE 03 — PRE-CAREER EDUCATION</span></div>
       <div class="stage-content">
@@ -4357,6 +4389,7 @@ function renderPreCareerPhase() {
         <p class="phase-body">Pick a skill from your education curriculum, then roll 2D 9+. Success: +1 level in that skill and gain a Rival [Tutor].</p>
         <input class="skill-search" id="event10-skill-search" type="text" placeholder="Filter skills…" value="${escapeHTML(filter)}" autocomplete="off" />
         <div class="skill-picker">${chips}</div>
+        ${chips ? '' : emptyHTML}
       </div>
     `;
   }
@@ -5022,6 +5055,18 @@ function wirePreCareerPhase() {
   }
 
   // Event 10 skill chip click — roll 2D 9+ and resolve
+  const event10NoSkill = document.getElementById('btn-event10-no-skill');
+  if (event10NoSkill) event10NoSkill.addEventListener('click', async () => {
+    try {
+      const response = await apiCall('/api/character/pre-career/event10-skill',
+        { skill_text: '__skip_no_event10_skill__' });
+      await applyResponse(response);
+      uiState.event10Filter = '';
+      uiState.lastRoll = null;
+      renderAll();
+    } catch (e) { alert(e.message); }
+  });
+
   document.querySelectorAll('[data-event10-skill]').forEach(chip => {
     chip.addEventListener('click', async () => {
       const skill = chip.dataset.event10Skill;
