@@ -8280,6 +8280,11 @@ function inferResumeSubPhase(term) {
   };
   // 1. Unresolved interactive choices own the screen.
   if (character.pending_career_mishap_choice) return 'mishap';
+  if (character.pending_injury_choice || character.pending_injury_treatment_choice) {
+    if (term.survived === false) return 'mishap';
+    resumeEventRoll();
+    return 'event';
+  }
   if (character.pending_life_event_choice || character.pending_career_event_choice) {
     resumeEventRoll();
     return 'event';
@@ -10418,14 +10423,15 @@ function renderEventStep() {
         </div>`;
     }
 
-    // Gate also on pending injury from an event-triggered mishap
-    const eventMishapInjuryPending = !!(forcesMishap && lr.mishapFromEvent && character.pending_injury_choice);
+    const injuryPending = !!character.pending_injury_choice;
+    const injuryTreatmentPending = !!character.pending_injury_treatment_choice;
     const gateAdvance = !!(showPicker && !chosenPath) || pendingMishapRoll || pendingAssocOps.length > 0
       || !!(csr && csr.success && csr.pendingSkillPick && !csr.skillChosen)
       || entertainerPending || citizenMishapPending
       || !!(pendingEventChoice && !lr.eventChoiceResolved)
       || !!pendingLifeEventChoice
-      || eventMishapInjuryPending;
+      || injuryPending
+      || injuryTreatmentPending;
 
     // Action row varies by what's happening:
     // - Pending forced mishap roll: show ROLL MISHAP
@@ -10494,7 +10500,7 @@ function renderEventStep() {
         ${scoutBanHTML}
         ${eventEffectsHTML}
         ${disasterMishapHTML}
-        ${eventMishapInjuryPending ? (() => {
+        ${injuryPending ? (() => {
           const inj = character.pending_injury_choice;
           const choices = inj.choices || ['STR', 'DEX', 'END'];
           const statDescriptions = { STR: 'Strength', DEX: 'Dexterity', END: 'Endurance' };
@@ -10512,6 +10518,12 @@ function renderEventStep() {
               <div class="card-grid">${cards}</div>
             </div>`;
         })() : ''}
+        ${injuryTreatmentPending ? `
+          <div class="event-skill-picker" style="margin-top:14px">
+            <span class="event-label">Injury Treatment</span>
+            ${renderInjuryTreatmentChoiceHTML(character.pending_injury_treatment_choice, 'career-treatment')}
+          </div>
+        ` : ''}
         ${pendingEventChoiceHTML}
         ${pendingCareerLifeEventHTML}
         <div class="phase-actions">

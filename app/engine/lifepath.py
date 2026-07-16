@@ -10724,6 +10724,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                     # If the mishap itself set a pending choice, preserve it
                     if character.pending_career_mishap_choice is not None:
                         new_pending_set = True
+                    if disaster_mishap_result and disaster_mishap_result.get("injury_data"):
+                        injury_data = disaster_mishap_result["injury_data"]
                 except Exception as _exc:
                     auto_applied.append(f"Mishap roll (event on_fail) error: {_exc}")
             else:
@@ -11080,6 +11082,8 @@ def advancement_roll(character: Character) -> dict:
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
+    if character.pending_injury_choice or character.pending_injury_treatment_choice:
+        raise ValueError("Resolve the pending injury before rolling advancement.")
 
     career = rules.careers()[term.career_id]
 
@@ -16214,6 +16218,8 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
     term = character.current_term
     if term is None:
         raise ValueError("No active term")
+    if character.pending_injury_choice or character.pending_injury_treatment_choice:
+        raise ValueError("Resolve the pending injury before ending the term.")
 
     # Guard: cannot voluntarily muster out when a mandatory career is pending.
     if leaving and reason == "voluntary" and character.forced_next_career_id:
