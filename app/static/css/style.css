@@ -2267,23 +2267,39 @@ body.hide-card-desc .card-desc { display: none !important; }
 
 /* GM Mode toggle button in the header */
 .gm-toggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
+  background: rgba(var(--tint-rgb), 0.11);
+  border: 1px solid var(--amber);
+  color: var(--amber-bright);
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 4px 9px;
   cursor: pointer;
   border-radius: 2px;
-  transition: all 0.15s;
+  box-shadow: 0 0 8px rgba(var(--tint-rgb), 0.28), inset 0 0 8px rgba(var(--tint-rgb), 0.08);
+  opacity: 1;
+  text-shadow: 0 0 7px rgba(var(--tint-rgb), 0.65);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
-.gm-toggle:hover { border-color: var(--danger); color: var(--danger); }
+.gm-toggle:hover,
+.gm-toggle:focus-visible {
+  background: rgba(var(--tint-rgb), 0.2);
+  border-color: var(--amber-bright);
+  color: var(--cream);
+  box-shadow: 0 0 14px rgba(var(--tint-rgb), 0.48), inset 0 0 10px rgba(var(--tint-rgb), 0.12);
+  outline: none;
+}
+.gm-toggle:active {
+  transform: translateY(1px);
+}
 .gm-toggle.active {
   background: rgba(255, 82, 51, 0.15);
   border-color: var(--danger);
   color: var(--danger);
-  box-shadow: 0 0 6px rgba(255, 82, 51, 0.3);
+  box-shadow: 0 0 12px rgba(255, 82, 51, 0.45), inset 0 0 10px rgba(255, 82, 51, 0.12);
 }
 
 /* Fixed GM Mode overlay panel — hidden; GM state shown via button color only */
