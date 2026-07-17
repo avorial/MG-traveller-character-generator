@@ -1806,6 +1806,30 @@ def finish_zhodani_training(character: Character) -> dict:
     return {"character": character.model_dump()}
 
 
+def _valid_background_skill_names(character: Character) -> set[str]:
+    """Return background skills allowed for this character's species context."""
+    valid = set(rules.background_skills()["skills"])
+    species_data = rules.species().get(character.species_id or "", {}) or {}
+
+    extra_skills = species_data.get("extra_background_skills", []) or []
+    valid.update(str(skill).split(" (")[0].strip() for skill in extra_skills)
+    valid.update(str(skill).strip() for skill in extra_skills)
+
+    if species_data.get("uses_clan_shares") and character.gender:
+        aslan_male = {
+            "Animals", "Art", "Athletics", "Carouse", "Drive", "Flyer",
+            "Melee", "Seafarer", "Survival", "Tolerance", "Vacc Suit",
+        }
+        aslan_female = {
+            "Admin", "Animals", "Art", "Athletics", "Electronics", "Mechanic",
+            "Medic", "Melee", "Profession", "Science", "Streetwise",
+            "Tolerance", "Vacc Suit",
+        }
+        valid.update(aslan_male if character.gender == "male" else aslan_female)
+
+    return {skill for skill in valid if skill}
+
+
 def set_background_skills(character: Character, chosen: list[str]) -> dict:
     """Grant the selected background skills at level 0."""
     edu_dm = dice.characteristic_dm(character.characteristics.EDU)
@@ -1813,7 +1837,7 @@ def set_background_skills(character: Character, chosen: list[str]) -> dict:
     if len(chosen) > allowed_count:
         raise ValueError(f"Too many background skills chosen: {len(chosen)} (allowed {allowed_count})")
 
-    valid = set(rules.background_skills()["skills"])
+    valid = _valid_background_skill_names(character)
     for skill_name in chosen:
         # Accept "Skill (Specialty)" when the base skill is in the valid list
         base = skill_name.split(" (")[0].strip()
