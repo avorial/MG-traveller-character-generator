@@ -328,12 +328,35 @@ def _zhodani_class(soc: int) -> str:
     return "prole"
 
 
+def _social_stat_label(character: "Character") -> str | None:
+    """Return the visible social stat label for species that replace SOC."""
+    species_data = rules.species().get(character.species_id or "", {}) or {}
+    if species_data.get("no_soc"):
+        return None
+    if species_data.get("res_replaces_soc"):
+        return "RES"
+    if species_data.get("uses_cha") or character.society_id == "vargr_extents":
+        return "CHA"
+    return "SOC"
+
+
+def _social_stat_value(character: "Character") -> int:
+    """Return the current SOC-equivalent value, including RES/CHA fallbacks."""
+    label = _social_stat_label(character)
+    if label in {"RES", "CHA"}:
+        extra_val = (character.extra_characteristics or {}).get(label)
+        if extra_val is not None and int(extra_val) > 0:
+            return int(extra_val)
+    return character.characteristics.get("SOC") or 0
+
+
 def _char_dm(character: "Character", char_key: str) -> int:
-    """Return the DM for a characteristic, including REP, PSI, RES, TER, and FOL.
+    """Return the DM for a characteristic, including REP, PSI, RES, CHA, TER, and FOL.
 
     REP is stored on character.reputation.
     PSI is stored on character.psi.
-    RES (Hiver Resolve) is an alias for SOC (stored in characteristics.SOC).
+    RES/CHA replace SOC for Hivers/Vargr and may be stored in extra_characteristics
+    on imported characters; otherwise they fall back to characteristics.SOC.
     TER/FOL are stored in extra_characteristics.
     All others use the standard Characteristics object.  Unknown keys return DM 0.
     """
@@ -345,7 +368,11 @@ def _char_dm(character: "Character", char_key: str) -> int:
     if k == "PSI":
         return dice.characteristic_dm(character.psi)
     if k == "RES":
-        return dice.characteristic_dm(character.characteristics.SOC)
+        return dice.characteristic_dm(character.extra_characteristics.get("RES") or character.characteristics.SOC)
+    if k == "CHA":
+        return dice.characteristic_dm(character.extra_characteristics.get("CHA") or character.characteristics.SOC)
+    if k == "SOC":
+        return dice.characteristic_dm(_social_stat_value(character))
     if k in ("TER", "FOL"):
         return dice.characteristic_dm(character.extra_characteristics.get(k, 0))
     val = character.characteristics.get(k)
@@ -2467,7 +2494,7 @@ def pre_career_qualify(
         qual = track_data["qualification"]
         char_key = qual["characteristic"]
         target = qual["target"]
-        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        dm = _char_dm(character, char_key)
         for mod in qual.get("modifiers", []):
             if mod.get("type") == "characteristic_threshold":
                 if character.characteristics.get(mod["characteristic"]) >= int(mod["threshold"]):
@@ -2716,7 +2743,7 @@ def pre_career_qualify(
         qual = track_data["qualification"]
         char_key = qual["characteristic"]
         target = qual["target"]
-        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        dm = _char_dm(character, char_key)
         for mod in qual.get("modifiers", []):
             if mod.get("type") == "characteristic_threshold":
                 if character.characteristics.get(mod["characteristic"]) >= int(mod["threshold"]):
@@ -2785,7 +2812,7 @@ def pre_career_qualify(
         qual = track_data["qualification"]
         char_key = qual["characteristic"]
         target = qual["target"]
-        dm = dice.characteristic_dm(character.characteristics.get(char_key))
+        dm = _char_dm(character, char_key)
 
         for mod in qual.get("modifiers", []):
             if mod.get("type") == "characteristic_threshold":
@@ -2875,7 +2902,7 @@ def pre_career_qualify(
 
     char_key = qual["characteristic"]
     target = qual["target"]
-    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+    dm = _char_dm(character, char_key)
 
     for mod in qual.get("modifiers", []):
         if mod.get("type") == "per_previous_term":
@@ -3012,12 +3039,8 @@ def pre_career_graduate(
     target = grad["target"]
     honours_target = grad.get("honours_target")
 
-    # PSI is stored on character root, not in characteristics block.
-    if char_key == "PSI":
-        char_val = character.psi
-    else:
-        char_val = character.characteristics.get(char_key)
-    dm = dice.characteristic_dm(char_val)
+    char_val = _get_stat(character, char_key)
+    dm = _char_dm(character, char_key)
 
     # Apply conditional modifiers (e.g. military academy: DM+1 if END 8+, DM+1 if SOC 8+).
     modifier_descriptions: list[str] = []
@@ -3025,10 +3048,7 @@ def pre_career_graduate(
         if mod.get("type") == "characteristic_threshold":
             stat = mod["characteristic"]
             threshold = int(mod["threshold"])
-            if stat == "PSI":
-                check_val = character.psi
-            else:
-                check_val = character.characteristics.get(stat)
+            check_val = _get_stat(character, stat)
             if check_val >= threshold:
                 dm += int(mod["dm"])
                 modifier_descriptions.append(mod.get("description", ""))
@@ -3397,8 +3417,8 @@ def pre_career_graduate(
             event_auto_applied.append("Graduation result overridden — failed to graduate")
 
     if ev.total == 4:
-        soc_val = character.characteristics.get("SOC")
-        soc_dm = dice.characteristic_dm(soc_val)
+        soc_val = _get_stat(character, "SOC")
+        soc_dm = _char_dm(character, "SOC")
         soc_roll = dice.roll("2D", modifier=soc_dm, target=8)
         if _aslan_track:
             # Aslan event 4: honour duel — natural 2 = Outcast (not Prisoner)
@@ -3466,8 +3486,8 @@ def pre_career_graduate(
 
     if ev.total == 8:
         # Political movement — roll SOC 8+: success → Ally [Political Movement] + Enemy [Society].
-        soc_val = character.characteristics.get("SOC")
-        soc_dm = dice.characteristic_dm(soc_val)
+        soc_val = _get_stat(character, "SOC")
+        soc_dm = _char_dm(character, "SOC")
         soc_roll = dice.roll("2D", modifier=soc_dm, target=8)
         if soc_roll.succeeded:
             character.associates.append(
@@ -3843,8 +3863,8 @@ def pre_career_event11_choice(character: Character, choice: str) -> dict:
         character.phase = "career"
 
     elif choice == "dodge":
-        soc_val = character.characteristics.get("SOC")
-        soc_dm = dice.characteristic_dm(soc_val)
+        soc_val = _get_stat(character, "SOC")
+        soc_dm = _char_dm(character, "SOC")
         r = dice.roll("2D", modifier=soc_dm, target=9)
         roll_result = r.to_dict()
         if r.succeeded:
@@ -4428,13 +4448,12 @@ def _apply_vargr_pack_event(character: Character) -> list[str]:
 
     if sub == 1:
         # Failure — lose SOC-1
-        soc = character.characteristics.get("SOC")
-        character.characteristics.set("SOC", max(1, soc - 1))
+        soc = _get_stat(character, "SOC")
+        _set_stat(character, "SOC", max(1, soc - 1))
         applied.append("Pack Failure: SOC-1")
     elif sub == 2:
         # Leave Pack — auto-roll SOC 6+ to stay; if fail, note ejection risk
-        soc = character.characteristics.get("SOC")
-        stay_r = dice.roll("2D", modifier=dice.characteristic_dm(soc), target=6)
+        stay_r = dice.roll("2D", modifier=_char_dm(character, "SOC"), target=6)
         if stay_r.succeeded:
             applied.append(f"Leave Pack: SOC 6+ roll = {stay_r.total} — stayed in career")
         else:
@@ -4455,13 +4474,12 @@ def _apply_vargr_pack_event(character: Character) -> list[str]:
             applied.append(f"Power Struggle (1D={struggle_r}): new leader chosen — Gained Ally")
     elif sub == 5:
         # Success — SOC+1
-        soc = character.characteristics.get("SOC")
-        character.characteristics.set("SOC", min(soc + 1, sp_max))
+        soc = _get_stat(character, "SOC")
+        _set_stat(character, "SOC", min(soc + 1, sp_max))
         applied.append("Pack Success: SOC+1")
     elif sub == 6:
         # Leadership Challenge — note as pending; auto-apply Rival on failure
-        soc = character.characteristics.get("SOC")
-        lead_r = dice.roll("2D", modifier=dice.characteristic_dm(soc), target=10)
+        lead_r = dice.roll("2D", modifier=_char_dm(character, "SOC"), target=10)
         if lead_r.succeeded:
             character.dm_next_advancement += 2
             applied.append(f"Leadership Challenge (2D={lead_r.total}): succeeded — became pack leader, DM+2 to next Advancement")
@@ -4849,8 +4867,8 @@ def apply_life_event(character: Character, career_id: Optional[str] = None) -> d
     elif total == 11:
         if use_zhodani:
             # Crime (Zhodani) — roll SOC 8+; if failed lose benefit roll and roll Re-education Events.
-            soc_val = character.characteristics.get("SOC")
-            soc_dm = dice.characteristic_dm(soc_val)
+            soc_val = _get_stat(character, "SOC")
+            soc_dm = _char_dm(character, "SOC")
             check_r = dice.roll("2D")
             check_total = check_r.total + soc_dm
             if check_total >= 8:
@@ -6130,7 +6148,7 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
                 dm += mod["dm"]
         elif mod["type"] == "soc_minimum":
             # DM if SOC meets or exceeds threshold
-            if character.characteristics.SOC >= mod.get("soc", 99):
+            if _get_stat(character, "SOC") >= mod.get("soc", 99):
                 dm += mod["dm"]
         elif mod["type"] == "characteristic_minimum":
             # DM+N if a characteristic meets or exceeds a minimum value
@@ -6982,15 +7000,16 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
             character.psi = max(0, old + amount)
             msgs.append(f"PSI {old}→{character.psi} ({amount:+d})")
             character.log(f"Mishap/event: PSI {amount:+d}")
-        elif stat == "RES":
-            old = character.characteristics.SOC
-            character.characteristics.SOC = max(0, old + amount)
-            msgs.append(f"RES {old}→{character.characteristics.SOC} ({amount:+d})")
-            character.log(f"Mishap/event: RES {amount:+d}")
-        else:
-            old = character.characteristics.get(stat)
+        elif stat in {"RES", "CHA"}:
+            old = _get_stat(character, stat)
             new_val = max(0, old + amount)
-            character.characteristics.set(stat, new_val)
+            _set_stat(character, stat, new_val)
+            msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
+            character.log(f"Mishap/event: {stat} {amount:+d}")
+        else:
+            old = _get_stat(character, stat)
+            new_val = max(0, old + amount)
+            _set_stat(character, stat, new_val)
             msgs.append(f"{stat} {old}→{new_val} ({amount:+d})")
             character.log(f"Mishap: {stat} {old}→{new_val}")
 
@@ -9510,7 +9529,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             elif selected == "auto":
                 if pending.get("stat_check_promote"):
                     # Roll SOC 8+ for promotion
-                    soc_dm = dice.characteristic_dm(character.characteristics.get("SOC"))
+                    soc_dm = _char_dm(character, "SOC")
                     r2d = dice.roll("2D", modifier=soc_dm)
                     if r2d.total >= 8:
                         character.dm_next_advancement += 12
@@ -10276,8 +10295,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         elif choice_id in ("hiver_academic_disheartened", "hiver_generalist_threatened",
                            "hiver_manipulator_disheartened", "hiver_merchant_disheartened"):
             # Roll RES (SOC) check 8+ automatically
-            _res_val = character.characteristics.SOC
-            _res_dm = dice.characteristic_dm(_res_val)
+            _res_dm = _char_dm(character, "RES")
             _r = dice.roll("2D", modifier=_res_dm)
             _passed = _r.total >= 8
             if _passed:
@@ -10298,11 +10316,11 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 _effect_mag = max(0, 8 - _r.total)
                 if choice_id == "hiver_manipulator_disheartened":
                     # Lose RES (SOC) equal to negative Effect magnitude
-                    _old_res = character.characteristics.SOC
-                    character.characteristics.set("SOC", max(0, _old_res - _effect_mag))
+                    _old_res = _get_stat(character, "RES")
+                    _set_stat(character, "RES", _old_res - _effect_mag)
                     auto_applied.append(
                         f"RES check failed (2D{_res_dm:+d}={_r.total}, effect −{_effect_mag}) "
-                        f"— RES {_old_res}→{character.characteristics.SOC} (−{_effect_mag})"
+                        f"— RES {_old_res}→{_get_stat(character, 'RES')} (−{_effect_mag})"
                     )
                     character.log(f"{choice_id}: RES check failed ({_r.total}), RES -{_effect_mag}")
                 else:
@@ -10339,8 +10357,8 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
             if selected == "science_res":
                 _msg = character.add_skill("Science", level=1, speciality="sociology")
                 auto_applied.append(f"Gained Science (sociology) 1: {_msg}")
-                _old_res = character.characteristics.SOC
-                character.characteristics.set("SOC", _old_res + 1)
+                _old_res = _get_stat(character, "RES")
+                _set_stat(character, "RES", _old_res + 1)
                 auto_applied.append(f"RES {_old_res}→{_old_res + 1} (+1)")
                 character.log("Academic event 12: chose Science (sociology) 1 + RES+1")
             else:  # persuade
@@ -10917,7 +10935,7 @@ def commission_roll(character: "Character") -> dict:
 
     char_key = comm_data.get("characteristic", "SOC")
     target = int(comm_data.get("target", 8))
-    dm = dice.characteristic_dm(character.characteristics.get(char_key))
+    dm = _char_dm(character, char_key)
 
     # DM−1 for every term after the first in this career
     term_penalty = -(term.term_number - 1)
@@ -10937,7 +10955,7 @@ def commission_roll(character: "Character") -> dict:
 
     r = dice.roll("2D", modifier=dm, target=target)
 
-    dm_notes: list[str] = [f"{char_key} DM{dice.characteristic_dm(character.characteristics.get(char_key)):+d}"]
+    dm_notes: list[str] = [f"{char_key} DM{_char_dm(character, char_key):+d}"]
     if term_penalty:
         dm_notes.append(f"Term penalty DM{term_penalty:+d}")
     if first_comm_dm:
@@ -10995,7 +11013,7 @@ def _hiver_advancement_roll(character: "Character", career: dict, term) -> dict:
     the species data and set the hiver_senior_bonus_awarded / _manipulator_bonus_awarded
     flags to prevent double-awarding.
     """
-    res_dm = dice.characteristic_dm(character.characteristics.SOC)
+    res_dm = _char_dm(character, "RES")
     perm_dm = character.dm_permanent_advancement  # never consumed
     next_dm = character.dm_next_advancement
     character.dm_next_advancement = 0
@@ -11457,7 +11475,7 @@ def roll_on_skill_table(character: Character, table_key: str) -> dict:
     if table.get("requires_psi") and character.psi < table["requires_psi"]:
         raise ValueError(f"This table requires PSI {table['requires_psi']}+")
     # Gate: RES (Resolve/SOC) threshold (Hiver active tables — requires_res: 7/10)
-    if table.get("requires_res") and character.characteristics.SOC < table["requires_res"]:
+    if table.get("requires_res") and _get_stat(character, "RES") < table["requires_res"]:
         raise ValueError(f"This table requires RES {table['requires_res']}+")
 
     r = dice.roll("1D")
@@ -11673,8 +11691,8 @@ def attempt_anagathics(character: "Character") -> dict:
         }
 
     # ── First access: roll SOC 10+ ───────────────────────────────────────────
-    soc = character.characteristics.get("SOC")
-    dm = dice.characteristic_dm(soc)
+    soc = _get_stat(character, "SOC")
+    dm = _char_dm(character, "SOC")
     r = dice.roll("2D", modifier=dm, target=10)
 
     nat2_prison = r.raw_total == 2
@@ -16735,8 +16753,7 @@ def muster_out_roll(
     # Hiver: add RES (SOC) characteristic DM to every roll
     hiver_res_dm = 0
     if _is_hiver_career and _muster_dm_char:
-        _res_val = character.characteristics.get(_muster_dm_char) or 0
-        hiver_res_dm = dice.characteristic_dm(_res_val)
+        hiver_res_dm = _char_dm(character, _muster_dm_char)
         dm += hiver_res_dm
 
     # Hiver half-cash rule: block cash if already at/above 50% of total rolls
@@ -16988,9 +17005,9 @@ def _apply_benefit(character: Character, benefit: str, _is_reroll: bool = False)
     if b == "RES +1":
         species_data = rules.species().get(character.species_id, {})
         max_stat = species_data.get("characteristic_maximum", 15)
-        current = character.characteristics.SOC
+        current = _get_stat(character, "RES")
         if current < max_stat:
-            character.characteristics.set("SOC", current + 1)
+            _set_stat(character, "RES", current + 1)
             character.log(f"Muster benefit: RES (SOC) +1 (now {current + 1}).")
         return
 
@@ -17558,12 +17575,16 @@ def _rank_data(career: dict, assignment_id: str, rank: int,
 
 
 def _get_stat(character: "Character", stat: str) -> int:
-    """Get a characteristic value by name, handling PSI, RES, TER, and FOL."""
+    """Get a characteristic value by name, handling PSI, RES, CHA, TER, and FOL."""
     k = stat.upper()
     if k == "PSI":
         return character.psi
+    if k == "SOC":
+        return _social_stat_value(character)
     if k == "RES":
-        return character.characteristics.SOC
+        return character.extra_characteristics.get("RES") or character.characteristics.SOC
+    if k == "CHA":
+        return character.extra_characteristics.get("CHA") or character.characteristics.SOC
     if k == "TER":
         return character.extra_characteristics.get("TER", 0)
     if k == "FOL":
@@ -17572,19 +17593,28 @@ def _get_stat(character: "Character", stat: str) -> int:
 
 
 def _set_stat(character: "Character", stat: str, value: int) -> None:
-    """Set a characteristic value by name, handling PSI, RES, TER, and FOL."""
+    """Set a characteristic value by name, handling PSI, RES, CHA, TER, and FOL."""
     k = stat.upper()
+    value = max(0, value)
     if k == "PSI":
-        character.psi = max(0, value)
+        character.psi = value
         return
-    if k == "RES":
-        character.characteristics.SOC = max(0, value)
+    if k == "SOC":
+        label = _social_stat_label(character)
+        character.characteristics.SOC = value
+        if label in {"RES", "CHA"} and label in (character.extra_characteristics or {}):
+            character.extra_characteristics[label] = value
+        return
+    if k in {"RES", "CHA"}:
+        character.characteristics.SOC = value
+        if k in (character.extra_characteristics or {}):
+            character.extra_characteristics[k] = value
         return
     if k == "TER":
-        character.extra_characteristics["TER"] = max(0, value)
+        character.extra_characteristics["TER"] = value
         return
     if k == "FOL":
-        character.extra_characteristics["FOL"] = max(0, value)
+        character.extra_characteristics["FOL"] = value
         return
     character.characteristics.set(k, value)
 
