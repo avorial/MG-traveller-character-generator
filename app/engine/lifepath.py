@@ -5400,15 +5400,39 @@ def draft_into_service(character: Character) -> dict:
     if character.current_term is not None:
         raise ValueError("Cannot be drafted while already in an active term.")
 
-    r = dice.roll("1D")
     if character.society_id == "vargr_extents":
-        career_id, assignment_id = _VARGR_DRAFT_TABLE[max(1, min(6, r.total))]
+        draft_table = _VARGR_DRAFT_TABLE
     elif character.society_id == "zhodani_consulate":
-        career_id, assignment_id = _ZHODANI_DRAFT_TABLE[max(1, min(6, r.total))]
+        draft_table = _ZHODANI_DRAFT_TABLE
     elif character.society_id == "solomani_confederation":
-        career_id, assignment_id = _SOLOMANI_DRAFT_TABLE[max(1, min(6, r.total))]
+        draft_table = _SOLOMANI_DRAFT_TABLE
     else:
-        career_id, assignment_id = _DRAFT_TABLE[max(1, min(6, r.total))]
+        draft_table = _DRAFT_TABLE
+
+    banned = set(character.banned_career_ids or [])
+    if banned and all(career_id in banned for career_id, _assignment_id in draft_table.values()):
+        raise ValueError(
+            "Draft cannot place this character: all draft careers are permanently closed."
+        )
+
+    draft_rerolls = []
+    while True:
+        r = dice.roll("1D")
+        career_id, assignment_id = draft_table[max(1, min(6, r.total))]
+        if career_id not in banned:
+            break
+
+        blocked_career = rules.careers().get(career_id, {"name": career_id})
+        character.log(
+            f"Draft [1D={r.total}] selected {blocked_career['name']}, but that career "
+            "is permanently closed after a prior ejection; rerolling."
+        )
+        draft_rerolls.append({
+            "roll": r.to_dict(),
+            "career_id": career_id,
+            "career_name": blocked_career["name"],
+        })
+
     career = rules.careers().get(career_id)
     if career is None:
         raise ValueError(f"Draft table points at unknown career '{career_id}'")
@@ -5428,6 +5452,7 @@ def draft_into_service(character: Character) -> dict:
         "assignment_id": assignment_id,
         "career_name": career["name"],
         "assignment_name": career["assignments"][assignment_id]["name"],
+        "draft_rerolls": draft_rerolls,
         "term": term_result["term"],
         "character": character.model_dump(),
     }
@@ -5769,6 +5794,17 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     if career is None:
         raise ValueError(f"Unknown career: {career_id}")
 
+    def _qual_block(reason: str) -> dict:
+        character.log(f"Qualification blocked: {reason}")
+        character.failed_qualifications_this_term += 1
+        return {"automatic": False, "succeeded": False,
+                "character": character.model_dump(), "roll": None, "reason": reason}
+
+    if career_id in (character.banned_career_ids or []):
+        return _qual_block(
+            f"{career['name']} is permanently closed after a prior mishap or ejection."
+        )
+
     # Event-granted career transfer. Consume the offer and skip qualification.
     # 'any' means the player accepted an open transfer to any career.
     if (character.pending_transfer_career_id == career_id
@@ -5794,12 +5830,6 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     # ── Species / career access controls ──────────────────────────────────────
     # These gates apply before any qualification roll and before auto-qualify paths.
     _qual_sp_data = rules.species().get(character.species_id or "", {})
-
-    def _qual_block(reason: str) -> dict:
-        character.log(f"Qualification blocked: {reason}")
-        character.failed_qualifications_this_term += 1
-        return {"automatic": False, "succeeded": False,
-                "character": character.model_dump(), "roll": None, "reason": reason}
 
     # Species blocked_careers (e.g. Dolphins cannot enter Merchant/Noble/Drifter)
     if career_id in (_qual_sp_data.get("blocked_careers") or []):
@@ -16420,6 +16450,14 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
         # Clear the must-leave flag now that they've actually left
         if term.career_id == "imperial_guard":
             character.imperial_guard_must_leave = False
+
+        # Mishap/ejection closes the career permanently. Voluntary departure does not.
+        _career_closing_reasons = {"mishap", "ejection", "ejected", "conviction", "discipline", "criminal", "medical"}
+        if reason in _career_closing_reasons and term.career_id not in character.banned_career_ids:
+            character.banned_career_ids.append(term.career_id)
+            character.log(
+                f"{rules.careers()[term.career_id]['name']} is permanently closed after {reason}."
+            )
 
         # INI: grant return-to-Navy token when leaving the career
         if term.career_id == "ini":
