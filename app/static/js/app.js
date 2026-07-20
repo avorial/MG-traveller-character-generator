@@ -960,6 +960,17 @@ function saveCharacter() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(character));
 }
 
+function capsuleForCharacter(charObj) {
+  const capsule = (charObj && typeof charObj.capsule_description === 'string')
+    ? charObj.capsule_description.trim()
+    : '';
+  return capsule || null;
+}
+
+function syncCapsuleFromCharacter() {
+  uiState.lastCapsule = capsuleForCharacter(character);
+}
+
 function loadCharacter() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
@@ -974,6 +985,7 @@ function loadCharacter() {
           saveCharacter();  // persist the fix immediately
         }
       }
+      syncCapsuleFromCharacter();
       return true;
     } catch (e) {
       console.warn('Corrupt saved character, starting fresh');
@@ -1169,7 +1181,7 @@ function renderSavesModal() {
         pendingMishapNoEject: false,
         aslanRollResult: null,
         zhodaniTrainResult: null,
-        lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
+        lastCapsule: capsuleForCharacter(character), psionicsOpen: false, gmLastRolls: [],
         mobileTab: 'stage',
       };
       document.getElementById('saves-modal').hidden = true;
@@ -1263,6 +1275,7 @@ async function applyResponse(response) {
       }
     }
     character = incoming;
+    syncCapsuleFromCharacter();
     saveCharacter();
   }
   // On mobile, switch to ACTION tab after any API response so the result is visible
@@ -2791,6 +2804,7 @@ function wireRobotBuildPhase() {
       if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Finalize failed'); }
       const data = await resp.json();
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       renderAll();
     } catch(e) { alert('Failed to finalize robot: ' + e.message); }
@@ -3008,6 +3022,7 @@ function wireCharacteristicsPhase() {
       const data = await response.json();
       character = data.character;
       character.robot_config = structuredClone(ROBOT_DEFAULT_CONFIG);
+      syncCapsuleFromCharacter();
       uiState.robotTab = 'frame';
       saveCharacter();
       renderAll();
@@ -5568,6 +5583,7 @@ function wireAslanSetupPhase() {
     try {
       const data = await apiCall('/api/character/aslan/begin-setup', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       renderAll();
     } catch (e) { alert(e.message); }
@@ -5580,6 +5596,7 @@ function wireAslanSetupPhase() {
         const gender = btn.dataset.gender;
         const data = await apiCall('/api/character/aslan/choose-gender', { gender });
         character = data.character;
+        syncCapsuleFromCharacter();
         saveCharacter();
         renderAll();
       } catch (e) { alert(e.message); }
@@ -5591,6 +5608,7 @@ function wireAslanSetupPhase() {
     try {
       const data = await apiCall('/api/character/aslan/roll-clan', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       uiState.aslanRollResult = { type: 'clan', title: 'Clan Origin', ...data };
       renderAll();
@@ -5602,6 +5620,7 @@ function wireAslanSetupPhase() {
     try {
       const data = await apiCall('/api/character/aslan/roll-ancestry', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       uiState.aslanRollResult = { type: 'ancestry', title: 'Ancestral Territory', ...data };
       renderAll();
@@ -5613,6 +5632,7 @@ function wireAslanSetupPhase() {
     try {
       const data = await apiCall('/api/character/aslan/roll-family', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       uiState.aslanRollResult = { type: 'family', title: 'Family Position', ...data };
       renderAll();
@@ -5624,6 +5644,7 @@ function wireAslanSetupPhase() {
     try {
       const data = await apiCall('/api/character/aslan/roll-rite', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       saveCharacter();
       uiState.aslanRollResult = { type: 'rite', title: 'Rite of Passage — Akhuaeuhrekhyeh', ...data };
       renderAll();
@@ -5758,6 +5779,7 @@ function wireZhodaniTrainingPhase() {
       try {
         const data = await apiCall('/api/character/zhodani/train-talent', { talent_name: talentName });
         character = data.character;
+        syncCapsuleFromCharacter();
         const total_dm = (data.psi_dm || 0) + (data.talent_dm || 0) + (data.cumulative_dm || 0);
         uiState.zhodaniTrainResult = {
           talent: talentName,
@@ -5775,6 +5797,7 @@ function wireZhodaniTrainingPhase() {
     try {
       const data = await apiCall('/api/character/zhodani/finish-training', {});
       character = data.character;
+      syncCapsuleFromCharacter();
       uiState.zhodaniTrainResult = null;
       saveCharacter();
       renderAll();
@@ -13619,6 +13642,7 @@ function wireNpcModal() {
     if (!npc) return;
     if (!confirm(`Load ${npc.name} as the current character? This replaces the character on screen.`)) return;
     character = JSON.parse(JSON.stringify(npc));
+    syncCapsuleFromCharacter();
     saveCharacter();
     closeNpcModal();
     renderAll();
@@ -13762,6 +13786,7 @@ async function importCharacter(file) {
     uiState.selectedAssignment = null;
     uiState.pendingCareerSpecialty = null;
     uiState.pendingAdvancementSkill = false;
+    syncCapsuleFromCharacter();
     saveCharacter();
     renderAll();
   } catch (e) {
