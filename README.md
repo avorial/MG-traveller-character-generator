@@ -24,22 +24,115 @@ This project is usable but still considered a testing build. Character output sh
 
 ---
 
-## Running it
+## Install
+
+### Docker Compose
+
+This is the recommended setup for running the Traveller Character Creator as a self-hosted app.
+
+Prerequisites:
+
+- Docker Engine with the Docker Compose plugin
+- Git
+
+Fresh install:
 
 ```bash
-docker compose up
+git clone https://github.com/avorial/MG-traveller-character-generator.git
+cd MG-traveller-character-generator
+docker compose up -d --build
 ```
 
-Open <http://localhost:8000>. That's it.
+Open <http://localhost:2026>.
 
-The `app/` directory is mounted as a volume — edits to JSON rule files, templates, CSS, or Python hot-reload without a rebuild. Refresh the browser (or `POST /api/reload-rules`) to pick up JSON changes.
+The included `docker-compose.yml` is:
 
-Without Docker:
+```yaml
+services:
+  traveller:
+    build: .
+    container_name: traveller-creator
+    ports:
+      - "${HOST_PORT:-2026}:8000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - VISITORS_FILE=/code/data/visitors.json
+    restart: unless-stopped
+    volumes:
+      - traveller-data:/code/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  traveller-data:
+```
+
+Start it from the project directory:
+
+```bash
+docker compose up -d --build
+```
+
+Open <http://localhost:2026>.
+
+To use a different host port:
+
+```bash
+HOST_PORT=8000 docker compose up -d --build
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:HOST_PORT = "8000"
+docker compose up -d --build
+```
+
+Then open <http://localhost:8000>.
+
+Useful maintenance commands:
+
+```bash
+# View logs
+docker compose logs -f traveller
+
+# Stop the app
+docker compose down
+
+# Rebuild after pulling updates
+git pull
+docker compose up -d --build
+
+# Remove the persistent visitor-count volume too
+docker compose down -v
+```
+
+The `traveller-data` Docker volume stores the distinct-visitor counter at `/code/data/visitors.json` so it survives rebuilds. Character saves live in the user's browser `localStorage`; users should still export JSON files for portable backups.
+
+### Local Development
+
+Run without Docker:
 
 ```bash
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+Open <http://localhost:8000>.
+
+For Docker-based development, create a local `docker-compose.override.yml` if you want bind-mounted source and hot reload:
+
+```yaml
+services:
+  traveller:
+    volumes:
+      - ./app:/code/app
+      - ./VERSION:/code/VERSION
+      - traveller-data:/code/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Refresh the browser, or call `POST /api/reload-rules`, after editing JSON rule data.
 
 ---
 
