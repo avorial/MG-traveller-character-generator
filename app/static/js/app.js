@@ -8278,10 +8278,32 @@ function inferResumeSubPhase(term) {
       disasterMishap: null, eventChoiceResolved: false,
     };
   };
+  const resumeMishapRoll = () => {
+    if (uiState.lastRoll && uiState.lastRoll.type === 'mishap') return;
+    const mishapText = term.mishap || 'Mishap pending resolution.';
+    uiState.lastRoll = {
+      type: 'mishap',
+      data: null,
+      mishapText,
+      autoApplied: [],
+      injuryPending: !!character.pending_injury_choice,
+      injuryTitle: null,
+      injuryText: null,
+      injuryRoll: null,
+      frozenWatch: !!term.frozen_watch,
+      mishapNoEject: !!(term.survived === true && term.mishap),
+    };
+  };
   // 1. Unresolved interactive choices own the screen.
-  if (character.pending_career_mishap_choice) return 'mishap';
+  if (character.pending_career_mishap_choice) {
+    resumeMishapRoll();
+    return 'mishap';
+  }
   if (character.pending_injury_choice || character.pending_injury_treatment_choice) {
-    if (term.survived === false) return 'mishap';
+    if (term.survived === false) {
+      resumeMishapRoll();
+      return 'mishap';
+    }
     resumeEventRoll();
     return 'event';
   }
@@ -8292,7 +8314,10 @@ function inferResumeSubPhase(term) {
   // 2. Advancement already rolled → term-end decision screen.
   if (term.advanced !== null && term.advanced !== undefined) return 'decide';
   // 3. Failed survival, mishap not yet resolved → mishap step.
-  if (term.survived === false) return 'mishap';
+  if (term.survived === false) {
+    resumeMishapRoll();
+    return 'mishap';
+  }
   // 4. Survived: event already rolled → advancement; otherwise go roll the event.
   if (term.survived === true) return (term.events && term.events.length) ? 'advance' : 'event';
   // 5. Fresh term, not yet survived — normal training/survival entry.
