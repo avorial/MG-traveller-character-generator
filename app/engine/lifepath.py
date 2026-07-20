@@ -16315,10 +16315,10 @@ def end_term(character: Character, leaving: bool = False, reason: str = "volunta
 
     if leaving:
         # Record career completion
-        # Find previous terms in this career to count
-        terms_in_career = sum(
-            1 for h in character.term_history if h.career_id == term.career_id
-        )
+        # Count only the active stint. A character can leave and later re-enter
+        # the same career; prior completed stints must not inflate this record's
+        # terms or mustering-out rolls.
+        terms_in_career = max(1, int(term.term_number or 1))
         # Benefit rolls = (N per full term) + rank bonus, where N is 1 for standard careers
         # and career.mustering_out_rolls_per_term for careers like Hiver (2 rolls/term).
         _leaving_career = rules.careers().get(term.career_id, {})
