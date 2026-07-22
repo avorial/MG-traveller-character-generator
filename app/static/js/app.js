@@ -7516,9 +7516,9 @@ function wireCareerPhase() {
   const btnMishap = document.getElementById('btn-mishap');
   if (btnMishap) {
     btnMishap.addEventListener('click', async () => {
-      const response = await apiCall('/api/character/mishap');
-      await applyResponse(response);
       const noEject = uiState.pendingMishapNoEject || false;
+      const response = await apiCall('/api/character/mishap', { mishap_no_eject: noEject });
+      await applyResponse(response);
       uiState.pendingMishapNoEject = false;
       uiState.lastRoll = {
         type: 'mishap',
