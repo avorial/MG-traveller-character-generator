@@ -5037,7 +5037,7 @@ function wirePreCareerPhase() {
   // Life event choice buttons (rival / enemy / lose_benefit / prisoner)
   document.querySelectorAll('[id^="btn-life-choice-"]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const choice = btn.id.replace('btn-life-choice-', '');
+      const choice = btn.getAttribute('data-life-choice') || btn.id.replace('btn-life-choice-', '');
       try {
         const response = await apiCall('/api/character/life-event-choice', { choice });
         await applyResponse(response);
@@ -7822,7 +7822,7 @@ function wireCareerPhase() {
   // These fire when event 7 produces a pending_life_event_choice during a career term.
   document.querySelectorAll('[id^="btn-career-life-choice-"]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const choice = btn.id.replace('btn-career-life-choice-', '');
+      const choice = btn.getAttribute('data-life-choice') || btn.id.replace('btn-career-life-choice-', '');
       try {
         const response = await apiCall('/api/character/life-event-choice', { choice });
         await applyResponse(response);
@@ -9930,6 +9930,72 @@ function buildLifeEventChoiceUI(kind, pending, context) {
         <div class="card-desc">No mechanical penalty available.</div>
       </button>`;
     }
+
+  } else if (kind === 'hiver_great_manipulator') {
+    title = 'Life Event - Great Manipulator';
+    body = 'Choose one social manipulation skill to gain:';
+    buttons = ['Deception', 'Diplomat', 'Persuade'].map(skill => `
+      <button class="card" id="${prefix}${skill.toLowerCase()}" data-life-choice="${escapeAttr(skill)}">
+        <div class="card-title">${escapeHTML(skill)} 1</div>
+        <div class="card-desc">Gain ${escapeHTML(skill)} at level 1, or improve it if already trained.</div>
+      </button>`).join('');
+
+  } else if (kind === 'droyne_starship_skill') {
+    title = 'Life Event - Build Starship';
+    body = 'Choose a technical skill to gain, or increase your current career rank:';
+    buttons = ['Engineer', 'Electronics', 'Mechanic'].map(skill => `
+      <button class="card" id="${prefix}${skill.toLowerCase()}" data-life-choice="${escapeAttr(skill)}">
+        <div class="card-title">${escapeHTML(skill)} 1</div>
+        <div class="card-desc">Gain ${escapeHTML(skill)} at level 1, or improve it if already trained.</div>
+      </button>`).join('') + `
+      <button class="card" id="${prefix}rank-plus-1" data-life-choice="rank +1">
+        <div class="card-title">Rank +1</div>
+        <div class="card-desc">Increase your current career rank by one, up to rank 6.</div>
+      </button>`;
+
+  } else if (kind === 'droyne_black_skill') {
+    title = 'Life Event - Black Skill';
+    body = 'Choose one forbidden or outsider skill to gain:';
+    buttons = ['Carouse', 'Deception', 'Gambler', 'Persuade', 'Streetwise'].map(skill => `
+      <button class="card" id="${prefix}${skill.toLowerCase()}" data-life-choice="${escapeAttr(skill)}">
+        <div class="card-title">${escapeHTML(skill)} 1</div>
+        <div class="card-desc">Gain ${escapeHTML(skill)} at level 1, or improve it if already trained.</div>
+      </button>`).join('');
+
+  } else if (kind === 'droyne_voyage_skill') {
+    title = 'Life Event - Voyage';
+    body = 'Choose one starship skill to gain:';
+    buttons = ['Pilot', 'Astrogation', 'Engineer', 'Electronics'].map(skill => `
+      <button class="card" id="${prefix}${skill.toLowerCase()}" data-life-choice="${escapeAttr(skill)}">
+        <div class="card-title">${escapeHTML(skill)} 1</div>
+        <div class="card-desc">Gain ${escapeHTML(skill)} at level 1, or improve it if already trained.</div>
+      </button>`).join('');
+
+  } else if (kind === 'drinax_weapon_choice') {
+    title = 'Life Event - Palace Armoury';
+    body = 'Choose a weapon from the armoury:';
+    buttons = `
+      <button class="card" id="${prefix}rapier" data-life-choice="rapier">
+        <div class="card-title">Ancient Rapier</div>
+        <div class="card-desc">Add an Ancient Rapier to your equipment.</div>
+      </button>
+      <button class="card" id="${prefix}laser-pistol" data-life-choice="laser_pistol">
+        <div class="card-title">Laser Pistol</div>
+        <div class="card-desc">Add a Laser Pistol to your equipment.</div>
+      </button>`;
+
+  } else if (kind === 'family_inheritance') {
+    title = 'Life Event - Family Inheritance';
+    body = 'Choose what your inheritance provides:';
+    buttons = `
+      <button class="card" id="${prefix}benefit" data-life-choice="benefit">
+        <div class="card-title">Extra Benefit Roll</div>
+        <div class="card-desc">Gain one additional mustering-out Benefit roll.</div>
+      </button>
+      <button class="card" id="${prefix}soc" data-life-choice="soc">
+        <div class="card-title">SOC +1</div>
+        <div class="card-desc">Increase Social Standing by one.</div>
+      </button>`;
   }
 
   return { title, body, buttons };
