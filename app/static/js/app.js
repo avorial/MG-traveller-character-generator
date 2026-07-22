@@ -932,6 +932,8 @@ let uiState = {
   heroicRoll: false,
   // College skill pick: awaiting specialty selection for this skill name
   pcSkillSpecialtyPick: null,
+  event10Filter: '',
+  anySkillFilter: '',
   // Advancement bonus skill roll pending (after successful advancement)
   pendingAdvancementSkill: false,
   lastAdvanceRoll: null,     // stored advance roll data for restoring after bonus skill roll
@@ -941,13 +943,24 @@ let uiState = {
   bgExpandedCascade: null,
   // Shared cascade-skill specialty intercept (used by event/pre-career direct-API paths)
   pendingSkillGrant: null,
+  pendingMishapNoEject: false,
+  academyCommissionRoll: null,
+  cascadeCleanupMode: false,
+  cascadeCleanupChoices: {},
   // Aslan setup: intermediate roll result display (cleared when player clicks Continue)
   aslanRollResult: null,
   // Zhodani training: last talent train result (cleared when phase ends)
   zhodaniTrainResult: null,
+  racialBackgroundResult: null,
+  speciesSkillGrantPending: null,
+  speciesCasteChoicePending: null,
+  zhodaniPsiPending: null,
+  speciesExpandOther: false,
+  speciesOpenBooks: {},
   // Done phase
   lastCapsule: null,         // cached narrative text from /api/character/capsule
   psionicsOpen: false,       // player has clicked "OPEN PSIONICS PANEL"
+  useGoodFortune: false,
   // GM panel
   gmLastRolls: [],           // last set of forced rolls, shown in GM panel
 };
@@ -969,6 +982,82 @@ function capsuleForCharacter(charObj) {
 
 function syncCapsuleFromCharacter() {
   uiState.lastCapsule = capsuleForCharacter(character);
+}
+
+function defaultCareerFinalisingState() {
+  return {
+    careerChoice: null,
+    careerSkill: null,
+    career3Skills: [],
+    travellerPairId: null,
+    travellerSpecialties: {},
+    benefitId: null,
+  };
+}
+
+function resetTransientUiStateForCharacterLoad() {
+  Object.assign(uiState, {
+    selectedSpecies: null,
+    selectedBgSkills: new Set(),
+    selectedPreCareerSkills: new Set(),
+    selectedCareer: null,
+    selectedMusterIndex: null,
+    selectedAssignment: null,
+    selectedCoverCareer: null,
+    lastRoll: null,
+    swapPick: null,
+    swapA: 'EDU',
+    swapB: 'STR',
+    subPhase: null,
+    pendingAge: false,
+    agingResult: null,
+    agingNextAction: null,
+    agingSelectedStats: [],
+    anagathicsPhaseDone: false,
+    pendingNextTermAction: null,
+    connectionsDone: false,
+    connections: [],
+    basicTrainingSkills: null,
+    skillPackageApplied: false,
+    bgPackageMode: false,
+    selectedBgPackage: null,
+    bgPackageSkillChoices: {},
+    careerPackageMode: false,
+    careerPackagePhase: 'picker',
+    selectedCareerPackage: null,
+    careerPackageSkillChoices: {},
+    careerFinalising: defaultCareerFinalisingState(),
+    robotTab: 'frame',
+    extraStatsEnabled: false,
+    extraStatsSelected: new Set(),
+    extraStatsRolls: {},
+    heroicRoll: false,
+    pcSkillSpecialtyPick: null,
+    event10Filter: '',
+    anySkillFilter: '',
+    pendingAdvancementSkill: false,
+    lastAdvanceRoll: null,
+    pendingCareerSpecialty: null,
+    bgExpandedCascade: null,
+    pendingSkillGrant: null,
+    pendingMishapNoEject: false,
+    academyCommissionRoll: null,
+    aslanRollResult: null,
+    zhodaniTrainResult: null,
+    racialBackgroundResult: null,
+    speciesSkillGrantPending: null,
+    speciesCasteChoicePending: null,
+    zhodaniPsiPending: null,
+    speciesExpandOther: false,
+    speciesOpenBooks: {},
+    cascadeCleanupMode: false,
+    cascadeCleanupChoices: {},
+    lastCapsule: capsuleForCharacter(character),
+    psionicsOpen: false,
+    useGoodFortune: false,
+    gmLastRolls: [],
+    mobileTab: 'stage',
+  });
 }
 
 function loadCharacter() {
@@ -1000,44 +1089,7 @@ async function freshCharacter() {
   const data = await res.json();
   if (!data.character) throw new Error('Server returned no character data');
   character = data.character;
-  const keepGm   = uiState.gmMode;
-  const keepTheme = uiState.theme;
-  const keepHideDesc = uiState.hideDesc;
-  uiState = {
-    selectedSpecies: null,
-    selectedBgSkills: new Set(),
-    selectedPreCareerSkills: new Set(),
-    selectedCareer: null,
-    selectedMusterIndex: null,
-    selectedAssignment: null,
-    selectedCoverCareer: null,
-    lastRoll: null,
-    swapPick: null, swapA: 'EDU', swapB: 'STR',
-    subPhase: null, pendingAge: false,
-    agingResult: null, agingNextAction: null, agingSelectedStats: [],
-    anagathicsPhaseDone: false, pendingNextTermAction: null,
-    gmMode: keepGm,
-    theme: keepTheme,
-    hideDesc: keepHideDesc,
-    connectionsDone: false, connections: [],
-    basicTrainingSkills: null,
-    skillPackageApplied: false,
-    extraStatsEnabled: false,
-    extraStatsSelected: new Set(),
-    extraStatsRolls: {},
-    heroicRoll: false,
-    pcSkillSpecialtyPick: null,
-    pendingAdvancementSkill: false,
-    lastAdvanceRoll: null,
-    pendingCareerSpecialty: null,
-    bgExpandedCascade: null,
-    pendingSkillGrant: null,
-    pendingMishapNoEject: false,
-    aslanRollResult: null,
-    zhodaniTrainResult: null,
-    lastCapsule: null, psionicsOpen: false, gmLastRolls: [],
-    mobileTab: 'stage',
-  };
+  resetTransientUiStateForCharacterLoad();
   saveCharacter();
 }
 
@@ -1145,45 +1197,7 @@ function renderSavesModal() {
       if (!confirm(`Load "${slotName}"? This will replace your current character.`)) return;
       character = slot.character;
       saveCharacter();
-      // Reset transient UI state but keep theme/GM/desc
-      const keepGm    = uiState.gmMode;
-      const keepTheme = uiState.theme;
-      const keepHideDesc2 = uiState.hideDesc;
-      uiState = {
-        selectedSpecies: null,
-        selectedBgSkills: new Set(),
-        selectedPreCareerSkills: new Set(),
-        selectedCareer: null,
-        selectedMusterIndex: null,
-        selectedAssignment: null,
-        selectedCoverCareer: null,
-        lastRoll: null,
-        swapPick: null, swapA: 'EDU', swapB: 'STR',
-        subPhase: null, pendingAge: false,
-        agingResult: null, agingNextAction: null, agingSelectedStats: [],
-        anagathicsPhaseDone: false, pendingNextTermAction: null,
-        gmMode: keepGm,
-        theme: keepTheme,
-        hideDesc: keepHideDesc2,
-        connectionsDone: false, connections: [],
-        basicTrainingSkills: null,
-        skillPackageApplied: false,
-        extraStatsEnabled: false,
-        extraStatsSelected: new Set(),
-        extraStatsRolls: {},
-        heroicRoll: false,
-        pcSkillSpecialtyPick: null,
-        pendingAdvancementSkill: false,
-        lastAdvanceRoll: null,
-        pendingCareerSpecialty: null,
-        bgExpandedCascade: null,
-        pendingSkillGrant: null,
-        pendingMishapNoEject: false,
-        aslanRollResult: null,
-        zhodaniTrainResult: null,
-        lastCapsule: capsuleForCharacter(character), psionicsOpen: false, gmLastRolls: [],
-        mobileTab: 'stage',
-      };
+      resetTransientUiStateForCharacterLoad();
       document.getElementById('saves-modal').hidden = true;
       renderAll();
     });
@@ -13843,17 +13857,7 @@ async function importCharacter(file) {
     // "Your Traveller Is Ready" screen — where it can be pulled back in and
     // cleaned up (e.g. cascade-skill specialties) — and a mid-creation save
     // resumes at the correct step via the career sub-phase inference.
-    uiState.subPhase = null;
-    uiState.lastRoll = null;
-    uiState.lastAdvanceRoll = null;
-    uiState.cascadeCleanupMode = false;
-    uiState.cascadeCleanupChoices = {};
-    uiState.selectedMusterIndex = null;
-    uiState.selectedCareer = null;
-    uiState.selectedAssignment = null;
-    uiState.pendingCareerSpecialty = null;
-    uiState.pendingAdvancementSkill = false;
-    syncCapsuleFromCharacter();
+    resetTransientUiStateForCharacterLoad();
     saveCharacter();
     renderAll();
   } catch (e) {
