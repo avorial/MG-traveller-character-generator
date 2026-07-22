@@ -120,3 +120,12 @@ def test_frontend_cascade_skills_include_backend_specialties():
 
     missing = [literal for literal in required_literals if literal not in client]
     assert missing == []
+
+
+def test_background_skill_picker_uses_backend_table():
+    """Background skill UI should use the same table the backend validates."""
+    client = (ROOT / "app" / "static" / "js" / "app.js").read_text(encoding="utf-8")
+
+    assert "let BACKGROUND_SKILLS = [];" in client
+    assert "fetch('/api/background-skills')" in client
+    assert "const baseBgSkills = BACKGROUND_SKILLS.length ? BACKGROUND_SKILLS : fallbackBgSkills;" in client

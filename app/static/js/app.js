@@ -867,6 +867,7 @@ let CAREER_DATA = {};      // full career JSON (loaded async in bootstrap)
 let CAREER_PACKAGES = {};  // career_packages.json — loaded async in bootstrap
 
 let character = null;
+let BACKGROUND_SKILLS = [];
 let uiState = {
   // Transient selections that aren't part of the character yet
   selectedSpecies: null,
@@ -3796,10 +3797,10 @@ function renderBackgroundPhase() {
   const allowed = Math.max(0, eduDm + 3);
   const selected = uiState.selectedBgSkills;
 
-  // Load skill list from bootstrap (we'll fetch lazily)
-  const baseBgSkills = ['Admin', 'Animals', 'Art', 'Athletics', 'Carouse', 'Drive', 'Electronics',
+  const fallbackBgSkills = ['Admin', 'Animals', 'Art', 'Athletics', 'Carouse', 'Drive', 'Electronics',
     'Flyer', 'Language', 'Mechanic', 'Medic', 'Profession', 'Science', 'Seafarer',
     'Streetwise', 'Survival', 'Vacc Suit'];
+  const baseBgSkills = BACKGROUND_SKILLS.length ? BACKGROUND_SKILLS : fallbackBgSkills;
   // Merge in any species-specific extra background skills (e.g. Caprisap → Astrogation)
   const speciesDef = SPECIES.find(s => s.id === character.species_id);
   const extraBgSkills = (speciesDef && speciesDef.extra_background_skills) || [];
@@ -13940,6 +13941,14 @@ async function bootstrap() {
     if (pkgRes.ok) {
       const pkgData = await pkgRes.json();
       SKILL_PACKAGES = pkgData.packages || {};
+    }
+  } catch (e) { /* non-fatal */ }
+
+  try {
+    const bgRes = await fetch('/api/background-skills');
+    if (bgRes.ok) {
+      const bgData = await bgRes.json();
+      BACKGROUND_SKILLS = Array.isArray(bgData.skills) ? bgData.skills : [];
     }
   } catch (e) { /* non-fatal */ }
 
