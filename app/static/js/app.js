@@ -839,6 +839,8 @@ function createRobotFoundryExport(cfg) {
 // Skills that require a specialty when gained at level 1 (MgT 2e cascade skills).
 // Maps bare skill name → list of common specialties.
 const CASCADE_SKILLS = {
+  'Animals':        ['Handling', 'Riding', 'Veterinary', 'Training'],
+  'Art':            ['Performer', 'Holography', 'Instrument', 'Visual Media', 'Write'],
   'Athletics':      ['Dexterity', 'Endurance', 'Strength'],
   'Drive':          ['Hovercraft', 'Mole', 'Track', 'Walker', 'Wheel'],
   'Electronics':    ['Comms', 'Computers', 'Remote Ops', 'Sensors'],
@@ -848,11 +850,11 @@ const CASCADE_SKILLS = {
   'Gunner':         ['Capital', 'Ortillery', 'Screen', 'Turret'],
   'Heavy Weapons':  ['Artillery', 'Man Portable', 'Vehicle'],
   'Language':       ['Anglic', 'Bilanidin', 'Oynprith', 'Trokh', 'Zdetl'],
-  'Melee':          ['Blade', 'Bludgeon', 'Natural', 'Unarmed'],
+  'Melee':          ['Blade', 'Bludgeon', 'Infighting', 'Natural', 'Unarmed'],
   'Pilot':          ['Capital Ships', 'Small Craft', 'Spacecraft'],
   'Profession':     ['Belter', 'Biologicals', 'Civil Engineering', 'Construction',
                      'Hydroponics', "K'kree Ritual", 'Miner', 'Polymers', 'Religion'],
-  'Science':        ['Archaeology', 'Astronomy', 'Biology', 'Chemistry', 'Cosmology', 'Cybernetics', 'Economics', 'Genetics', 'History', 'Linguistics', 'Philosophy', 'Physics', 'Planetology', 'Psionicology', 'Psychology', 'Robotics', 'Sophontology', 'Xenology'],
+  'Science':        ['Archaeology', 'Astronomy', 'Belief', 'Biology', 'Chemistry', 'Cosmology', 'Cybernetics', 'Economics', 'Genetics', 'History', 'Linguistics', 'Philosophy', 'Physics', 'Planetology', 'Psionicology', 'Psychology', 'Robotics', 'Sophontology', 'Xenology'],
   'Seafarer':       ['Ocean Ships', 'Personal', 'Sail', 'Submarine'],
   'Tactics':        ['Military', 'Naval'],
 };

@@ -105,3 +105,18 @@ def test_transient_ui_state_keys_are_reset_on_character_load():
 
     assert sorted(used - initialized - persistent_preferences) == []
     assert sorted(used - reset - persistent_preferences) == []
+
+
+def test_frontend_cascade_skills_include_backend_specialties():
+    """Frontend specialty pickers must expose backend cascade skills."""
+    client = (ROOT / "app" / "static" / "js" / "app.js").read_text(encoding="utf-8")
+
+    required_literals = [
+        "'Animals':",
+        "'Art':",
+        "'Melee':          ['Blade', 'Bludgeon', 'Infighting', 'Natural', 'Unarmed']",
+        "'Science':        ['Archaeology', 'Astronomy', 'Belief'",
+    ]
+
+    missing = [literal for literal in required_literals if literal not in client]
+    assert missing == []
