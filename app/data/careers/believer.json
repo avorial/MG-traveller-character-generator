@@ -45,7 +45,7 @@
     },
     "advanced_education": {
       "name": "Advanced Education",
-      "min_edu": 8,
+      "requires_edu": 8,
       "1": "Language",
       "2": "Science (Belief)",
       "3": "Diplomat",
@@ -55,7 +55,7 @@
     },
     "mainstream_believer": {
       "name": "Mainstream Believer",
-      "assignment_only": true,
+      "assignment_only": "mainstream_believer",
       "1": "Profession (any)",
       "2": "Profession (Religion)",
       "3": "Science (Belief)",
@@ -65,7 +65,7 @@
     },
     "missionary_humanitarian": {
       "name": "Missionary/Humanitarian",
-      "assignment_only": true,
+      "assignment_only": "missionary_humanitarian",
       "1": "Jack-of-All-Trades",
       "2": "Medic",
       "3": "Persuade",
@@ -75,7 +75,7 @@
     },
     "holy_warrior": {
       "name": "Holy Warrior",
-      "assignment_only": true,
+      "assignment_only": "holy_warrior",
       "1": "Gun Combat (any)",
       "2": "Melee (any)",
       "3": "Explosives",

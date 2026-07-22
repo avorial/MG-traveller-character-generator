@@ -8458,7 +8458,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         elif choice_id == "event_navy_transfer":
             # navy event 10: skill choice OR transfer to Marines note
             if selected == "transfer":
-                character.pending_transfer_career_id = "marines"
+                character.pending_transfer_career_id = "marine"
                 auto_applied.append("Transfer accepted — will auto-qualify for Marines next term (no Qualification roll).")
                 character.pending_career_mishap_choice = None
             else:

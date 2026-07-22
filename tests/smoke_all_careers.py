@@ -10,8 +10,9 @@ Run:  python tests/smoke_all_careers.py
 import sys
 import copy
 import traceback
+from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\patricthomas\TravllerCC_work")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.engine import dice, lifepath, rules
 from app.engine.character import Character, Characteristics
@@ -100,7 +101,13 @@ def make_character(career_id: str, cdata: dict) -> Character:
     # K'kree: set required fields
     if "kkree" in career_id:
         char.kkree_wives = 2
-        char.kkree_family_members = 5
+        char.kkree_family_members = [
+            {"role": "warrior", "description": "Smoke-test warrior"},
+            {"role": "specialist", "description": "Smoke-test specialist"},
+            {"role": "servant", "description": "Smoke-test servant"},
+            {"role": "servant", "description": "Smoke-test servant"},
+            {"role": "servant", "description": "Smoke-test servant"},
+        ]
 
     # Aslan outcast needs pre_outcast_soc
     if "outcast" in career_id:

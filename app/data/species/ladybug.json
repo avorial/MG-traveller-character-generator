@@ -24,10 +24,9 @@
     ],
     "career_qualify_dms": {
         "army": -2,
-        "marines": -2,
+        "marine": -2,
         "navy": -2,
         "confederation_army": -2,
-        "confederation_marine": -2,
         "solomani_marine": -2,
         "zhodani_army": -2,
         "zhodani_navy": -2,
