@@ -114,6 +114,31 @@ def test_career_skill_table_gates_use_supported_keys(path):
                     f"unknown assignment {assignment_only!r}"
                 )
 
+
+@pytest.mark.parametrize("path", _career_files(), ids=lambda p: p.stem)
+def test_career_qualification_modifiers_use_supported_types(path):
+    """Qualification modifiers must use types handled by the engine."""
+    supported_types = {
+        "age",
+        "age_over",
+        "characteristic_minimum",
+        "last_career",
+        "note",
+        "per_previous_career",
+        "per_previous_term",
+        "soc_maximum",
+        "soc_minimum",
+    }
+    with open(path, encoding="utf-8-sig") as fh:
+        raw = json.load(fh)
+    entries = raw if isinstance(raw, list) else [raw]
+    for entry in entries:
+        for modifier in (entry.get("qualification", {}) or {}).get("modifiers", []) or []:
+            assert modifier.get("type") in supported_types, (
+                f"{path.name}: qualification modifier uses unsupported type "
+                f"{modifier.get('type')!r}"
+            )
+
 # ---------------------------------------------------------------------------
 # Species file tests
 # ---------------------------------------------------------------------------
@@ -162,6 +187,10 @@ def test_species_career_references_exist(path):
     for entry in entries:
         if entry.get("deprecated"):
             continue
+        assert "allowed_careers" not in entry, (
+            f"{path.name}: allowed_careers is ignored by the engine; "
+            "use allowed_career_ids"
+        )
         for field in ("allowed_career_ids", "blocked_careers"):
             for career_id in entry.get(field, []) or []:
                 assert career_id in valid_careers, (

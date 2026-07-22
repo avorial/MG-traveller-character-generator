@@ -98,3 +98,12 @@ def test_ladybug_marine_qualification_penalty_applies():
     assert result["roll"]["modifier"] == -2
     assert result["roll"]["total"] == 5
     assert result["succeeded"] is False
+
+
+def test_species_allowed_career_ids_blocks_disallowed_careers():
+    character = Character(phase="career", species_id="gmina")
+
+    result = lifepath.qualify_for_career(character, "army")
+
+    assert result["succeeded"] is False
+    assert result["reason"] == "Gmina may only enter: Drifter."

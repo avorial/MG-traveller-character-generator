@@ -22,7 +22,7 @@
     "Flyer: On worlds of Size 4 or less with Atmosphere 4+, Thonane can fly at Speed 9 after a 9-metre running start. Ground movement speed is 3 metres.",
     "Hunter: All Thonane possess Flyer (natural) 1, Melee 0, Recon 1, and Survival 1. DM+1 on all Recon checks and DM+2 on Stealth checks in snowy terrain."
   ],
-  "allowed_careers": [
+  "allowed_career_ids": [
     "drifter"
   ],
   "career_notes": "Thonane can only follow Drifter (Barbarian) but may substitute Flyer (natural) in lieu of any Animals, Seafarer, or Melee skills rolled.",

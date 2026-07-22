@@ -29,3 +29,18 @@ def test_unknown_background_skill_still_rejected():
 
     with pytest.raises(ValueError, match="Not a background skill"):
         lifepath.set_background_skills(character, ["Astrogation"])
+
+
+def test_species_starting_skills_are_applied():
+    character = Character(phase="species")
+
+    lifepath.apply_species(character, "teakhea")
+
+    assert isinstance(character.traits[0], dict)
+    assert character.traits[0]["name"] == "Amphibious"
+    assert any(
+        skill.name == "Language"
+        and skill.speciality == "Trokh"
+        and skill.level == 2
+        for skill in character.skills
+    )

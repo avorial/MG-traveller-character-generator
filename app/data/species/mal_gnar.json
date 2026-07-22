@@ -17,7 +17,7 @@
     "No Galanglic: Mal'Gnar begin with no knowledge of Galanglic or any offworld language.",
     "Caste Society: Deviation from caste roles is punished by banishment or death on their homeworld."
   ],
-  "allowed_careers": [
+  "allowed_career_ids": [
     "drifter"
   ],
   "career_notes": "Drifter (Barbarian) is the only suitable career for a Mal'Gnar Traveller.",

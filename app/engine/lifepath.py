@@ -1230,7 +1230,7 @@ def apply_species(character: Character, species_id: str) -> dict:
         character.characteristics.set(stat, new_val)
         applied[stat] = {"from": current, "to": new_val, "delta": delta}
 
-    character.traits = species_data.get("traits", [])
+    character.traits = Character._normalise_traits(species_data.get("traits", []))
 
     # Apply species-specific starting age if defined (e.g. Dolphins start at 12)
     starting_age = species_data.get("starting_age")
@@ -1339,6 +1339,19 @@ def apply_species(character: Character, species_id: str) -> dict:
         character.add_skill(sn, level=level, speciality=spec)
         display = f"{sn} ({spec})" if spec else sn
         character.log(f"Species background skill: {display} {level}")
+
+    # Auto-grant explicit species starting skills (e.g. Teakhea: Language (Trokh) 2).
+    for skill_entry in (species_data.get("starting_skills", []) or []):
+        level = 0
+        entry = skill_entry.strip()
+        m = re.search(r"\s+(\d+)\s*$", entry)
+        if m:
+            level = int(m.group(1))
+            entry = entry[: m.start()].strip()
+        sn, spec = _split_skill_speciality(entry)
+        character.add_skill(sn, level=level, speciality=spec, fixed_level=True)
+        display = f"{sn} ({spec})" if spec else sn
+        character.log(f"Species starting skill: {display} {level}")
 
     # Auto-grant species starting equipment (e.g. natural armour items).
     # Each entry may have: name (str), notes (str), protection (int).
@@ -5846,8 +5859,10 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
     # Species allowed_career_ids whitelist (e.g. Floriani Feskal/Barnai — restricted career lists)
     _sp_career_allowed = _qual_sp_data.get("allowed_career_ids") or []
     if _sp_career_allowed and career_id not in _sp_career_allowed:
-        _readable = ", ".join(c.capitalize() for c in _sp_career_allowed
-                              if c not in ("drifter", "prisoner"))
+        _readable = ", ".join(
+            rules.careers().get(c, {}).get("name", c.replace("_", " ").title())
+            for c in _sp_career_allowed
+        )
         return _qual_block(
             f"{_qual_sp_data.get('name', 'This species')} may only enter: {_readable}."
         )
@@ -6171,15 +6186,40 @@ def qualify_for_career(character: Character, career_id: str) -> dict:
             dm += mod["dm"] * character.total_terms
         elif mod["type"] == "age" and character.age >= mod.get("threshold", mod.get("age_threshold", 99)):
             dm += mod["dm"]
+        elif mod["type"] == "age_over" and character.age > mod.get("age", 99):
+            dm += mod["dm"]
         elif mod["type"] == "last_career":
             # DM applies if the most recent completed career is in the list
             careers_list = mod.get("careers", [])
             if character.completed_careers and character.completed_careers[-1].career_id in careers_list:
                 dm += mod["dm"]
         elif mod["type"] == "soc_minimum":
-            # DM if SOC meets or exceeds threshold
-            if _get_stat(character, "SOC") >= mod.get("soc", 99):
+            # Positive/negative DM modifiers apply if SOC meets the threshold.
+            # DM 0 entries are hard access gates, used by Zhodani careers.
+            soc_required = mod.get("soc", 99)
+            soc_value = _get_stat(character, "SOC")
+            if int(mod.get("dm", 0)) == 0 and soc_value < soc_required:
+                character.failed_qualifications_this_term += 1
+                reason = mod.get("note") or f"SOC {soc_required}+ required to qualify."
+                character.log(f"Qualification blocked for {career['name']}: {reason}")
+                return {
+                    "automatic": False, "succeeded": False,
+                    "character": character.model_dump(), "roll": None, "reason": reason,
+                }
+            if soc_value >= soc_required:
                 dm += mod["dm"]
+        elif mod["type"] == "soc_maximum":
+            soc_maximum = mod.get("soc", 99)
+            soc_value = _get_stat(character, "SOC")
+            if soc_value > soc_maximum:
+                character.failed_qualifications_this_term += 1
+                reason = mod.get("note") or f"SOC {soc_maximum}- required to qualify."
+                character.log(f"Qualification blocked for {career['name']}: {reason}")
+                return {
+                    "automatic": False, "succeeded": False,
+                    "character": character.model_dump(), "roll": None, "reason": reason,
+                }
+            dm += mod.get("dm", 0)
         elif mod["type"] == "characteristic_minimum":
             # DM+N if a characteristic meets or exceeds a minimum value
             _char_val = _get_stat(character, mod.get("characteristic", "STR"))

@@ -19,7 +19,7 @@
     "Infrared Vision: Gmina see into the infrared spectrum, conferring DM+1 to initiative and Recon checks.",
     "Multi-Limbed: May use up to two major items simultaneously and receive two sets of actions each round. DM-2 with equipment not manufactured or modified for their use."
   ],
-  "allowed_careers": [
+  "allowed_career_ids": [
     "drifter"
   ],
   "career_notes": "Gmina may only enter the Drifter (Barbarian) career. A Gmina who has escaped Yangikent may enter any Drifter assignment.",

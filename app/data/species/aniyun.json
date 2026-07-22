@@ -17,7 +17,7 @@
     "Armour (+2): The rigid carapace provides Protection +2.",
     "Flight: In native nitrogen-methane atmosphere Aniyun can fly at Speed 6. Environmental suits prevent wing deployment in all other environments."
   ],
-  "allowed_careers": [
+  "allowed_career_ids": [
     "citizen",
     "drifter"
   ],
