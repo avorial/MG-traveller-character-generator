@@ -7664,6 +7664,8 @@ def mishap_roll(character: Character, suppress_ejection_effects: bool = False) -
         msgs, was_pending = _apply_mishap_effect(character, effect, term)
         auto_applied.extend(msgs)
         if was_pending:
+            if suppress_ejection_effects and character.pending_career_mishap_choice is not None:
+                character.pending_career_mishap_choice["suppress_ejection_effects"] = True
             pending_set = True
             pending_choice = character.pending_career_mishap_choice
 
@@ -10777,6 +10779,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         # any pending-creating sub_effect (e.g. a chained skill_choice) can actually land.
         character.pending_career_mishap_choice = None
         consequences = on_nat2 if nat2 else (on_pass if passed else on_fail)
+        suppress_ejection_effects = bool(pending.get("suppress_ejection_effects"))
         new_pending_set = False
         disaster_mishap_result: Optional[dict] = None
         for sub_effect in consequences:
@@ -10785,6 +10788,12 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 inj = apply_injury(character)
                 if inj:
                     auto_applied.append(f"Injury: {inj.get('description', 'injured')}")
+            elif suppress_ejection_effects and sub_effect.get("type") in {"force_career_end", "force_next_career"}:
+                auto_applied.append("Ejection effect ignored — event says career continues")
+                character.log(
+                    "Mishap ejection effect ignored because the triggering event says the "
+                    "character is not ejected from this career."
+                )
             elif sub_effect.get("type") == "trigger_disaster_mishap":
                 # Call mishap_roll directly so we can capture the full result dict and
                 # correctly detect whether it set a new pending choice.
@@ -10792,7 +10801,7 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 try:
                     disaster_mishap_result = mishap_roll(
                         character,
-                        suppress_ejection_effects=career_continues,
+                        suppress_ejection_effects=career_continues or suppress_ejection_effects,
                     )
                     if career_continues and term is not None:
                         term.survived = True

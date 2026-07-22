@@ -130,3 +130,37 @@ def test_non_ejecting_mishap_roll_ignores_forced_next_career_effect():
     assert character.forced_next_career_id is None
     assert character.current_term.benefit_forfeited is True
     assert any("Ejection effect ignored" in msg for msg in result["auto_applied"])
+
+
+def test_non_ejecting_mishap_preserves_suppression_for_nested_skill_check():
+    character = Character(phase="career")
+    character.current_term = CareerTerm(
+        career_id="agent",
+        assignment_id="law_enforcement",
+        term_number=1,
+        overall_term_number=1,
+        rank=0,
+        survived=False,
+    )
+
+    dice.set_forced_rolls([3])
+    try:
+        mishap = lifepath.mishap_roll(character, suppress_ejection_effects=True)
+    finally:
+        dice.clear_forced_rolls()
+
+    assert mishap["mishap_number"] == 3
+    assert character.pending_career_mishap_choice["suppress_ejection_effects"] is True
+
+    dice.set_forced_rolls([2])
+    try:
+        result = lifepath.resolve_career_mishap_choice(
+            character,
+            {"skill_name": "Advocate"},
+        )
+    finally:
+        dice.clear_forced_rolls()
+
+    assert result["skill_check"]["nat2"] is True
+    assert character.forced_next_career_id is None
+    assert any("Ejection effect ignored" in msg for msg in result["auto_applied"])
