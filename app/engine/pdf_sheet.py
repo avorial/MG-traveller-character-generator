@@ -141,7 +141,7 @@ def species_name(sid: str) -> str:
 
 def career_label(career_id: str, assignment_id: str) -> str:
     m = {
-        "navy": "Navy", "marines": "Marines", "army": "Army", "scouts": "Scouts",
+        "navy": "Navy", "marine": "Marines", "army": "Army", "scout": "Scouts",
         "merchant": "Merchant", "agent": "Agent", "noble": "Noble",
         "drifter": "Drifter", "entertainer": "Entertainer", "scholar": "Scholar",
         "rogue": "Rogue", "citizen": "Citizen", "prisoner": "Prisoner",
