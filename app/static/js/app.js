@@ -7109,7 +7109,8 @@ function wireCareerPhase() {
     btnForcedMishap.addEventListener('click', async () => {
       btnForcedMishap.disabled = true;
       try {
-        const response = await apiCall('/api/character/mishap');
+        const noEject = /not ejected|career continues/i.test(uiState.lastRoll?.eventText || '');
+        const response = await apiCall('/api/character/mishap', { mishap_no_eject: noEject });
         await applyResponse(response);
         if (uiState.lastRoll && uiState.lastRoll.type === 'event') {
           uiState.lastRoll.mishapFromEvent = {
@@ -7117,7 +7118,7 @@ function wireCareerPhase() {
             text: response.mishap,
             frozenWatch: response.frozen_watch || false,
             // Event says character is not ejected (e.g. Merchant[2])
-            noEject: /not ejected|career continues/i.test(uiState.lastRoll?.eventText || ''),
+            noEject,
           };
         }
         renderAll();

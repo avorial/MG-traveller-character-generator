@@ -61,3 +61,72 @@ def test_unresolved_injury_blocks_advancement_and_term_end():
 
     with pytest.raises(ValueError, match="pending injury"):
         lifepath.end_term(character, leaving=False)
+
+
+def test_event_triggered_non_ejecting_mishap_suppresses_forced_prisoner():
+    character = Character(phase="career")
+    character.characteristics = Characteristics(
+        STR=11, DEX=6, END=7, INT=10, EDU=7, SOC=5
+    )
+    character.current_term = CareerTerm(
+        career_id="rogue",
+        assignment_id="thief",
+        term_number=1,
+        overall_term_number=2,
+        rank=0,
+        survived=True,
+    )
+    character.pending_career_event_choice = {
+        "type": "skill_check",
+        "skills": [{"name": "Stealth"}, {"name": "Deception"}],
+        "target": 8,
+        "on_pass": [
+            {"type": "contact", "desc": "Contact [Major Criminal Syndicate]"},
+            {"type": "dm_advancement", "amount": 2},
+        ],
+        "on_fail": [
+            {"type": "enemy", "desc": "Enemy [Crime Syndicate]"},
+            {"type": "trigger_disaster_mishap"},
+        ],
+        "prompt": "Syndicate job.",
+    }
+
+    dice.set_forced_rolls([6, 2])
+    try:
+        result = lifepath.resolve_career_event_choice(
+            character,
+            {"skill_name": "Deception"},
+        )
+    finally:
+        dice.clear_forced_rolls()
+
+    assert result["skill_check"]["passed"] is False
+    assert result["disaster_mishap"]["mishap_number"] == 2
+    assert character.current_term.survived is True
+    assert character.current_term.mishap is None
+    assert character.forced_next_career_id is None
+    assert character.current_term.benefit_forfeited is True
+    assert any(a.description == "Enemy [Crime Syndicate]" for a in character.associates)
+
+
+def test_non_ejecting_mishap_roll_ignores_forced_next_career_effect():
+    character = Character(phase="career")
+    character.current_term = CareerTerm(
+        career_id="rogue",
+        assignment_id="thief",
+        term_number=1,
+        overall_term_number=1,
+        rank=0,
+        survived=False,
+    )
+
+    dice.set_forced_rolls([2])
+    try:
+        result = lifepath.mishap_roll(character, suppress_ejection_effects=True)
+    finally:
+        dice.clear_forced_rolls()
+
+    assert result["mishap_number"] == 2
+    assert character.forced_next_career_id is None
+    assert character.current_term.benefit_forfeited is True
+    assert any("Ejection effect ignored" in msg for msg in result["auto_applied"])

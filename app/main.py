@@ -75,6 +75,8 @@ class CharacterAction(BaseModel):
     heroic: bool = False
     # Extra optional stats to roll (PSI, WLT, LCK, MRL, STY, TER).
     extra_stats: list[str] = []
+    # Event-triggered mishap roll where the event text says career continues.
+    mishap_no_eject: bool = False
 
     def model_post_init(self, __context) -> None:
         if self.gm_rolls:
@@ -779,7 +781,10 @@ async def api_event(action: CharacterAction):
 async def api_mishap(action: CharacterAction):
     character = action.character.model_copy(deep=True)
     try:
-        return lifepath.mishap_roll(character)
+        return lifepath.mishap_roll(
+            character,
+            suppress_ejection_effects=action.mishap_no_eject,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 

@@ -7561,7 +7561,7 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
         # career_continues=False ends the career (sets force_career_end-equivalent via ejected_by_event after mishap).
         career_continues = effect.get("career_continues", True)
         try:
-            mishap_roll(character)
+            mishap_roll(character, suppress_ejection_effects=career_continues)
             if career_continues and term is not None:
                 term.survived = True
                 term.mishap = None
@@ -7581,7 +7581,7 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
     return msgs, set_pending
 
 
-def mishap_roll(character: Character) -> dict:
+def mishap_roll(character: Character, suppress_ejection_effects: bool = False) -> dict:
     """Roll on the career's mishap table (1D) after a failed survival.
 
     Processes _MISHAP_EFFECTS for the career and auto-applies or sets pending
@@ -7632,6 +7632,14 @@ def mishap_roll(character: Character) -> dict:
 
     for effect in effects:
         etype = effect["type"]
+
+        if suppress_ejection_effects and etype in {"force_career_end", "force_next_career"}:
+            auto_applied.append("Ejection effect ignored — event says career continues")
+            character.log(
+                "Mishap ejection effect ignored because the triggering event says the "
+                "character is not ejected from this career."
+            )
+            continue
 
         if etype == "injury":
             if injury_data is None:
@@ -7743,7 +7751,7 @@ def _apply_event_effects(character: "Character", career_id: str, event_num: int,
         if etype == "trigger_disaster_mishap":
             # Roll on the career's own mishap table; career is NOT ended.
             try:
-                disaster_result = mishap_roll(character)
+                disaster_result = mishap_roll(character, suppress_ejection_effects=True)
                 # For Droyne, the continuation check in mishap_roll already set
                 # term.survived — don't override it if the check failed.
                 cont = disaster_result.get("continuation_no_eject") if disaster_result else None
@@ -10782,7 +10790,10 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
                 # correctly detect whether it set a new pending choice.
                 career_continues = sub_effect.get("career_continues", True)
                 try:
-                    disaster_mishap_result = mishap_roll(character)
+                    disaster_mishap_result = mishap_roll(
+                        character,
+                        suppress_ejection_effects=career_continues,
+                    )
                     if career_continues and term is not None:
                         term.survived = True
                         term.mishap = None
