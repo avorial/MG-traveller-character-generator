@@ -7008,6 +7008,41 @@ def _grant_knight_grand_cross(character: "Character") -> list[str]:
     return msgs
 
 
+def _skill_display_name(skill) -> str:
+    return f"{skill.name}{f' ({skill.speciality})' if skill.speciality else ''}"
+
+
+def _known_skill_choice_options(character: "Character") -> list[str]:
+    options = []
+    seen = set()
+    for skill in sorted(character.skills or [], key=lambda s: (s.name.lower(), s.speciality or "")):
+        label = _skill_display_name(skill)
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        options.append(label)
+    return options
+
+
+def _free_skill_choice_options(character: "Character", prompt: str) -> list[str]:
+    prompt_l = (prompt or "").lower()
+    existing_skill_prompt = any(
+        phrase in prompt_l
+        for phrase in (
+            "already have",
+            "already possessed",
+            "you already possess",
+            "you possess",
+            "skill you have",
+            "skill you already",
+        )
+    )
+    if existing_skill_prompt:
+        return _known_skill_choice_options(character)
+    return []
+
+
 def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[list[str], bool]:
     """Apply a single mishap effect. Returns (auto_applied_msgs, set_pending).
 
@@ -7179,6 +7214,18 @@ def _apply_mishap_effect(character: "Character", effect: dict, term) -> tuple[li
                 "options": effect["options"],
                 "prompt": f"Choose one skill to gain at level 1: {', '.join(effect['options'])}",
             }
+            set_pending = True
+
+    elif etype == "free_skill_choice":
+        if not character.pending_career_mishap_choice:
+            prompt = effect.get("prompt", "Enter any skill name:")
+            character.pending_career_mishap_choice = {
+                "type": "free_skill_choice",
+                "prompt": prompt,
+                "options": _free_skill_choice_options(character, prompt),
+            }
+            if effect.get("exclude"):
+                character.pending_career_mishap_choice["exclude"] = effect["exclude"]
             set_pending = True
 
     elif etype == "skill_loss_choice":
@@ -10892,7 +10939,11 @@ def resolve_career_mishap_choice(character: "Character", choice_data: dict) -> d
         skill = choice_data.get("skill", "")
         if not skill:
             raise ValueError("skill is required for free_skill_choice")
-        msg = character.add_skill(skill, level=1)
+        options = pending.get("options", [])
+        if options and skill not in options:
+            raise ValueError(f"'{skill}' not in options {options}")
+        sn, spec = _split_skill_speciality(skill)
+        msg = character.add_skill(sn, level=1, speciality=spec)
         auto_applied.append(msg)
         character.log(f"Mishap free skill choice: {skill}")
         character.pending_career_mishap_choice = None

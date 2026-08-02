@@ -10505,14 +10505,21 @@ function renderEventStep() {
             </div>
           </div>`;
       } else if (pecType === 'free_skill_choice') {
+        const freeOpts = pec.options || [];
         pendingEventChoiceHTML = `
           <div class="event-skill-picker">
             <span class="event-label">Free skill choice</span>
             <p class="picker-status" style="margin:0 0 6px 0;color:var(--amber-dim)"><em>${escapeHTML(pec.prompt || 'Enter any skill name:')}</em></p>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <input type="text" id="input-event-freeskill" style="background:var(--bg2);color:var(--fg);border:1px solid var(--border);padding:4px 8px;border-radius:4px" placeholder="Skill name" />
-              <button class="btn" id="btn-event-freeskill-confirm">CONFIRM</button>
-            </div>
+            ${freeOpts.length ? `
+              <div class="skill-picker">
+                ${freeOpts.map(sk => `<button class="skill-chip event-choice-skill" data-event-choice-skill="${escapeHTML(sk)}">+ ${escapeHTML(sk)}</button>`).join('')}
+              </div>
+            ` : `
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="input-event-freeskill" style="background:var(--bg2);color:var(--fg);border:1px solid var(--border);padding:4px 8px;border-radius:4px" placeholder="Skill name" />
+                <button class="btn" id="btn-event-freeskill-confirm">CONFIRM</button>
+              </div>
+            `}
           </div>`;
       } else if (pecType === 'skill_check') {
         pendingEventChoiceHTML = `
